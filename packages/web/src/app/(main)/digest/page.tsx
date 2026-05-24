@@ -178,12 +178,12 @@ const MONTHLY_CSS = `
 .mthly .trending .t.hot::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--color-danger);margin-right:5px;vertical-align:middle}
 
 /* feed grid */
-.mthly .feed{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;flex:1;min-height:0;overflow:auto;align-content:start;padding:2px 0}
+.mthly .feed{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-content:start;padding:2px 0}
 
-.mthly .post{background:var(--color-surface);border:1px solid var(--color-line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;break-inside:avoid;transition:.12s;cursor:pointer}
+.mthly .post{background:var(--color-surface);border:1px solid var(--color-line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;break-inside:avoid;transition:.12s;cursor:pointer;min-height:280px}
 .mthly .post:hover{border-color:var(--color-line-2);box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .mthly .post .cover{
-  aspect-ratio:2/1;position:relative;overflow:hidden;
+  height:120px;position:relative;overflow:hidden;
   background:var(--color-surface-2);
   display:flex;align-items:flex-end;padding:14px;
   flex-shrink:0;
@@ -472,13 +472,10 @@ export default function DigestPage() {
 
       {/* ── Scrollable content ─────────────────────────────────────────────── */}
       <div style={{
-        flex: 1,
-        minHeight: 0,
-        overflowY: 'auto',
+        padding: '24px 32px 32px',
         display: 'flex',
         flexDirection: 'column',
         gap: '18px',
-        paddingBottom: '32px',
       }} className="mthly">
 
         {loading ? (
