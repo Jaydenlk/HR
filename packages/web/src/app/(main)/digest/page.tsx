@@ -14,8 +14,10 @@ interface FeedItem {
   role: string | null;
   outcome: string | null;
   source: string;
+  source_name: string | null;
   category: string;
   source_url: string | null;
+  author: string | null;
   created_at: string;
   user: { id: string; name: string } | null;
 }
@@ -117,8 +119,16 @@ function timeAgo(dateStr: string): string {
 }
 
 function truncate(text: string, max: number): string {
-  if (text.length <= max) return text;
-  return text.slice(0, max).trimEnd() + '...';
+  // Strip raw URLs from content excerpts
+  const cleaned = text
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/查看详情:\s*/g, '')
+    .replace(/来源:\s*\S+/g, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+  const display = cleaned || text;
+  if (display.length <= max) return display;
+  return display.slice(0, max).trimEnd() + '...';
 }
 
 /* ─── Styles (injected as <style>) ───────────────────────────────────────── */
@@ -173,9 +183,10 @@ const MONTHLY_CSS = `
 .mthly .post{background:var(--color-surface);border:1px solid var(--color-line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;break-inside:avoid;transition:.12s;cursor:pointer}
 .mthly .post:hover{border-color:var(--color-line-2);box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .mthly .post .cover{
-  aspect-ratio:1.5/1;position:relative;overflow:hidden;
+  aspect-ratio:2/1;position:relative;overflow:hidden;
   background:var(--color-surface-2);
   display:flex;align-items:flex-end;padding:14px;
+  flex-shrink:0;
 }
 .mthly .post .cover .blob{
   position:absolute;width:200px;height:200px;border-radius:50%;
@@ -202,7 +213,7 @@ const MONTHLY_CSS = `
 }
 .mthly .post .cover .like-text svg{width:11px;height:11px}
 
-.mthly .post .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
+.mthly .post .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1 1 auto;min-height:0}
 .mthly .post .ttl{font-size:14.5px;font-weight:600;color:var(--color-ink);line-height:1.35;letter-spacing:-.005em}
 .mthly .post .ex{font-size:12.5px;color:var(--color-ink-3);font-weight:500;line-height:1.5;margin:0}
 .mthly .post .foot{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px;font-size:11.5px;color:var(--color-ink-3);font-weight:500}
@@ -308,12 +319,20 @@ export default function DigestPage() {
   /* ── Featured items ─────────────────────────────────────────────────────── */
 
   const featuredHero = useMemo(() => {
-    // Use the first editorial/story item as the hero, or first item
-    return items.find((i) => i.category === 'market_insight') ?? items[0] ?? null;
+    // Prefer curated editorial content for the hero, never raw GitHub imports
+    const editorialSources = ['ugc', 'ai_digest'];
+    const editorial = items.find(
+      (i) =>
+        (i.category === 'market_insight' || i.category === 'trending') &&
+        editorialSources.includes(i.source),
+    );
+    if (editorial) return editorial;
+    // Fallback: any non-github item, or null (show default placeholder)
+    return items.find((i) => i.source !== 'github') ?? null;
   }, [items]);
 
   const hotItem = useMemo(() => {
-    return items.find((i) => i.category === 'trending') ?? null;
+    return items.find((i) => i.category === 'trending' && i.source !== 'github') ?? null;
   }, [items]);
 
   /* ── Handlers ───────────────────────────────────────────────────────────── */
@@ -487,11 +506,11 @@ export default function DigestPage() {
                 {featuredHero ? (
                   <>
                     <h2>{featuredHero.title}</h2>
-                    <p>{truncate(featuredHero.content, 100)}</p>
+                    <p>{truncate(featuredHero.content, 140)}</p>
                     <div className="meta-row">
                       <span>12 min 阅读</span>
                       <span>·</span>
-                      <span>{featuredHero.user?.name ?? '编辑部'}</span>
+                      <span>{featuredHero.author ?? featuredHero.user?.name ?? '编辑部'}</span>
                       <span>·</span>
                       <span>{timeAgo(featuredHero.created_at)}</span>
                     </div>
@@ -673,14 +692,10 @@ export default function DigestPage() {
                         )}
                         <div className="foot">
                           <span className="av-init">
-                            {(item.user?.name ?? item.source ?? 'U')[0].toUpperCase()}
+                            {(item.author ?? item.user?.name ?? item.source_name ?? item.source ?? 'U')[0].toUpperCase()}
                           </span>
                           <span>
-                            <b>{item.user?.name ?? item.source}</b> · {timeAgo(item.created_at)}
-                          </span>
-                          <span className="stats">
-                            <span>·</span>
-                            <span>{timeAgo(item.created_at)}</span>
+                            <b>{item.author ?? item.user?.name ?? item.source_name ?? item.source}</b> · {timeAgo(item.created_at)}
                           </span>
                         </div>
                       </div>
@@ -697,7 +712,7 @@ export default function DigestPage() {
       {showForm && (
         <div
           className="mthly"
-          style={{ position: 'contents' as 'fixed' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 999 }}
         >
           <div
             className="modal-overlay"
