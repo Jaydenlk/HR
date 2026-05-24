@@ -149,3 +149,28 @@ export interface Conversation {
   updated_at: string;
   messages?: ChatMessage[];
 }
+
+export interface Application {
+  id: string;
+  company: string;
+  role: string;
+  location: string | null;
+  stage: 'wishlist' | 'applied' | 'interview' | 'final' | 'offer' | 'rejected';
+  salary_range: string | null;
+  deadline: string | null;
+  referrer: string | null;
+  notes: string | null;
+  resume_id: string | null;
+  diagnosis_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApplicationEvent {
+  id: string;
+  application_id: string;
+  type: string;
+  note: string | null;
+  occurred_at: string;
+  created_at: string;
+}

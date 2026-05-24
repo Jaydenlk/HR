@@ -1,0 +1,91 @@
+'use client';
+
+interface TrackerStatsProps {
+  stats: Record<string, number>;
+}
+
+interface StatTile {
+  key: string;
+  label: string;
+  color: string;
+  bg: string;
+}
+
+const TILES: StatTile[] = [
+  { key: 'wishlist',  label: '想投',  color: 'var(--color-ink-3)',  bg: 'var(--color-surface-2)' },
+  { key: 'applied',   label: '已投',  color: 'var(--color-brand)',  bg: 'var(--color-brand-soft)' },
+  { key: 'interview', label: '面试中', color: 'var(--color-warn)',   bg: 'var(--color-warn-soft)' },
+  { key: 'final',     label: '终面',  color: '#a855f7',             bg: '#f3e8ff' },
+  { key: 'offer',     label: 'Offer', color: 'var(--color-success)', bg: 'var(--color-success-soft)' },
+];
+
+export function TrackerStats({ stats }: TrackerStatsProps) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: '12px',
+        marginBottom: '20px',
+      }}
+    >
+      {TILES.map((tile) => {
+        const count = stats[tile.key] ?? 0;
+        return (
+          <div
+            key={tile.key}
+            style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-line)',
+              borderRadius: '14px',
+              padding: '16px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: tile.color,
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--color-ink-3)',
+                  fontWeight: 600,
+                  letterSpacing: '-0.003em',
+                }}
+              >
+                {tile.label}
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: '28px',
+                fontWeight: 800,
+                color: tile.color,
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              {count}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
