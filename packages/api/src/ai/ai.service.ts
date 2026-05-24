@@ -24,7 +24,7 @@ interface CompleteStructuredParams {
 @Injectable()
 export class AiService {
   private readonly clouddreamClient: Anthropic;
-  private readonly deepseekClient: OpenAI;
+  private readonly deepseekClient: OpenAI | null;
 
   private readonly clouddreamModel: string;
   private readonly deepseekModel: string;
@@ -43,7 +43,7 @@ export class AiService {
     const deepseekKey = process.env.DEEPSEEK_API_KEY;
     this.deepseekClient = deepseekKey
       ? new OpenAI({ apiKey: deepseekKey, baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1' })
-      : (null as unknown as OpenAI);
+      : null;
 
     this.clouddreamModel = process.env.CLOUDDREAM_MODEL ?? 'auto-v2';
     this.deepseekModel = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat';

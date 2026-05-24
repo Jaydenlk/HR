@@ -343,8 +343,23 @@ export default function SalaryPage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [entriesData, statsData] = await Promise.all([
+          api.get<SalaryEntry[]>('/salary'),
+          api.get<SalaryStats>('/salary/stats'),
+        ]);
+        setEntries(entriesData);
+        setStats(statsData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '加载失败');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   async function handleSubmit(data: SubmitFormData) {
     const payload = {

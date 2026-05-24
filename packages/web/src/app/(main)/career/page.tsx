@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { CareerAnalysis, CareerPath } from '@/lib/types';
 import { RefreshCw, Loader2, Map } from 'lucide-react';
@@ -136,7 +137,24 @@ export default function CareerPage() {
   }
 
   useEffect(() => {
-    fetchAnalysis();
+    (async () => {
+      setLoading(true);
+      setError(null);
+      setNoResume(false);
+      try {
+        const data = await api.get<CareerAnalysis>('/career/analysis');
+        setAnalysis(data);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '分析失败';
+        if (msg.includes('404') || msg.includes('no resume') || msg.includes('简历')) {
+          setNoResume(true);
+        } else {
+          setError(msg);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const cardStyle: React.CSSProperties = {
@@ -293,7 +311,7 @@ export default function CareerPage() {
           <p style={{ fontSize: '13.5px', color: 'var(--color-ink-4)' }}>
             职业地图需要分析你的技能和经历，前往「简历馆」上传简历后再回来
           </p>
-          <a
+          <Link
             href="/resumes"
             style={{
               display: 'inline-flex',
@@ -310,7 +328,7 @@ export default function CareerPage() {
             }}
           >
             前往简历馆
-          </a>
+          </Link>
         </div>
       ) : error ? (
         <div

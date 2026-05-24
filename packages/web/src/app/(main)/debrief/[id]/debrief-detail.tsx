@@ -7,7 +7,7 @@ import type { Interview } from '@/lib/types';
 import { ScoreRadar } from '@/components/interview/score-radar';
 import { QuestionCard } from '@/components/interview/question-card';
 import { PredictionCard } from '@/components/interview/prediction-card';
-import { ArrowLeft, Building2, Calendar, Clock, User, Sparkles, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw } from 'lucide-react';
 
 function gradeColors(grade: string | null): { bg: string; text: string } {
   if (!grade) return { bg: 'var(--color-ink-4)', text: '#fff' };
