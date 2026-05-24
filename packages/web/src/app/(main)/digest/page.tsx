@@ -2,11 +2,9 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import {
-  BookOpen,
   Plus,
   X,
   Trash2,
-  Download,
   GitBranch,
   Rss,
   Sparkles,
@@ -277,7 +275,9 @@ export default function DigestPage() {
   }
 
   useEffect(() => {
-    void loadItems();
+    void (async () => {
+      await loadItems();
+    })();
   }, []);
 
   /* ── Derived data ───────────────────────────────────────────────────────── */

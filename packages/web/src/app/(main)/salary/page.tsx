@@ -666,6 +666,11 @@ function MarketBenchmark({
 
 type SortKey = 'total_comp' | 'base_salary' | 'company';
 
+function SortIcon({ col, sortKey, sortAsc }: { col: SortKey; sortKey: SortKey; sortAsc: boolean }) {
+  if (sortKey !== col) return null;
+  return sortAsc ? <ChevronUp size={11} /> : <ChevronDown size={11} />;
+}
+
 function MarketTable({
   entries,
   roleFilter,
@@ -679,7 +684,9 @@ function MarketTable({
 
   // Sync with external roleFilter prop
   useEffect(() => {
-    setFilterRole(roleFilter);
+    void (async () => {
+      setFilterRole(roleFilter);
+    })();
   }, [roleFilter]);
 
   const marketEntries = entries.filter((e) => e.source === 'market');
@@ -700,11 +707,6 @@ function MarketTable({
     else { setSortKey(key); setSortAsc(false); }
   }
   function setsSortAsc(v: boolean) { setSortAsc(v); }
-
-  const SortIcon = ({ col }: { col: SortKey }) => {
-    if (sortKey !== col) return null;
-    return sortAsc ? <ChevronUp size={11} /> : <ChevronDown size={11} />;
-  };
 
   const thStyle = (col: SortKey): React.CSSProperties => ({
     padding: '10px 16px',
@@ -844,7 +846,7 @@ function MarketTable({
               <tr>
                 <th style={thStyle('company')} onClick={() => toggleSort('company')}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    公司 <SortIcon col="company" />
+                    公司 <SortIcon col="company" sortKey={sortKey} sortAsc={sortAsc} />
                   </span>
                 </th>
                 <th style={thStylePlain}>岗位</th>
@@ -852,12 +854,12 @@ function MarketTable({
                 <th style={thStylePlain}>等级</th>
                 <th style={thStyle('base_salary')} onClick={() => toggleSort('base_salary')}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    Base月薪 <SortIcon col="base_salary" />
+                    Base月薪 <SortIcon col="base_salary" sortKey={sortKey} sortAsc={sortAsc} />
                   </span>
                 </th>
                 <th style={thStyle('total_comp')} onClick={() => toggleSort('total_comp')}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    总包年薪 <SortIcon col="total_comp" />
+                    总包年薪 <SortIcon col="total_comp" sortKey={sortKey} sortAsc={sortAsc} />
                   </span>
                 </th>
               </tr>
@@ -1087,7 +1089,9 @@ export default function SalaryPage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    void (async () => {
+      await fetchData();
+    })();
   }, [fetchData]);
 
   async function handleSubmit(data: SubmitFormData) {
