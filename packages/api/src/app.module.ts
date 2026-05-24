@@ -13,6 +13,9 @@ import { InterviewsModule } from './interviews/interviews.module';
 import { TasksModule } from './tasks/tasks.module';
 import { OverviewModule } from './overview/overview.module';
 import { MockModule } from './mock/mock.module';
+import { CoverLettersModule } from './cover-letters/cover-letters.module';
+import { SalaryModule } from './salary/salary.module';
+import { CareerModule } from './career/career.module';
 
 @Module({
   imports: [
@@ -53,6 +56,9 @@ import { MockModule } from './mock/mock.module';
     TasksModule,
     OverviewModule,
     MockModule,
+    CoverLettersModule,
+    SalaryModule,
+    CareerModule,
   ],
 })
 export class AppModule {}
