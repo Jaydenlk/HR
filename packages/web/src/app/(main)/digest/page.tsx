@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Search, SlidersHorizontal, Plus, Heart, ExternalLink, X } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -254,6 +254,10 @@ const MONTHLY_CSS = `
 }
 `;
 
+/* ─── Module-level constants (computed once at module load) ──────────────── */
+
+const CURRENT_WEEK_VOL = Math.ceil(Date.now() / (7 * 24 * 3600 * 1000));
+
 /* ─── Component ──────────────────────────────────────────────────────────── */
 
 export default function DigestPage() {
@@ -264,6 +268,13 @@ export default function DigestPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /* ── Search & filter state ──────────────────────────────────────────────── */
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
 
   /* ── Data loading ───────────────────────────────────────────────────────── */
 
@@ -301,20 +312,51 @@ export default function DigestPage() {
     return c;
   }, [items]);
 
+  const companyOptions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const item of items) {
+      if (item.company) seen.add(item.company);
+    }
+    return Array.from(seen).sort();
+  }, [items]);
+
   const filteredItems = useMemo(() => {
-    if (activeTab === 'all') return items;
-    const categoryMap: Record<TabKey, string[]> = {
-      all: [],
-      interview: ['interview_exp'],
-      trending: ['trending'],
-      story: ['market_insight'],
-      quiz: ['job_tips'],
-      editorial: ['market_insight'],
-    };
-    const cats = categoryMap[activeTab];
-    if (!cats || cats.length === 0) return items;
-    return items.filter((i) => cats.includes(i.category));
-  }, [items, activeTab]);
+    let result = items;
+
+    // Tab filter
+    if (activeTab !== 'all') {
+      const categoryMap: Record<TabKey, string[]> = {
+        all: [],
+        interview: ['interview_exp'],
+        trending: ['trending'],
+        story: ['market_insight'],
+        quiz: ['job_tips'],
+        editorial: ['market_insight'],
+      };
+      const cats = categoryMap[activeTab];
+      if (cats && cats.length > 0) {
+        result = result.filter((i) => cats.includes(i.category));
+      }
+    }
+
+    // Company filter
+    if (selectedCompany) {
+      result = result.filter((i) => i.company === selectedCompany);
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          i.content.toLowerCase().includes(q) ||
+          (i.company ?? '').toLowerCase().includes(q),
+      );
+    }
+
+    return result;
+  }, [items, activeTab, selectedCompany, searchQuery]);
 
   /* ── Featured items ─────────────────────────────────────────────────────── */
 
@@ -334,6 +376,20 @@ export default function DigestPage() {
   const hotItem = useMemo(() => {
     return items.find((i) => i.category === 'trending' && i.source !== 'github') ?? null;
   }, [items]);
+
+  /* ── Close filter dropdown on outside click ────────────────────────────── */
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilter(false);
+      }
+    }
+    if (showFilter) {
+      document.addEventListener('mousedown', handleOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [showFilter]);
 
   /* ── Handlers ───────────────────────────────────────────────────────────── */
 
@@ -410,38 +466,173 @@ export default function DigestPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '7px 14px',
-            border: '1px solid var(--color-line)',
-            borderRadius: '10px',
-            background: 'var(--color-surface)',
-            color: 'var(--color-ink-2)',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}>
-            <Search size={14} />
-            <span>搜面经</span>
-          </button>
-          <button style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '7px 14px',
-            border: '1px solid var(--color-line)',
-            borderRadius: '10px',
-            background: 'var(--color-surface)',
-            color: 'var(--color-ink-2)',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}>
-            <SlidersHorizontal size={14} />
-            <span>筛选</span>
-          </button>
+          {/* Search toggle + inline input */}
+          {showSearch ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                border: '1px solid var(--color-brand)',
+                borderRadius: '10px',
+                background: 'var(--color-surface)',
+              }}>
+                <Search size={14} color="var(--color-brand)" />
+                <input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜标题、内容、公司..."
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    fontSize: '13px',
+                    color: 'var(--color-ink)',
+                    width: '180px',
+                    fontFamily: 'inherit',
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}
+                  >
+                    <X size={13} color="var(--color-ink-3)" />
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={() => { setShowSearch(false); setSearchQuery(''); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  color: 'var(--color-ink-3)',
+                  padding: '4px',
+                }}
+              >
+                取消
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSearch(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                border: '1px solid var(--color-line)',
+                borderRadius: '10px',
+                background: 'var(--color-surface)',
+                color: 'var(--color-ink-2)',
+                fontSize: '13px',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              <Search size={14} />
+              <span>搜面经</span>
+            </button>
+          )}
+
+          {/* Company filter dropdown */}
+          <div ref={filterRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowFilter((v) => !v)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                border: selectedCompany ? '1px solid var(--color-brand)' : '1px solid var(--color-line)',
+                borderRadius: '10px',
+                background: selectedCompany ? 'var(--color-brand-light, #e8f0fe)' : 'var(--color-surface)',
+                color: selectedCompany ? 'var(--color-brand)' : 'var(--color-ink-2)',
+                fontSize: '13px',
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              <SlidersHorizontal size={14} />
+              <span>{selectedCompany ?? '筛选'}</span>
+              {selectedCompany && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); setSelectedCompany(null); }}
+                  style={{ display: 'flex', marginLeft: '2px' }}
+                >
+                  <X size={12} />
+                </span>
+              )}
+            </button>
+            {showFilter && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  right: 0,
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-line)',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
+                  zIndex: 100,
+                  minWidth: '160px',
+                  overflow: 'hidden',
+                  padding: '4px',
+                }}
+              >
+                <button
+                  onClick={() => { setSelectedCompany(null); setShowFilter(false); }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '8px 12px',
+                    border: 'none',
+                    background: !selectedCompany ? 'var(--color-surface-2)' : 'transparent',
+                    fontSize: '13px',
+                    fontWeight: !selectedCompany ? 600 : 500,
+                    color: 'var(--color-ink)',
+                    cursor: 'pointer',
+                    borderRadius: '8px',
+                  }}
+                >
+                  全部公司
+                </button>
+                {companyOptions.length === 0 ? (
+                  <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--color-ink-3)' }}>
+                    暂无数据
+                  </div>
+                ) : (
+                  companyOptions.map((co) => (
+                    <button
+                      key={co}
+                      onClick={() => { setSelectedCompany(co); setShowFilter(false); }}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '8px 12px',
+                        border: 'none',
+                        background: selectedCompany === co ? 'var(--color-surface-2)' : 'transparent',
+                        fontSize: '13px',
+                        fontWeight: selectedCompany === co ? 600 : 500,
+                        color: 'var(--color-ink)',
+                        cursor: 'pointer',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      {co}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => setShowForm(true)}
             style={{
@@ -491,7 +682,7 @@ export default function DigestPage() {
               {/* LEFT: Editor's pick hero */}
               <div className="feat-hero">
                 <div className="topline">
-                  <span>编辑精选 · Vol. 24</span>
+                  <span>编辑精选 · Vol. {CURRENT_WEEK_VOL}</span>
                   <span>·</span>
                   <span>本周话题</span>
                 </div>
@@ -500,7 +691,7 @@ export default function DigestPage() {
                     <h2>{featuredHero.title}</h2>
                     <p>{truncate(featuredHero.content, 140)}</p>
                     <div className="meta-row">
-                      <span>12 min 阅读</span>
+                      <span>{Math.max(1, Math.ceil((featuredHero.content?.length || 0) / 500))} min 阅读</span>
                       <span>·</span>
                       <span>{featuredHero.author ?? featuredHero.user?.name ?? '编辑部'}</span>
                       <span>·</span>
@@ -512,11 +703,7 @@ export default function DigestPage() {
                     <h2>「具体」<br/>是最被低估的能力。</h2>
                     <p>我们看了 1,247 份应届简历，发现最大的问题不是排版 -- 是它们读起来像同一个人写的：模糊、谦虚、安全。</p>
                     <div className="meta-row">
-                      <span>12 min 阅读</span>
-                      <span>·</span>
                       <span>编辑部</span>
-                      <span>·</span>
-                      <span>248 收藏</span>
                     </div>
                   </>
                 )}
@@ -542,7 +729,7 @@ export default function DigestPage() {
                     <p>我们核对了 32 位拿到 PDD offer 的同学。数字漂亮，但 996.5 你需要先知道。</p>
                     <div className="by">
                       <div className="av-init" style={{ width: 18, height: 18, fontSize: 9 }}>C</div>
-                      <span><b>Coach 编辑部</b> · 5h</span>
+                      <span><b>Coach 编辑部</b></span>
                     </div>
                   </>
                 )}

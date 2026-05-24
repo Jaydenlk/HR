@@ -242,7 +242,8 @@ export default function LandingPage() {
                 />
               </svg>
             </Link>
-            <button
+            <Link
+              href="/login"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -254,7 +255,7 @@ export default function LandingPage() {
                 color: '#1d1d1f',
                 fontSize: '15px',
                 fontWeight: 600,
-                cursor: 'pointer',
+                textDecoration: 'none',
                 letterSpacing: '-0.003em',
               }}
             >
@@ -272,7 +273,7 @@ export default function LandingPage() {
                 />
               </svg>
               <span>看 30 秒</span>
-            </button>
+            </Link>
           </div>
 
           {/* Meta line */}
@@ -1567,7 +1568,8 @@ export default function LandingPage() {
             </svg>
             <span>免费开始 · 微信扫码</span>
           </Link>
-          <button
+          <Link
+            href="/login"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1579,7 +1581,7 @@ export default function LandingPage() {
               color: '#1d1d1f',
               fontSize: '15px',
               fontWeight: 600,
-              cursor: 'pointer',
+              textDecoration: 'none',
               letterSpacing: '-0.003em',
             }}
           >
@@ -1588,7 +1590,7 @@ export default function LandingPage() {
               <path d="M5.5 5.2l4 1.8-4 1.8V5.2z" fill="currentColor" />
             </svg>
             <span>看 30 秒介绍</span>
-          </button>
+          </Link>
         </div>
 
         <div
