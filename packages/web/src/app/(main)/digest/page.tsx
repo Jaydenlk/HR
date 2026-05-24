@@ -1,119 +1,607 @@
 'use client';
 
-import { BookOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BookOpen, Plus, X, Trash2 } from 'lucide-react';
+import { api } from '@/lib/api';
+
+interface FeedItem {
+  id: string;
+  title: string;
+  content: string;
+  company: string | null;
+  role: string | null;
+  outcome: string | null;
+  created_at: string;
+  user: { id: string; name: string };
+}
+
+interface FormState {
+  title: string;
+  content: string;
+  company: string;
+  role: string;
+  outcome: string;
+}
+
+const EMPTY_FORM: FormState = {
+  title: '',
+  content: '',
+  company: '',
+  role: '',
+  outcome: '',
+};
+
+function outcomeLabel(outcome: string | null) {
+  if (!outcome) return null;
+  const map: Record<string, string> = {
+    pass: '通过',
+    fail: '未通过',
+    offer: '拿到 Offer',
+    pending: '等待结果',
+  };
+  return map[outcome] ?? outcome;
+}
+
+function outcomeColor(outcome: string | null) {
+  if (!outcome) return 'var(--color-ink-3)';
+  const map: Record<string, string> = {
+    pass: '#34c759',
+    fail: '#ff3b30',
+    offer: 'var(--color-brand)',
+    pending: 'var(--color-warn)',
+  };
+  return map[outcome] ?? 'var(--color-ink-3)';
+}
 
 export default function DigestPage() {
+  const [items, setItems] = useState<FeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadItems() {
+    try {
+      const data = await api.get<FeedItem[]>('/feed');
+      setItems(data);
+    } catch {
+      // silently ignore — empty list is fine
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api.get<FeedItem[]>('/feed');
+        setItems(data);
+      } catch {
+        // silently ignore — empty list is fine
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.title.trim() || !form.content.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.post('/feed', {
+        title: form.title.trim(),
+        content: form.content.trim(),
+        company: form.company.trim() || undefined,
+        role: form.role.trim() || undefined,
+        outcome: form.outcome || undefined,
+      });
+      setForm(EMPTY_FORM);
+      setShowForm(false);
+      await loadItems();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '提交失败，请重试');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await api.delete(`/feed/${id}`);
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    } catch {
+      // ignore
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '9px 12px',
+    border: '1px solid var(--color-line)',
+    borderRadius: '8px',
+    fontSize: '14px',
+    color: 'var(--color-ink)',
+    background: 'var(--color-bg)',
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
+
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
         minHeight: '100%',
-        padding: '40px 32px 32px',
+        padding: '40px 32px 48px',
         boxSizing: 'border-box',
+        maxWidth: '800px',
       }}
     >
       {/* Header */}
-      <div style={{ marginBottom: '40px', flexShrink: 0 }}>
-        <h1
-          style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: 'var(--color-ink)',
-            letterSpacing: '-0.4px',
-            marginBottom: '4px',
-          }}
-        >
-          月刊·面经
-        </h1>
-        <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)' }}>
-          精选面经 · 每月更新 · 内容来自真实求职者
-        </p>
-      </div>
-
-      {/* Empty state */}
       <div
         style={{
-          flex: 1,
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '80px 32px',
-          textAlign: 'center',
-          gap: '16px',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          marginBottom: '8px',
+          flexShrink: 0,
         }}
       >
-        {/* Icon illustration */}
+        <div>
+          <h1
+            style={{
+              fontSize: '24px',
+              fontWeight: 700,
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.4px',
+              marginBottom: '4px',
+            }}
+          >
+            月刊·面经
+          </h1>
+          <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
+            团队成员的真实面试经验分享。外部数据源（牛客 RSS、GitHub 面经库）将在后续版本接入。
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowForm(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 16px',
+            background: 'var(--color-brand)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            flexShrink: 0,
+            marginLeft: '16px',
+            marginTop: '2px',
+          }}
+        >
+          <Plus size={15} />
+          手动添加面经
+        </button>
+      </div>
+
+      {/* Form dialog */}
+      {showForm && (
         <div
           style={{
-            width: '72px',
-            height: '72px',
-            borderRadius: '20px',
-            background: 'linear-gradient(135deg, #eaf2ff 0%, #f0f4ff 100%)',
-            border: '1px solid rgba(10,132,255,0.12)',
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '8px',
+            zIndex: 1000,
+            padding: '24px',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowForm(false);
           }}
         >
-          <BookOpen size={32} color="var(--color-brand)" />
-        </div>
-
-        <div>
-          <p
+          <form
+            onSubmit={handleSubmit}
             style={{
-              fontSize: '18px',
-              fontWeight: 700,
-              color: 'var(--color-ink)',
-              letterSpacing: '-0.015em',
-              marginBottom: '8px',
+              background: 'var(--color-bg)',
+              borderRadius: '16px',
+              padding: '28px',
+              width: '100%',
+              maxWidth: '560px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
             }}
           >
-            面经内容管道正在搭建中，敬请期待
-          </p>
-          <p
-            style={{
-              fontSize: '14px',
-              color: 'var(--color-ink-3)',
-              fontWeight: 500,
-              lineHeight: 1.6,
-              maxWidth: '460px',
-            }}
-          >
-            我们正在接入来自社区的真实面经数据源，整理后将以月刊形式推送。第一期内容将覆盖字节、腾讯、美团等主流大厂的最新面试题。
-          </p>
-        </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: '17px',
+                  fontWeight: 700,
+                  color: 'var(--color-ink)',
+                }}
+              >
+                分享面试经验
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--color-ink-3)',
+                  padding: '4px',
+                  display: 'flex',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-        {/* Timeline hint */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                标题 *
+              </label>
+              <input
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                placeholder="例：字节跳动 产品经理 一面体验"
+                maxLength={200}
+                required
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                  公司
+                </label>
+                <input
+                  name="company"
+                  value={form.company}
+                  onChange={handleChange}
+                  placeholder="字节跳动"
+                  maxLength={100}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                  岗位
+                </label>
+                <input
+                  name="role"
+                  value={form.role}
+                  onChange={handleChange}
+                  placeholder="产品经理"
+                  maxLength={100}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                结果
+              </label>
+              <select name="outcome" value={form.outcome} onChange={handleChange} style={inputStyle}>
+                <option value="">不填写</option>
+                <option value="pass">通过</option>
+                <option value="fail">未通过</option>
+                <option value="offer">拿到 Offer</option>
+                <option value="pending">等待结果</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                面试经过 *
+              </label>
+              <textarea
+                name="content"
+                value={form.content}
+                onChange={handleChange}
+                placeholder="分享面试题目、考察重点、面试官风格、复盘建议等……"
+                maxLength={5000}
+                required
+                rows={8}
+                style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, minHeight: '120px' }}
+              />
+              <span style={{ fontSize: '12px', color: 'var(--color-ink-3)', textAlign: 'right' }}>
+                {form.content.length} / 5000
+              </span>
+            </div>
+
+            {error && (
+              <p style={{ fontSize: '13px', color: '#ff3b30' }}>{error}</p>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                style={{
+                  padding: '9px 18px',
+                  border: '1px solid var(--color-line)',
+                  borderRadius: '8px',
+                  background: 'none',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  color: 'var(--color-ink-2)',
+                }}
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !form.title.trim() || !form.content.trim()}
+                style={{
+                  padding: '9px 24px',
+                  background: 'var(--color-brand)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  opacity: submitting ? 0.7 : 1,
+                }}
+              >
+                {submitting ? '提交中…' : '发布'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Divider */}
+      <div
+        style={{
+          height: '1px',
+          background: 'var(--color-line)',
+          margin: '24px 0',
+          flexShrink: 0,
+        }}
+      />
+
+      {/* Content */}
+      {loading ? (
+        <div style={{ color: 'var(--color-ink-3)', fontSize: '14px', padding: '32px 0' }}>
+          加载中…
+        </div>
+      ) : items.length === 0 ? (
         <div
           style={{
-            display: 'inline-flex',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            gap: '8px',
-            padding: '10px 20px',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
-            borderRadius: '10px',
-            fontSize: '13px',
-            color: 'var(--color-ink-2)',
-            fontWeight: 500,
-            marginTop: '8px',
+            justifyContent: 'center',
+            padding: '80px 32px',
+            textAlign: 'center',
+            gap: '16px',
           }}
         >
-          <span
+          <div
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: 'var(--color-warn)',
-              flexShrink: 0,
+              width: '64px',
+              height: '64px',
+              borderRadius: '18px',
+              background: 'linear-gradient(135deg, #eaf2ff 0%, #f0f4ff 100%)',
+              border: '1px solid rgba(10,132,255,0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '4px',
             }}
-          />
-          预计 Phase 8 上线 · 建设中
+          >
+            <BookOpen size={28} color="var(--color-brand)" />
+          </div>
+          <div>
+            <p
+              style={{
+                fontSize: '16px',
+                fontWeight: 700,
+                color: 'var(--color-ink)',
+                letterSpacing: '-0.015em',
+                marginBottom: '6px',
+              }}
+            >
+              还没有面经记录
+            </p>
+            <p
+              style={{
+                fontSize: '14px',
+                color: 'var(--color-ink-3)',
+                lineHeight: 1.6,
+                maxWidth: '360px',
+              }}
+            >
+              分享你的第一篇面试经验，帮助团队其他成员备战
+            </p>
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              marginTop: '4px',
+              padding: '9px 20px',
+              background: 'var(--color-brand)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Plus size={15} />
+            分享面试经验
+          </button>
         </div>
-      </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {items.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                border: '1px solid var(--color-line)',
+                borderRadius: '12px',
+                padding: '20px 24px',
+                background: 'var(--color-bg)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  marginBottom: '10px',
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <h3
+                    style={{
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      color: 'var(--color-ink)',
+                      marginBottom: '6px',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {item.title}
+                  </h3>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '6px',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {item.company && (
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: 'var(--color-surface)',
+                          color: 'var(--color-ink-2)',
+                          border: '1px solid var(--color-line)',
+                        }}
+                      >
+                        {item.company}
+                      </span>
+                    )}
+                    {item.role && (
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: 'var(--color-surface)',
+                          color: 'var(--color-ink-2)',
+                          border: '1px solid var(--color-line)',
+                        }}
+                      >
+                        {item.role}
+                      </span>
+                    )}
+                    {item.outcome && (
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: `${outcomeColor(item.outcome)}18`,
+                          color: outcomeColor(item.outcome),
+                          fontWeight: 600,
+                        }}
+                      >
+                        {outcomeLabel(item.outcome)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  title="删除（仅本人可删）"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--color-ink-3)',
+                    padding: '4px',
+                    flexShrink: 0,
+                    display: 'flex',
+                    opacity: 0.6,
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+
+              <p
+                style={{
+                  fontSize: '14px',
+                  color: 'var(--color-ink-2)',
+                  lineHeight: 1.7,
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {item.content}
+              </p>
+
+              <div
+                style={{
+                  marginTop: '12px',
+                  fontSize: '12px',
+                  color: 'var(--color-ink-3)',
+                  display: 'flex',
+                  gap: '8px',
+                }}
+              >
+                <span>{item.user?.name ?? '匿名'}</span>
+                <span>·</span>
+                <span>
+                  {new Date(item.created_at).toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
