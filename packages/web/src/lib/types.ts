@@ -129,3 +129,23 @@ export interface RewriteSuggestion {
   reason: string;
   jd_requirement?: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  rich_card: Record<string, unknown> | null;
+  tool_used: string | null;
+  created_at: string;
+}
+
+export interface Conversation {
+  id: string;
+  title: string | null;
+  context_type: string;
+  context_id: string | null;
+  created_at: string;
+  updated_at: string;
+  messages?: ChatMessage[];
+}
