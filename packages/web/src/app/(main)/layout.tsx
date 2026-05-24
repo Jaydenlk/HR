@@ -138,7 +138,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '248px 1fr',
         height: '100vh',
-        overflow: 'hidden',
       }}
     >
       {/* ── Mobile top bar ───────────────────────────────────────────── */}
