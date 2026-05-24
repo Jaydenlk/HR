@@ -476,6 +476,7 @@ export default function DigestPage() {
         display: 'flex',
         flexDirection: 'column',
         gap: '18px',
+        minHeight: 'min-content',
       }} className="mthly">
 
         {loading ? (
