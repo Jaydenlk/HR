@@ -4,6 +4,7 @@ dist/
 out/
 *.env
 *.env.local
+!ports.env
 .DS_Store
 coach-dev.db
 .worktrees/
