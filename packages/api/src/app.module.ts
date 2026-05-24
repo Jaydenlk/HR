@@ -10,6 +10,7 @@ import { DiagnosesModule } from './diagnoses/diagnoses.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { InterviewsModule } from './interviews/interviews.module';
+import { TasksModule } from './tasks/tasks.module';
 import { OverviewModule } from './overview/overview.module';
 import { MockModule } from './mock/mock.module';
 
@@ -49,6 +50,7 @@ import { MockModule } from './mock/mock.module';
     ConversationsModule,
     ApplicationsModule,
     InterviewsModule,
+    TasksModule,
     OverviewModule,
     MockModule,
   ],

@@ -14,5 +14,6 @@ import { AiModule } from '../ai/ai.module';
   ],
   controllers: [DiagnosesController],
   providers: [DiagnosesService],
+  exports: [DiagnosesService],
 })
 export class DiagnosesModule {}
