@@ -6,7 +6,9 @@
     "rootDir": "./src",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "baseUrl": "./"
+    "baseUrl": "./",
+    "ignoreDeprecations": "6.0",
+    "strictPropertyInitialization": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]
