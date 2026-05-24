@@ -32,17 +32,19 @@ export class CareerService {
   async analyze(userId: string): Promise<CareerAnalysis> {
     const resumes = await this.resumes.findAllByUser(userId);
 
+    if (resumes.length === 0) {
+      throw new Error('NO_RESUME');
+    }
+
     const primaryResume = resumes.find((r) => r.is_primary) ?? resumes[0];
-    const resumeText = primaryResume?.raw_text ?? '';
 
     const system = `你是一位资深职业发展顾问，深谙职场发展规律与就业市场趋势。
 请用中文分析候选人背景，生成职业发展路径推荐和技能差距分析。
 语言：中文（简体）
-严格按照指定 JSON Schema 输出，不要添加任何额外内容。`;
+严格按照指定 JSON Schema 输出，不要添加任何额外内容。
+重要：所有分析必须严格基于简历中的真实信息，不要编造任何技能、经历或数据。`;
 
-    const prompt = resumeText
-      ? `## 候选人简历\n${resumeText}\n\n请基于该简历生成职业发展分析。`
-      : '该候选人暂未上传简历，请根据通用求职者背景生成职业发展分析。';
+    const prompt = `## 候选人简历\n${primaryResume.raw_text}\n\n请严格基于该简历的真实内容生成职业发展分析，不要添加简历中没有的信息。`;
 
     return this.ai.completeStructured<CareerAnalysis>({
       system,
