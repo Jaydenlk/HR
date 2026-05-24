@@ -99,3 +99,28 @@ Screenshots:
 - `docs/codex-handoff/screenshots/mobile-after-login.png`
 - `docs/codex-handoff/screenshots/mobile-overview.png`
 - `docs/codex-handoff/screenshots/mobile-digest.png`
+# 2026-05-24 Codex Current Audit Addendum
+
+Context:
+- Created project-local worktree `E:\Agent program\HRBP\.worktrees\codex-current-audit`.
+- Branch: `codex/current-audit`.
+- Audited current `dev` at `73156c8`.
+
+Commands:
+- `packages/api> npx.cmd tsc --noEmit` → PASS.
+- `packages/api> npx.cmd nest build` → PASS.
+- `packages/web> npx.cmd eslint src/` → PASS.
+- `packages/web> npx.cmd next build` → FAIL. Root cause: `next/font/google` fetches `Plus Jakarta Sans` from Google Fonts during build.
+- `packages/api> cmd.exe /c "set CLOUDDREAM_API_KEY=dummy&& set CLOUDDREAM_MODEL=auto-v2&& npx.cmd jest --config ./test/jest-e2e.json --runInBand"` → FAIL. 188/190 passed; `tasks.e2e-spec.ts` has two AI-outage failures returning 500.
+
+Audit conclusions:
+- Current product cannot pass PJR because frontend production build fails.
+- Backend tests exist, but AI-related tests still have weak assertions/skips.
+- Digest/XHS is code-only until a real MCP/Apify path is configured and verified.
+- Seed data exists but needs source verification; sample external searches did not confirm exact seed URL/title pairs.
+- Strict TypeScript rules are still violated by `as unknown as` and `any`.
+- Start script still does not match the safe-start plan.
+
+New files:
+- `docs/codex-handoff/codex-current-audit-2026-05-24.md`
+- `docs/codex-handoff/codex-to-claude-supervision-2026-05-24.md`
