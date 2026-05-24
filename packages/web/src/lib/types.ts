@@ -272,6 +272,44 @@ export interface DailyTask {
   created_at: string;
 }
 
+export interface CoverLetter {
+  id: string;
+  company: string | null;
+  role: string | null;
+  tone: string;
+  length_words: number | null;
+  content: string;
+  version: number;
+  created_at: string;
+}
+
+export interface SalaryEntry {
+  id: string;
+  company: string;
+  role: string;
+  location: string | null;
+  base_salary: number;
+  bonus: number | null;
+  stock_value: number | null;
+  total_comp: number;
+  level: string | null;
+  source: string;
+  created_at: string;
+}
+
+export interface CareerPath {
+  title: string;
+  fit_pct: number;
+  description: string;
+  skills: string[];
+  alumni_count: number;
+}
+
+export interface CareerAnalysis {
+  paths: CareerPath[];
+  skill_audit: Array<{ name: string; current: number; needed: number; ok: boolean }>;
+}
+
 export interface DashboardData {
   funnel: Record<string, number>;
   interviews: {
