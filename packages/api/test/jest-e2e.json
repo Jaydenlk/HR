@@ -3,5 +3,30 @@
   "rootDir": "..",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
-  "transform": { "^.+\\.ts$": "ts-jest" }
+  "transform": {
+    "^.+\\.ts$": ["ts-jest", {
+      "tsconfig": {
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "strictPropertyInitialization": false,
+        "ignoreDeprecations": "6.0"
+      }
+    }],
+    "^.+\\.js$": ["ts-jest", {
+      "diagnostics": false,
+      "tsconfig": {
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "allowJs": true
+      }
+    }]
+  },
+  "transformIgnorePatterns": [
+    "node_modules[\\/](?!\\.pnpm[\\/]uuid@|uuid[\\/])"
+  ],
+  "moduleNameMapper": {
+    "^uuid$": "<rootDir>/../../node_modules/.pnpm/uuid@14.0.0/node_modules/uuid/dist-node/index.js"
+  }
 }

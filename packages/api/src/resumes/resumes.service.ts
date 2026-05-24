@@ -66,11 +66,12 @@ export class ResumesService {
 
   async createVersion(id: string, userId: string, rawText: string, changeNote: string): Promise<ResumeVersion> {
     const resume = await this.findOne(id, userId);
-    const latestVersion = await this.versionRepo.findOne({
-      where: { resume_id: id },
-      order: { version_num: 'DESC' },
-    });
-    const newNum = (latestVersion?.version_num ?? 0) + 1;
+    const result = await this.versionRepo
+      .createQueryBuilder('v')
+      .select('MAX(v.version_num)', 'max')
+      .where('v.resume_id = :id', { id })
+      .getRawOne<{ max: number | null }>();
+    const newNum = (result?.max ?? 0) + 1;
 
     const version = await this.versionRepo.save(this.versionRepo.create({
       resume_id: id,
@@ -79,9 +80,10 @@ export class ResumesService {
       change_note: changeNote,
     }));
 
-    resume.raw_text = rawText;
-    resume.parsed_json = null;
-    await this.repo.save(resume);
+    // Use update() instead of save(resume) to avoid TypeORM orphan-removal
+    // deleting the just-created version (save() with a stale relations array
+    // would cascade-delete any versions not present in the in-memory object).
+    await this.repo.update(id, { raw_text: rawText, parsed_json: null });
 
     return version;
   }
