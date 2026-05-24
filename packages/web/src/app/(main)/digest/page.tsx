@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BookOpen, Plus, X, Trash2 } from 'lucide-react';
+import { BookOpen, Plus, X, Trash2, Download, GitBranch, Rss, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface FeedItem {
@@ -11,8 +11,11 @@ interface FeedItem {
   company: string | null;
   role: string | null;
   outcome: string | null;
+  source: string;
+  category: string;
+  source_url: string | null;
   created_at: string;
-  user: { id: string; name: string };
+  user: { id: string; name: string } | null;
 }
 
 interface FormState {
@@ -53,6 +56,22 @@ function outcomeColor(outcome: string | null) {
   return map[outcome] ?? 'var(--color-ink-3)';
 }
 
+interface SourceBadgeConfig {
+  label: string;
+  bg: string;
+  color: string;
+}
+
+function getSourceBadge(source: string): SourceBadgeConfig {
+  const map: Record<string, SourceBadgeConfig> = {
+    github: { label: 'GitHub', bg: '#24292e18', color: '#24292e' },
+    nowcoder: { label: '牛客', bg: '#5c6bc018', color: '#5c6bc0' },
+    ai_digest: { label: 'AI 精选', bg: 'var(--color-brand)18', color: 'var(--color-brand)' },
+    ugc: { label: '团队分享', bg: '#34c75918', color: '#34c759' },
+  };
+  return map[source] ?? { label: source, bg: 'var(--color-surface)', color: 'var(--color-ink-3)' };
+}
+
 export default function DigestPage() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +79,8 @@ export default function DigestPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [importing, setImporting] = useState<string | null>(null);
 
   async function loadItems() {
     try {
@@ -73,16 +94,7 @@ export default function DigestPage() {
   }
 
   useEffect(() => {
-    (async () => {
-      try {
-        const data = await api.get<FeedItem[]>('/feed');
-        setItems(data);
-      } catch {
-        // silently ignore — empty list is fine
-      } finally {
-        setLoading(false);
-      }
-    })();
+    void loadItems();
   }, []);
 
   function handleChange(
@@ -120,6 +132,28 @@ export default function DigestPage() {
       setItems((prev) => prev.filter((i) => i.id !== id));
     } catch {
       // ignore
+    }
+  }
+
+  async function triggerImport(type: 'github' | 'rss' | 'digest') {
+    setImporting(type);
+    setImportStatus(null);
+    try {
+      if (type === 'github') {
+        const result = await api.post<{ imported: number }>('/feed/import/github', {});
+        setImportStatus(`GitHub 导入完成，新增 ${result.imported} 条面经`);
+      } else if (type === 'rss') {
+        const result = await api.post<{ imported: number }>('/feed/import/rss', {});
+        setImportStatus(`牛客 RSS 导入完成，新增 ${result.imported} 条面经`);
+      } else {
+        await api.post('/feed/digest', {});
+        setImportStatus('AI 周刊已生成');
+      }
+      await loadItems();
+    } catch (err) {
+      setImportStatus(`操作失败：${err instanceof Error ? err.message : '请重试'}`);
+    } finally {
+      setImporting(null);
     }
   }
 
@@ -169,7 +203,7 @@ export default function DigestPage() {
             月刊·面经
           </h1>
           <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
-            团队成员的真实面试经验分享。外部数据源（牛客 RSS、GitHub 面经库）将在后续版本接入。
+            汇聚团队成员分享、GitHub 面经库与牛客网面经，AI 周刊每周自动生成。
           </p>
         </div>
 
@@ -197,6 +231,101 @@ export default function DigestPage() {
         </button>
       </div>
 
+      {/* Import Controls */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          marginTop: '16px',
+          marginBottom: '4px',
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontSize: '13px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
+          <Download size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+          导入面经：
+        </span>
+        <button
+          onClick={() => void triggerImport('github')}
+          disabled={importing !== null}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '6px 13px',
+            border: '1px solid #24292e30',
+            borderRadius: '7px',
+            background: importing === 'github' ? '#24292e10' : 'var(--color-bg)',
+            color: '#24292e',
+            fontSize: '13px',
+            fontWeight: 500,
+            cursor: importing !== null ? 'not-allowed' : 'pointer',
+            opacity: importing !== null && importing !== 'github' ? 0.5 : 1,
+          }}
+        >
+          <GitBranch size={13} />
+          {importing === 'github' ? '导入中…' : '从 GitHub 导入'}
+        </button>
+        <button
+          onClick={() => void triggerImport('rss')}
+          disabled={importing !== null}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '6px 13px',
+            border: '1px solid #5c6bc030',
+            borderRadius: '7px',
+            background: importing === 'rss' ? '#5c6bc010' : 'var(--color-bg)',
+            color: '#5c6bc0',
+            fontSize: '13px',
+            fontWeight: 500,
+            cursor: importing !== null ? 'not-allowed' : 'pointer',
+            opacity: importing !== null && importing !== 'rss' ? 0.5 : 1,
+          }}
+        >
+          <Rss size={13} />
+          {importing === 'rss' ? '导入中…' : '从牛客导入'}
+        </button>
+        <button
+          onClick={() => void triggerImport('digest')}
+          disabled={importing !== null}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '6px 13px',
+            border: '1px solid var(--color-brand)40',
+            borderRadius: '7px',
+            background: importing === 'digest' ? 'var(--color-brand)10' : 'var(--color-bg)',
+            color: 'var(--color-brand)',
+            fontSize: '13px',
+            fontWeight: 500,
+            cursor: importing !== null ? 'not-allowed' : 'pointer',
+            opacity: importing !== null && importing !== 'digest' ? 0.5 : 1,
+          }}
+        >
+          <Sparkles size={13} />
+          {importing === 'digest' ? '生成中…' : '生成 AI 周刊'}
+        </button>
+      </div>
+
+      {importStatus && (
+        <p
+          style={{
+            fontSize: '13px',
+            color: importStatus.startsWith('操作失败') ? '#ff3b30' : '#34c759',
+            marginTop: '8px',
+            marginBottom: '0',
+            flexShrink: 0,
+          }}
+        >
+          {importStatus}
+        </p>
+      )}
+
       {/* Form dialog */}
       {showForm && (
         <div
@@ -215,7 +344,7 @@ export default function DigestPage() {
           }}
         >
           <form
-            onSubmit={handleSubmit}
+            onSubmit={(e) => void handleSubmit(e)}
             style={{
               background: 'var(--color-bg)',
               borderRadius: '16px',
@@ -441,7 +570,7 @@ export default function DigestPage() {
                 maxWidth: '360px',
               }}
             >
-              分享你的第一篇面试经验，帮助团队其他成员备战
+              点击"手动添加面经"分享经验，或使用上方按钮从 GitHub / 牛客导入面经
             </p>
           </div>
           <button
@@ -467,139 +596,179 @@ export default function DigestPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {items.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                border: '1px solid var(--color-line)',
-                borderRadius: '12px',
-                padding: '20px 24px',
-                background: 'var(--color-bg)',
-              }}
-            >
+          {items.map((item) => {
+            const badge = getSourceBadge(item.source);
+            return (
               <div
+                key={item.id}
                 style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  marginBottom: '10px',
+                  border: '1px solid var(--color-line)',
+                  borderRadius: '12px',
+                  padding: '20px 24px',
+                  background: 'var(--color-bg)',
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <h3
-                    style={{
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      color: 'var(--color-ink)',
-                      marginBottom: '6px',
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {item.title}
-                  </h3>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '6px',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {item.company && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    marginBottom: '10px',
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <h3
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        color: 'var(--color-ink)',
+                        marginBottom: '6px',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {item.title}
+                    </h3>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {/* Source badge */}
                       <span
                         style={{
-                          fontSize: '12px',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          background: 'var(--color-surface)',
-                          color: 'var(--color-ink-2)',
-                          border: '1px solid var(--color-line)',
-                        }}
-                      >
-                        {item.company}
-                      </span>
-                    )}
-                    {item.role && (
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          background: 'var(--color-surface)',
-                          color: 'var(--color-ink-2)',
-                          border: '1px solid var(--color-line)',
-                        }}
-                      >
-                        {item.role}
-                      </span>
-                    )}
-                    {item.outcome && (
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          background: `${outcomeColor(item.outcome)}18`,
-                          color: outcomeColor(item.outcome),
+                          fontSize: '11px',
+                          padding: '2px 7px',
+                          borderRadius: '5px',
+                          background: badge.bg,
+                          color: badge.color,
                           fontWeight: 600,
                         }}
                       >
-                        {outcomeLabel(item.outcome)}
+                        {badge.label}
                       </span>
-                    )}
+                      {item.company && (
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-ink-2)',
+                            border: '1px solid var(--color-line)',
+                          }}
+                        >
+                          {item.company}
+                        </span>
+                      )}
+                      {item.role && (
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-ink-2)',
+                            border: '1px solid var(--color-line)',
+                          }}
+                        >
+                          {item.role}
+                        </span>
+                      )}
+                      {item.outcome && (
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            background: `${outcomeColor(item.outcome)}18`,
+                            color: outcomeColor(item.outcome),
+                            fontWeight: 600,
+                          }}
+                        >
+                          {outcomeLabel(item.outcome)}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  {item.source === 'ugc' && (
+                    <button
+                      onClick={() => void handleDelete(item.id)}
+                      title="删除（仅本人可删）"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--color-ink-3)',
+                        padding: '4px',
+                        flexShrink: 0,
+                        display: 'flex',
+                        opacity: 0.6,
+                      }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  title="删除（仅本人可删）"
+
+                <p
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--color-ink-3)',
-                    padding: '4px',
-                    flexShrink: 0,
-                    display: 'flex',
-                    opacity: 0.6,
+                    fontSize: '14px',
+                    color: 'var(--color-ink-2)',
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 6,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
                   }}
                 >
-                  <Trash2 size={15} />
-                </button>
-              </div>
+                  {item.content}
+                </p>
 
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: 'var(--color-ink-2)',
-                  lineHeight: 1.7,
-                  whiteSpace: 'pre-wrap',
-                }}
-              >
-                {item.content}
-              </p>
-
-              <div
-                style={{
-                  marginTop: '12px',
-                  fontSize: '12px',
-                  color: 'var(--color-ink-3)',
-                  display: 'flex',
-                  gap: '8px',
-                }}
-              >
-                <span>{item.user?.name ?? '匿名'}</span>
-                <span>·</span>
-                <span>
-                  {new Date(item.created_at).toLocaleDateString('zh-CN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </span>
+                <div
+                  style={{
+                    marginTop: '12px',
+                    fontSize: '12px',
+                    color: 'var(--color-ink-3)',
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'center',
+                  }}
+                >
+                  {item.user?.name && (
+                    <>
+                      <span>{item.user.name}</span>
+                      <span>·</span>
+                    </>
+                  )}
+                  <span>
+                    {new Date(item.created_at).toLocaleDateString('zh-CN', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </span>
+                  {item.source_url && (
+                    <>
+                      <span>·</span>
+                      <a
+                        href={item.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--color-brand)', textDecoration: 'none' }}
+                      >
+                        查看原文
+                      </a>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
