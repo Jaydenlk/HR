@@ -14,10 +14,9 @@ import {
   Play,
   BarChart2,
   Briefcase,
-  Globe,
   MessageSquare,
   MoreHorizontal,
-  Pin,
+
 } from 'lucide-react';
 
 interface NavItem {
@@ -43,12 +42,7 @@ const toolNav: NavItem[] = [
   { id: 'tracker', label: '投递追踪', href: '/applications', icon: <Briefcase size={16} />, badge: '18' },
 ];
 
-const recentThreads = [
-  { id: '1', title: '我的简历主版本', pinned: true, ago: '' },
-  { id: '2', title: '改简历 · 字节前端', pinned: false, ago: '2m' },
-  { id: '3', title: '美团二面复盘', pinned: false, ago: '1h' },
-  { id: '4', title: 'Offer 比较 · 字节 vs Shopee', pinned: false, ago: '2d' },
-];
+// Recent threads will be fetched from API when chat feature is built.
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -337,66 +331,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           );
         })}
 
-        {/* Recent threads */}
-        <div
-          style={{
-            fontSize: '11px',
-            color: 'var(--color-ink-4)',
-            fontWeight: 600,
-            margin: '14px 10px 4px',
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-          }}
-        >
-          最近
-        </div>
-
-        {recentThreads.map((thread) => (
-          <Link
-            key={thread.id}
-            href={`/chat/${thread.id}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              fontSize: '13px',
-              color: 'var(--color-ink-2)',
-              fontWeight: 500,
-              textDecoration: 'none',
-              transition: 'background 0.1s',
-            }}
-          >
-            {thread.pinned && (
-              <Pin size={11} style={{ color: 'var(--color-ink-4)', flexShrink: 0 }} />
-            )}
-            <span
-              style={{
-                flex: 1,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                letterSpacing: '-0.003em',
-              }}
-            >
-              {thread.title}
-            </span>
-            {thread.ago && (
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '10px',
-                  color: 'var(--color-ink-4)',
-                  fontWeight: 500,
-                  flexShrink: 0,
-                }}
-              >
-                {thread.ago}
-              </span>
-            )}
-          </Link>
-        ))}
+        {/* Recent chat threads will appear here once chat feature is built */}
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
