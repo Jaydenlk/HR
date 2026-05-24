@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -285,7 +285,7 @@ export default function NewDiagnosisPage() {
       {/* Header */}
       <div style={{ marginBottom: '36px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <a
+          <Link
             href="/diagnoses"
             style={{
               fontSize: '13px',
@@ -295,7 +295,7 @@ export default function NewDiagnosisPage() {
             }}
           >
             诊断
-          </a>
+          </Link>
           <ChevronRight size={14} color="var(--color-ink-4)" />
           <span style={{ fontSize: '13px', color: 'var(--color-ink-2)', fontWeight: 500 }}>
             新建诊断
@@ -393,7 +393,7 @@ export default function NewDiagnosisPage() {
                   >
                     请先上传简历，再进行诊断
                   </p>
-                  <a
+                  <Link
                     href="/resumes"
                     style={{
                       display: 'inline-flex',
@@ -409,7 +409,7 @@ export default function NewDiagnosisPage() {
                     }}
                   >
                     上传简历
-                  </a>
+                  </Link>
                 </div>
               ) : (
                 <>
@@ -522,7 +522,7 @@ export default function NewDiagnosisPage() {
                   })}
 
                   {/* Upload new */}
-                  <a
+                  <Link
                     href="/resumes"
                     style={{
                       display: 'flex',
@@ -555,7 +555,7 @@ export default function NewDiagnosisPage() {
                     <span style={{ fontSize: '13.5px', fontWeight: 500 }}>
                       上传新简历
                     </span>
-                  </a>
+                  </Link>
                 </>
               )}
             </div>
