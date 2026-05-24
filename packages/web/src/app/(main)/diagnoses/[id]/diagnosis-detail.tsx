@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { Diagnosis, Conversation } from '@/lib/types';
-import { ArrowLeft, Building2, Calendar, Briefcase, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, Briefcase, MessageSquare, PlusCircle } from 'lucide-react';
 import { getScoreColor } from '@/lib/score-utils';
 
 function LoadingState() {
@@ -89,6 +89,29 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [applyDone, setApplyDone] = useState(false);
+
+  async function handleCreateApplication() {
+    if (!diagnosis) return;
+    setApplyLoading(true);
+    try {
+      await api.post('/applications', {
+        company: diagnosis.jd_company ?? '',
+        role: diagnosis.jd_role ?? '',
+        stage: 'wishlist',
+        diagnosis_id: diagnosis.id,
+      });
+      setApplyDone(true);
+      // Brief feedback then redirect
+      setTimeout(() => {
+        window.location.href = '/applications';
+      }, 1200);
+    } catch {
+      setApplyLoading(false);
+      alert('创建投递失败，请重试');
+    }
+  }
 
   async function handleAskCoach() {
     if (!diagnosis) return;
@@ -228,30 +251,54 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
             </span>
           </div>
         </div>
-        <button
-          onClick={handleAskCoach}
-          disabled={chatLoading}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '9px 16px',
-            background: 'var(--color-brand)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: '13.5px',
-            fontWeight: 600,
-            cursor: chatLoading ? 'not-allowed' : 'pointer',
-            opacity: chatLoading ? 0.7 : 1,
-            flexShrink: 0,
-            letterSpacing: '-0.005em',
-            transition: 'opacity 0.12s',
-          }}
-        >
-          <MessageSquare size={14} />
-          {chatLoading ? '跳转中…' : '问 Coach'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <button
+            onClick={handleCreateApplication}
+            disabled={applyLoading || applyDone}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              background: applyDone ? 'var(--color-success)' : 'var(--color-surface-2)',
+              color: applyDone ? '#fff' : 'var(--color-ink-2)',
+              border: '1px solid var(--color-line)',
+              borderRadius: '10px',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              cursor: applyLoading || applyDone ? 'not-allowed' : 'pointer',
+              opacity: applyLoading ? 0.7 : 1,
+              letterSpacing: '-0.005em',
+              transition: 'background 0.15s, color 0.15s, opacity 0.12s',
+            }}
+          >
+            <PlusCircle size={14} />
+            {applyDone ? '已添加到投递追踪' : applyLoading ? '创建中…' : '创建投递'}
+          </button>
+          <button
+            onClick={handleAskCoach}
+            disabled={chatLoading}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              background: 'var(--color-brand)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              cursor: chatLoading ? 'not-allowed' : 'pointer',
+              opacity: chatLoading ? 0.7 : 1,
+              letterSpacing: '-0.005em',
+              transition: 'opacity 0.12s',
+            }}
+          >
+            <MessageSquare size={14} />
+            {chatLoading ? '跳转中…' : '问 Coach'}
+          </button>
+        </div>
       </div>
 
       {/* Dimensions */}

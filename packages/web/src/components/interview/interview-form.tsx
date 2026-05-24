@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { api } from '@/lib/api';
+import type { Application } from '@/lib/types';
 
 interface InterviewFormData {
   company: string;
@@ -11,6 +13,7 @@ interface InterviewFormData {
   duration_min: string;
   interviewer: string;
   transcript: string;
+  application_id: string;
 }
 
 interface InterviewFormProps {
@@ -58,7 +61,16 @@ export function InterviewForm({ onSubmit, onClose, loading = false }: InterviewF
     duration_min: '',
     interviewer: '',
     transcript: '',
+    application_id: '',
   });
+  const [applications, setApplications] = useState<Application[]>([]);
+
+  useEffect(() => {
+    api
+      .get<Application[]>('/applications')
+      .then((data) => setApplications(data))
+      .catch(() => {});
+  }, []);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
@@ -145,6 +157,26 @@ export function InterviewForm({ onSubmit, onClose, loading = false }: InterviewF
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Link to existing application */}
+          {applications.length > 0 && (
+            <div>
+              <label style={labelStyle}>关联投递（选填）</label>
+              <select
+                name="application_id"
+                value={form.application_id}
+                onChange={handleChange}
+                style={fieldStyle}
+              >
+                <option value="">不关联投递</option>
+                {applications.map((app) => (
+                  <option key={app.id} value={app.id}>
+                    {app.company} · {app.role}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Row: company + role */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
