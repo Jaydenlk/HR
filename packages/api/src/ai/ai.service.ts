@@ -40,10 +40,10 @@ export class AiService {
       baseURL: process.env.CLOUDDREAM_BASE_URL ?? 'https://api.tutorial.clouddreamai.com',
     });
 
-    this.deepseekClient = new OpenAI({
-      apiKey: process.env.DEEPSEEK_API_KEY ?? 'unused',
-      baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1',
-    });
+    const deepseekKey = process.env.DEEPSEEK_API_KEY;
+    this.deepseekClient = deepseekKey
+      ? new OpenAI({ apiKey: deepseekKey, baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1' })
+      : (null as unknown as OpenAI);
 
     this.clouddreamModel = process.env.CLOUDDREAM_MODEL ?? 'auto-v2';
     this.deepseekModel = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat';
@@ -102,6 +102,9 @@ export class AiService {
     prompt: string,
     maxTokens: number,
   ): Promise<string> {
+    if (!this.deepseekClient) {
+      return this.completeCloudDream(system, prompt, undefined, maxTokens);
+    }
     const response = await this.deepseekClient.chat.completions.create({
       model: this.deepseekModel,
       max_tokens: maxTokens,
@@ -149,7 +152,12 @@ export class AiService {
     system: string,
     prompt: string,
     schema: Record<string, unknown>,
+    toolName?: string,
+    toolDescription?: string,
   ): Promise<T> {
+    if (!this.deepseekClient) {
+      return this.completeStructuredCloudDream<T>(system, prompt, toolName ?? 'extract', toolDescription ?? 'Extract structured data', schema);
+    }
     const schemaHint = `\n\nOutput ONLY valid JSON matching this schema:\n${JSON.stringify(schema, null, 2)}`;
 
     const response = await this.deepseekClient.chat.completions.create({
