@@ -10,6 +10,8 @@ import { DiagnosesModule } from './diagnoses/diagnoses.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { InterviewsModule } from './interviews/interviews.module';
+import { OverviewModule } from './overview/overview.module';
+import { MockModule } from './mock/mock.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { InterviewsModule } from './interviews/interviews.module';
     ConversationsModule,
     ApplicationsModule,
     InterviewsModule,
+    OverviewModule,
+    MockModule,
   ],
 })
 export class AppModule {}
