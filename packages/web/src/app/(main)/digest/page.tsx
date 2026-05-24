@@ -94,7 +94,17 @@ export default function DigestPage() {
   }
 
   useEffect(() => {
-    void loadItems();
+    async function run() {
+      try {
+        const data = await api.get<FeedItem[]>('/feed');
+        setItems(data);
+      } catch {
+        // silently ignore — empty list is fine
+      } finally {
+        setLoading(false);
+      }
+    }
+    void run();
   }, []);
 
   function handleChange(
@@ -570,7 +580,7 @@ export default function DigestPage() {
                 maxWidth: '360px',
               }}
             >
-              点击"手动添加面经"分享经验，或使用上方按钮从 GitHub / 牛客导入面经
+              点击&ldquo;手动添加面经&rdquo;分享经验，或使用上方按钮从 GitHub / 牛客导入面经
             </p>
           </div>
           <button
