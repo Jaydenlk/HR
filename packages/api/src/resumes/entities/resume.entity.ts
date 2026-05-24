@@ -22,7 +22,7 @@ export class Resume {
   @Column('text')
   raw_text: string;
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   parsed_json: ParsedResume | null;
 
   @Column({ nullable: true })

@@ -31,12 +31,12 @@ export class AiService {
 
   constructor() {
     this.clouddreamClient = new Anthropic({
-      apiKey: process.env.CLOUDDREAM_API_KEY ?? 'placeholder',
+      apiKey: process.env.CLOUDDREAM_API_KEY || 'placeholder',
       baseURL: process.env.CLOUDDREAM_BASE_URL ?? 'https://api.tutorial.clouddreamai.com',
     });
 
     this.deepseekClient = new OpenAI({
-      apiKey: process.env.DEEPSEEK_API_KEY ?? 'placeholder',
+      apiKey: process.env.DEEPSEEK_API_KEY || 'placeholder',
       baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1',
     });
 

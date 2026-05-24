@@ -25,7 +25,7 @@ export class Diagnosis {
   @Column('text')
   jd_text: string;
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   jd_parsed: ParsedJD | null;
 
   @Column({ nullable: true })
@@ -37,16 +37,16 @@ export class Diagnosis {
   @Column({ nullable: true })
   score: number;
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   dimensions: MatchDimensions | null;
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   keywords_hit: string[];
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   keywords_miss: string[];
 
-  @Column('jsonb', { nullable: true })
+  @Column('simple-json', { nullable: true })
   suggestions: RewriteSuggestion[];
 
   @CreateDateColumn()

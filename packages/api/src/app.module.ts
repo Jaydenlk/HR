@@ -13,16 +13,27 @@ import { DiagnosesModule } from './diagnoses/diagnoses.module';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
-        username: config.get('DB_USER', 'coach'),
-        password: config.get('DB_PASS', 'coach'),
-        database: config.get('DB_NAME', 'coach'),
-        autoLoadEntities: true,
-        synchronize: config.get('NODE_ENV') !== 'production',
-      }),
+      useFactory: (config: ConfigService) => {
+        const dbType = config.get('DB_TYPE', 'sqlite');
+        if (dbType === 'sqlite') {
+          return {
+            type: 'better-sqlite3',
+            database: config.get('DB_PATH', './coach-dev.db'),
+            autoLoadEntities: true,
+            synchronize: true,
+          };
+        }
+        return {
+          type: 'postgres',
+          host: config.get('DB_HOST', 'localhost'),
+          port: config.get<number>('DB_PORT', 5432),
+          username: config.get('DB_USER', 'coach'),
+          password: config.get('DB_PASS', 'coach'),
+          database: config.get('DB_NAME', 'coach'),
+          autoLoadEntities: true,
+          synchronize: config.get('NODE_ENV') !== 'production',
+        };
+      },
     }),
     AuthModule,
     UsersModule,
