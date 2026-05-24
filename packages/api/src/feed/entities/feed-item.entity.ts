@@ -13,10 +13,10 @@ export class FeedItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: true })
   user_id: string;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
@@ -34,6 +34,20 @@ export class FeedItem {
 
   @Column({ nullable: true })
   outcome: string;
+
+  /** ugc | github | nowcoder | ai_digest */
+  @Column({ default: 'ugc' })
+  source: string;
+
+  /** interview_exp | editorial | hot | story */
+  @Column({ default: 'interview_exp' })
+  category: string;
+
+  @Column({ nullable: true, length: 1000 })
+  source_url: string;
+
+  @Column({ nullable: true })
+  author: string;
 
   @CreateDateColumn()
   created_at: Date;

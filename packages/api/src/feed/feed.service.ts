@@ -19,6 +19,8 @@ export class FeedService {
       company: dto.company,
       role: dto.role,
       outcome: dto.outcome,
+      source: 'ugc',
+      category: 'interview_exp',
     });
     return this.repo.save(item);
   }

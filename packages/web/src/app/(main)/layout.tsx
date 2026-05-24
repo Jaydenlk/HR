@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
-import type { User, Conversation } from '@/lib/types';
+import type { User, Conversation, Interview, Application } from '@/lib/types';
 import {
   CalendarDays,
   BookOpen,
@@ -29,19 +29,35 @@ interface NavItem {
   dot?: boolean;
 }
 
-const mainNav: NavItem[] = [
-  { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true },
-  { id: 'monthly', label: '月刊·面经', href: '/digest', icon: <BookOpen size={16} /> },
-  { id: 'debrief', label: '面试复盘', href: '/debrief', icon: <Mic size={16} />, badge: '3' },
-  { id: 'overview', label: '求职总览', href: '/overview', icon: <LayoutDashboard size={16} /> },
-];
+function buildMainNav(interviewCount: number): NavItem[] {
+  return [
+    { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true },
+    { id: 'monthly', label: '月刊·面经', href: '/digest', icon: <BookOpen size={16} /> },
+    {
+      id: 'debrief',
+      label: '面试复盘',
+      href: '/debrief',
+      icon: <Mic size={16} />,
+      ...(interviewCount > 0 ? { badge: String(interviewCount) } : {}),
+    },
+    { id: 'overview', label: '求职总览', href: '/overview', icon: <LayoutDashboard size={16} /> },
+  ];
+}
 
-const toolNav: NavItem[] = [
-  { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} /> },
-  { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
-  { id: 'salary', label: '薪资雷达', href: '/salary', icon: <BarChart2 size={16} /> },
-  { id: 'tracker', label: '投递追踪', href: '/applications', icon: <Briefcase size={16} />, badge: '18' },
-];
+function buildToolNav(applicationCount: number): NavItem[] {
+  return [
+    { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} /> },
+    { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
+    { id: 'salary', label: '薪资雷达', href: '/salary', icon: <BarChart2 size={16} /> },
+    {
+      id: 'tracker',
+      label: '投递追踪',
+      href: '/applications',
+      icon: <Briefcase size={16} />,
+      ...(applicationCount > 0 ? { badge: String(applicationCount) } : {}),
+    },
+  ];
+}
 
 // Recent threads will be fetched from API when chat feature is built.
 
@@ -64,6 +80,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [interviewCount, setInterviewCount] = useState(0);
+  const [applicationCount, setApplicationCount] = useState(0);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -85,6 +103,14 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     api
       .get<Conversation[]>('/conversations')
       .then((data) => setConversations(data.slice(0, 5)))
+      .catch(() => {});
+    api
+      .get<Interview[]>('/interviews')
+      .then((data) => setInterviewCount(data.length))
+      .catch(() => {});
+    api
+      .get<Application[]>('/applications')
+      .then((data) => setApplicationCount(data.length))
       .catch(() => {});
   }, []);
 
@@ -314,7 +340,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         </Link>
 
         {/* Main nav */}
-        {mainNav.map((item) => {
+        {buildMainNav(interviewCount).map((item) => {
           const active = isActive(item);
           return (
             <Link
@@ -394,7 +420,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           工具
         </div>
 
-        {toolNav.map((item) => {
+        {buildToolNav(applicationCount).map((item) => {
           const active = isActive(item);
           return (
             <Link

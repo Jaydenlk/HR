@@ -102,6 +102,7 @@ export default function DebriefListPage() {
     duration_min: string;
     interviewer: string;
     transcript: string;
+    application_id: string;
   }) {
     setSubmitting(true);
     try {
@@ -113,6 +114,7 @@ export default function DebriefListPage() {
         duration_min: data.duration_min ? parseInt(data.duration_min, 10) : null,
         interviewer: data.interviewer || null,
         transcript: data.transcript || null,
+        application_id: data.application_id || null,
       };
       const created = await api.post<Interview>('/interviews', body);
       setInterviews((prev) => [created, ...prev]);
