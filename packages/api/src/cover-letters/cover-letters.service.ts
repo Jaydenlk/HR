@@ -24,17 +24,26 @@ export class CoverLettersService {
     }
 
     const tone = dto.tone ?? 'warm';
-    const lengthHint = dto.length_words ? `Keep the letter to approximately ${dto.length_words} words.` : '';
+    const toneLabel: Record<string, string> = {
+      professional: '专业克制',
+      warm: '真诚热情',
+      concise: '简短直接',
+    };
+    const toneDesc = toneLabel[tone] ?? toneLabel['warm'];
+    const lengthHint = dto.length_words ? `求职信字数控制在约 ${dto.length_words} 字以内。` : '';
 
-    const system = `You are a professional career coach writing cover letters. Write in a ${tone} tone. ${lengthHint}
-Return only the cover letter text, no extra commentary.`;
+    const system = `你是一位专业的职业发展教练，擅长撰写高质量求职信。请用中文撰写求职信。
+语言：中文（简体）
+语气风格：${toneDesc}
+${lengthHint}
+只返回求职信正文，不要添加任何额外说明或注释。`;
 
     const prompt = [
-      resumeText ? `## Candidate Resume\n${resumeText}` : '',
-      dto.jd_text ? `## Job Description\n${dto.jd_text}` : '',
-      `## Target Company: ${dto.company}`,
-      `## Target Role: ${dto.role}`,
-      `\nPlease write a compelling cover letter for this candidate applying to ${dto.role} at ${dto.company}.`,
+      resumeText ? `## 候选人简历\n${resumeText}` : '',
+      dto.jd_text ? `## 职位描述\n${dto.jd_text}` : '',
+      `## 目标公司：${dto.company}`,
+      `## 目标职位：${dto.role}`,
+      `\n请为该候选人撰写一封有说服力的中文求职信，用于申请${dto.company}的${dto.role}职位。`,
     ]
       .filter(Boolean)
       .join('\n\n');

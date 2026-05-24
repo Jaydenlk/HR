@@ -1,4 +1,5 @@
 import { IsString, IsOptional, IsBoolean, MinLength } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateResumeDto {
   @IsString()
@@ -11,5 +12,10 @@ export class CreateResumeDto {
 
   @IsBoolean()
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
   is_primary?: boolean;
 }
