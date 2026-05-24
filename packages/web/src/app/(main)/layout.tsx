@@ -546,8 +546,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       {/* ── Main content area ─────────────────────────────────────────── */}
       <main
         style={{
-          flex: 1,
           overflowY: 'auto',
+          minHeight: 0,
           background: 'var(--color-bg)',
           ...(isMobile ? { paddingTop: '52px' } : {}),
         }}
