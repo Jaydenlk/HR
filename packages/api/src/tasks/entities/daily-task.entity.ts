@@ -33,19 +33,19 @@ export class DailyTask {
   @Column({ nullable: true, type: 'int' })
   duration_min: number | null;
 
-  @Column()
-  task_type: TaskType;
+  @Column({ type: 'varchar' })
+  task_type: string;
 
   @Column('text', { nullable: true })
   reason: string | null;
 
-  @Column({ default: 'todo' })
-  status: TaskStatus;
+  @Column({ type: 'varchar', default: 'todo' })
+  status: string;
 
-  @Column({ nullable: true })
-  linked_type: LinkedType | null;
+  @Column({ type: 'varchar', nullable: true })
+  linked_type: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   linked_id: string | null;
 
   @CreateDateColumn()
