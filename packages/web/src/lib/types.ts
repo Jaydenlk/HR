@@ -174,3 +174,48 @@ export interface ApplicationEvent {
   occurred_at: string;
   created_at: string;
 }
+
+export interface InterviewScore {
+  name: string;
+  score: number;
+  color: string;
+}
+
+export interface InterviewQuestion {
+  n: number;
+  time: string;
+  type: string;
+  topic: string;
+  diff: string;
+  tone: 'good' | 'warn' | 'bad';
+  q: string;
+  you: string;
+  ai: string;
+  better: string | null;
+  gap: { topic: string; url: string } | null;
+}
+
+export interface InterviewPrediction {
+  nextRound: string;
+  nextWhen: string;
+  likely: Array<{ topic: string; pct: number }>;
+}
+
+export interface Interview {
+  id: string;
+  application_id: string | null;
+  company: string | null;
+  role: string | null;
+  round: string;
+  interview_at: string | null;
+  duration_min: number | null;
+  interviewer: string | null;
+  audio_url: string | null;
+  transcript: string | null;
+  overall_grade: string | null;
+  overall_note: string | null;
+  scores: InterviewScore[] | null;
+  questions: InterviewQuestion[] | null;
+  prediction: InterviewPrediction | null;
+  created_at: string;
+}
