@@ -307,8 +307,19 @@ export default function TodayPage() {
   }, []);
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await api.get<DailyTask[]>('/tasks/today');
+        setTasks(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '加载失败');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const handleGenerate = async () => {
     setGenerating(true);

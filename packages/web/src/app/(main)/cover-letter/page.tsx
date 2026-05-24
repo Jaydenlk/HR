@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import type { CoverLetter } from '@/lib/types';
 import { RefreshCw, Copy, FileText, Loader2, Plus } from 'lucide-react';
@@ -46,23 +46,21 @@ export default function CoverLetterPage() {
   const [lengthWords, setLengthWords] = useState(350);
   const [jdText, setJdText] = useState('');
 
-  const fetchLetters = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await api.get<CoverLetter[]>('/cover-letters');
-      setLetters(data);
-      if (data.length > 0 && !currentLetter) {
-        setCurrentLetter(data[0]);
-      }
-    } catch {
-      // no letters yet is fine
-    } finally {
-      setLoading(false);
-    }
-  }, [currentLetter]);
-
   useEffect(() => {
-    fetchLetters();
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await api.get<CoverLetter[]>('/cover-letters');
+        setLetters(data);
+        if (data.length > 0) {
+          setCurrentLetter(data[0]);
+        }
+      } catch {
+        // no letters yet is fine
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   async function handleGenerate() {

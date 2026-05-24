@@ -2,7 +2,6 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { MockSession, MockAnswer } from '@/lib/types';
 import { MockStage } from '@/components/mock/mock-stage';
@@ -36,7 +35,6 @@ interface MockDetailProps {
 
 export function MockDetail({ params }: MockDetailProps) {
   const { id } = use(params);
-  const router = useRouter();
   const [session, setSession] = useState<MockSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

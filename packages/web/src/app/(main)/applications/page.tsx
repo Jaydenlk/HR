@@ -34,8 +34,23 @@ export default function ApplicationsPage() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [apps, statsData] = await Promise.all([
+          api.get<Application[]>('/applications'),
+          api.get<Record<string, number>>('/applications/stats'),
+        ]);
+        setApplications(apps);
+        setStats(statsData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '加载失败');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   async function handleCreate(data: Record<string, string>) {
     try {

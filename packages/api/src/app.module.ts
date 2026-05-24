@@ -16,6 +16,7 @@ import { MockModule } from './mock/mock.module';
 import { CoverLettersModule } from './cover-letters/cover-letters.module';
 import { SalaryModule } from './salary/salary.module';
 import { CareerModule } from './career/career.module';
+import { FeedModule } from './feed/feed.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { CareerModule } from './career/career.module';
     CoverLettersModule,
     SalaryModule,
     CareerModule,
+    FeedModule,
   ],
 })
 export class AppModule {}

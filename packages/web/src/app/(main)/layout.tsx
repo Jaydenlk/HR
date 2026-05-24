@@ -89,9 +89,12 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   }, []);
 
   // Close sidebar on route change (mobile)
-  useEffect(() => {
-    if (isMobile) setSidebarOpen(false);
-  }, [pathname, isMobile]);
+  // Track previous pathname to detect navigation and reset sidebar
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (isMobile && pathname !== lastPathname) {
+    setLastPathname(pathname);
+    setSidebarOpen(false);
+  }
 
   const initial = user?.name?.[0]?.toUpperCase() ?? '…';
 
