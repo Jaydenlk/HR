@@ -19,13 +19,6 @@ export function ScoreRing({ score, size = 120, strokeWidth = 10 }: ScoreRingProp
         ? 'var(--color-warn)'
         : 'var(--color-danger)';
 
-  const softColor =
-    clampedScore >= 70
-      ? 'var(--color-success-soft)'
-      : clampedScore >= 50
-        ? 'var(--color-warn-soft)'
-        : 'var(--color-danger-soft)';
-
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg

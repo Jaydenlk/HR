@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 // Root home page — "/" — includes the shell layout inline since this
 // page is not inside the (main) route group.
@@ -579,7 +579,7 @@ function HomeContent({ user }: { user: User | null }) {
             最近诊断
           </h2>
           {diagnoses.length > 0 && (
-            <a
+            <Link
               href="/diagnoses"
               style={{
                 fontSize: '13px',
@@ -589,7 +589,7 @@ function HomeContent({ user }: { user: User | null }) {
               }}
             >
               查看全部
-            </a>
+            </Link>
           )}
         </div>
 
@@ -643,7 +643,7 @@ function HomeContent({ user }: { user: User | null }) {
             <p style={{ fontSize: '13px', color: 'var(--color-ink-4)', marginBottom: '20px' }}>
               上传简历开始第一次诊断
             </p>
-            <a
+            <Link
               href="/resumes"
               style={{
                 display: 'inline-flex',
@@ -660,7 +660,7 @@ function HomeContent({ user }: { user: User | null }) {
             >
               上传简历
               <ArrowRight size={14} />
-            </a>
+            </Link>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
