@@ -1,0 +1,13 @@
+{
+  "name": "coach",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter @coach/api dev",
+    "dev:web": "pnpm --filter @coach/web dev",
+    "build:api": "pnpm --filter @coach/api build",
+    "build:web": "pnpm --filter @coach/web build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm --filter @coach/api test"
+  },
+  "engines": { "node": ">=20" }
+}

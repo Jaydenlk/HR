@@ -5,3 +5,4 @@ out/
 *.env
 *.env.local
 .DS_Store
+coach-dev.db

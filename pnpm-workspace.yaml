@@ -1,0 +1,10 @@
+packages:
+  - 'packages/*'
+allowBuilds:
+  better-sqlite3: true
+  msw: true
+  sharp: true
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@nestjs/platform-express'
+  - better-sqlite3
