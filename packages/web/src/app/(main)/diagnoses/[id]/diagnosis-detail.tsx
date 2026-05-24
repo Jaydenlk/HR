@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { Diagnosis } from '@/lib/types';
 import { ArrowLeft, Building2, Calendar, Briefcase } from 'lucide-react';
+import { getScoreColor } from '@/lib/score-utils';
 
 function LoadingState() {
   return (
@@ -28,19 +29,7 @@ function LoadingState() {
 }
 
 function ScoreBadge({ score }: { score: number }) {
-  const color =
-    score >= 80
-      ? 'var(--color-success)'
-      : score >= 60
-        ? 'var(--color-warn)'
-        : 'var(--color-danger)';
-  const bg =
-    score >= 80
-      ? 'var(--color-success-soft)'
-      : score >= 60
-        ? 'var(--color-warn-soft)'
-        : 'var(--color-danger-soft)';
-
+  const { color, bg } = getScoreColor(score);
   return (
     <span
       style={{
@@ -61,8 +50,7 @@ function ScoreBadge({ score }: { score: number }) {
 
 function DimensionRow({ label, score, max }: { label: string; score: number; max: number }) {
   const pct = Math.round((score / max) * 100);
-  const color =
-    pct >= 80 ? 'var(--color-success)' : pct >= 60 ? 'var(--color-warn)' : 'var(--color-danger)';
+  const { color } = getScoreColor(pct);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
       <div style={{ width: '80px', fontSize: '12.5px', color: 'var(--color-ink-3)', flexShrink: 0 }}>

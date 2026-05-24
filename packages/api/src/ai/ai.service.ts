@@ -30,13 +30,18 @@ export class AiService {
   private readonly deepseekModel: string;
 
   constructor() {
+    const clouddreamApiKey = process.env.CLOUDDREAM_API_KEY;
+    if (!clouddreamApiKey) {
+      throw new Error('CLOUDDREAM_API_KEY is required but not set');
+    }
+
     this.clouddreamClient = new Anthropic({
-      apiKey: process.env.CLOUDDREAM_API_KEY || 'placeholder',
+      apiKey: clouddreamApiKey,
       baseURL: process.env.CLOUDDREAM_BASE_URL ?? 'https://api.tutorial.clouddreamai.com',
     });
 
     this.deepseekClient = new OpenAI({
-      apiKey: process.env.DEEPSEEK_API_KEY || 'placeholder',
+      apiKey: process.env.DEEPSEEK_API_KEY ?? 'unused',
       baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1',
     });
 

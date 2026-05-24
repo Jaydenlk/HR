@@ -18,22 +18,12 @@ import {
   ArrowRight,
   AlertTriangle,
 } from 'lucide-react';
+import { getScoreColor } from '@/lib/score-utils';
 
 type TabKey = 'preview' | 'raw' | 'versions' | 'diagnoses';
 
 function ScoreBadge({ score }: { score: number }) {
-  const color =
-    score >= 80
-      ? 'var(--color-success)'
-      : score >= 60
-        ? 'var(--color-warn)'
-        : 'var(--color-danger)';
-  const bg =
-    score >= 80
-      ? 'var(--color-success-soft)'
-      : score >= 60
-        ? 'var(--color-warn-soft)'
-        : 'var(--color-danger-soft)';
+  const { color, bg } = getScoreColor(score);
   return (
     <span
       style={{

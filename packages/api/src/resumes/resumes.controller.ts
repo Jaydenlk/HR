@@ -57,17 +57,21 @@ export class ResumesController {
   }
 
   private async extractText(file: Express.Multer.File): Promise<string> {
-    if (file.mimetype === 'application/pdf') {
-      const { PDFParse } = await import('pdf-parse');
-      const parser = new PDFParse({ data: file.buffer });
-      const result = await parser.getText();
-      return result.text;
+    try {
+      if (file.mimetype === 'application/pdf') {
+        const { PDFParse } = await import('pdf-parse');
+        const parser = new PDFParse({ data: file.buffer });
+        const result = await parser.getText();
+        return result.text;
+      }
+      if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const mammoth = await import('mammoth');
+        const result = await mammoth.extractRawText({ buffer: file.buffer });
+        return result.value;
+      }
+      return file.buffer.toString('utf-8');
+    } catch {
+      return '无法解析此文件格式，请尝试粘贴文本';
     }
-    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      const mammoth = await import('mammoth');
-      const result = await mammoth.extractRawText({ buffer: file.buffer });
-      return result.value;
-    }
-    return file.buffer.toString('utf-8');
   }
 }
