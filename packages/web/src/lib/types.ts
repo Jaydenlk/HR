@@ -219,3 +219,73 @@ export interface Interview {
   prediction: InterviewPrediction | null;
   created_at: string;
 }
+
+export interface MockQuestion {
+  n: number;
+  type: string;
+  topic: string;
+  difficulty: string;
+  question: string;
+  hint: string;
+}
+
+export interface MockAnswer {
+  n: number;
+  answer: string;
+  score: number;
+  feedback: string;
+  filler_count: number;
+}
+
+export interface MockEvaluation {
+  overall_score: number;
+  overall_grade: string;
+  strengths: string[];
+  weaknesses: string[];
+  summary: string;
+}
+
+export interface MockSession {
+  id: string;
+  company: string | null;
+  role: string | null;
+  jd_text: string | null;
+  mode: string;
+  status: string;
+  questions: MockQuestion[] | null;
+  answers: MockAnswer[] | null;
+  evaluation: MockEvaluation | null;
+  total_filler_count: number | null;
+  created_at: string;
+}
+
+export interface DailyTask {
+  id: string;
+  task_date: string;
+  title: string;
+  duration_min: number | null;
+  task_type: string;
+  reason: string | null;
+  status: 'todo' | 'done';
+  linked_type: string | null;
+  linked_id: string | null;
+  created_at: string;
+}
+
+export interface DashboardData {
+  funnel: Record<string, number>;
+  interviews: {
+    total: number;
+    avgGrade: string | null;
+    recentGrades: Array<{ company: string; grade: string; date: string }>;
+  };
+  resumes: {
+    total: number;
+    primaryTitle: string | null;
+    latestDiagnosisScore: number | null;
+  };
+  activity: {
+    totalDiagnoses: number;
+    totalConversations: number;
+  };
+}
