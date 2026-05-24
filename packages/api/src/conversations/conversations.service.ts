@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { Message } from './entities/message.entity';
+import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ChatService } from './chat.service';
 
@@ -13,6 +14,8 @@ export class ConversationsService {
     private readonly convRepo: Repository<Conversation>,
     @InjectRepository(Message)
     private readonly msgRepo: Repository<Message>,
+    @InjectRepository(Diagnosis)
+    private readonly diagnosisRepo: Repository<Diagnosis>,
     private readonly chat: ChatService,
   ) {}
 
@@ -63,8 +66,20 @@ export class ConversationsService {
     // Build history (all messages before this one)
     const history = conv.messages;
 
+    // Build context from diagnosis if available
+    let context: { type: string; data: string } | undefined;
+    if (conv.context_type === 'diagnosis' && conv.context_id) {
+      const diagnosis = await this.diagnosisRepo.findOne({ where: { id: conv.context_id } });
+      if (diagnosis) {
+        context = {
+          type: '简历诊断结果',
+          data: `公司: ${diagnosis.jd_company || '未知'}\n岗位: ${diagnosis.jd_role || '未知'}\n匹配分: ${diagnosis.score}/100\n命中关键词: ${(diagnosis.keywords_hit || []).join(', ')}\n缺失关键词: ${(diagnosis.keywords_miss || []).join(', ')}\n改写建议: ${(diagnosis.suggestions || []).map((s: any) => s.reason).join('; ')}`,
+        };
+      }
+    }
+
     // Get AI reply
-    const replyText = await this.chat.reply(history, content);
+    const replyText = await this.chat.reply(history, content, context);
 
     // Save assistant message
     const assistantMsg = await this.msgRepo.save(

@@ -15,7 +15,8 @@ import {
   BarChart2,
   Briefcase,
   MessageSquare,
-  MoreHorizontal,
+  Send,
+  Map,
   Menu,
   X,
 } from 'lucide-react';
@@ -56,6 +57,8 @@ function buildToolNav(applicationCount: number): NavItem[] {
       icon: <Briefcase size={16} />,
       ...(applicationCount > 0 ? { badge: String(applicationCount) } : {}),
     },
+    { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
+    { id: 'career', label: '职业地图', href: '/career', icon: <Map size={16} /> },
   ];
 }
 
@@ -281,22 +284,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               </span>
             </div>
           </div>
-          <button
-            onClick={() => {}}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--color-ink-3)',
-              padding: '4px',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <MoreHorizontal size={16} />
-          </button>
         </div>
 
         {/* CTA — "问 Coach" */}
@@ -321,21 +308,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <MessageSquare size={15} />
             问 Coach
-          </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              color: 'rgba(255,255,255,0.55)',
-              background: 'rgba(255,255,255,0.1)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              padding: '1px 6px',
-              borderRadius: '4px',
-              letterSpacing: '0.04em',
-              fontWeight: 500,
-            }}
-          >
-            ⌘ K
           </span>
         </Link>
 
@@ -569,42 +541,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           >
             Coach v 4
           </span>
-          <div
-            style={{
-              display: 'flex',
-              border: '1px solid var(--color-line)',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              fontSize: '12px',
-            }}
-          >
-            <button
-              style={{
-                padding: '3px 9px',
-                fontWeight: 600,
-                background: 'var(--color-ink)',
-                color: '#fff',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              中
-            </button>
-            <button
-              style={{
-                padding: '3px 9px',
-                fontWeight: 500,
-                background: 'transparent',
-                color: 'var(--color-ink-3)',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              EN
-            </button>
-          </div>
         </div>
       </aside>
 

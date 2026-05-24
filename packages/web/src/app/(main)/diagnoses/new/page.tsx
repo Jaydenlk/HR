@@ -142,7 +142,7 @@ function AnalyzingScreen() {
           正在分析{dots}
         </h2>
         <p style={{ fontSize: '14px', color: 'var(--color-ink-3)', margin: 0 }}>
-          AI 正在对比简历与 JD，通常需要 5–15 秒
+          AI 正在对比简历与 JD，通常需要 1-2 分钟
         </p>
       </div>
 

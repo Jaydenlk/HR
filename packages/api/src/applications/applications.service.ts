@@ -77,7 +77,7 @@ export class ApplicationsService {
     const oldStage = application.stage;
 
     Object.assign(application, dto);
-    const saved = await this.repo.save(application);
+    await this.repo.save(application);
 
     if (dto.stage && dto.stage !== oldStage) {
       await this.eventRepo.save(
@@ -89,7 +89,7 @@ export class ApplicationsService {
       );
     }
 
-    return saved;
+    return this.findOne(id, userId);
   }
 
   async remove(id: string, userId: string): Promise<void> {

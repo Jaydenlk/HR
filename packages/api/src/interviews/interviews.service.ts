@@ -103,7 +103,8 @@ export class InterviewsService {
       interview.round,
     );
     Object.assign(interview, result);
-    return this.repo.save(interview);
+    await this.repo.save(interview);
+    return this.findOne(id, userId);
   }
 
   async remove(id: string, userId: string): Promise<void> {
