@@ -3,8 +3,8 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import type { Diagnosis } from '@/lib/types';
-import { ArrowLeft, Building2, Calendar, Briefcase } from 'lucide-react';
+import type { Diagnosis, Conversation } from '@/lib/types';
+import { ArrowLeft, Building2, Calendar, Briefcase, MessageSquare } from 'lucide-react';
 import { getScoreColor } from '@/lib/score-utils';
 
 function LoadingState() {
@@ -88,6 +88,22 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chatLoading, setChatLoading] = useState(false);
+
+  async function handleAskCoach() {
+    if (!diagnosis) return;
+    setChatLoading(true);
+    try {
+      const conversation = await api.post<Conversation>('/conversations', {
+        context_type: 'diagnosis',
+        context_id: id,
+        title: '诊断: ' + (diagnosis.jd_role || '简历诊断'),
+      });
+      window.location.href = '/chat/' + conversation.id;
+    } catch {
+      setChatLoading(false);
+    }
+  }
 
   useEffect(() => {
     api
@@ -212,6 +228,30 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
             </span>
           </div>
         </div>
+        <button
+          onClick={handleAskCoach}
+          disabled={chatLoading}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '9px 16px',
+            background: 'var(--color-brand)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '10px',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            cursor: chatLoading ? 'not-allowed' : 'pointer',
+            opacity: chatLoading ? 0.7 : 1,
+            flexShrink: 0,
+            letterSpacing: '-0.005em',
+            transition: 'opacity 0.12s',
+          }}
+        >
+          <MessageSquare size={14} />
+          {chatLoading ? '跳转中…' : '问 Coach'}
+        </button>
       </div>
 
       {/* Dimensions */}

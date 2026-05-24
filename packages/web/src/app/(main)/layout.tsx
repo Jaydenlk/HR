@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
-import type { User } from '@/lib/types';
+import type { User, Conversation } from '@/lib/types';
 import {
   CalendarDays,
   BookOpen,
@@ -45,8 +45,23 @@ const toolNav: NavItem[] = [
 
 // Recent threads will be fetched from API when chat feature is built.
 
+function formatRelativeTime(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diff = now - then;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} 天前`;
+  return new Date(dateStr).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+}
+
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
@@ -67,6 +82,10 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       .catch(() => {
         window.location.href = '/login';
       });
+    api
+      .get<Conversation[]>('/conversations')
+      .then((data) => setConversations(data.slice(0, 5)))
+      .catch(() => {});
   }, []);
 
   // Close sidebar on route change (mobile)
@@ -427,7 +446,76 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           );
         })}
 
-        {/* Recent chat threads will appear here once chat feature is built */}
+        {/* Recent conversations */}
+        {conversations.length > 0 && (
+          <>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'var(--color-ink-4)',
+                fontWeight: 600,
+                margin: '14px 10px 4px',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              最近对话
+            </div>
+            {conversations.map((conv) => {
+              const active = pathname?.startsWith(`/chat/${conv.id}`) ?? false;
+              return (
+                <Link
+                  key={conv.id}
+                  href={`/chat/${conv.id}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '9px',
+                    padding: '7px 12px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
+                    fontWeight: active ? 600 : 400,
+                    background: active ? 'var(--color-surface)' : 'transparent',
+                    textDecoration: 'none',
+                    transition: 'background 0.1s, color 0.1s',
+                    minWidth: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <MessageSquare size={14} />
+                  </span>
+                  <span
+                    style={{
+                      flex: 1,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {conv.title ?? '对话'}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--color-ink-4)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {formatRelativeTime(conv.updated_at)}
+                  </span>
+                </Link>
+              );
+            })}
+          </>
+        )}
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />

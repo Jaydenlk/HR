@@ -6,6 +6,6 @@ import { RewriterService } from './rewriter.service';
 
 @Module({
   providers: [AiService, ParserService, AnalyzerService, RewriterService],
-  exports: [ParserService, AnalyzerService, RewriterService],
+  exports: [AiService, ParserService, AnalyzerService, RewriterService],
 })
 export class AiModule {}
