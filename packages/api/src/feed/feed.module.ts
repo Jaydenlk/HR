@@ -5,12 +5,19 @@ import { FeedController } from './feed.controller';
 import { FeedService } from './feed.service';
 import { GithubImporterService } from './importers/github-importer.service';
 import { RssImporterService } from './importers/rss-importer.service';
+import { XhsImporterService } from './importers/xhs-importer.service';
 import { DigestGeneratorService } from './digest-generator.service';
 import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([FeedItem]), AiModule],
   controllers: [FeedController],
-  providers: [FeedService, GithubImporterService, RssImporterService, DigestGeneratorService],
+  providers: [
+    FeedService,
+    GithubImporterService,
+    RssImporterService,
+    XhsImporterService,
+    DigestGeneratorService,
+  ],
 })
 export class FeedModule {}

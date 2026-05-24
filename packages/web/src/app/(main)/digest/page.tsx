@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BookOpen, Plus, X, Trash2, Download, GitBranch, Rss, Sparkles } from 'lucide-react';
+import { BookOpen, Plus, X, Trash2, Download, GitBranch, Rss, Sparkles, Search } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface FeedItem {
@@ -66,6 +66,7 @@ function getSourceBadge(source: string): SourceBadgeConfig {
   const map: Record<string, SourceBadgeConfig> = {
     github: { label: 'GitHub', bg: '#24292e18', color: '#24292e' },
     nowcoder: { label: '牛客', bg: '#5c6bc018', color: '#5c6bc0' },
+    xhs_trend: { label: '小红书', bg: '#ff204518', color: '#ff2045' },
     ai_digest: { label: 'AI 精选', bg: 'var(--color-brand)18', color: 'var(--color-brand)' },
     ugc: { label: '团队分享', bg: '#34c75918', color: '#34c759' },
   };
@@ -145,7 +146,7 @@ export default function DigestPage() {
     }
   }
 
-  async function triggerImport(type: 'github' | 'rss' | 'digest') {
+  async function triggerImport(type: 'github' | 'rss' | 'xhs' | 'digest') {
     setImporting(type);
     setImportStatus(null);
     try {
@@ -155,6 +156,9 @@ export default function DigestPage() {
       } else if (type === 'rss') {
         const result = await api.post<{ imported: number }>('/feed/import/rss', {});
         setImportStatus(`牛客 RSS 导入完成，新增 ${result.imported} 条面经`);
+      } else if (type === 'xhs') {
+        const result = await api.post<{ imported: number; message: string }>('/feed/import/xhs', {});
+        setImportStatus(result.message);
       } else {
         await api.post('/feed/digest', {});
         setImportStatus('AI 周刊已生成');
@@ -298,6 +302,27 @@ export default function DigestPage() {
         >
           <Rss size={13} />
           {importing === 'rss' ? '导入中…' : '从牛客导入'}
+        </button>
+        <button
+          onClick={() => void triggerImport('xhs')}
+          disabled={importing !== null}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '6px 13px',
+            border: '1px solid #ff204530',
+            borderRadius: '7px',
+            background: importing === 'xhs' ? '#ff204510' : 'var(--color-bg)',
+            color: '#ff2045',
+            fontSize: '13px',
+            fontWeight: 500,
+            cursor: importing !== null ? 'not-allowed' : 'pointer',
+            opacity: importing !== null && importing !== 'xhs' ? 0.5 : 1,
+          }}
+        >
+          <Search size={13} />
+          {importing === 'xhs' ? '搜索中…' : '从小红书发现'}
         </button>
         <button
           onClick={() => void triggerImport('digest')}

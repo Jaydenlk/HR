@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FeedService } from './feed.service';
 import { CreateFeedItemDto } from './dto/create-feed-item.dto';
 import { GithubImporterService } from './importers/github-importer.service';
 import { RssImporterService } from './importers/rss-importer.service';
+import { XhsImporterService } from './importers/xhs-importer.service';
 import { DigestGeneratorService } from './digest-generator.service';
 
 @Controller('feed')
@@ -14,6 +15,7 @@ export class FeedController {
     private readonly feed: FeedService,
     private readonly githubImporter: GithubImporterService,
     private readonly rssImporter: RssImporterService,
+    private readonly xhsImporter: XhsImporterService,
     private readonly digestGenerator: DigestGeneratorService,
   ) {}
 
@@ -45,6 +47,11 @@ export class FeedController {
   async importRSS() {
     const count = await this.rssImporter.importFromRSS();
     return { imported: count, source: 'rss' };
+  }
+
+  @Post('import/xhs')
+  async importXhs(@Query('keyword') keyword?: string) {
+    return this.xhsImporter.importFromXhs(keyword);
   }
 
   @Post('digest')
