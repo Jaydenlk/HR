@@ -377,13 +377,7 @@ export default function DigestPage() {
 
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      minHeight: 0,
-      overflow: 'hidden',
-      padding: '32px 32px 0',
-      boxSizing: 'border-box',
+      padding: '24px 32px 32px',
     }}>
       <style>{MONTHLY_CSS}</style>
 
