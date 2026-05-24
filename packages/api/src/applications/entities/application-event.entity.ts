@@ -7,8 +7,6 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Application } from './application.entity';
-import type { ApplicationStage } from './application.entity';
-
 @Entity('application_events')
 export class ApplicationEvent {
   @PrimaryGeneratedColumn('uuid')
@@ -21,11 +19,11 @@ export class ApplicationEvent {
   @JoinColumn({ name: 'application_id' })
   application: Application;
 
-  @Column({ nullable: true })
-  from_stage: ApplicationStage | null;
+  @Column({ type: 'varchar', nullable: true })
+  from_stage: string | null;
 
-  @Column()
-  to_stage: ApplicationStage;
+  @Column({ type: 'varchar' })
+  to_stage: string;
 
   @Column('text', { nullable: true })
   note: string;

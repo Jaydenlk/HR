@@ -34,7 +34,7 @@ export class Application {
   @Column({ nullable: true })
   location: string;
 
-  @Column({ default: 'wishlist' })
+  @Column({ type: 'varchar', default: 'wishlist' })
   stage: ApplicationStage;
 
   @Column({ nullable: true })
