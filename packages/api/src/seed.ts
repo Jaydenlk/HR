@@ -43,6 +43,19 @@ interface InterviewRecord {
   source: string;
 }
 
+interface CuratedFeedRecord {
+  title: string;
+  company: string | null;
+  role: string | null;
+  category: string;
+  content: string;
+  source: string;
+  source_url: string;
+  source_name: string;
+  author: string;
+  tags: string[];
+}
+
 async function seed() {
   const ds = new DataSource({
     type: 'better-sqlite3',
@@ -120,6 +133,40 @@ async function seed() {
     await feedRepo.save(feedEntities);
     console.log(`Seeded ${feedEntities.length} interview feed items`);
   }
+
+  // ── 3. Seed curated feed items (editorial content) ───────────────────────
+  const curatedDataPath = path.join(dataRoot, 'curated_feed.json');
+  const curatedData: CuratedFeedRecord[] = JSON.parse(fs.readFileSync(curatedDataPath, 'utf-8'));
+
+  // Dedup by title+source — skip items already present
+  let curatedInserted = 0;
+  let curatedSkipped = 0;
+  for (const rec of curatedData) {
+    const existing = await feedRepo.findOne({
+      where: { title: rec.title, source: rec.source },
+    });
+    if (existing) {
+      curatedSkipped++;
+      continue;
+    }
+    await feedRepo.save(
+      feedRepo.create({
+        user_id: null as unknown as string,
+        title: rec.title,
+        content: rec.content,
+        company: rec.company ?? (undefined as unknown as string),
+        role: rec.role ?? (undefined as unknown as string),
+        source: rec.source,
+        source_url: rec.source_url,
+        category: rec.category,
+        author: rec.author,
+      }),
+    );
+    curatedInserted++;
+  }
+  console.log(
+    `Curated feed: inserted ${curatedInserted}, skipped ${curatedSkipped} duplicates`,
+  );
 
   // Re-enable FK enforcement
   await ds.query('PRAGMA foreign_keys = ON');
