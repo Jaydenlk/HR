@@ -1,15 +1,16 @@
 'use client';
 
-// Root "/" redirects into the (main) shell. The actual home dashboard
-// lives at /resumes which is inside the (main) route group and inherits
-// the shared sidebar layout — eliminating the previous sidebar duplication.
+// Root "/" is the Today dashboard inside the (main) shell.
+// We redirect to /today which renders the Today page component.
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function RootPage() {
+  const router = useRouter();
   useEffect(() => {
-    window.location.replace('/resumes');
-  }, []);
+    router.replace('/today');
+  }, [router]);
 
   return null;
 }

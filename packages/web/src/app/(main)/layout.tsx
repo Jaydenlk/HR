@@ -30,7 +30,7 @@ interface NavItem {
 }
 
 const mainNav: NavItem[] = [
-  { id: 'today', label: '今天', href: '/', icon: <CalendarDays size={16} />, dot: true },
+  { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true },
   { id: 'monthly', label: '月刊·面经', href: '/digest', icon: <BookOpen size={16} /> },
   { id: 'debrief', label: '面试复盘', href: '/debrief', icon: <Mic size={16} />, badge: '3' },
   { id: 'overview', label: '求职总览', href: '/overview', icon: <LayoutDashboard size={16} /> },
@@ -96,7 +96,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const initial = user?.name?.[0]?.toUpperCase() ?? '…';
 
   function isActive(item: NavItem): boolean {
-    if (item.href === '/') return pathname === '/';
+    if (item.href === '/today') return pathname === '/today' || pathname === '/';
     return pathname?.startsWith(item.href) ?? false;
   }
 

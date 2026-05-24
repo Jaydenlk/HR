@@ -258,3 +258,34 @@ export interface MockSession {
   total_filler_count: number | null;
   created_at: string;
 }
+
+export interface DailyTask {
+  id: string;
+  task_date: string;
+  title: string;
+  duration_min: number | null;
+  task_type: string;
+  reason: string | null;
+  status: 'todo' | 'done';
+  linked_type: string | null;
+  linked_id: string | null;
+  created_at: string;
+}
+
+export interface DashboardData {
+  funnel: Record<string, number>;
+  interviews: {
+    total: number;
+    avgGrade: string | null;
+    recentGrades: Array<{ company: string; grade: string; date: string }>;
+  };
+  resumes: {
+    total: number;
+    primaryTitle: string | null;
+    latestDiagnosisScore: number | null;
+  };
+  activity: {
+    totalDiagnoses: number;
+    totalConversations: number;
+  };
+}
