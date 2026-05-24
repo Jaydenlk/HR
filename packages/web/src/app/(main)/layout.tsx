@@ -16,7 +16,8 @@ import {
   Briefcase,
   MessageSquare,
   MoreHorizontal,
-
+  Menu,
+  X,
 } from 'lucide-react';
 
 interface NavItem {
@@ -46,7 +47,18 @@ const toolNav: NavItem[] = [
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     api
@@ -57,6 +69,11 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       });
   }, []);
 
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [pathname, isMobile]);
+
   const initial = user?.name?.[0]?.toUpperCase() ?? '…';
 
   function isActive(item: NavItem): boolean {
@@ -65,7 +82,74 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '248px 1fr', height: '100vh', overflow: 'hidden' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '248px 1fr',
+        height: '100vh',
+        overflow: 'hidden',
+      }}
+    >
+      {/* ── Mobile top bar ───────────────────────────────────────────── */}
+      {isMobile && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '52px',
+            background: 'var(--color-surface-2)',
+            borderBottom: '1px solid var(--color-line)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 16px',
+            gap: '12px',
+            zIndex: 200,
+          }}
+        >
+          <button
+            onClick={() => setSidebarOpen((o) => !o)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--color-ink)',
+              padding: '6px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            aria-label="切换侧边栏"
+          >
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <span
+            style={{
+              fontSize: '15px',
+              fontWeight: 700,
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.3px',
+            }}
+          >
+            Coach
+          </span>
+        </div>
+      )}
+
+      {/* ── Backdrop (mobile overlay) ─────────────────────────────────── */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.35)',
+            zIndex: 210,
+          }}
+        />
+      )}
+
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
       <aside
         style={{
@@ -77,6 +161,18 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           gap: '2px',
           overflowY: 'auto',
           overflowX: 'hidden',
+          ...(isMobile
+            ? {
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: '248px',
+                zIndex: 220,
+                transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+                transition: 'transform 0.22s ease',
+              }
+            : {}),
         }}
       >
         {/* User row */}
@@ -401,6 +497,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           flex: 1,
           overflowY: 'auto',
           background: 'var(--color-bg)',
+          ...(isMobile ? { paddingTop: '52px' } : {}),
         }}
       >
         {children}

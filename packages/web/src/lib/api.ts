@@ -13,8 +13,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     if (res.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Don't redirect when already on the login page — let the page
+      // catch the error and display it to the user instead.
+      const onLoginPage = window.location.pathname === '/login';
+      if (!onLoginPage) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     throw new Error(`API ${res.status}: ${await res.text()}`);
   }
