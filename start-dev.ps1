@@ -82,6 +82,18 @@ while ($waited -lt 40) {
 }
 if ($waited -ge 40) { Write-Host "  Backend slow to start, check logs" -ForegroundColor Red }
 
+# --- Step 3b: Seed database ---
+Write-Host "[3b/5] Seeding database with market data..." -ForegroundColor Yellow
+try {
+    Push-Location $apiDir
+    & npx ts-node --project tsconfig.seed.json src/seed.ts 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+    Pop-Location
+    Write-Host "  Seed done" -ForegroundColor Green
+} catch {
+    Pop-Location
+    Write-Host "  Seed skipped or failed (non-fatal): $_" -ForegroundColor DarkGray
+}
+
 # --- Step 4: Start frontend ---
 Write-Host "[4/5] Starting frontend (:$WEB_PORT)..." -ForegroundColor Yellow
 
