@@ -1,0 +1,22 @@
+[31m[Nest] 25116  - [39m2026/05/24 16:14:07 [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3002[39m[38;5;3m +2ms[39m
+node:net:1940
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3002
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at ExpressAdapter.listen (E:\Agent program\HRBP\.worktrees\product-hardening-audit\node_modules\.pnpm\@nestjs+platform-express@11_07fba3daf21102d6ae44540725b9479b\node_modules\@nestjs\platform-express\adapters\express-adapter.js:115:32)
+    at E:\Agent program\HRBP\.worktrees\product-hardening-audit\node_modules\.pnpm\@nestjs+core@11.1.23_@nestj_05f22356ac718c7b1ab5c62e11103ff8\node_modules\@nestjs\core\nest-application.js:188:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (E:\Agent program\HRBP\.worktrees\product-hardening-audit\node_modules\.pnpm\@nestjs+core@11.1.23_@nestj_05f22356ac718c7b1ab5c62e11103ff8\node_modules\@nestjs\core\nest-application.js:178:16)
+    at async bootstrap (E:\Agent program\HRBP\.worktrees\product-hardening-audit\packages\api\src\main.ts:10:3) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3002
+}
+
+Node.js v22.19.0
