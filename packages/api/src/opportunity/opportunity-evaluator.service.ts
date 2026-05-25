@@ -92,7 +92,13 @@ export class OpportunityEvaluatorService {
 
     try {
       // Step 1: Parse JD
-      const parsedJd = await this.parser.parse(opportunity.jd_text);
+      const rawParsed = await this.parser.parse(opportunity.jd_text);
+      // Defensive: normalise parsed JD arrays
+      const parsedJd: ParsedJd = {
+        ...rawParsed,
+        requirements: Array.isArray(rawParsed.requirements) ? rawParsed.requirements : [],
+        responsibilities: Array.isArray(rawParsed.responsibilities) ? rawParsed.responsibilities : [],
+      };
 
       // Step 2: Update opportunity with parsed data (only if not already set by user)
       const updates: Record<string, unknown> = { jd_snapshot: parsedJd };
@@ -108,10 +114,23 @@ export class OpportunityEvaluatorService {
       const userContext = await this.gatherUserContext(userId, parsedJd);
 
       // Step 4: Detect risks
-      const riskAssessment = await this.riskService.detectRisks(opportunity.jd_text, parsedJd);
+      const rawRisk = await this.riskService.detectRisks(opportunity.jd_text, parsedJd);
+      // Defensive: AI may omit fields despite schema — normalise
+      const riskAssessment: RiskAssessment = {
+        credibility_score: rawRisk.credibility_score ?? 0.5,
+        risk_flags: Array.isArray(rawRisk.risk_flags) ? rawRisk.risk_flags : [],
+      };
 
       // Step 5: AI evaluation for match/value scores
-      const evalResult = await this.evaluateWithAi(parsedJd, riskAssessment, userContext);
+      const rawEval = await this.evaluateWithAi(parsedJd, riskAssessment, userContext);
+      // Defensive: normalise AI output
+      const evalResult: EvaluationResult = {
+        match_score: rawEval.match_score ?? 0,
+        value_score: rawEval.value_score ?? 0,
+        strengths: Array.isArray(rawEval.strengths) ? rawEval.strengths : [],
+        gaps: Array.isArray(rawEval.gaps) ? rawEval.gaps : [],
+        next_actions: Array.isArray(rawEval.next_actions) ? rawEval.next_actions : [],
+      };
 
       // Step 6: Calculate overall score
       const overallScore = this.calculateOverallScore(
