@@ -1,22 +1,38 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
+import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AppModule } from '../src/app.module';
 import { EvidenceService } from '../src/intelligence/evidence.service';
+import { IntelligenceModule } from '../src/intelligence/intelligence.module';
+// User repo is NOT registered in IntelligenceModule.forFeature — we register it here
+
+
+// Core entities
+import { User } from '../src/users/entities/user.entity';
 import { Resume } from '../src/resumes/entities/resume.entity';
+import { ResumeVersion } from '../src/resumes/entities/resume-version.entity';
 import { Diagnosis } from '../src/diagnoses/entities/diagnosis.entity';
 import { Application } from '../src/applications/entities/application.entity';
+import { ApplicationEvent } from '../src/applications/entities/application-event.entity';
 import { DailyTask } from '../src/tasks/entities/daily-task.entity';
 import { Opportunity } from '../src/opportunity/entities/opportunity.entity';
 import { OpportunityEvaluation } from '../src/opportunity/entities/opportunity-evaluation.entity';
+import { OpportunityEvidence } from '../src/opportunity/entities/opportunity-evidence.entity';
+import { OpportunityAction } from '../src/opportunity/entities/opportunity-action.entity';
 import { FeedItem } from '../src/feed/entities/feed-item.entity';
+import { FeedSource } from '../src/feed/entities/feed-source.entity';
+import { Company } from '../src/feed/entities/company.entity';
+import { Department } from '../src/feed/entities/department.entity';
+import { RoleCategory } from '../src/feed/entities/role-category.entity';
+import { CoverageMetric } from '../src/feed/entities/coverage-metric.entity';
+import { DigestRun } from '../src/feed/entities/digest-run.entity';
 import { SalaryEntry } from '../src/salary/entities/salary-entry.entity';
-import { User } from '../src/users/entities/user.entity';
-import { request } from './test-utils';
+import { Conversation } from '../src/conversations/entities/conversation.entity';
+import { Message } from '../src/conversations/entities/message.entity';
+import { Interview } from '../src/interviews/entities/interview.entity';
+import { MockSession } from '../src/mock/entities/mock-session.entity';
+import { CoverLetter } from '../src/cover-letters/entities/cover-letter.entity';
 
-describe('Evidence (e2e)', () => {
-  let app: INestApplication;
+describe('EvidenceService (standalone)', () => {
   let moduleRef: TestingModule;
   let evidenceService: EvidenceService;
   let resumeRepo: Repository<Resume>;
@@ -31,21 +47,58 @@ describe('Evidence (e2e)', () => {
   let userId: string;
 
   beforeAll(async () => {
-    process.env.DB_TYPE = 'sqlite';
-    process.env.DB_PATH = ':memory:';
-
     moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'better-sqlite3',
+          database: ':memory:',
+          synchronize: true,
+          entities: [
+            // Users (FK target for almost everything)
+            User,
+            // Resumes + versions
+            Resume,
+            ResumeVersion,
+            // Diagnoses
+            Diagnosis,
+            // Applications + events
+            Application,
+            ApplicationEvent,
+            // Tasks
+            DailyTask,
+            // Opportunities + sub-entities
+            Opportunity,
+            OpportunityEvaluation,
+            OpportunityEvidence,
+            OpportunityAction,
+            // Feed graph entities (FeedItem has FKs to all of these)
+            FeedSource,
+            Company,
+            Department,
+            RoleCategory,
+            CoverageMetric,
+            DigestRun,
+            FeedItem,
+            // Salary
+            SalaryEntry,
+            // Conversations
+            Conversation,
+            Message,
+            // Interviews
+            Interview,
+            // Mock sessions
+            MockSession,
+            // Cover letters
+            CoverLetter,
+          ],
+        }),
+        // Expose User repository to this test module (not part of IntelligenceModule)
+        TypeOrmModule.forFeature([User]),
+        IntelligenceModule,
+      ],
     }).compile();
 
-    app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api');
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, transform: true }),
-    );
-    await app.init();
-
-    evidenceService = moduleRef.get<EvidenceService>(EvidenceService);
+    evidenceService = moduleRef.get(EvidenceService);
     resumeRepo = moduleRef.get<Repository<Resume>>(getRepositoryToken(Resume));
     diagnosisRepo = moduleRef.get<Repository<Diagnosis>>(getRepositoryToken(Diagnosis));
     appRepo = moduleRef.get<Repository<Application>>(getRepositoryToken(Application));
@@ -56,18 +109,22 @@ describe('Evidence (e2e)', () => {
     salaryRepo = moduleRef.get<Repository<SalaryEntry>>(getRepositoryToken(SalaryEntry));
     userRepo = moduleRef.get<Repository<User>>(getRepositoryToken(User));
 
-    // Login to create a user and retrieve user_id
-    const loginRes = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: 'evidence@coach.dev', name: 'Evidence User', invite_code: 'COACH2026' });
-    userId = loginRes.body.user.id;
+    // Create a primary test user directly — no HTTP, no auth module
+    const user = await userRepo.save(
+      userRepo.create({
+        email: 'evidence@test.dev',
+        name: 'Evidence User',
+        invite_code: 'TESTCODE',
+      }),
+    );
+    userId = user.id;
   }, 30000);
 
   afterAll(async () => {
-    await app.close();
+    await moduleRef.close();
   });
 
-  // ── 1. gather() returns UserIntelligence with correct structure ──────
+  // ── 1. gather() returns correct UserIntelligence structure ────────────
 
   it('gather() returns correct UserIntelligence structure', async () => {
     const intel = await evidenceService.gather(userId);
@@ -95,16 +152,18 @@ describe('Evidence (e2e)', () => {
     expect(intel).toHaveProperty('has_opportunities');
   });
 
-  // ── 2. gather() with no data ────────────────────────────────────────
+  // ── 2. gather() with no data returns empty intelligence ──────────────
 
   it('gather() with no data returns empty intelligence', async () => {
-    // Create a fresh user with no data
-    const loginRes = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: 'empty@coach.dev', name: 'Empty User', invite_code: 'COACH2026' });
-    const emptyUserId = loginRes.body.user.id;
+    const emptyUser = await userRepo.save(
+      userRepo.create({
+        email: 'empty@test.dev',
+        name: 'Empty User',
+        invite_code: 'EMPTYCODE',
+      }),
+    );
 
-    const intel = await evidenceService.gather(emptyUserId);
+    const intel = await evidenceService.gather(emptyUser.id);
 
     expect(intel.has_resume).toBe(false);
     expect(intel.resume).toBeNull();
@@ -122,43 +181,38 @@ describe('Evidence (e2e)', () => {
     expect(intel.has_opportunities).toBe(false);
   });
 
-  // ── 3. gather() with resume ─────────────────────────────────────────
+  // ── 3. gather() with resume returns has_resume=true ──────────────────
 
   it('gather() with resume returns has_resume=true and source_type=resume', async () => {
-    const resume = resumeRepo.create({
-      user_id: userId,
-      title: 'Test Resume',
-      raw_text: 'I am a software engineer with 5 years experience.',
-      is_primary: true,
-      parsed_json: {
-        basic_info: { name: 'Test', email: 'test@test.com' },
-        summary: 'Software engineer',
-        work_experience: [
-          {
-            company: 'BigCo',
-            title: 'SWE',
-            start_date: '2020-01',
-            description: 'Built things',
-            achievements: ['Shipped feature'],
+    const resume = await resumeRepo.save(
+      resumeRepo.create({
+        user_id: userId,
+        title: 'Test Resume',
+        raw_text: 'I am a software engineer with 5 years experience.',
+        is_primary: true,
+        parsed_json: {
+          basic_info: { name: 'Test', email: 'test@test.com' },
+          summary: 'Software engineer',
+          work_experience: [
+            {
+              company: 'BigCo',
+              title: 'SWE',
+              start_date: '2020-01',
+              description: 'Built things',
+              achievements: ['Shipped feature'],
+            },
+          ],
+          education: [{ school: 'MIT', degree: 'BS', major: 'CS' }],
+          skills: {
+            technical: ['TypeScript', 'Node.js', 'React'],
+            soft: ['Leadership'],
+            languages: ['English', 'Chinese'],
+            certifications: [],
           },
-        ],
-        education: [
-          {
-            school: 'MIT',
-            degree: 'BS',
-            major: 'CS',
-          },
-        ],
-        skills: {
-          technical: ['TypeScript', 'Node.js', 'React'],
-          soft: ['Leadership'],
-          languages: ['English', 'Chinese'],
-          certifications: [],
+          projects: [],
         },
-        projects: [],
-      },
-    });
-    await resumeRepo.save(resume);
+      }),
+    );
 
     const intel = await evidenceService.gather(userId);
 
@@ -172,16 +226,17 @@ describe('Evidence (e2e)', () => {
     expect(intel.skills).toContain('Leadership');
   });
 
-  // ── 4. gather() with application ────────────────────────────────────
+  // ── 4. gather() with application includes company ────────────────────
 
   it('gather() with application includes company in application_companies', async () => {
-    const application = appRepo.create({
-      user_id: userId,
-      company: 'Acme Corp',
-      role: 'Senior Engineer',
-      stage: 'applied',
-    });
-    await appRepo.save(application);
+    await appRepo.save(
+      appRepo.create({
+        user_id: userId,
+        company: 'Acme Corp',
+        role: 'Senior Engineer',
+        stage: 'applied',
+      }),
+    );
 
     const intel = await evidenceService.gather(userId);
 
@@ -197,29 +252,31 @@ describe('Evidence (e2e)', () => {
     expect(acmeApp!.weight).toBe(0.9);
   });
 
-  // ── 5. getCompaniesOfInterest() returns union ───────────────────────
+  // ── 5. getCompaniesOfInterest() returns union ─────────────────────────
 
   it('getCompaniesOfInterest() returns union of app + opp + diagnosis companies', async () => {
-    // Application for Acme Corp was already created above.
-    // Add an opportunity with a different company.
-    const opp = oppRepo.create({
-      user_id: userId,
-      company: 'Beta Inc',
-      role: 'Staff Engineer',
-      jd_text: 'Looking for a staff engineer',
-      status: 'evaluated',
-    });
-    await oppRepo.save(opp);
+    // Opportunity with a different company
+    await oppRepo.save(
+      oppRepo.create({
+        user_id: userId,
+        company: 'Beta Inc',
+        role: 'Staff Engineer',
+        jd_text: 'Looking for a staff engineer',
+        status: 'evaluated',
+      }),
+    );
 
-    // Add a diagnosis with yet another company.
-    const diag = diagnosisRepo.create({
-      user_id: userId,
-      resume_id: (await resumeRepo.findOne({ where: { user_id: userId } }))!.id,
-      jd_text: 'Gamma Ltd JD text',
-      jd_company: 'Gamma Ltd',
-      jd_role: 'PM',
-    });
-    await diagnosisRepo.save(diag);
+    // Diagnosis with yet another company
+    const existingResume = await resumeRepo.findOne({ where: { user_id: userId } });
+    await diagnosisRepo.save(
+      diagnosisRepo.create({
+        user_id: userId,
+        resume_id: existingResume!.id,
+        jd_text: 'Gamma Ltd JD text',
+        jd_company: 'Gamma Ltd',
+        jd_role: 'PM',
+      }),
+    );
 
     const companies = await evidenceService.getCompaniesOfInterest(userId);
 
@@ -228,7 +285,7 @@ describe('Evidence (e2e)', () => {
     expect(companies).toContain('Gamma Ltd');
   });
 
-  // ── 6. formatForAI() returns non-empty string ───────────────────────
+  // ── 6. formatForAI() returns non-empty string ─────────────────────────
 
   it('formatForAI() returns non-empty string containing user data references', async () => {
     const intel = await evidenceService.gather(userId);
@@ -238,45 +295,39 @@ describe('Evidence (e2e)', () => {
     expect(formatted.length).toBeGreaterThan(0);
     expect(formatted).toContain('用户画像');
     expect(formatted).toContain('简历');
-    // Should reference the resume title or skills
     expect(formatted).toContain('Test Resume');
-    // Should reference application company
     expect(formatted).toContain('Acme Corp');
   });
 
-  // ── 7. Evidence objects have url, observed_at, weight ───────────────
+  // ── 7. Evidence objects have observed_at and weight fields ────────────
 
   it('Evidence objects have observed_at and weight fields', async () => {
     const intel = await evidenceService.gather(userId);
 
-    // Check resume evidence
     expect(intel.resume).not.toBeNull();
     expect(intel.resume!.observed_at).toBeDefined();
     expect(typeof intel.resume!.observed_at).toBe('string');
     expect(intel.resume!.weight).toBeDefined();
     expect(typeof intel.resume!.weight).toBe('number');
 
-    // Check application evidence
     for (const app of intel.applications) {
       expect(app.observed_at).toBeDefined();
       expect(typeof app.observed_at).toBe('string');
       expect(app.weight).toBe(0.9);
     }
 
-    // Check diagnosis evidence
     for (const diag of intel.diagnoses) {
       expect(diag.observed_at).toBeDefined();
       expect(diag.weight).toBe(0.7);
     }
 
-    // Check opportunity with url
     for (const opp of intel.opportunities) {
       expect(opp.observed_at).toBeDefined();
       expect(opp.weight).toBe(0.8);
     }
   });
 
-  // ── 8. Evidence has valid confidence and freshness ──────────────────
+  // ── 8. Evidence has valid confidence and freshness values ─────────────
 
   it('Evidence objects have valid confidence and freshness values', async () => {
     const validConfidence = ['high', 'medium', 'low'];
@@ -302,7 +353,7 @@ describe('Evidence (e2e)', () => {
     }
   });
 
-  // ── Bonus: gatherForCompany filters correctly ───────────────────────
+  // ── 9. gatherForCompany() filters by company ──────────────────────────
 
   it('gatherForCompany() returns only evidence for the given company', async () => {
     const evidence = await evidenceService.gatherForCompany(userId, 'Acme Corp');
@@ -314,22 +365,22 @@ describe('Evidence (e2e)', () => {
     }
   });
 
-  // ── Bonus: feed and salary gathered when companies match ────────────
+  // ── 10. Feed items matching companies of interest ─────────────────────
 
   it('gathers feed items matching companies of interest', async () => {
-    // Seed a feed item for Acme Corp (user has application there)
-    const feed = feedRepo.create({
-      title: 'Acme Corp interview tips',
-      content: 'Prepare for system design questions at Acme Corp',
-      company: 'Acme Corp',
-      role: 'Senior Engineer',
-      source: 'ugc',
-      source_kind: 'ugc',
-      category: 'interview_exp',
-      confidence: 'high',
-      question_types: [],
-    });
-    await feedRepo.save(feed);
+    await feedRepo.save(
+      feedRepo.create({
+        title: 'Acme Corp interview tips',
+        content: 'Prepare for system design questions at Acme Corp',
+        company: 'Acme Corp',
+        role: 'Senior Engineer',
+        source: 'ugc',
+        source_kind: 'ugc',
+        category: 'interview_exp',
+        confidence: 'high',
+        question_types: [],
+      }),
+    );
 
     const intel = await evidenceService.gather(userId);
 
@@ -342,17 +393,19 @@ describe('Evidence (e2e)', () => {
     expect(acmeFeed!.weight).toBe(0.6);
   });
 
+  // ── 11. Salary entries matching companies of interest ─────────────────
+
   it('gathers salary entries matching companies of interest', async () => {
-    // Seed a salary entry for Acme Corp
-    const salary = salaryRepo.create({
-      user_id: userId,
-      company: 'Acme Corp',
-      role: 'Senior Engineer',
-      base_salary: 200000,
-      total_comp: 280000,
-      source: 'self',
-    });
-    await salaryRepo.save(salary);
+    await salaryRepo.save(
+      salaryRepo.create({
+        user_id: userId,
+        company: 'Acme Corp',
+        role: 'Senior Engineer',
+        base_salary: 200000,
+        total_comp: 280000,
+        source: 'self',
+      }),
+    );
 
     const intel = await evidenceService.gather(userId);
 
@@ -365,16 +418,17 @@ describe('Evidence (e2e)', () => {
     expect(acmeSal!.weight).toBe(0.4);
   });
 
-  // ── Bonus: rejected applications are excluded ───────────────────────
+  // ── 12. gather() excludes rejected applications ───────────────────────
 
   it('gather() excludes rejected applications', async () => {
-    const rejected = appRepo.create({
-      user_id: userId,
-      company: 'Rejected Co',
-      role: 'Tester',
-      stage: 'rejected',
-    });
-    await appRepo.save(rejected);
+    await appRepo.save(
+      appRepo.create({
+        user_id: userId,
+        company: 'Rejected Co',
+        role: 'Tester',
+        stage: 'rejected',
+      }),
+    );
 
     const intel = await evidenceService.gather(userId);
 

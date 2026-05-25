@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
 
 interface CompleteParams {
   system: string;
@@ -19,50 +18,28 @@ interface CompleteStructuredParams {
 
 @Injectable()
 export class AiService {
-  private readonly clouddreamClient: Anthropic;
-  private readonly deepseekClient: OpenAI | null;
-
-  private readonly clouddreamModel: string;
-  private readonly deepseekModel: string;
+  private readonly client: Anthropic;
+  private readonly model: string;
 
   constructor() {
-    const clouddreamApiKey = process.env.CLOUDDREAM_API_KEY;
-    if (!clouddreamApiKey) {
+    const apiKey = process.env.CLOUDDREAM_API_KEY;
+    if (!apiKey) {
       throw new Error('CLOUDDREAM_API_KEY is required but not set');
     }
 
-    this.clouddreamClient = new Anthropic({
-      apiKey: clouddreamApiKey,
+    this.client = new Anthropic({
+      apiKey,
       baseURL: process.env.CLOUDDREAM_BASE_URL ?? 'https://api.tutorial.clouddreamai.com',
     });
 
-    const deepseekKey = process.env.DEEPSEEK_API_KEY;
-    this.deepseekClient = deepseekKey
-      ? new OpenAI({ apiKey: deepseekKey, baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1' })
-      : null;
-
-    this.clouddreamModel = process.env.CLOUDDREAM_MODEL ?? 'auto-v2';
-    this.deepseekModel = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat';
+    this.model = process.env.CLOUDDREAM_MODEL ?? 'auto-v2';
   }
 
   async complete(params: CompleteParams): Promise<string> {
     const { system, prompt, tools, maxTokens = 4096 } = params;
-    return this.completeCloudDream(system, prompt, tools, maxTokens);
-  }
 
-  async completeStructured<T>(params: CompleteStructuredParams): Promise<T> {
-    const { system, prompt, toolName, toolDescription, schema } = params;
-    return this.completeStructuredCloudDream<T>(system, prompt, toolName, toolDescription, schema);
-  }
-
-  private async completeCloudDream(
-    system: string,
-    prompt: string,
-    tools: Anthropic.Tool[] | undefined,
-    maxTokens: number,
-  ): Promise<string> {
     const messageParams: Anthropic.MessageCreateParamsNonStreaming = {
-      model: this.clouddreamModel,
+      model: this.model,
       max_tokens: maxTokens,
       system,
       messages: [{ role: 'user', content: prompt }],
@@ -72,7 +49,7 @@ export class AiService {
       messageParams.tools = tools;
     }
 
-    const response = await this.clouddreamClient.messages.create(messageParams);
+    const response = await this.client.messages.create(messageParams);
 
     for (const block of response.content) {
       if (block.type === 'text') {
@@ -83,41 +60,17 @@ export class AiService {
     return '';
   }
 
-  private async completeDeepSeek(
-    system: string,
-    prompt: string,
-    maxTokens: number,
-  ): Promise<string> {
-    if (!this.deepseekClient) {
-      return this.completeCloudDream(system, prompt, undefined, maxTokens);
-    }
-    const response = await this.deepseekClient.chat.completions.create({
-      model: this.deepseekModel,
-      max_tokens: maxTokens,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: prompt },
-      ],
-    });
+  async completeStructured<T>(params: CompleteStructuredParams): Promise<T> {
+    const { system, prompt, toolName, toolDescription, schema } = params;
 
-    return response.choices[0]?.message?.content ?? '';
-  }
-
-  private async completeStructuredCloudDream<T>(
-    system: string,
-    prompt: string,
-    toolName: string,
-    toolDescription: string,
-    schema: Record<string, unknown>,
-  ): Promise<T> {
     const tool: Anthropic.Tool = {
       name: toolName,
       description: toolDescription,
       input_schema: schema as Anthropic.Tool['input_schema'],
     };
 
-    const response = await this.clouddreamClient.messages.create({
-      model: this.clouddreamModel,
+    const response = await this.client.messages.create({
+      model: this.model,
       max_tokens: 4096,
       system,
       messages: [{ role: 'user', content: prompt }],
@@ -132,31 +85,5 @@ export class AiService {
     }
 
     throw new Error(`CloudDreamAI did not return a tool_use block for tool "${toolName}"`);
-  }
-
-  private async completeStructuredDeepSeek<T>(
-    system: string,
-    prompt: string,
-    schema: Record<string, unknown>,
-    toolName?: string,
-    toolDescription?: string,
-  ): Promise<T> {
-    if (!this.deepseekClient) {
-      return this.completeStructuredCloudDream<T>(system, prompt, toolName ?? 'extract', toolDescription ?? 'Extract structured data', schema);
-    }
-    const schemaHint = `\n\nOutput ONLY valid JSON matching this schema:\n${JSON.stringify(schema, null, 2)}`;
-
-    const response = await this.deepseekClient.chat.completions.create({
-      model: this.deepseekModel,
-      max_tokens: 4096,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: system + schemaHint },
-        { role: 'user', content: prompt },
-      ],
-    });
-
-    const content = response.choices[0]?.message?.content ?? '{}';
-    return JSON.parse(content) as T;
   }
 }
