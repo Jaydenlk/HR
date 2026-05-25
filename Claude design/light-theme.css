@@ -1,0 +1,121 @@
+/* light-theme.css · v4 全屏 light 化
+   把所有 ink-black hero 替换成 white / light gray / very-light-blue 三档；
+   渐变全部翻转：从"暗中心蓝色 glow"→"顶部蓝色微光向下淡出"；
+   仅保留约 3% 黑：按钮、tab active、Coach avatar mark、sidebar 问 Coach、
+   微型数据 mark 等交互/识别元素。
+*/
+
+.coach {
+  --hero-bg: #f5f5f7;
+  --hero-bg-tint: #fafafa;
+  --hero-bg-blue: #eaf2ff;
+  --hero-ink: #1d1d1f;
+  --hero-ink-dim: rgba(29,29,31,.62);
+  --hero-divider: rgba(29,29,31,.08);
+}
+
+/* === Today · greeting card === */
+.coach .hello { background: var(--hero-bg-blue) !important; color: var(--hero-ink) !important; border: 1px solid rgba(10,132,255,.12); }
+.coach .hello::before { background: linear-gradient(180deg, rgba(10,132,255,.1) 0%, transparent 55%) !important; }
+.coach .hello .date { color: var(--hero-ink-dim) !important; }
+.coach .hello .streak-inline { border-top-color: var(--hero-divider) !important; color: var(--hero-ink-dim) !important; }
+.coach .hello .streak-inline .flame { color: #c87317 !important; }
+.coach .hello .streak-inline .flame b,
+.coach .hello .streak-inline b { color: var(--hero-ink) !important; }
+.coach .hello .streak-inline .dots i { background: rgba(29,29,31,.12) !important; }
+.coach .hello .streak-inline .dots i.on { background: #c87317 !important; }
+.coach .hello .streak-inline .dots i.today { background: var(--brand) !important; box-shadow: 0 0 0 2px rgba(255,255,255,.7) !important; }
+.coach .hello .ring-blk .num b { color: var(--hero-ink) !important; }
+.coach .hello .ring-blk .num span { color: var(--hero-ink-dim) !important; }
+.coach .hello .ring-blk svg > circle:first-of-type { stroke: rgba(29,29,31,.1) !important; }
+
+/* === Landing · hero card === */
+.coach.landing .hero-card { background: var(--hero-bg) !important; color: var(--hero-ink) !important; border: 1px solid var(--line); }
+.coach.landing .hero-card .ambient { background:
+  linear-gradient(180deg, rgba(10,132,255,.1) 0%, transparent 50%) !important; }
+.coach.landing .hero-card .topline { color: rgba(29,29,31,.5) !important; }
+.coach.landing .hero-card .bub.ai .text { background: rgba(29,29,31,.05) !important; color: var(--hero-ink) !important; backdrop-filter: none !important; }
+.coach.landing .hero-card .signature { color: rgba(29,29,31,.5) !important; }
+
+/* === Landing · first pillar 'today' === */
+.coach.landing .pil.a { background: var(--hero-bg-blue) !important; color: var(--hero-ink) !important; border-color: rgba(10,132,255,.16) !important; }
+.coach.landing .pil.a::before { background: linear-gradient(180deg, rgba(10,132,255,.08) 0%, transparent 50%) !important; }
+.coach.landing .pil.a h3 { color: var(--hero-ink) !important; }
+.coach.landing .pil.a .desc { color: var(--hero-ink-dim) !important; }
+.coach.landing .pil.a .tag { color: rgba(29,29,31,.55) !important; }
+.coach.landing .today-preview .row { background: rgba(255,255,255,.75) !important; color: var(--hero-ink) !important; backdrop-filter: none !important; border: 1px solid rgba(255,255,255,.5); }
+.coach.landing .today-preview .row.done { background: var(--success-soft) !important; color: rgba(29,29,31,.6) !important; border-color: transparent; }
+.coach.landing .today-preview .chk { border-color: rgba(29,29,31,.2) !important; }
+.coach.landing .today-preview .row .dur { opacity: .55 !important; }
+
+/* === Monthly · feature hero === */
+.coach .feat-hero { background: var(--hero-bg) !important; color: var(--hero-ink) !important; border: 1px solid var(--line); }
+.coach .feat-hero::before { background: linear-gradient(180deg, rgba(10,132,255,.07) 0%, transparent 50%) !important; }
+.coach .feat-hero h2 { color: var(--hero-ink) !important; }
+.coach .feat-hero p { color: var(--hero-ink-dim) !important; }
+.coach .feat-hero .topline,
+.coach .feat-hero .meta { color: rgba(29,29,31,.5) !important; }
+
+/* === Interview list · capture banner === */
+.coach .capture { background: var(--hero-bg-blue) !important; color: var(--hero-ink) !important; border: 1px solid rgba(10,132,255,.16); }
+.coach .capture::before { background: linear-gradient(180deg, rgba(10,132,255,.08) 0%, transparent 50%) !important; }
+.coach .capture p { color: var(--hero-ink-dim) !important; }
+.coach .capture .btn.outline { background: rgba(255,255,255,.75) !important; border-color: var(--hero-divider) !important; color: var(--hero-ink) !important; backdrop-filter: none !important; }
+
+/* === Interview list · 'dark' stat tile === */
+.coach .iv-stat.dark { background: var(--hero-bg-blue) !important; color: var(--hero-ink) !important; border-color: rgba(10,132,255,.18) !important; }
+.coach .iv-stat.dark .v { color: var(--hero-ink) !important; }
+.coach .iv-stat.dark .v .delta { color: var(--success) !important; }
+.coach .iv-stat.dark .l { color: var(--hero-ink-dim) !important; }
+.coach .iv-stat.dark .extra { color: var(--hero-ink-dim) !important; }
+.coach .iv-stat.dark .extra .dot { background: var(--hero-ink-dim) !important; }
+.coach .iv-stat.dark .chart i { background: rgba(29,29,31,.1) !important; }
+.coach .iv-stat.dark .chart i.on { background: var(--brand) !important; }
+
+/* === Interview detail · grade block === */
+.coach .iv-hd .grade-blk { background: var(--hero-bg-blue) !important; color: var(--brand) !important; border: 1px solid rgba(10,132,255,.18) !important; }
+.coach .iv-hd .grade-blk .g { color: var(--brand) !important; }
+.coach .iv-hd .grade-blk .l { color: var(--hero-ink-dim) !important; }
+
+/* === Interview detail · prediction (rail) === */
+.coach .pred { background: var(--hero-bg) !important; color: var(--hero-ink) !important; border: 1px solid var(--line); }
+.coach .pred::before { background: linear-gradient(180deg, rgba(10,132,255,.08) 0%, transparent 50%) !important; }
+.coach .pred h3 { color: var(--hero-ink) !important; }
+.coach .pred h3 .acc { color: var(--brand) !important; }
+.coach .pred .badge { background: rgba(10,132,255,.1) !important; color: var(--brand) !important; backdrop-filter: none !important; }
+.coach .pred .when-line { color: rgba(29,29,31,.5) !important; border-bottom-color: var(--hero-divider) !important; }
+.coach .pred-row { border-bottom-color: var(--hero-divider) !important; }
+.coach .pred-row .topic { color: var(--ink-2) !important; }
+.coach .pred-row .pct { background: rgba(29,29,31,.06) !important; color: var(--hero-ink) !important; }
+.coach .pred-row .pct.high { background: var(--brand) !important; color: #fff !important; }
+.coach .pred .ctas { border-top-color: var(--hero-divider) !important; }
+.coach .pred .ctas .b { background: rgba(29,29,31,.05) !important; color: var(--hero-ink) !important; border-color: var(--hero-divider) !important; }
+.coach .pred .ctas .b.brand { background: var(--brand) !important; color: #fff !important; border-color: var(--brand) !important; }
+
+/* === Grade B letter (used --ink) === */
+.coach .iv-row .grade.g-b { background: var(--hero-bg-blue) !important; color: var(--brand) !important; border: 1px solid rgba(10,132,255,.2) !important; }
+.coach .tr .mini-g.g-b { background: var(--hero-bg-blue) !important; color: var(--brand) !important; border: 1px solid rgba(10,132,255,.22) !important; }
+
+/* === Overview · hero (big dark card) === */
+.coach .ov-hero { background: var(--hero-bg-blue) !important; color: var(--hero-ink) !important; border: 1px solid rgba(10,132,255,.16); }
+.coach .ov-hero::before { background: linear-gradient(180deg, rgba(10,132,255,.08) 0%, transparent 50%) !important; }
+.coach .ov-hero .greet { border-right-color: var(--hero-divider) !important; }
+.coach .ov-hero h1 { color: var(--hero-ink) !important; }
+.coach .ov-hero h1 .acc { color: var(--brand) !important; }
+.coach .ov-hero p { color: var(--hero-ink-dim) !important; }
+.coach .ov-hero p b { color: var(--hero-ink) !important; }
+.coach .ov-hero .badge { background: rgba(10,132,255,.1) !important; color: var(--brand) !important; backdrop-filter: none !important; }
+.coach .ov-hero .qs { border-right-color: var(--hero-divider) !important; }
+.coach .ov-hero .qs .lbl { color: rgba(29,29,31,.55) !important; }
+.coach .ov-hero .qs .v { color: var(--hero-ink) !important; }
+.coach .ov-hero .qs .extra { color: var(--hero-ink-dim) !important; }
+
+/* === Chat · rich card head === */
+.coach .rich .rch-head { background: var(--hero-bg-blue) !important; color: var(--hero-ink) !important; border-bottom: 1px solid var(--hero-divider) !important; }
+.coach .rich.rewrite .rch-head { background: var(--success-soft) !important; color: var(--ink) !important; border-bottom-color: rgba(0,0,0,.04) !important; }
+.coach .rich .rch-head::before { background: linear-gradient(180deg, rgba(10,132,255,.08) 0%, transparent 50%) !important; }
+.coach .rich .rch-head h4 { color: var(--hero-ink) !important; }
+.coach .rich .rch-head .chips-row .c { background: rgba(255,255,255,.75) !important; color: var(--hero-ink) !important; backdrop-filter: none !important; }
+.coach .rich .score-tile { background: rgba(255,255,255,.75) !important; backdrop-filter: none !important; }
+.coach .rich .score-tile .v { color: var(--brand) !important; }
+.coach .rich .score-tile .l { color: var(--hero-ink-dim) !important; }

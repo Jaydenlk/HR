@@ -1,0 +1,137 @@
+[
+  {
+    "role": "前端工程师",
+    "data_year": "2025-2026",
+    "percentiles": {
+      "P25": {
+        "base_salary": 21000,
+        "total_comp": 340000,
+        "description": "二线厂/普通offer档，如网易普通、顺丰、去哪儿等"
+      },
+      "P50": {
+        "base_salary": 26000,
+        "total_comp": 420000,
+        "description": "一线大厂普通offer档，如字节普通、腾讯普通、阿里普通"
+      },
+      "P75": {
+        "base_salary": 30000,
+        "total_comp": 510000,
+        "description": "一线大厂SP档，如字节SP、腾讯SP、拼多多SP"
+      },
+      "P90": {
+        "base_salary": 35000,
+        "total_comp": 600000,
+        "description": "一线大厂SSP档，如字节SSP、腾讯SSP、小红书SSP"
+      }
+    },
+    "source": "market"
+  },
+  {
+    "role": "后端工程师",
+    "data_year": "2025-2026",
+    "percentiles": {
+      "P25": {
+        "base_salary": 22000,
+        "total_comp": 360000,
+        "description": "二线厂/普通offer档，如百度普通、度小满、顺丰等"
+      },
+      "P50": {
+        "base_salary": 27000,
+        "total_comp": 450000,
+        "description": "一线大厂普通offer档，如字节普通、腾讯普通、京东普通"
+      },
+      "P75": {
+        "base_salary": 31000,
+        "total_comp": 560000,
+        "description": "一线大厂SP档，如字节SP、腾讯SP、拼多多SP"
+      },
+      "P90": {
+        "base_salary": 36000,
+        "total_comp": 650000,
+        "description": "一线大厂SSP档，如拼多多SSP、腾讯SSP、京东SSP"
+      }
+    },
+    "source": "market"
+  },
+  {
+    "role": "算法工程师",
+    "data_year": "2025-2026",
+    "percentiles": {
+      "P25": {
+        "base_salary": 26000,
+        "total_comp": 420000,
+        "description": "中厂/普通offer档，如百度普通、网易普通等"
+      },
+      "P50": {
+        "base_salary": 32000,
+        "total_comp": 540000,
+        "description": "一线大厂SP档，如字节SP、阿里SP"
+      },
+      "P75": {
+        "base_salary": 38000,
+        "total_comp": 680000,
+        "description": "一线大厂SSP档，如腾讯SSP、阿里SSP"
+      },
+      "P90": {
+        "base_salary": 45000,
+        "total_comp": 800000,
+        "description": "顶级SSP+/大模型方向，如拼多多SSP+、字节SSP+、腾讯SSP+"
+      }
+    },
+    "source": "market"
+  },
+  {
+    "role": "数据工程师",
+    "data_year": "2025-2026",
+    "percentiles": {
+      "P25": {
+        "base_salary": 20000,
+        "total_comp": 330000,
+        "description": "二线厂/普通offer档"
+      },
+      "P50": {
+        "base_salary": 26000,
+        "total_comp": 430000,
+        "description": "一线大厂普通/SP档，如字节普通、阿里普通"
+      },
+      "P75": {
+        "base_salary": 30000,
+        "total_comp": 520000,
+        "description": "一线大厂SP档"
+      },
+      "P90": {
+        "base_salary": 35000,
+        "total_comp": 620000,
+        "description": "一线大厂SSP档"
+      }
+    },
+    "source": "market"
+  },
+  {
+    "role": "产品经理",
+    "data_year": "2025-2026",
+    "percentiles": {
+      "P25": {
+        "base_salary": 16000,
+        "total_comp": 260000,
+        "description": "中小厂/普通offer档"
+      },
+      "P50": {
+        "base_salary": 21000,
+        "total_comp": 350000,
+        "description": "一线大厂普通offer档，如字节普通、美团普通"
+      },
+      "P75": {
+        "base_salary": 25000,
+        "total_comp": 430000,
+        "description": "一线大厂SP档"
+      },
+      "P90": {
+        "base_salary": 30000,
+        "total_comp": 520000,
+        "description": "一线大厂SSP档"
+      }
+    },
+    "source": "market"
+  }
+]

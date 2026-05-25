@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>求职助手 · 4 个方向探索</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#f0ece4;font-family:"Geist","Noto Sans SC",ui-sans-serif,system-ui,sans-serif}
+    body{overflow:hidden}
+    button{font-family:inherit;color:inherit}
+    input,textarea{font-family:inherit}
+
+    /* canvas-wide overview header */
+    .canvas-intro{
+      position:fixed;top:14px;left:14px;z-index:10;
+      background:rgba(255,255,255,.85);backdrop-filter:blur(12px);
+      border:1px solid #e0d9cb;border-radius:10px;
+      padding:12px 16px;font-size:12px;color:#2c2a26;
+      max-width:380px;line-height:1.5;
+      box-shadow:0 4px 14px rgba(0,0,0,.04);
+    }
+    .canvas-intro b{font-weight:600}
+    .canvas-intro .title{font-family:"Instrument Serif","Noto Serif SC",serif;font-size:18px;line-height:1.1;margin-bottom:4px;font-style:italic}
+    .canvas-intro .tip{font-size:11px;color:#7a7468;margin-top:6px;border-top:1px dashed #e0d9cb;padding-top:6px}
+  </style>
+</head>
+<body>
+  <div class="canvas-intro">
+    <div class="title">求职助手 · 4 个方向探索</div>
+    <div>定位：应届生求职 personal platform · 双语 · AI 辅助</div>
+    <div class="tip">每个方向 = 1 个 Landing + 1 个产品内屏。拖动空白处可平移，滚轮缩放，点击 ↗ 可全屏查看。</div>
+  </div>
+
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+  <script type="text/babel" src="direction-a.jsx"></script>
+  <script type="text/babel" src="direction-b.jsx"></script>
+  <script type="text/babel" src="direction-c.jsx"></script>
+  <script type="text/babel" src="direction-d.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coach · 求职助手</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#e8e7e2;font-family:"Plus Jakarta Sans","PingFang SC","Noto Sans SC",ui-sans-serif,system-ui,sans-serif;overflow:hidden}
+    .intro{
+      position:fixed;top:14px;left:14px;z-index:10;
+      background:rgba(255,255,255,.92);backdrop-filter:blur(16px) saturate(180%);
+      border:1px solid rgba(0,0,0,.06);border-radius:14px;
+      padding:14px 18px;font-size:12.5px;color:#1d1d1f;
+      max-width:380px;line-height:1.5;font-weight:500;
+      box-shadow:0 8px 24px -10px rgba(0,0,0,.1);
+    }
+    .intro b{font-weight:700}
+    .intro .title{font-size:18px;line-height:1.1;margin-bottom:6px;font-weight:800;letter-spacing:-.02em}
+    .intro .tip{font-size:11px;color:#6e6e73;margin-top:8px;border-top:1px solid #e5e5e7;padding-top:8px;font-weight:500}
+    .intro .tip kbd{font-family:"JetBrains Mono",monospace;font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid #d2d2d7;background:#f5f5f7;color:#424245;margin:0 2px;font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="intro">
+    <div class="title">Coach · 求职助手 · v3</div>
+    <div>Apple × 小红书 × Notion · 8 个屏 · 一个应届生求职 platform</div>
+    <div class="tip">空白拖动 · 滚轮缩放 · 点 ↗ 单屏全屏 · <kbd>←/→</kbd>切换 · <kbd>Esc</kbd>退出</div>
+  </div>
+
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+  <script type="text/babel" src="vibe-base.jsx"></script>
+  <script type="text/babel" src="vibe-landing.jsx"></script>
+  <script type="text/babel" src="vibe-today.jsx"></script>
+  <script type="text/babel" src="vibe-monthly.jsx"></script>
+  <script type="text/babel" src="vibe-interview.jsx"></script>
+  <script type="text/babel" src="vibe-overview.jsx"></script>
+  <script type="text/babel" src="vibe-chat.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>
