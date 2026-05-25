@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, Not } from 'typeorm';
 import { FeedItem } from './entities/feed-item.entity';
-import { Application } from '../applications/entities/application.entity';
-import { Opportunity } from '../opportunity/entities/opportunity.entity';
-import { Resume } from '../resumes/entities/resume.entity';
-import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
+import { EvidenceService } from '../intelligence/evidence.service';
 
 // --- Response interfaces ---
 
@@ -71,14 +68,7 @@ export class NewspaperService {
   constructor(
     @InjectRepository(FeedItem)
     private readonly feedRepo: Repository<FeedItem>,
-    @InjectRepository(Application)
-    private readonly appRepo: Repository<Application>,
-    @InjectRepository(Opportunity)
-    private readonly oppRepo: Repository<Opportunity>,
-    @InjectRepository(Resume)
-    private readonly resumeRepo: Repository<Resume>,
-    @InjectRepository(Diagnosis)
-    private readonly diagnosisRepo: Repository<Diagnosis>,
+    private readonly evidence: EvidenceService,
   ) {}
 
   async getNewspaper(userId: string): Promise<NewspaperEdition> {
@@ -100,23 +90,8 @@ export class NewspaperService {
     );
 
     // Build user companies set for personalization
-    const userCompanies = new Set<string>();
-
-    const apps = await this.appRepo.find({
-      where: { user_id: userId },
-      select: { company: true },
-    });
-    apps.forEach((a) => {
-      if (a.company) userCompanies.add(a.company.toLowerCase());
-    });
-
-    const opps = await this.oppRepo.find({
-      where: { user_id: userId },
-      select: { company: true },
-    });
-    opps.forEach((o) => {
-      if (o.company) userCompanies.add(o.company.toLowerCase());
-    });
+    const companiesOfInterest = await this.evidence.getCompaniesOfInterest(userId);
+    const userCompanies = new Set(companiesOfInterest.map((c) => c.toLowerCase()));
 
     // Personalized sort: boost items matching user companies
     const sortPersonalized = (items: FeedItem[]): FeedItem[] =>
@@ -256,13 +231,10 @@ export class NewspaperService {
   // --- Issue 6: coach_actions ---
 
   private async buildCoachActions(userId: string): Promise<CoachAction[]> {
+    const intelligence = await this.evidence.gather(userId);
     const actions: CoachAction[] = [];
 
-    // Check resume
-    const resume = await this.resumeRepo.findOne({
-      where: { user_id: userId, is_primary: true },
-    });
-    if (!resume) {
+    if (!intelligence.has_resume) {
       actions.push({
         action: '上传简历',
         reason: '上传简历后可获得个性化面经推荐',
@@ -270,20 +242,12 @@ export class NewspaperService {
       });
     }
 
-    // Check applications
-    const userApps = await this.appRepo.find({
-      where: { user_id: userId },
-      take: 3,
-    });
-    if (userApps.length > 0) {
-      const companies = userApps
-        .map((a) => a.company)
-        .filter(Boolean)
-        .join('、');
+    if (intelligence.has_applications) {
+      const companies = intelligence.application_companies.slice(0, 3).join('、');
       actions.push({
         action: `关注${companies}的最新面经`,
         reason: '你正在投递这些公司',
-        data_source: `基于你的投递记录（${userApps.length}个）`,
+        data_source: `基于你的投递记录（${intelligence.applications.length}个）`,
       });
     } else {
       actions.push({
@@ -293,16 +257,11 @@ export class NewspaperService {
       });
     }
 
-    // Check opportunities
-    const userOpps = await this.oppRepo.find({
-      where: { user_id: userId, status: 'evaluated' as never },
-      take: 3,
-    });
-    if (userOpps.length > 0) {
+    if (intelligence.has_opportunities) {
       actions.push({
         action: '查看机会评估相关面经',
         reason: '你评估过的公司有新面经',
-        data_source: `基于${userOpps.length}个机会评估`,
+        data_source: `基于${intelligence.opportunities.length}个机会评估`,
       });
     }
 

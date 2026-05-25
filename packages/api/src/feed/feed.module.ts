@@ -7,10 +7,6 @@ import { Company } from './entities/company.entity';
 import { Department } from './entities/department.entity';
 import { RoleCategory } from './entities/role-category.entity';
 import { CoverageMetric } from './entities/coverage-metric.entity';
-import { Application } from '../applications/entities/application.entity';
-import { Opportunity } from '../opportunity/entities/opportunity.entity';
-import { Resume } from '../resumes/entities/resume.entity';
-import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { FeedController } from './feed.controller';
 import { NewspaperController } from './newspaper.controller';
 import { FeedService } from './feed.service';
@@ -20,6 +16,7 @@ import { WechatImporterService } from './importers/wechat-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
 import { DigestGeneratorService } from './digest-generator.service';
 import { AiModule } from '../ai/ai.module';
+import { IntelligenceModule } from '../intelligence/intelligence.module';
 import { SourceRegistryService } from './source-registry.service';
 import { FeedClassifierService } from './feed-classifier.service';
 import { FeedIngestionService } from './feed-ingestion.service';
@@ -30,9 +27,9 @@ import { SearchSchedulerService } from './search-scheduler.service';
   imports: [
     TypeOrmModule.forFeature([
       FeedItem, FeedSource, DigestRun, Company, Department, RoleCategory, CoverageMetric,
-      Application, Opportunity, Resume, Diagnosis,
     ]),
     AiModule,
+    IntelligenceModule,
   ],
   controllers: [FeedController, NewspaperController],
   providers: [
