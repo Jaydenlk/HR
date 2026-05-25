@@ -16,7 +16,7 @@ Every worker must update this file before stopping. If context is lost, resume f
 | Purpose | Branch | Worktree | Status |
 |---------|--------|----------|--------|
 | Codex audit and standards | `codex/current-audit` | `E:\Agent program\HRBP\.worktrees\codex-current-audit` | `[~]` active docs/audit worktree |
-| Digest source ingestion implementation | `feature/digest-source-ingestion` | `E:\Agent program\HRBP\.worktrees\digest-source-ingestion` | `[ ]` not created |
+| Digest source ingestion implementation | `feature/digest-source-ingestion` | `E:\Agent program\HRBP\.worktrees\digest-source-ingestion` | `[~]` active |
 
 ## Global Checklist
 
@@ -47,8 +47,8 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 
 ### Execution Steps
 
-- [ ] Create worktree `.worktrees\digest-source-ingestion` from `dev`.
-- [ ] Commit `digest-implementation-log.md` skeleton.
+- [x] Create worktree `.worktrees\digest-source-ingestion` from `codex/current-audit` (`dev` + Codex docs).
+- [~] Commit `digest-implementation-log.md` skeleton.
 - [ ] Remove remote Google Font dependency and verify frontend build.
 - [ ] Add strict feed source/domain model.
 - [ ] Add source registry and query DTOs.
@@ -79,6 +79,7 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 | 2026-05-25 | Codex | Digest implementation plan | `[x]` | `docs/superpowers/plans/2026-05-25-digest-source-ingestion.md`, commit `1473c30` | Execution standard |
 | 2026-05-25 | Codex | Collaboration standard | `[x]` | `PROJECT_EXECUTION_STANDARD.md`, `CLAUDE_CODE_OPERATING_PROMPT.md` | User chooses execution path |
 | 2026-05-25 | Codex | Chinese Claude prompt | `[x]` | `CLAUDE_CODE_OPERATING_PROMPT.zh-CN.md` | Create implementation worktree |
+| 2026-05-25 | Codex | Create Digest implementation worktree | `[x]` | `E:\Agent program\HRBP\.worktrees\digest-source-ingestion`, branch `feature/digest-source-ingestion` | Commit implementation log |
 
 ## Claude Code Compliance Audit Items
 
