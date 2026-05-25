@@ -8,6 +8,7 @@ import { Opportunity } from '../opportunity/entities/opportunity.entity';
 import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ChatService } from './chat.service';
+import type { RewriteSuggestion } from '../common/types';
 
 @Injectable()
 export class ConversationsService {
@@ -79,7 +80,7 @@ export class ConversationsService {
       if (diagnosis) {
         context = {
           type: '简历诊断结果',
-          data: `公司: ${diagnosis.jd_company || '未知'}\n岗位: ${diagnosis.jd_role || '未知'}\n匹配分: ${diagnosis.score}/100\n命中关键词: ${(diagnosis.keywords_hit || []).join(', ')}\n缺失关键词: ${(diagnosis.keywords_miss || []).join(', ')}\n改写建议: ${(diagnosis.suggestions || []).map((s: any) => s.reason).join('; ')}`,
+          data: `公司: ${diagnosis.jd_company || '未知'}\n岗位: ${diagnosis.jd_role || '未知'}\n匹配分: ${diagnosis.score}/100\n命中关键词: ${(diagnosis.keywords_hit || []).join(', ')}\n缺失关键词: ${(diagnosis.keywords_miss || []).join(', ')}\n改写建议: ${(diagnosis.suggestions || []).map((s: RewriteSuggestion) => s.reason).join('; ')}`,
         };
       }
     } else if (conv.context_type === 'opportunity' && conv.context_id) {

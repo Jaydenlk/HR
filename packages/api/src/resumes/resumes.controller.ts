@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -71,7 +71,7 @@ export class ResumesController {
       }
       return file.buffer.toString('utf-8');
     } catch {
-      return '无法解析此文件格式，请尝试粘贴文本';
+      throw new BadRequestException('无法解析此文件格式，请尝试粘贴文本');
     }
   }
 }

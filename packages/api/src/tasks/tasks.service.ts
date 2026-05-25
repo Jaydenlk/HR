@@ -14,10 +14,14 @@ export class TasksService {
   ) {}
 
   /**
-   * Get today's tasks, auto-generating them if none exist yet.
+   * Get today's tasks — DB query only, no AI generation.
    */
   async getToday(userId: string): Promise<DailyTask[]> {
-    return this.generator.generateDailyTasks(userId);
+    const today = new Date().toISOString().slice(0, 10);
+    return this.repo.find({
+      where: { user_id: userId, task_date: today },
+      order: { created_at: 'ASC' },
+    });
   }
 
   /**

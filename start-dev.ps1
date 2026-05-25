@@ -59,11 +59,11 @@ Write-Host "[3/5] Starting backend (:$API_PORT)..." -ForegroundColor Yellow
 
 # Write .env.local for frontend with correct API port
 $webEnvLocal = Join-Path $webDir ".env.local"
-"NEXT_PUBLIC_API_URL=http://localhost:${API_PORT}/api" | Out-File -FilePath $webEnvLocal -Encoding utf8
+[System.IO.File]::WriteAllText($webEnvLocal, "NEXT_PUBLIC_API_URL=http://localhost:${API_PORT}/api`n", [System.Text.UTF8Encoding]::new($false))
 
 # Start NestJS via cmd to inherit proper shell
 Start-Process -FilePath "cmd.exe" `
-    -ArgumentList "/c", "cd /d `"$apiDir`" && set PORT=$API_PORT && npx nest start --watch" `
+    -ArgumentList "/c", "cd /d `"$apiDir`" && set `"PORT=$API_PORT`" && npx nest start --watch" `
     -WindowStyle Minimized
 
 # Wait for backend

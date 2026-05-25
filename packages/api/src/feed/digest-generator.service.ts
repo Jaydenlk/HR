@@ -14,7 +14,7 @@ export class DigestGeneratorService {
     private readonly repo: Repository<FeedItem>,
   ) {}
 
-  async generateWeeklyDigest(): Promise<FeedItem> {
+  async generateWeeklyDigest(): Promise<FeedItem | { status: 'empty'; message: string }> {
     const since = new Date();
     since.setDate(since.getDate() - 7);
 
@@ -24,6 +24,10 @@ export class DigestGeneratorService {
       take: 50,
     });
 
+    if (recentItems.length === 0) {
+      return { status: 'empty', message: '暂无已验证来源内容' };
+    }
+
     const summaryInput = recentItems
       .map(
         (item, idx) =>
@@ -31,16 +35,14 @@ export class DigestGeneratorService {
       )
       .join('\n\n---\n\n');
 
-    const prompt = recentItems.length > 0
-      ? `以下是过去 7 天收录的 ${recentItems.length} 条面试经验。请生成一份中文周刊摘要，包括：
+    const prompt = `以下是过去 7 天收录的 ${recentItems.length} 条面试经验。请生成一份中文周刊摘要，包括：
 1. 本周概述（2-3句话）
 2. 热门公司（出现频率高的公司及面试特点）
 3. 本周亮点（2-3条值得关注的面试经验）
 4. 趋势分析（本周面试市场整体趋势）
 
 面试经验内容：
-${summaryInput}`
-      : `本周暂无面试经验数据，请生成一份简短的周刊说明，告知读者本周内容较少，鼓励大家分享面试经验。`;
+${summaryInput}`;
 
     const digestContent = await this.ai.complete({
       system: '你是一位专业的 HR 行业分析师，擅长总结求职面试趋势。请用简洁专业的中文写作，重点突出，有实际价值。',

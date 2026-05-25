@@ -1,16 +1,72 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Conversation } from '@/lib/types';
 import { ConversationCard } from '@/components/chat/conversation-card';
-import { MessageSquare, Plus } from 'lucide-react';
+import { MessageSquare, Plus, Loader2 } from 'lucide-react';
 
 export default function ChatListPage() {
+  return (
+    <Suspense fallback={<ChatListLoading />}>
+      <ChatListInner />
+    </Suspense>
+  );
+}
+
+function ChatListLoading() {
+  return (
+    <div style={{ maxWidth: '720px', margin: '0 auto', padding: '48px 32px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: '72px',
+              borderRadius: '14px',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-line)',
+              opacity: 0.6,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChatListInner() {
+  const searchParams = useSearchParams();
+  const contextType = searchParams.get('context');
+  const contextId = searchParams.get('id');
+
+  const hasContext = contextType === 'opportunity' && !!contextId;
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [contextDone, setContextDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const creatingContext = hasContext && !contextDone;
+
+  // Handle context-based conversation creation (e.g. from opportunity detail)
+  useEffect(() => {
+    if (!hasContext) return;
+    api
+      .post<Conversation>('/conversations', {
+        context_type: 'opportunity',
+        context_id: contextId,
+      })
+      .then((conv) => {
+        window.location.href = `/chat/${conv.id}`;
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : '无法创建上下文对话');
+        setContextDone(true);
+      });
+  }, [hasContext, contextId]);
 
   useEffect(() => {
     api
@@ -35,6 +91,34 @@ export default function ChatListPage() {
       setError(err instanceof Error ? err.message : '创建失败');
       setCreating(false);
     }
+  }
+
+  // Show a full-page spinner while creating a context conversation
+  if (creatingContext) {
+    return (
+      <div
+        style={{
+          maxWidth: '720px',
+          margin: '0 auto',
+          padding: '48px 32px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          minHeight: '300px',
+        }}
+      >
+        <Loader2
+          size={28}
+          style={{ animation: 'spin 1s linear infinite', color: 'var(--color-ink-3)' }}
+        />
+        <span style={{ fontSize: '14px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
+          正在创建对话...
+        </span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   return (

@@ -290,6 +290,7 @@ export default function TodayPage() {
   const [tasks, setTasks] = useState<DailyTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -323,12 +324,12 @@ export default function TodayPage() {
 
   const handleGenerate = async () => {
     setGenerating(true);
-    setError(null);
+    setGenerateError(null);
     try {
       await api.post('/tasks/generate', {});
       await fetchTasks();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失败，请稍后重试');
+      setGenerateError(err instanceof Error ? err.message : '生成失败，可稍后重试');
     } finally {
       setGenerating(false);
     }
@@ -513,7 +514,7 @@ export default function TodayPage() {
         </button>
       </div>
 
-      {/* ── Error banner ─────────────────────────────────────────────── */}
+      {/* ── Error banners ────────────────────────────────────────────── */}
       {error && (
         <div
           style={{
@@ -527,6 +528,21 @@ export default function TodayPage() {
           }}
         >
           {error}
+        </div>
+      )}
+      {generateError && (
+        <div
+          style={{
+            padding: '12px 16px',
+            background: '#fff5f5',
+            border: '1px solid #fecaca',
+            borderRadius: '12px',
+            fontSize: '13px',
+            color: '#dc2626',
+            fontWeight: 500,
+          }}
+        >
+          {generateError}
         </div>
       )}
 
@@ -627,7 +643,7 @@ export default function TodayPage() {
                 letterSpacing: '-0.01em',
               }}
             >
-              今天还没有任务
+              还没有今日任务
             </div>
             <div
               style={{
@@ -635,9 +651,11 @@ export default function TodayPage() {
                 fontSize: '13px',
                 color: 'var(--color-ink-3)',
                 fontWeight: 500,
+                maxWidth: '320px',
+                lineHeight: 1.5,
               }}
             >
-              让 Coach 为你生成今日的求职计划
+              点击下方按钮让 AI 根据你的求职进度生成个性化任务。
             </div>
           </div>
           <button

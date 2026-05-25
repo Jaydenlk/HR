@@ -81,10 +81,16 @@ export class OpportunityController {
     @CurrentUser() user: { id: string },
     @Param('id') id: string,
   ) {
-    const result = await this.integration.trackToApplication(id, user.id);
-    // Fire-and-forget task generation so tracking response is not delayed
-    this.integration.generateTasks(id, user.id).catch(() => {});
-    return result;
+    const application = await this.integration.trackToApplication(id, user.id);
+    let tasksGenerated = 0;
+    let tasksError: string | null = null;
+    try {
+      const tasks = await this.integration.generateTasks(id, user.id);
+      tasksGenerated = tasks.length;
+    } catch (err) {
+      tasksError = err instanceof Error ? err.message : '任务生成失败';
+    }
+    return { ...application, tasks_generated: tasksGenerated, tasks_error: tasksError };
   }
 
   @Post(':id/tasks')
