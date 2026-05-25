@@ -1,8 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AiService } from '../ai/ai.service';
 import { OpportunityService } from './opportunity.service';
 import { OpportunityParserService } from './opportunity-parser.service';
 import { OpportunityRiskService } from './opportunity-risk.service';
+import { Resume } from '../resumes/entities/resume.entity';
+import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
+import { FeedItem } from '../feed/entities/feed-item.entity';
+import { SalaryEntry } from '../salary/entities/salary-entry.entity';
 import type { ParsedJd } from './opportunity-parser.service';
 import type { RiskAssessment } from './opportunity-risk.service';
 import type { Recommendation, ConfidenceLevel, ActionType } from './types/opportunity.types';
@@ -15,18 +21,25 @@ interface EvaluationResult {
   next_actions: { action_type: string; title: string; reason: string }[];
 }
 
-const EVAL_SYSTEM = `你是一个职位评估专家。根据解析后的 JD 信息和风险评估结果，对该职位进行综合评估。
+interface UserContext {
+  resumeSummary: string | null;
+  diagnosisPatterns: string | null;
+  feedIntelligence: string | null;
+  salaryData: string | null;
+  hasResume: boolean;
+  insufficientSalaryData: boolean;
+}
+
+const EVAL_SYSTEM_BASE = `你是一个职位评估专家。根据解析后的 JD 信息、风险评估结果以及用户背景数据，对该职位进行综合评估。
 
 评估维度：
-- match_score (0-100): 职位质量与匹配度综合评分。考虑 JD 质量、职位明确度、成长潜力
+- match_score (0-100): 职位与用户的匹配度评分。综合考虑用户技能经验与 JD 要求的匹配程度、成长潜力
 - value_score (0-100): 价值评分。考虑薪资竞争力、发展前景、公司实力
 - strengths[]: 该职位的优势（3-5条，中文）
 - gaps[]: 需要注意的不足或风险（2-4条，中文）
 - next_actions[]: 建议的后续行动，每项包含 action_type、title、reason
 
-action_type 可选值：optimize_resume, write_cover_letter, prepare_interview, research_company, apply, dismiss
-
-注意：当前阶段没有用户简历数据，match_score 主要基于 JD 本身的质量和清晰度来评估。`;
+action_type 可选值：optimize_resume, write_cover_letter, prepare_interview, research_company, apply, dismiss`;
 
 const EVAL_SCHEMA = {
   type: 'object' as const,
@@ -59,6 +72,14 @@ export class OpportunityEvaluatorService {
   private readonly logger = new Logger(OpportunityEvaluatorService.name);
 
   constructor(
+    @InjectRepository(Resume)
+    private readonly resumeRepo: Repository<Resume>,
+    @InjectRepository(Diagnosis)
+    private readonly diagnosisRepo: Repository<Diagnosis>,
+    @InjectRepository(FeedItem)
+    private readonly feedItemRepo: Repository<FeedItem>,
+    @InjectRepository(SalaryEntry)
+    private readonly salaryRepo: Repository<SalaryEntry>,
     private readonly opportunityService: OpportunityService,
     private readonly parser: OpportunityParserService,
     private readonly riskService: OpportunityRiskService,
@@ -83,22 +104,25 @@ export class OpportunityEvaluatorService {
       }
       await this.opportunityService.updateOpportunity(opportunityId, userId, updates);
 
-      // Step 3: Detect risks
+      // Step 3: Gather user context
+      const userContext = await this.gatherUserContext(userId, parsedJd);
+
+      // Step 4: Detect risks
       const riskAssessment = await this.riskService.detectRisks(opportunity.jd_text, parsedJd);
 
-      // Step 4: AI evaluation for match/value scores
-      const evalResult = await this.evaluateWithAi(parsedJd, riskAssessment);
+      // Step 5: AI evaluation for match/value scores
+      const evalResult = await this.evaluateWithAi(parsedJd, riskAssessment, userContext);
 
-      // Step 5: Calculate overall score
+      // Step 6: Calculate overall score
       const overallScore = this.calculateOverallScore(
         evalResult.match_score, evalResult.value_score, riskAssessment.credibility_score,
       );
 
-      // Step 6: Determine recommendation
+      // Step 7: Determine recommendation
       const recommendation = this.determineRecommendation(overallScore, riskAssessment);
-      const confidence = this.determineConfidence(parsedJd);
+      const confidence = this.determineConfidence(parsedJd, userContext.hasResume);
 
-      // Step 7: Save evaluation
+      // Step 8: Save evaluation
       await this.opportunityService.saveEvaluation({
         opportunity_id: opportunityId,
         match_score: evalResult.match_score,
@@ -114,8 +138,8 @@ export class OpportunityEvaluatorService {
         model_version: 'phase-o2',
       });
 
-      // Step 8: Save evidence from JD analysis
-      await this.opportunityService.saveEvidence([
+      // Step 9: Save evidence from JD analysis and user context
+      const evidenceItems: Parameters<typeof this.opportunityService.saveEvidence>[0] = [
         {
           opportunity_id: opportunityId,
           kind: 'jd_analysis',
@@ -125,9 +149,28 @@ export class OpportunityEvaluatorService {
           role: parsedJd.role ?? undefined,
           confidence: parsedJd.parse_confidence === 'high' ? 'high' : parsedJd.parse_confidence === 'medium' ? 'medium' : 'low',
         },
-      ]);
+      ];
+      if (!userContext.hasResume) {
+        evidenceItems.push({
+          opportunity_id: opportunityId,
+          kind: 'resume_match',
+          title: '简历数据缺失',
+          excerpt: '用户尚未上传简历，匹配度评估基于 JD 质量，置信度受限于 medium',
+          confidence: 'low',
+        });
+      }
+      if (userContext.insufficientSalaryData) {
+        evidenceItems.push({
+          opportunity_id: opportunityId,
+          kind: 'salary_data',
+          title: '薪资数据不足',
+          excerpt: '未找到该公司/岗位的薪资数据，价值评分仅基于 JD 描述',
+          confidence: 'low',
+        });
+      }
+      await this.opportunityService.saveEvidence(evidenceItems);
 
-      // Step 9: Save actions
+      // Step 10: Save actions
       const actionItems = evalResult.next_actions.map((action) => ({
         opportunity_id: opportunityId,
         action_type: action.action_type as ActionType,
@@ -139,7 +182,7 @@ export class OpportunityEvaluatorService {
         await this.opportunityService.saveActions(actionItems);
       }
 
-      // Step 10: Set status to evaluated
+      // Step 11: Set status to evaluated
       await this.opportunityService.setStatus(opportunityId, userId, 'evaluated');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -148,9 +191,162 @@ export class OpportunityEvaluatorService {
     }
   }
 
-  private async evaluateWithAi(parsedJd: ParsedJd, riskAssessment: RiskAssessment): Promise<EvaluationResult> {
+  private async gatherUserContext(userId: string, parsedJd: ParsedJd): Promise<UserContext> {
+    const ctx: UserContext = {
+      resumeSummary: null,
+      diagnosisPatterns: null,
+      feedIntelligence: null,
+      salaryData: null,
+      hasResume: false,
+      insufficientSalaryData: true,
+    };
+
+    // 1. Get user's primary resume (or most recent)
+    try {
+      let resume = await this.resumeRepo.findOne({
+        where: { user_id: userId, is_primary: true },
+      });
+      if (!resume) {
+        resume = await this.resumeRepo.findOne({
+          where: { user_id: userId },
+          order: { created_at: 'DESC' },
+        });
+      }
+      if (resume) {
+        ctx.hasResume = true;
+        const parsed = resume.parsed_json;
+        if (parsed) {
+          const parts: string[] = [];
+          // Skills is an object with technical, soft, languages, certifications
+          const allSkills = [
+            ...(parsed.skills?.technical || []),
+            ...(parsed.skills?.soft || []),
+            ...(parsed.skills?.languages || []),
+            ...(parsed.skills?.certifications || []),
+          ];
+          if (allSkills.length) parts.push(`技能: ${allSkills.join(', ')}`);
+          if (parsed.work_experience?.length) {
+            const expSummary = parsed.work_experience
+              .slice(0, 3)
+              .map((e) =>
+                `${e.company}${e.title ? ' - ' + e.title : ''}${e.start_date ? ' (' + e.start_date + (e.end_date ? '~' + e.end_date : '~至今') + ')' : ''}`)
+              .join('; ');
+            parts.push(`经验: ${expSummary}`);
+          }
+          if (parsed.education?.length) {
+            const eduSummary = parsed.education
+              .slice(0, 2)
+              .map((e) =>
+                `${e.school} ${e.degree} ${e.major}`)
+              .join('; ');
+            parts.push(`教育: ${eduSummary}`);
+          }
+          if (parsed.summary) {
+            parts.push(`概要: ${parsed.summary}`);
+          }
+          ctx.resumeSummary = parts.join('\n');
+        } else if (resume.raw_text) {
+          // Fallback: use truncated raw text
+          ctx.resumeSummary = resume.raw_text.slice(0, 500);
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to load resume for user ${userId}: ${err}`);
+    }
+
+    // 2. Get recent diagnoses for match pattern insight
+    try {
+      const diagnoses = await this.diagnosisRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take: 3,
+      });
+      if (diagnoses.length > 0) {
+        const patterns = diagnoses.map((d) => {
+          const hits = (d.keywords_hit || []).join(', ');
+          const misses = (d.keywords_miss || []).join(', ');
+          return `[${d.jd_company ?? '?'}-${d.jd_role ?? '?'}] 得分:${d.score ?? '?'}, 命中:${hits || '无'}, 缺失:${misses || '无'}`;
+        });
+        ctx.diagnosisPatterns = patterns.join('\n');
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to load diagnoses for user ${userId}: ${err}`);
+    }
+
+    // 3. Get feed items matching company
+    try {
+      if (parsedJd.company) {
+        const feedItems = await this.feedItemRepo.find({
+          where: { company: parsedJd.company },
+          take: 5,
+        });
+        if (feedItems.length > 0) {
+          const items = feedItems.map((f) => {
+            const excerpt = f.summary || (f.content ? f.content.slice(0, 100) : '');
+            return `- ${f.title}${f.source_name ? ' (来源: ' + f.source_name + ')' : ''}: ${excerpt}`;
+          });
+          ctx.feedIntelligence = items.join('\n');
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to load feed items: ${err}`);
+    }
+
+    // 4. Get salary data
+    try {
+      if (parsedJd.company) {
+        const salaryEntries = await this.salaryRepo.find({
+          where: { company: parsedJd.company },
+          take: 5,
+        });
+        if (salaryEntries.length > 0) {
+          ctx.insufficientSalaryData = false;
+          const entries = salaryEntries.map((s) =>
+            `${s.role}${s.level ? '(' + s.level + ')' : ''}: 基本${s.base_salary}${s.bonus ? ', 奖金' + s.bonus : ''}${s.stock_value ? ', 股票' + s.stock_value : ''}, 总包${s.total_comp}${s.location ? ' @' + s.location : ''}`);
+          ctx.salaryData = entries.join('\n');
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to load salary data: ${err}`);
+    }
+
+    return ctx;
+  }
+
+  private buildSystemPrompt(userContext: UserContext): string {
+    const sections: string[] = [EVAL_SYSTEM_BASE];
+
+    if (userContext.resumeSummary) {
+      sections.push(`\n## 用户简历摘要\n${userContext.resumeSummary}\n请基于用户的实际技能和经验来评估匹配度。`);
+    } else {
+      sections.push(`\n注意：用户尚未上传简历，match_score 主要基于 JD 本身的质量和清晰度来评估，无法精确匹配。`);
+    }
+
+    if (userContext.diagnosisPatterns) {
+      sections.push(`\n## 用户历史诊断记录\n${userContext.diagnosisPatterns}\n参考用户过往的关键词命中/缺失模式来评估匹配度。`);
+    }
+
+    if (userContext.feedIntelligence) {
+      sections.push(`\n## 相关市场情报\n${userContext.feedIntelligence}\n参考这些信息评估公司和岗位的市场状况。`);
+    }
+
+    if (userContext.salaryData) {
+      sections.push(`\n## 薪资市场数据\n${userContext.salaryData}\n参考市场薪资数据评估职位价值。`);
+    } else {
+      sections.push(`\n注意：未找到该公司的薪资数据，价值评分仅基于 JD 描述。`);
+    }
+
+    return sections.join('\n');
+  }
+
+  private async evaluateWithAi(
+    parsedJd: ParsedJd,
+    riskAssessment: RiskAssessment,
+    userContext: UserContext,
+  ): Promise<EvaluationResult> {
+    const systemPrompt = this.buildSystemPrompt(userContext);
     return this.ai.completeStructured<EvaluationResult>({
-      system: EVAL_SYSTEM,
+      system: systemPrompt,
       prompt: `请评估以下职位：\n\n解析结果：\n${JSON.stringify(parsedJd, null, 2)}\n\n风险评估：\n${JSON.stringify(riskAssessment, null, 2)}`,
       toolName: 'evaluate_opportunity',
       toolDescription: '综合评估职位的匹配度和价值',
@@ -176,10 +372,10 @@ export class OpportunityEvaluatorService {
     return 'cautious';
   }
 
-  private determineConfidence(parsedJd: ParsedJd): ConfidenceLevel {
+  private determineConfidence(parsedJd: ParsedJd, hasResume: boolean): ConfidenceLevel {
     if (parsedJd.parse_confidence === 'low') return 'low';
     if (parsedJd.parse_confidence === 'medium') return 'medium';
-    // Phase O2 without resume data caps confidence at medium
-    return 'medium';
+    // With resume data, confidence can reach high; without, cap at medium
+    return hasResume ? 'high' : 'medium';
   }
 }

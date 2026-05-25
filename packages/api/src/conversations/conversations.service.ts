@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Conversation } from './entities/conversation.entity';
 import { Message } from './entities/message.entity';
 import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
+import { Opportunity } from '../opportunity/entities/opportunity.entity';
+import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ChatService } from './chat.service';
 
@@ -16,6 +18,10 @@ export class ConversationsService {
     private readonly msgRepo: Repository<Message>,
     @InjectRepository(Diagnosis)
     private readonly diagnosisRepo: Repository<Diagnosis>,
+    @InjectRepository(Opportunity)
+    private readonly oppRepo: Repository<Opportunity>,
+    @InjectRepository(OpportunityEvaluation)
+    private readonly evalRepo: Repository<OpportunityEvaluation>,
     private readonly chat: ChatService,
   ) {}
 
@@ -66,7 +72,7 @@ export class ConversationsService {
     // Build history (all messages before this one)
     const history = conv.messages;
 
-    // Build context from diagnosis if available
+    // Build context from diagnosis or opportunity if available
     let context: { type: string; data: string } | undefined;
     if (conv.context_type === 'diagnosis' && conv.context_id) {
       const diagnosis = await this.diagnosisRepo.findOne({ where: { id: conv.context_id } });
@@ -74,6 +80,21 @@ export class ConversationsService {
         context = {
           type: '简历诊断结果',
           data: `公司: ${diagnosis.jd_company || '未知'}\n岗位: ${diagnosis.jd_role || '未知'}\n匹配分: ${diagnosis.score}/100\n命中关键词: ${(diagnosis.keywords_hit || []).join(', ')}\n缺失关键词: ${(diagnosis.keywords_miss || []).join(', ')}\n改写建议: ${(diagnosis.suggestions || []).map((s: any) => s.reason).join('; ')}`,
+        };
+      }
+    } else if (conv.context_type === 'opportunity' && conv.context_id) {
+      const opp = await this.oppRepo.findOne({ where: { id: conv.context_id } });
+      if (opp) {
+        const eval_ = await this.evalRepo.findOne({
+          where: { opportunity_id: conv.context_id },
+          order: { created_at: 'DESC' },
+        });
+        context = {
+          type: '机会评估结果',
+          data: `公司: ${opp.company || '未知'}\n岗位: ${opp.role || '未知'}\n` +
+            (eval_
+              ? `匹配度: ${Math.round(eval_.match_score * 100)}%\n投递价值: ${Math.round(eval_.value_score * 100)}%\n可信度: ${Math.round(eval_.credibility_score * 100)}%\n建议: ${eval_.recommendation}\n风险: ${JSON.stringify(eval_.risk_flags)}\n优势: ${JSON.stringify(eval_.strengths)}\n差距: ${JSON.stringify(eval_.gaps)}`
+              : '评估未完成'),
         };
       }
     }

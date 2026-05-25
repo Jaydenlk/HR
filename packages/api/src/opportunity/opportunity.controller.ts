@@ -77,11 +77,14 @@ export class OpportunityController {
   }
 
   @Post(':id/track')
-  trackToApplication(
+  async trackToApplication(
     @CurrentUser() user: { id: string },
     @Param('id') id: string,
   ) {
-    return this.integration.trackToApplication(id, user.id);
+    const result = await this.integration.trackToApplication(id, user.id);
+    // Fire-and-forget task generation so tracking response is not delayed
+    this.integration.generateTasks(id, user.id).catch(() => {});
+    return result;
   }
 
   @Post(':id/tasks')
