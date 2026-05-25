@@ -171,13 +171,6 @@ export class EvidenceService {
       ],
     };
 
-    const mockCompanies = [
-      ...new Set(
-        mockSessions
-          .map((m) => m.structured['company'] as string)
-          .filter(Boolean),
-      ),
-    ];
     const companiesOfInterest = [...await this.gatherCompanySignals(userId)];
 
     return {
