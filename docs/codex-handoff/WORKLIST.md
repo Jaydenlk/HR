@@ -55,11 +55,11 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 - [x] Refactor importers into source candidate adapters.
 - [x] Add ingestion orchestrator, CloudDreamAI classifier, and daily schedule.
 - [x] Refactor Digest frontend around real API data.
-- [~] Run backend quality gate and API acceptance.
-- [ ] Run frontend desktop E2E.
-- [ ] Run frontend mobile E2E.
-- [ ] Run Simplify.
-- [ ] Run PJR.
+- [x] Run backend quality gate and API acceptance.
+- [x] Run frontend desktop E2E.
+- [x] Run frontend mobile E2E.
+- [x] Run Simplify.
+- [~] Run PJR.
 - [ ] Merge to `dev`.
 
 ## Blockers

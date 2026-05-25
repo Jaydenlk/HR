@@ -23,9 +23,11 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 - [x] RSS/XHS importers refactored into candidate adapters.
 - [x] Ingestion implemented.
 - [x] Frontend Digest refactored.
-- [ ] PJR passed.
-- [ ] Desktop Playwright E2E passed.
-- [ ] Mobile Playwright E2E passed.
+- [x] Backend quality gate passed (tsc, nest build, 23 E2E + 3 unit tests).
+- [x] Desktop Playwright E2E passed.
+- [x] Mobile Playwright E2E passed.
+- [x] Simplify review completed (fixed redundant API fetches on filter change).
+- [~] PJR in progress.
 
 ## Evidence
 
