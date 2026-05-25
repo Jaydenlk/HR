@@ -17,6 +17,8 @@ import { AiModule } from '../ai/ai.module';
 import { SourceRegistryService } from './source-registry.service';
 import { FeedClassifierService } from './feed-classifier.service';
 import { FeedIngestionService } from './feed-ingestion.service';
+import { CompanyRegistryService } from './company-registry.service';
+import { SearchSchedulerService } from './search-scheduler.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([FeedItem, FeedSource, DigestRun, Company, Department, RoleCategory, CoverageMetric]), AiModule],
@@ -30,6 +32,8 @@ import { FeedIngestionService } from './feed-ingestion.service';
     SourceRegistryService,
     FeedClassifierService,
     FeedIngestionService,
+    CompanyRegistryService,
+    SearchSchedulerService,
   ],
 })
 export class FeedModule {}

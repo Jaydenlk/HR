@@ -8,7 +8,11 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { FeedSource } from './feed-source.entity';
+import { Company } from './company.entity';
+import { Department } from './department.entity';
+import { RoleCategory } from './role-category.entity';
 import type { FeedCategory, FeedSourceKind } from '../types/feed.types';
+import type { FeedConfidence } from '../types/newspaper.types';
 
 @Entity('feed_items')
 export class FeedItem {
@@ -80,6 +84,50 @@ export class FeedItem {
 
   @Column({ type: 'varchar', nullable: true })
   author: string | null;
+
+  // Evidence Graph FK columns
+  @Column({ nullable: true })
+  company_id: string | null;
+
+  @ManyToOne(() => Company, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'company_id' })
+  company_ref: Company | null;
+
+  @Column({ nullable: true })
+  department_id: string | null;
+
+  @ManyToOne(() => Department, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'department_id' })
+  department_ref: Department | null;
+
+  @Column({ nullable: true })
+  role_category_id: string | null;
+
+  @ManyToOne(() => RoleCategory, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'role_category_id' })
+  role_category_ref: RoleCategory | null;
+
+  // Enhanced classification fields
+  @Column({ type: 'varchar', default: 'medium' })
+  confidence: FeedConfidence;
+
+  @Column({ type: 'varchar', nullable: true })
+  interview_round: string | null;
+
+  @Column({ type: 'simple-json', default: '[]' })
+  question_types: string[];
+
+  @Column({ type: 'varchar', nullable: true })
+  difficulty: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  quarter: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  department: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  role_category: string | null;
 
   @CreateDateColumn()
   created_at: Date;
