@@ -135,7 +135,6 @@ ${transcript}
     };
 
     return this.ai.completeStructured<DebriefResult>({
-      provider: 'clouddream',
       system: systemPrompt,
       prompt: userPrompt,
       toolName: 'interview_debrief',

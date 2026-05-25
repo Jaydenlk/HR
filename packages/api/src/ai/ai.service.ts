@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
-type Provider = 'clouddream' | 'deepseek';
-
 interface CompleteParams {
-  provider?: Provider;
   system: string;
   prompt: string;
   tools?: Anthropic.Tool[];
@@ -13,7 +10,6 @@ interface CompleteParams {
 }
 
 interface CompleteStructuredParams {
-  provider?: Provider;
   system: string;
   prompt: string;
   toolName: string;
@@ -50,22 +46,12 @@ export class AiService {
   }
 
   async complete(params: CompleteParams): Promise<string> {
-    const { provider = 'clouddream', system, prompt, tools, maxTokens = 4096 } = params;
-
-    if (provider === 'deepseek') {
-      return this.completeDeepSeek(system, prompt, maxTokens);
-    }
-
+    const { system, prompt, tools, maxTokens = 4096 } = params;
     return this.completeCloudDream(system, prompt, tools, maxTokens);
   }
 
   async completeStructured<T>(params: CompleteStructuredParams): Promise<T> {
-    const { provider = 'clouddream', system, prompt, toolName, toolDescription, schema } = params;
-
-    if (provider === 'deepseek') {
-      return this.completeStructuredDeepSeek<T>(system, prompt, schema);
-    }
-
+    const { system, prompt, toolName, toolDescription, schema } = params;
     return this.completeStructuredCloudDream<T>(system, prompt, toolName, toolDescription, schema);
   }
 

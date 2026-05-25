@@ -24,7 +24,6 @@ export class AnalyzerService {
     }
 
     return this.ai.completeStructured<{ total_score: number; dimensions: MatchDimensions }>({
-      provider: 'clouddream',
       system: SYSTEM,
       prompt: buildAnalyzeMatchPrompt(resumeJson, jdJson),
       toolName: 'analyze_match',

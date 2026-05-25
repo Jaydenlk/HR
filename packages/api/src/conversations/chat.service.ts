@@ -44,7 +44,6 @@ export class ChatService {
       : `用户：${userMessage}\n\n教练：`;
 
     return this.ai.complete({
-      provider: 'clouddream',
       system,
       prompt,
       maxTokens: 2048,

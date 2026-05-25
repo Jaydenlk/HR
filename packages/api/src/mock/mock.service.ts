@@ -72,7 +72,6 @@ ${jdText ? `\n职位描述：\n${jdText}` : ''}
     };
 
     const result = await this.ai.completeStructured<{ questions: Question[] }>({
-      provider: 'clouddream',
       system: systemPrompt,
       prompt: userPrompt,
       toolName: 'generate_questions',
@@ -127,7 +126,6 @@ ${answer}
     };
 
     const result = await this.ai.completeStructured<{ score: number; feedback: string }>({
-      provider: 'clouddream',
       system: systemPrompt,
       prompt: userPrompt,
       toolName: 'evaluate_answer',
@@ -206,7 +204,6 @@ ${qaList}
     };
 
     return this.ai.completeStructured<Evaluation>({
-      provider: 'clouddream',
       system: systemPrompt,
       prompt: userPrompt,
       toolName: 'generate_evaluation',

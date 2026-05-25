@@ -25,7 +25,6 @@ export class RewriterService {
     }
 
     const result = await this.ai.completeStructured<{ suggestions: RewriteSuggestion[] }>({
-      provider: 'clouddream',
       system: SYSTEM,
       prompt: buildSuggestRewritesPrompt(resumeText, jdText, matchResult),
       toolName: 'suggest_rewrites',
