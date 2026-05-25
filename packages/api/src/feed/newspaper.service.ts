@@ -93,30 +93,28 @@ export class NewspaperService {
     const companiesOfInterest = await this.evidence.getCompaniesOfInterest(userId);
     const userCompanies = new Set(companiesOfInterest.map((c) => c.toLowerCase()));
 
-    // Personalized sort: boost items matching user companies
-    const sortPersonalized = (items: FeedItem[]): FeedItem[] =>
+    // Personalized sort: user-relevant companies first, then quality, then time
+    const rankPersonalized = (items: FeedItem[]): FeedItem[] =>
       [...items].sort((a, b) => {
-        const aRelevant =
-          a.company && userCompanies.has(a.company.toLowerCase()) ? 1 : 0;
-        const bRelevant =
-          b.company && userCompanies.has(b.company.toLowerCase()) ? 1 : 0;
+        const aRelevant = a.company && userCompanies.has(a.company.toLowerCase()) ? 1 : 0;
+        const bRelevant = b.company && userCompanies.has(b.company.toLowerCase()) ? 1 : 0;
         if (aRelevant !== bRelevant) return bRelevant - aRelevant;
-        return (b.quality_score ?? 0) - (a.quality_score ?? 0);
+        const scoreDiff = (b.quality_score ?? 0) - (a.quality_score ?? 0);
+        if (scoreDiff !== 0) return scoreDiff;
+        return (b.created_at?.getTime() ?? 0) - (a.created_at?.getTime() ?? 0);
       });
 
     // Issue 4: headline_observations — rule-based aggregation
     const headlineObservations = this.buildHeadlineObservations(allItems);
 
-    // Split by source_kind
-    const userVoiceRaw = allItems
-      .filter((i) => i.source_kind === 'xhs')
-      .sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0))
-      .slice(0, 10);
+    // Split by source_kind — personalize BEFORE slice to prevent truncation
+    const userVoiceRaw = rankPersonalized(
+      allItems.filter((i) => i.source_kind === 'xhs'),
+    ).slice(0, 10);
 
-    const techRadarRaw = allItems
-      .filter((i) => i.source_kind === 'nowcoder')
-      .sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0))
-      .slice(0, 10);
+    const techRadarRaw = rankPersonalized(
+      allItems.filter((i) => i.source_kind === 'nowcoder'),
+    ).slice(0, 10);
 
     // Issue 5: insight_cards from wechat items
     const wechatItems = allItems
@@ -144,8 +142,8 @@ export class NewspaperService {
     return {
       headline_observations: headlineObservations,
       insight_cards: insightCards,
-      user_voice: sortPersonalized(userVoiceRaw),
-      tech_radar: sortPersonalized(techRadarRaw),
+      user_voice: rankPersonalized(userVoiceRaw),
+      tech_radar: rankPersonalized(techRadarRaw),
       role_trends: roleTrends,
       coach_actions: coachActions,
       trending_tags: trendingTags,

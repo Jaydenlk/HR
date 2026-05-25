@@ -347,4 +347,60 @@ describe('NewspaperService personalization (standalone)', () => {
 
     spy.mockRestore();
   });
+
+  it('user_voice: relevant company survives past top-10 quality cutoff', async () => {
+    await feedRepo.clear();
+    const user = await userRepo.save(userRepo.create({ email: 'trunc-xhs@test.com', name: 'TruncXhs', invite_code: 'TEST' }));
+    await appRepo.save(appRepo.create({ user_id: user.id, company: '字节跳动', role: '后端', stage: 'applied' }));
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // 11 high-score non-字节 xhs items
+    for (let i = 0; i < 11; i++) {
+      await feedRepo.save(feedRepo.create({
+        title: `腾讯面经${i}`, content: `内容${i}`, source_kind: 'xhs',
+        source_url: `https://xhs.com/tencent${i}`, confidence: 'high',
+        quality_score: 90 - i, company: '腾讯', created_at: yesterday,
+      }));
+    }
+    // 1 low-score 字节 xhs item
+    await feedRepo.save(feedRepo.create({
+      title: '字节后端一面', content: '算法题', source_kind: 'xhs',
+      source_url: 'https://xhs.com/bytedance1', confidence: 'high',
+      quality_score: 1, company: '字节跳动', created_at: yesterday,
+    }));
+
+    const edition = await newspaperService.getNewspaper(user.id);
+    const titles = edition.user_voice.map((i) => i.title);
+    expect(titles).toContain('字节后端一面');
+    expect(titles[0]).toBe('字节后端一面');
+  });
+
+  it('tech_radar: relevant company survives past top-10 quality cutoff', async () => {
+    await feedRepo.clear();
+    const user = await userRepo.save(userRepo.create({ email: 'trunc-nc@test.com', name: 'TruncNc', invite_code: 'TEST' }));
+    await appRepo.save(appRepo.create({ user_id: user.id, company: '美团', role: '算法', stage: 'interview' }));
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    for (let i = 0; i < 11; i++) {
+      await feedRepo.save(feedRepo.create({
+        title: `阿里算法题${i}`, content: `内容${i}`, source_kind: 'nowcoder',
+        source_url: `https://nowcoder.com/ali${i}`, confidence: 'high',
+        quality_score: 90 - i, company: '阿里巴巴', created_at: yesterday,
+      }));
+    }
+    await feedRepo.save(feedRepo.create({
+      title: '美团外卖算法面', content: '推荐系统', source_kind: 'nowcoder',
+      source_url: 'https://nowcoder.com/meituan1', confidence: 'high',
+      quality_score: 1, company: '美团', created_at: yesterday,
+    }));
+
+    const edition = await newspaperService.getNewspaper(user.id);
+    const titles = edition.tech_radar.map((i) => i.title);
+    expect(titles).toContain('美团外卖算法面');
+    expect(titles[0]).toBe('美团外卖算法面');
+  });
 });
