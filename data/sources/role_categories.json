@@ -1,0 +1,86 @@
+[
+  {
+    "role_key": "backend",
+    "label": "后端开发",
+    "aliases": ["服务端", "Java开发", "Go开发", "C++开发", "后端工程师"],
+    "source_preference": "nowcoder",
+    "question_taxonomy": ["算法与数据结构", "系统设计", "Java/Go/C++八股文", "数据库与缓存", "项目深挖", "场景设计题"]
+  },
+  {
+    "role_key": "frontend",
+    "label": "前端开发",
+    "aliases": ["前端工程师", "React开发", "Vue开发", "Web开发", "大前端"],
+    "source_preference": "nowcoder",
+    "question_taxonomy": ["JavaScript原理", "CSS与布局", "浏览器与网络", "框架原理（React/Vue）", "性能优化", "工程化与构建"]
+  },
+  {
+    "role_key": "algorithm",
+    "label": "算法工程师",
+    "aliases": ["算法", "ML工程师", "AI工程师", "机器学习工程师", "推荐算法"],
+    "source_preference": "nowcoder",
+    "question_taxonomy": ["机器学习基础", "深度学习原理", "推荐/搜索/广告系统", "代码实现能力", "论文精读与复现", "工程落地经验"]
+  },
+  {
+    "role_key": "embedded",
+    "label": "嵌入式/硬件开发",
+    "aliases": ["嵌入式工程师", "固件工程师", "驱动开发", "BSP工程师", "FPGA工程师"],
+    "source_preference": "nowcoder",
+    "question_taxonomy": ["C/C++底层原理", "操作系统与RTOS", "硬件接口协议（SPI/I2C/UART）", "内存管理与优化", "驱动开发经验"]
+  },
+  {
+    "role_key": "product",
+    "label": "产品经理",
+    "aliases": ["产品", "PM", "产品策略", "用户体验", "产品运营"],
+    "source_preference": "xhs",
+    "question_taxonomy": ["产品设计与需求分析", "数据分析与指标体系", "竞品分析", "用户研究方法", "项目管理与跨团队协作", "商业意识与变现路径"]
+  },
+  {
+    "role_key": "operations",
+    "label": "运营",
+    "aliases": ["运营", "内容运营", "用户运营", "社区运营", "活动运营"],
+    "source_preference": "xhs",
+    "question_taxonomy": ["数据驱动运营思维", "用户生命周期管理", "内容策划与执行", "活动设计与复盘", "增长黑客方法论"]
+  },
+  {
+    "role_key": "hr",
+    "label": "人力资源",
+    "aliases": ["HR", "人力资源", "HRBP", "招聘专员", "培训与发展"],
+    "source_preference": "xhs",
+    "question_taxonomy": ["人才招募与甄选", "绩效管理体系", "组织发展与员工关系", "薪酬福利设计", "劳动法律法规"]
+  },
+  {
+    "role_key": "design",
+    "label": "UI/UX设计",
+    "aliases": ["设计师", "UI设计", "UX设计", "交互设计", "视觉设计"],
+    "source_preference": "xhs",
+    "question_taxonomy": ["用户体验设计流程", "交互原型与走查", "视觉规范与设计系统", "用户研究方法", "作品集讲解"]
+  },
+  {
+    "role_key": "data",
+    "label": "数据分析/数据科学",
+    "aliases": ["数据分析师", "数据工程师", "BI工程师", "数科", "数仓工程师"],
+    "source_preference": "both",
+    "question_taxonomy": ["SQL查询与优化", "统计学基础", "数据仓库与ETL", "A/B测试方法论", "数据可视化与指标体系", "Python数据处理"]
+  },
+  {
+    "role_key": "finance",
+    "label": "金融/财务",
+    "aliases": ["投行", "金融分析师", "财务", "会计", "量化研究员"],
+    "source_preference": "xhs",
+    "question_taxonomy": ["金融建模与估值", "财务报表分析", "宏观经济与市场", "案例面试（金融）", "行业与公司研究"]
+  },
+  {
+    "role_key": "consulting",
+    "label": "管理咨询",
+    "aliases": ["咨询顾问", "战略咨询", "管理咨询", "MBB", "咨询分析师"],
+    "source_preference": "xhs",
+    "question_taxonomy": ["案例分析（Case Interview）", "行为面试（BEI/STAR）", "逻辑推理与数字测试", "商业问题拆解", "图表解读（图表题）"]
+  },
+  {
+    "role_key": "marketing",
+    "label": "市场营销",
+    "aliases": ["市场", "品牌", "营销策划", "数字营销", "CMO方向"],
+    "source_preference": "xhs",
+    "question_taxonomy": ["品牌策略与定位", "数字营销与ROI分析", "消费者洞察与调研", "营销campaign策划", "增长黑客与用户获取"]
+  }
+]
