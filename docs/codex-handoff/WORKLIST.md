@@ -44,6 +44,14 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] Implement Phase O4: Frontend Opportunity Center (3 pages + sidebar).
 - [x] Phase O5: PJR (tsc/build/eslint/next build all PASS) + Playwright E2E (desktop + mobile).
 - [x] Phase O6: Merge Opportunity Intelligence to dev.
+- [x] Fix Chat sendMessage bug (e3e8159) — frontend expected {user_message, assistant_message}, backend only returned assistant.
+- [~] Digest source integration: XHS + WeChat + Nowcoder.
+  - [x] We-MP-RSS Docker deployed (localhost:8001), awaiting WeChat scan authorization.
+  - [x] RedNote-MCP cloned and built (.tools/rednote-mcp), needs HTTP bridge + QR login.
+  - [x] Local RSSHub deployed but Nowcoder routes broken — need custom adapter or alternative.
+  - [ ] Connect We-MP-RSS JSON API to HRBP feed adapter.
+  - [ ] Write XHS HTTP bridge over RedNote-MCP.
+  - [ ] Decide Nowcoder approach (custom API adapter vs user-contributed).
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
