@@ -138,3 +138,22 @@ Key design decisions:
 - WeChat/media sources must be a configured source registry; manual verified items are allowed only with real URL/source/capture metadata.
 - Digest needs `feed_sources`, richer `feed_items`, and `digest_runs`.
 - Frontend must not show fake hot topics or fake fallback cards when no verified source data exists.
+
+# 2026-05-25 Digest Source Ingestion Plan
+
+Codex loaded the exported frontend review skills before planning frontend work:
+- `docs/codex-handoff/skills-export/frontend-design.md`
+- `docs/codex-handoff/skills-export/uiuxpromax.md`
+
+Codex checked the official NestJS task scheduling documentation:
+- https://docs.nestjs.com/techniques/task-scheduling
+
+Plan written:
+- `docs/superpowers/plans/2026-05-25-digest-source-ingestion.md`
+
+The plan intentionally stops before implementation. Execution must happen in a fresh project-local worktree:
+- `E:\Agent program\HRBP\.worktrees\digest-source-ingestion`
+
+Supervision note for Claude Code:
+- It is not acceptable to claim Digest/月刊 complete while keeping fake fallback cards, hardcoded hot topics, mislabeled NowCoder/GitHub data, or source-free monthly claims.
+- The consequence is product trust failure: users will treat the app as fabricating market intelligence, and later AI summaries will amplify unverified or wrongly attributed source data.
