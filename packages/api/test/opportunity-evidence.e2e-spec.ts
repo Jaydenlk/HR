@@ -139,6 +139,18 @@ describe('OpportunityEvaluator Evidence integration', () => {
     jest.clearAllMocks();
   });
 
+  function setupFullMocks(userId = 'user-test') {
+    mockOppService.findOne.mockResolvedValue(makeOpportunity(userId));
+    mockOppService.setStatus.mockResolvedValue(undefined);
+    mockOppService.updateOpportunity.mockResolvedValue(undefined);
+    mockOppService.saveEvaluation.mockResolvedValue(undefined);
+    mockOppService.saveEvidence.mockResolvedValue(undefined);
+    mockOppService.saveActions.mockResolvedValue(undefined);
+    mockRisk.detectRisks.mockResolvedValue(makeRiskAssessment());
+    mockAi.completeStructured.mockResolvedValue(makeEvaluationResult());
+    mockEvidence.gather.mockResolvedValue(makeIntelligence({ user_id: userId }));
+  }
+
   // ── 1. EvidenceService.gather is called during evaluate ──────────────────
 
   it('calls evidence.gather with the correct userId during evaluate', async () => {
@@ -292,5 +304,54 @@ describe('OpportunityEvaluator Evidence integration', () => {
     expect(evidenceMock.gather).toHaveBeenCalledTimes(2);
     expect(evidenceMock.gather).toHaveBeenNthCalledWith(1, userA);
     expect(evidenceMock.gather).toHaveBeenNthCalledWith(2, userB);
+  });
+
+  it('same-company salary enters AI prompt, other-company salary does not', async () => {
+    setupFullMocks();
+    const intel = makeIntelligence({
+      salary_context: [
+        { source_type: 'salary', source_id: 's1', confidence: 'high', freshness: 'current', summary: 'ByteDance 后端 35K', structured: { company: 'ByteDance' }, reason: 'salary', observed_at: new Date().toISOString(), weight: 0.4 },
+        { source_type: 'salary', source_id: 's2', confidence: 'high', freshness: 'current', summary: 'Tencent 后端 30K', structured: { company: 'Tencent' }, reason: 'salary', observed_at: new Date().toISOString(), weight: 0.4 },
+      ],
+    });
+    mockEvidence.gather.mockResolvedValue(intel);
+    mockParser.parse.mockResolvedValue(makeParsedJd({ company: 'ByteDance' }));
+
+    await evaluator.evaluate('opp-salary', 'user-salary');
+
+    const systemArg = mockAi.completeStructured.mock.calls[mockAi.completeStructured.mock.calls.length - 1][0].system;
+    expect(systemArg).toContain('ByteDance 后端 35K');
+    expect(systemArg).not.toContain('Tencent 后端 30K');
+  });
+
+  it('missing company salary saves low-confidence salary evidence', async () => {
+    setupFullMocks();
+    const intel = makeIntelligence({ salary_context: [] });
+    mockEvidence.gather.mockResolvedValue(intel);
+
+    await evaluator.evaluate('opp-no-salary', 'user-no-salary');
+
+    const savedEvidence = mockOppService.saveEvidence.mock.calls[0][0];
+    const salaryEvidence = savedEvidence.find((e: Record<string, unknown>) => e.kind === 'salary_data');
+    expect(salaryEvidence).toBeDefined();
+    expect(salaryEvidence.confidence).toBe('low');
+    expect(salaryEvidence.title).toContain('薪资数据不足');
+  });
+
+  it('present company salary does NOT save salary_data evidence', async () => {
+    setupFullMocks();
+    const intel = makeIntelligence({
+      salary_context: [
+        { source_type: 'salary', source_id: 's1', confidence: 'high', freshness: 'current', summary: 'ByteDance 35K', structured: { company: 'ByteDance' }, reason: 'salary', observed_at: new Date().toISOString(), weight: 0.4 },
+      ],
+    });
+    mockEvidence.gather.mockResolvedValue(intel);
+    mockParser.parse.mockResolvedValue(makeParsedJd({ company: 'ByteDance' }));
+
+    await evaluator.evaluate('opp-has-salary', 'user-has-salary');
+
+    const savedEvidence = mockOppService.saveEvidence.mock.calls[0][0];
+    const salaryEvidence = savedEvidence.find((e: Record<string, unknown>) => e.kind === 'salary_data');
+    expect(salaryEvidence).toBeUndefined();
   });
 });

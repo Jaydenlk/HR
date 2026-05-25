@@ -90,7 +90,7 @@ export class OpportunityEvaluatorService {
       await this.opportunityService.updateOpportunity(opportunityId, userId, updates);
 
       // Step 3: Gather user context via EvidenceService
-      const evaluationContext = await this.buildEvaluationContext(userId, parsedJd);
+      const evalCtx = await this.buildEvaluationContext(userId, parsedJd);
 
       // Step 4: Detect risks
       const rawRisk = await this.riskService.detectRisks(opportunity.jd_text, parsedJd);
@@ -101,8 +101,7 @@ export class OpportunityEvaluatorService {
       };
 
       // Step 5: AI evaluation for match/value scores
-      const rawEval = await this.evaluateWithAi(parsedJd, riskAssessment, evaluationContext);
-      // Defensive: normalise AI output
+      const rawEval = await this.evaluateWithAi(parsedJd, riskAssessment, evalCtx.promptContext);
       const evalResult: EvaluationResult = {
         match_score: rawEval.match_score ?? 0,
         value_score: rawEval.value_score ?? 0,
@@ -116,10 +115,9 @@ export class OpportunityEvaluatorService {
         evalResult.match_score, evalResult.value_score, riskAssessment.credibility_score,
       );
 
-      // Step 7: Determine recommendation
+      // Step 7: Determine recommendation — use structured fields, not string matching
       const recommendation = this.determineRecommendation(overallScore, riskAssessment);
-      const hasResume = !evaluationContext.includes('尚未上传简历');
-      const confidence = this.determineConfidence(parsedJd, hasResume);
+      const confidence = this.determineConfidence(parsedJd, evalCtx.hasResume);
 
       // Step 8: Save evaluation
       await this.opportunityService.saveEvaluation({
@@ -149,7 +147,7 @@ export class OpportunityEvaluatorService {
           confidence: parsedJd.parse_confidence === 'high' ? 'high' : parsedJd.parse_confidence === 'medium' ? 'medium' : 'low',
         },
       ];
-      if (!hasResume) {
+      if (!evalCtx.hasResume) {
         evidenceItems.push({
           opportunity_id: opportunityId,
           kind: 'resume_match',
@@ -158,8 +156,7 @@ export class OpportunityEvaluatorService {
           confidence: 'low',
         });
       }
-      const insufficientSalaryData = evaluationContext.includes('未找到薪资数据') || evaluationContext.includes('未找到该公司薪资数据');
-      if (insufficientSalaryData) {
+      if (!evalCtx.hasCompanySalary) {
         evidenceItems.push({
           opportunity_id: opportunityId,
           kind: 'salary_data',
@@ -191,28 +188,27 @@ export class OpportunityEvaluatorService {
     }
   }
 
-  private async buildEvaluationContext(userId: string, parsedJd: ParsedJd): Promise<string> {
+  private async buildEvaluationContext(
+    userId: string,
+    parsedJd: ParsedJd,
+  ): Promise<{ promptContext: string; hasResume: boolean; hasCompanySalary: boolean }> {
     const intel = await this.evidence.gather(userId);
     const sections: string[] = [];
 
-    // Resume skills match
-    if (intel.has_resume && intel.skills.length > 0) {
-      const jdRequirements = parsedJd.requirements.join(', ');
-      const userSkills = intel.skills.join(', ');
-      sections.push(`用户技能：${userSkills}`);
-      sections.push(`JD 要求：${jdRequirements}`);
+    const hasResume = intel.has_resume && intel.skills.length > 0;
+    if (hasResume) {
+      sections.push(`用户技能：${intel.skills.join(', ')}`);
+      sections.push(`JD 要求：${parsedJd.requirements.join(', ')}`);
     } else {
       sections.push('用户尚未上传简历，匹配度评估基于 JD 质量，置信度受限于 medium');
     }
 
-    // Diagnosis history
     if (intel.diagnoses.length > 0) {
       const patterns = intel.diagnosis_patterns;
       if (patterns.hit.length > 0) sections.push(`历史诊断命中关键词：${patterns.hit.join(', ')}`);
       if (patterns.miss.length > 0) sections.push(`历史诊断缺失关键词：${patterns.miss.join(', ')}`);
     }
 
-    // Related feed intelligence
     const companyName = parsedJd.company?.toLowerCase();
     if (companyName) {
       const relatedFeed = intel.feed_relevant.filter(
@@ -223,12 +219,13 @@ export class OpportunityEvaluatorService {
       }
     }
 
-    // Salary context
+    let hasCompanySalary = false;
     if (companyName && intel.salary_context.length > 0) {
       const companySalary = intel.salary_context.filter(
         (e) => e.structured?.['company']?.toString().toLowerCase() === companyName,
       );
       if (companySalary.length > 0) {
+        hasCompanySalary = true;
         sections.push(`该公司薪资参考：${companySalary.map((e) => e.summary).join('；')}`);
       } else {
         sections.push('未找到该公司薪资数据，价值评分仅基于 JD 描述');
@@ -237,7 +234,7 @@ export class OpportunityEvaluatorService {
       sections.push('未找到薪资数据，价值评分仅基于 JD 描述');
     }
 
-    return sections.join('\n');
+    return { promptContext: sections.join('\n'), hasResume, hasCompanySalary };
   }
 
   private buildSystemPrompt(contextString: string): string {
