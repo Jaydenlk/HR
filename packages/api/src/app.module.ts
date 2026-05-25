@@ -19,6 +19,7 @@ import { SalaryModule } from './salary/salary.module';
 import { CareerModule } from './career/career.module';
 import { FeedModule } from './feed/feed.module';
 import { OpportunityModule } from './opportunity/opportunity.module';
+import { IntelligenceModule } from './intelligence/intelligence.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { OpportunityModule } from './opportunity/opportunity.module';
     CareerModule,
     FeedModule,
     OpportunityModule,
+    IntelligenceModule,
   ],
 })
 export class AppModule {}
