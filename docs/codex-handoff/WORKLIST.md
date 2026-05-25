@@ -54,8 +54,8 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 - [x] Add source registry and query DTOs.
 - [x] Refactor importers into source candidate adapters.
 - [x] Add ingestion orchestrator, CloudDreamAI classifier, and daily schedule.
-- [ ] Refactor Digest frontend around real API data.
-- [ ] Run backend quality gate and API acceptance.
+- [x] Refactor Digest frontend around real API data.
+- [~] Run backend quality gate and API acceptance.
 - [ ] Run frontend desktop E2E.
 - [ ] Run frontend mobile E2E.
 - [ ] Run Simplify.
@@ -85,6 +85,7 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 | 2026-05-25 | Codex | Add source registry and feed filters | `[x]` | `npx.cmd tsc --noEmit` PASS; `npx.cmd nest build` PASS; Feed E2E 20/20 PASS | Commit source registry |
 | 2026-05-25 | Codex | Refactor feed importers into adapters | `[x]` | no fallback/importFrom matches; `tsc` PASS; `nest build` PASS; Feed E2E 20/20 PASS | Commit importer adapter refactor |
 | 2026-05-25 | Codex | Add ingestion orchestrator, CloudDreamAI classifier, and daily schedule | `[x]` | `tsc` PASS; `nest build` PASS; classifier unit tests 3/3 PASS; Feed E2E 23/23 PASS | Commit ingestion pipeline |
+| 2026-05-25 | Claude Code | Verify and fix Digest frontend | `[x]` | Fixed ESLint `set-state-in-effect` violation (restructured to Promise chain pattern); `eslint src/` 0 errors; `next build` PASS; `tsc --noEmit` PASS; `nest build` PASS; Feed E2E 23/23; Classifier 3/3 | Task 7: backend quality gate |
 
 ## Claude Code Compliance Audit Items
 

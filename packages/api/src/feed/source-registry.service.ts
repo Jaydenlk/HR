@@ -31,9 +31,7 @@ export class SourceRegistryService implements OnModuleInit {
   async ensureDefaults(): Promise<void> {
     const seeds = await this.readSeedFile();
     for (const seed of seeds) {
-      const existing = await this.repo.findOne({
-        where: { kind: seed.kind, name: seed.name },
-      });
+      const existing = await this.findExistingSource(seed);
       const status = this.resolveStatus(seed);
       const entity = this.repo.create({
         ...(existing ?? {}),
@@ -67,6 +65,15 @@ export class SourceRegistryService implements OnModuleInit {
 
   async markRun(sourceId: string): Promise<void> {
     await this.repo.update(sourceId, { last_run_at: new Date() });
+  }
+
+  private findExistingSource(seed: DigestSourceSeed): Promise<FeedSource | null> {
+    if (seed.config_key) {
+      return this.repo.findOne({
+        where: { kind: seed.kind, config_key: seed.config_key },
+      });
+    }
+    return this.repo.findOne({ where: { kind: seed.kind, name: seed.name } });
   }
 
   private resolveStatus(seed: DigestSourceSeed): FeedSourceStatus {

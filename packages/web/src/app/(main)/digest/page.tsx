@@ -1,1039 +1,1152 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
-import { Search, SlidersHorizontal, Plus, Heart, ExternalLink, X } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Database,
+  ExternalLink,
+  Loader2,
+  Plus,
+  RefreshCcw,
+  Search,
+  Settings,
+  X,
+} from 'lucide-react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react';
 import { api } from '@/lib/api';
+import type {
+  DigestRun,
+  DigestRunStatus,
+  FeedCategory,
+  FeedItem,
+  FeedSource,
+  FeedSourceKind,
+  FeedSourceStatus,
+} from '@/lib/types';
 
-/* ─── Types ──────────────────────────────────────────────────────────────── */
-
-interface FeedItem {
-  id: string;
-  title: string;
-  content: string;
-  company: string | null;
-  role: string | null;
-  outcome: string | null;
-  source: string;
-  source_name: string | null;
-  category: string;
-  source_url: string | null;
-  author: string | null;
-  created_at: string;
-  user: { id: string; name: string } | null;
-}
+type SourceFilter = FeedSourceKind | 'all';
+type CategoryFilter = FeedCategory | 'all';
 
 interface FormState {
   title: string;
-  content: string;
   company: string;
   role: string;
   outcome: string;
-  category: string;
+  content: string;
 }
-
-type TabKey = 'all' | 'interview' | 'trending' | 'story' | 'quiz' | 'editorial';
-
-/* ─── Constants ──────────────────────────────────────────────────────────── */
 
 const EMPTY_FORM: FormState = {
   title: '',
-  content: '',
   company: '',
   role: '',
   outcome: '',
-  category: 'interview_exp',
+  content: '',
 };
 
-const COVER_CLASSES = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'] as const;
-
-const COVER_GRADIENTS: Record<string, string> = {
-  b1: 'linear-gradient(135deg,#dee5ed 0%,#c2cdd8 100%)',
-  b2: 'linear-gradient(135deg,#f1ddd5 0%,#dec3b6 100%)',
-  b3: 'linear-gradient(135deg,#dcebe1 0%,#bfd3c5 100%)',
-  b4: 'linear-gradient(135deg,#e5e0eb 0%,#cac0d4 100%)',
-  b5: 'linear-gradient(135deg,#ebe6d2 0%,#d4cba8 100%)',
-  b6: 'linear-gradient(135deg,#dedee8 0%,#b8b8c8 100%)',
+const SOURCE_KIND_LABELS: Record<FeedSourceKind, string> = {
+  xhs: '小红书',
+  nowcoder: '牛客',
+  wechat: '公众号',
+  blog: '博客',
+  ugc: '用户内容',
+  coach: 'Coach',
 };
 
-const PERSONAL_GRADIENT = 'linear-gradient(135deg,#e8efff 0%,#cad9f4 100%)';
-
-const CATEGORY_TAG: Record<string, { label: string; color: string }> = {
-  interview_exp: { label: '面经', color: 'default' },
-  trending: { label: '热点', color: 'hot' },
-  market_insight: { label: '故事', color: 'default' },
-  job_tips: { label: '题库', color: 'default' },
+const CATEGORY_LABELS: Record<FeedCategory, string> = {
+  interview_exp: '面经',
+  market_insight: '市场观察',
+  job_tips: '求职策略',
+  hiring_signal: '招聘信号',
+  editorial: '编辑精选',
 };
 
-const TRENDING_TOPICS = [
-  { text: '字节二面', hot: true },
-  { text: 'PDD 996', hot: true },
-  { text: 'Tech Lead 信号', hot: false },
-  { text: 'SSR / hydration', hot: false },
-  { text: 'offer 谈判', hot: false },
-  { text: '秋招倒计时', hot: false },
-  { text: '海外校招', hot: false },
-  { text: 'STAR 法则', hot: false },
-  { text: '反问环节', hot: false },
+const SOURCE_STATUS_LABELS: Record<FeedSourceStatus, string> = {
+  active: '可采集',
+  paused: '已暂停',
+  needs_config: '待配置',
+};
+
+const RUN_STATUS_LABELS: Record<DigestRunStatus, string> = {
+  running: '运行中',
+  success: '成功',
+  partial: '部分成功',
+  failed: '失败',
+};
+
+const SOURCE_FILTERS: Array<{ value: SourceFilter; label: string }> = [
+  { value: 'all', label: '全部来源' },
+  { value: 'xhs', label: '小红书' },
+  { value: 'nowcoder', label: '牛客' },
+  { value: 'wechat', label: '公众号' },
+  { value: 'coach', label: 'Coach' },
+  { value: 'ugc', label: '用户内容' },
 ];
 
-/* ─── Helpers ────────────────────────────────────────────────────────────── */
+const CATEGORY_FILTERS: Array<{ value: CategoryFilter; label: string }> = [
+  { value: 'all', label: '全部类型' },
+  { value: 'interview_exp', label: '面经' },
+  { value: 'market_insight', label: '市场观察' },
+  { value: 'job_tips', label: '求职策略' },
+  { value: 'hiring_signal', label: '招聘信号' },
+  { value: 'editorial', label: '编辑精选' },
+];
 
-function getCategoryTag(category: string): { label: string; isHot: boolean } {
-  const mapping = CATEGORY_TAG[category];
-  if (mapping) {
-    return { label: mapping.label, isHot: mapping.color === 'hot' };
-  }
-  return { label: '面经', isHot: false };
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : '请求失败，请稍后再试';
 }
 
-function getCompanyGradient(company: string | null, index: number): string {
-  // company-specific override
-  const companyGradients: Record<string, string> = {
-    '字节跳动': COVER_GRADIENTS.b1,
-    '拼多多': COVER_GRADIENTS.b2,
-    '美团': COVER_GRADIENTS.b5,
-    'Shopee': COVER_GRADIENTS.b3,
-    '腾讯': COVER_GRADIENTS.b6,
-    '腾讯 IEG': COVER_GRADIENTS.b6,
-    '阿里巴巴': COVER_GRADIENTS.b4,
-    '网易': COVER_GRADIENTS.b4,
-  };
-  if (company && companyGradients[company]) {
-    return companyGradients[company];
-  }
-  return COVER_GRADIENTS[COVER_CLASSES[index % COVER_CLASSES.length]];
+function formatDate(value: string | null): string {
+  if (!value) return '从未运行';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '时间未知';
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diff = now - then;
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return '刚刚';
-  if (minutes < 60) return `${minutes} 分钟前`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} 小时前`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} 天前`;
-  return new Date(dateStr).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+function displaySourceName(item: FeedItem): string {
+  return item.source_name ?? SOURCE_KIND_LABELS[item.source_kind];
 }
 
-function truncate(text: string, max: number): string {
-  // Strip raw URLs from content excerpts
-  const cleaned = text
-    .replace(/https?:\/\/\S+/g, '')
-    .replace(/查看详情:\s*/g, '')
-    .replace(/来源:\s*\S+/g, '')
-    .replace(/\n{2,}/g, '\n')
-    .trim();
-  const display = cleaned || text;
-  if (display.length <= max) return display;
-  return display.slice(0, max).trimEnd() + '...';
+function excerpt(item: FeedItem): string {
+  const text = item.summary?.trim() || item.content.trim();
+  return text.length > 180 ? `${text.slice(0, 180).trimEnd()}...` : text;
 }
 
-/* ─── Styles (injected as <style>) ───────────────────────────────────────── */
-
-const MONTHLY_CSS = `
-/* hero strip */
-.mthly .feat-row{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:14px;flex-shrink:0}
-.mthly .feat-hero{
-  background:var(--color-ink);color:#fff;border-radius:24px;padding:28px 30px;
-  position:relative;overflow:hidden;display:flex;flex-direction:column;gap:14px;min-height:200px;
+function sourceFilterToQuery(source: SourceFilter): string | null {
+  return source === 'all' ? null : source;
 }
-.mthly .feat-hero::before{
-  content:"";position:absolute;inset:0;
-  background:radial-gradient(600px 320px at 90% -10%,rgba(10,132,255,.22),transparent 60%);
+
+function categoryFilterToQuery(category: CategoryFilter): string | null {
+  return category === 'all' ? null : category;
 }
-.mthly .feat-hero > *{position:relative;z-index:2}
-.mthly .feat-hero .topline{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.55);display:flex;gap:10px;align-items:center}
-.mthly .feat-hero h2{margin:0;font-size:36px;line-height:1.05;letter-spacing:-.03em;font-weight:800}
-.mthly .feat-hero p{margin:0;font-size:14px;color:rgba(255,255,255,.7);font-weight:500;line-height:1.55;max-width:48ch}
-.mthly .feat-hero .meta-row{font-size:11.5px;color:rgba(255,255,255,.5);font-weight:500;margin-top:auto;display:flex;gap:14px}
-
-.mthly .feat-side{background:var(--color-surface);border:1px solid var(--color-line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:8px}
-.mthly .feat-side .top{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--color-ink-3);letter-spacing:.04em;text-transform:uppercase}
-.mthly .feat-side .top.hot{color:var(--color-danger)}
-.mthly .feat-side .top.you{color:var(--color-brand)}
-.mthly .feat-side h3{margin:0;font-size:17px;font-weight:700;color:var(--color-ink);line-height:1.3;letter-spacing:-.008em}
-.mthly .feat-side p{margin:0;font-size:12.5px;color:var(--color-ink-3);font-weight:500;line-height:1.5}
-.mthly .feat-side .by{margin-top:auto;font-size:11.5px;color:var(--color-ink-3);font-weight:500;display:flex;align-items:center;gap:6px}
-.mthly .feat-side .by b{color:var(--color-ink-2);font-weight:600}
-
-/* tabs */
-.mthly .tabs-row{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.mthly .tabs{display:flex;gap:2px;background:var(--color-surface-2);border-radius:999px;padding:3px}
-.mthly .tab{appearance:none;border:0;background:transparent;color:var(--color-ink-3);padding:7px 14px;font-size:13px;font-weight:600;border-radius:999px;display:flex;align-items:center;gap:6px;letter-spacing:-.003em;cursor:pointer;transition:all .12s}
-.mthly .tab.active{background:var(--color-surface);color:var(--color-ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.mthly .tab .cnt{font-family:var(--font-mono);font-size:10px;color:var(--color-ink-4);font-weight:600}
-.mthly .tab.active .cnt{color:var(--color-ink-3)}
-.mthly .tabs-row .right{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--color-ink-3);font-weight:500}
-
-/* trending */
-.mthly .trending{display:flex;align-items:center;gap:14px;flex-shrink:0;padding:10px 4px;font-size:12.5px;color:var(--color-ink-3);font-weight:500;overflow:hidden}
-.mthly .trending .label{flex-shrink:0;font-weight:700;color:var(--color-ink);display:flex;align-items:center;gap:5px;font-size:12px}
-.mthly .trending .topics{display:flex;gap:6px;overflow:auto}
-.mthly .trending .t{flex-shrink:0;padding:4px 12px;border-radius:999px;background:var(--color-surface);border:1px solid var(--color-line);font-weight:600;color:var(--color-ink-2);font-size:12px;letter-spacing:-.003em;cursor:pointer;transition:all .12s}
-.mthly .trending .t:hover{border-color:var(--color-line-2)}
-.mthly .trending .t.hot{background:var(--color-ink);color:#fff;border-color:var(--color-ink)}
-.mthly .trending .t.hot::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--color-danger);margin-right:5px;vertical-align:middle}
-
-/* feed grid */
-.mthly .feed{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-content:start;padding:2px 0}
-
-.mthly .post{background:var(--color-surface);border:1px solid var(--color-line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;break-inside:avoid;transition:.12s;cursor:pointer;min-height:280px}
-.mthly .post:hover{border-color:var(--color-line-2);box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.mthly .post .cover{
-  height:120px;position:relative;overflow:hidden;
-  background:var(--color-surface-2);
-  display:flex;align-items:flex-end;padding:14px;
-  flex-shrink:0;
-}
-.mthly .post .cover .blob{
-  position:absolute;width:200px;height:200px;border-radius:50%;
-  background:rgba(0,0,0,.06);right:-40px;top:-40px;filter:blur(2px);
-}
-.mthly .post .cover .co-mark{
-  position:relative;z-index:2;font-size:14px;font-weight:700;color:var(--color-ink);letter-spacing:-.01em;
-}
-.mthly .post .cover .co-mark .small{display:block;font-size:11px;color:var(--color-ink-3);font-weight:500;margin-top:2px;letter-spacing:0}
-.mthly .post .cover .tag-text{
-  position:absolute;top:12px;left:14px;z-index:2;
-  font-size:10.5px;font-weight:700;color:var(--color-ink);
-  letter-spacing:.04em;background:rgba(255,255,255,.7);
-  padding:3px 9px;border-radius:6px;backdrop-filter:blur(8px);
-}
-.mthly .post .cover .tag-text.hot{background:var(--color-ink);color:#fff}
-.mthly .post .cover .tag-text.coach{background:var(--color-brand);color:#fff}
-.mthly .post .cover .like-text{
-  position:absolute;top:12px;right:14px;z-index:2;
-  font-size:11px;font-weight:600;color:var(--color-ink);
-  letter-spacing:0;background:rgba(255,255,255,.7);
-  padding:3px 9px;border-radius:6px;backdrop-filter:blur(8px);
-  display:flex;align-items:center;gap:4px;
-}
-.mthly .post .cover .like-text svg{width:11px;height:11px}
-
-.mthly .post .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1 1 auto;min-height:0}
-.mthly .post .ttl{font-size:14.5px;font-weight:600;color:var(--color-ink);line-height:1.35;letter-spacing:-.005em}
-.mthly .post .ex{font-size:12.5px;color:var(--color-ink-3);font-weight:500;line-height:1.5;margin:0}
-.mthly .post .foot{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px;font-size:11.5px;color:var(--color-ink-3);font-weight:500}
-.mthly .post .foot .av-init{
-  width:20px;height:20px;border-radius:50%;background:var(--color-surface-2);
-  display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--color-ink-2);flex-shrink:0;
-  border:1px solid var(--color-line);
-}
-.mthly .post .foot b{color:var(--color-ink);font-weight:600}
-.mthly .post .foot .stats{margin-left:auto;display:flex;gap:8px;color:var(--color-ink-3);font-family:var(--font-mono);font-size:11px;font-weight:600}
-
-/* personal Coach card */
-.mthly .post.personal{border:1.5px solid var(--color-brand)}
-
-/* modal */
-.mthly .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:1000;padding:24px}
-.mthly .modal-form{background:var(--color-bg);border-radius:16px;padding:28px;width:100%;max-width:560px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 48px rgba(0,0,0,0.2)}
-.mthly .modal-form input,.mthly .modal-form select,.mthly .modal-form textarea{width:100%;padding:9px 12px;border:1px solid var(--color-line);border-radius:8px;font-size:14px;color:var(--color-ink);background:var(--color-bg);outline:none;box-sizing:border-box;font-family:inherit}
-.mthly .modal-form textarea{resize:vertical;line-height:1.6;min-height:120px}
-.mthly .modal-form label{font-size:13px;font-weight:600;color:var(--color-ink-2);margin-bottom:2px}
-
-/* source link */
-.mthly .post .source-link{
-  display:inline-flex;align-items:center;gap:3px;
-  font-size:11px;color:var(--color-brand);font-weight:500;
-  text-decoration:none;margin-top:4px;
-}
-.mthly .post .source-link:hover{text-decoration:underline}
-
-/* responsive */
-@media(max-width:900px){
-  .mthly .feat-row{grid-template-columns:1fr;gap:10px}
-  .mthly .feed{grid-template-columns:repeat(2,1fr)}
-}
-@media(max-width:600px){
-  .mthly .feed{grid-template-columns:1fr}
-  .mthly .tabs{overflow-x:auto}
-}
-`;
-
-/* ─── Module-level constants (computed once at module load) ──────────────── */
-
-const CURRENT_WEEK_VOL = Math.ceil(Date.now() / (7 * 24 * 3600 * 1000));
-
-/* ─── Component ──────────────────────────────────────────────────────────── */
 
 export default function DigestPage() {
   const [items, setItems] = useState<FeedItem[]>([]);
+  const [sources, setSources] = useState<FeedSource[]>([]);
+  const [runs, setRuns] = useState<DigestRun[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [importing, setImporting] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [keyword, setKeyword] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  /* ── Search & filter state ──────────────────────────────────────────────── */
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFilter, setShowFilter] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
-  const filterRef = useRef<HTMLDivElement>(null);
+  const feedPath = useMemo(() => {
+    const params = new URLSearchParams();
+    const source = sourceFilterToQuery(sourceFilter);
+    const category = categoryFilterToQuery(categoryFilter);
+    const trimmedKeyword = keyword.trim();
+    if (source) params.set('source_kind', source);
+    if (category) params.set('category', category);
+    if (trimmedKeyword) params.set('keyword', trimmedKeyword);
+    return params.size > 0 ? `/feed?${params.toString()}` : '/feed';
+  }, [categoryFilter, keyword, sourceFilter]);
 
-  /* ── Data loading ───────────────────────────────────────────────────────── */
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      api.get<FeedItem[]>(feedPath),
+      api.get<FeedSource[]>('/feed/sources'),
+      api.get<DigestRun[]>('/feed/runs'),
+    ])
+      .then(([feedItems, feedSources, digestRuns]) => {
+        if (!cancelled) {
+          setItems(feedItems);
+          setSources(feedSources);
+          setRuns(digestRuns);
+          setPageError(null);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setPageError(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [feedPath]);
 
-  async function loadItems() {
+  async function loadDigest() {
+    setLoading(true);
+    setPageError(null);
     try {
-      const data = await api.get<FeedItem[]>('/feed');
-      setItems(data);
-    } catch {
-      // empty list is fine
+      const [feedItems, feedSources, digestRuns] = await Promise.all([
+        api.get<FeedItem[]>(feedPath),
+        api.get<FeedSource[]>('/feed/sources'),
+        api.get<DigestRun[]>('/feed/runs'),
+      ]);
+      setItems(feedItems);
+      setSources(feedSources);
+      setRuns(digestRuns);
+    } catch (error) {
+      setPageError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    let cancelled = false;
-    api.get<FeedItem[]>('/feed')
-      .then((data) => { if (!cancelled) setItems(data); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
+  const latestRun = runs[0] ?? null;
+  const sourceSummary = useMemo(() => {
+    return {
+      active: sources.filter((source) => source.status === 'active').length,
+      needsConfig: sources.filter((source) => source.status === 'needs_config').length,
+      total: sources.length,
+    };
+  }, [sources]);
 
-  /* ── Derived data ───────────────────────────────────────────────────────── */
-
-  const counts = useMemo(() => {
-    const c = { all: items.length, interview: 0, trending: 0, story: 0, quiz: 0, editorial: 0 };
-    for (const item of items) {
-      if (item.category === 'interview_exp') c.interview++;
-      else if (item.category === 'trending') c.trending++;
-      else if (item.category === 'market_insight') { c.story++; c.editorial++; }
-      else if (item.category === 'job_tips') c.quiz++;
-      else c.interview++; // fallback
+  async function handleImport() {
+    setImporting(true);
+    setPageError(null);
+    try {
+      await api.post<{ runs: DigestRun[] }>('/feed/import', {});
+      await loadDigest();
+    } catch (error) {
+      setPageError(getErrorMessage(error));
+    } finally {
+      setImporting(false);
     }
-    return c;
-  }, [items]);
-
-  const companyOptions = useMemo(() => {
-    const seen = new Set<string>();
-    for (const item of items) {
-      if (item.company) seen.add(item.company);
-    }
-    return Array.from(seen).sort();
-  }, [items]);
-
-  const filteredItems = useMemo(() => {
-    let result = items;
-
-    // Tab filter
-    if (activeTab !== 'all') {
-      const categoryMap: Record<TabKey, string[]> = {
-        all: [],
-        interview: ['interview_exp'],
-        trending: ['trending'],
-        story: ['market_insight'],
-        quiz: ['job_tips'],
-        editorial: ['market_insight'],
-      };
-      const cats = categoryMap[activeTab];
-      if (cats && cats.length > 0) {
-        result = result.filter((i) => cats.includes(i.category));
-      }
-    }
-
-    // Company filter
-    if (selectedCompany) {
-      result = result.filter((i) => i.company === selectedCompany);
-    }
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      result = result.filter(
-        (i) =>
-          i.title.toLowerCase().includes(q) ||
-          i.content.toLowerCase().includes(q) ||
-          (i.company ?? '').toLowerCase().includes(q),
-      );
-    }
-
-    return result;
-  }, [items, activeTab, selectedCompany, searchQuery]);
-
-  /* ── Featured items ─────────────────────────────────────────────────────── */
-
-  const featuredHero = useMemo(() => {
-    // Prefer curated editorial content for the hero, never raw GitHub imports
-    const editorialSources = ['ugc', 'ai_digest'];
-    const editorial = items.find(
-      (i) =>
-        (i.category === 'market_insight' || i.category === 'trending') &&
-        editorialSources.includes(i.source),
-    );
-    if (editorial) return editorial;
-    // Fallback: any non-github item, or null (show default placeholder)
-    return items.find((i) => i.source !== 'github') ?? null;
-  }, [items]);
-
-  const hotItem = useMemo(() => {
-    return items.find((i) => i.category === 'trending' && i.source !== 'github') ?? null;
-  }, [items]);
-
-  /* ── Close filter dropdown on outside click ────────────────────────────── */
-
-  useEffect(() => {
-    function handleOutside(e: MouseEvent) {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setShowFilter(false);
-      }
-    }
-    if (showFilter) {
-      document.addEventListener('mousedown', handleOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleOutside);
-  }, [showFilter]);
-
-  /* ── Handlers ───────────────────────────────────────────────────────────── */
-
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) return;
+  function handleFormChange(
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setSubmitting(true);
-    setError(null);
+    setFormError(null);
     try {
-      await api.post('/feed', {
+      const payload = {
         title: form.title.trim(),
         content: form.content.trim(),
-        company: form.company.trim() || undefined,
-        role: form.role.trim() || undefined,
-        outcome: form.outcome || undefined,
-        category: form.category,
-      });
+        ...(form.company.trim() ? { company: form.company.trim() } : {}),
+        ...(form.role.trim() ? { role: form.role.trim() } : {}),
+        ...(form.outcome ? { outcome: form.outcome } : {}),
+      };
+      await api.post<FeedItem>('/feed', payload);
       setForm(EMPTY_FORM);
       setShowForm(false);
-      await loadItems();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '提交失败，请重试');
+      setSourceFilter('all');
+      setCategoryFilter('all');
+      setKeyword('');
+      await loadDigest();
+    } catch (error) {
+      setFormError(getErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
   }
 
-  function handleCardClick(item: FeedItem) {
-    if (item.source_url) {
-      window.open(item.source_url, '_blank', 'noopener,noreferrer');
-    }
+  function resetFilters() {
+    setSourceFilter('all');
+    setCategoryFilter('all');
+    setKeyword('');
   }
 
-  /* ── Render ─────────────────────────────────────────────────────────────── */
-
   return (
-    <div style={{
-      padding: '24px 32px 32px',
-    }}>
-      <style>{MONTHLY_CSS}</style>
+    <main className="digest-shell">
+      <style>{DIGEST_CSS}</style>
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        marginBottom: '18px',
-        flexShrink: 0,
-      }}>
+      <section className="digest-header">
         <div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: 'var(--color-ink)',
-            letterSpacing: '-0.4px',
-            marginBottom: '4px',
-            margin: 0,
-          }}>
-            月刊 · 面经
-          </h1>
-          <p style={{
-            fontSize: '13.5px',
-            color: 'var(--color-ink-3)',
-            lineHeight: 1.5,
-            margin: '4px 0 0',
-          }}>
-            叫月刊，更新是实时的 · 24h 内新增 {counts.all} 篇
+          <p className="eyebrow">Source-backed Digest</p>
+          <h1>求职情报月刊</h1>
+          <p className="subtitle">
+            面经、市场观察和求职策略只展示有来源的内容。没有来源时，页面会诚实显示配置或空状态。
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {/* Search toggle + inline input */}
-          {showSearch ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 10px',
-                border: '1px solid var(--color-brand)',
-                borderRadius: '10px',
-                background: 'var(--color-surface)',
-              }}>
-                <Search size={14} color="var(--color-brand)" />
-                <input
-                  autoFocus
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜标题、内容、公司..."
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    background: 'transparent',
-                    fontSize: '13px',
-                    color: 'var(--color-ink)',
-                    width: '180px',
-                    fontFamily: 'inherit',
-                  }}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}
-                  >
-                    <X size={13} color="var(--color-ink-3)" />
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => { setShowSearch(false); setSearchQuery(''); }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                  color: 'var(--color-ink-3)',
-                  padding: '4px',
-                }}
-              >
-                取消
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowSearch(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 14px',
-                border: '1px solid var(--color-line)',
-                borderRadius: '10px',
-                background: 'var(--color-surface)',
-                color: 'var(--color-ink-2)',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              <Search size={14} />
-              <span>搜面经</span>
-            </button>
-          )}
-
-          {/* Company filter dropdown */}
-          <div ref={filterRef} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowFilter((v) => !v)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 14px',
-                border: selectedCompany ? '1px solid var(--color-brand)' : '1px solid var(--color-line)',
-                borderRadius: '10px',
-                background: selectedCompany ? 'var(--color-brand-light, #e8f0fe)' : 'var(--color-surface)',
-                color: selectedCompany ? 'var(--color-brand)' : 'var(--color-ink-2)',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              <SlidersHorizontal size={14} />
-              <span>{selectedCompany ?? '筛选'}</span>
-              {selectedCompany && (
-                <span
-                  onClick={(e) => { e.stopPropagation(); setSelectedCompany(null); }}
-                  style={{ display: 'flex', marginLeft: '2px' }}
-                >
-                  <X size={12} />
-                </span>
-              )}
-            </button>
-            {showFilter && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 6px)',
-                  right: 0,
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-line)',
-                  borderRadius: '12px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-                  zIndex: 100,
-                  minWidth: '160px',
-                  overflow: 'hidden',
-                  padding: '4px',
-                }}
-              >
-                <button
-                  onClick={() => { setSelectedCompany(null); setShowFilter(false); }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '8px 12px',
-                    border: 'none',
-                    background: !selectedCompany ? 'var(--color-surface-2)' : 'transparent',
-                    fontSize: '13px',
-                    fontWeight: !selectedCompany ? 600 : 500,
-                    color: 'var(--color-ink)',
-                    cursor: 'pointer',
-                    borderRadius: '8px',
-                  }}
-                >
-                  全部公司
-                </button>
-                {companyOptions.length === 0 ? (
-                  <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--color-ink-3)' }}>
-                    暂无数据
-                  </div>
-                ) : (
-                  companyOptions.map((co) => (
-                    <button
-                      key={co}
-                      onClick={() => { setSelectedCompany(co); setShowFilter(false); }}
-                      style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '8px 12px',
-                        border: 'none',
-                        background: selectedCompany === co ? 'var(--color-surface-2)' : 'transparent',
-                        fontSize: '13px',
-                        fontWeight: selectedCompany === co ? 600 : 500,
-                        color: 'var(--color-ink)',
-                        cursor: 'pointer',
-                        borderRadius: '8px',
-                      }}
-                    >
-                      {co}
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
+        <div className="header-actions">
           <button
-            onClick={() => setShowForm(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '7px 14px',
-              border: 'none',
-              borderRadius: '10px',
-              background: 'var(--color-brand)',
-              color: '#fff',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="secondary-button"
+            type="button"
+            onClick={() => void loadDigest()}
+            disabled={loading || importing}
           >
-            <Plus size={14} />
-            <span>写一篇</span>
+            <RefreshCcw size={16} />
+            刷新
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => void handleImport()}
+            disabled={loading || importing || sources.length === 0}
+          >
+            {importing ? <Loader2 className="spin" size={16} /> : <Database size={16} />}
+            {importing ? '导入中' : '导入来源'}
+          </button>
+          <button className="primary-button" type="button" onClick={() => setShowForm(true)}>
+            <Plus size={16} />
+            写面经
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* ── Scrollable content ─────────────────────────────────────────────── */}
-      <div style={{
-        padding: '24px 32px 32px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '18px',
-        minHeight: 'min-content',
-      }} className="mthly">
+      <section className="status-grid" aria-label="来源状态">
+        <div className="status-card">
+          <span>来源配置</span>
+          <strong>{sourceSummary.active}/{sourceSummary.total}</strong>
+          <small>{sourceSummary.needsConfig > 0 ? `${sourceSummary.needsConfig} 个待配置` : '全部可用'}</small>
+        </div>
+        <div className="status-card">
+          <span>最近导入</span>
+          <strong>{latestRun ? RUN_STATUS_LABELS[latestRun.status] : '未运行'}</strong>
+          <small>{latestRun ? formatDate(latestRun.created_at) : '点击导入来源开始采集'}</small>
+        </div>
+        <div className="status-card">
+          <span>当前结果</span>
+          <strong>{items.length}</strong>
+          <small>按筛选条件返回的真实记录</small>
+        </div>
+      </section>
 
-        {loading ? (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px 0',
-            color: 'var(--color-ink-3)',
-            fontSize: '14px',
-          }}>
-            加载中...
-          </div>
-        ) : (
-          <>
-            {/* ── Featured Row ───────────────────────────────────────────────── */}
-            <div className="feat-row">
-              {/* LEFT: Editor's pick hero */}
-              <div className="feat-hero">
-                <div className="topline">
-                  <span>编辑精选 · Vol. {CURRENT_WEEK_VOL}</span>
-                  <span>·</span>
-                  <span>本周话题</span>
-                </div>
-                {featuredHero ? (
-                  <>
-                    <h2>{featuredHero.title}</h2>
-                    <p>{truncate(featuredHero.content, 140)}</p>
-                    <div className="meta-row">
-                      <span>{Math.max(1, Math.ceil((featuredHero.content?.length || 0) / 500))} min 阅读</span>
-                      <span>·</span>
-                      <span>{featuredHero.author ?? featuredHero.user?.name ?? '编辑部'}</span>
-                      <span>·</span>
-                      <span>{timeAgo(featuredHero.created_at)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h2>「具体」<br/>是最被低估的能力。</h2>
-                    <p>我们看了 1,247 份应届简历，发现最大的问题不是排版 -- 是它们读起来像同一个人写的：模糊、谦虚、安全。</p>
-                    <div className="meta-row">
-                      <span>编辑部</span>
-                    </div>
-                  </>
-                )}
-              </div>
+      <SourceStrip sources={sources} />
+      <RunNotice run={latestRun} />
 
-              {/* MIDDLE: 24H hot */}
-              <div className="feat-side">
-                <div className="top hot">24h 热点{hotItem?.company ? ` · ${hotItem.company}` : ''}</div>
-                {hotItem ? (
-                  <>
-                    <h3>{hotItem.title}</h3>
-                    <p>{truncate(hotItem.content, 80)}</p>
-                    <div className="by">
-                      <div className="av-init" style={{ width: 18, height: 18, fontSize: 9 }}>
-                        {(hotItem.user?.name ?? 'C')[0].toUpperCase()}
-                      </div>
-                      <span><b>{hotItem.user?.name ?? 'Coach 编辑部'}</b> · {timeAgo(hotItem.created_at)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h3>PDD 校招前端真实 base 38-46k，但有个 catch</h3>
-                    <p>我们核对了 32 位拿到 PDD offer 的同学。数字漂亮，但 996.5 你需要先知道。</p>
-                    <div className="by">
-                      <div className="av-init" style={{ width: 18, height: 18, fontSize: 9 }}>C</div>
-                      <span><b>Coach 编辑部</b></span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* RIGHT: Your review */}
-              <div className="feat-side">
-                <div className="top you">你的复盘</div>
-                <h3>你的最新面试复盘 -- Coach 已帮你生成</h3>
-                <p>面试结束后，Coach 会自动分析你的表现并生成结构化复盘报告。</p>
-                <div className="by">
-                  <div className="av-init" style={{
-                    width: 18, height: 18, fontSize: 9,
-                    background: 'var(--color-brand)', color: '#fff',
-                    borderColor: 'transparent',
-                  }}>M</div>
-                  <span><b>自动生成</b> · 仅你可见 · 等你查看</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Tabs ───────────────────────────────────────────────────────── */}
-            <div className="tabs-row">
-              <div className="tabs">
-                {([
-                  { key: 'all' as TabKey, label: '全部', count: counts.all },
-                  { key: 'interview' as TabKey, label: '面经', count: counts.interview },
-                  { key: 'trending' as TabKey, label: '热点', count: counts.trending },
-                  { key: 'story' as TabKey, label: '故事', count: counts.story },
-                  { key: 'quiz' as TabKey, label: '题库', count: counts.quiz },
-                  { key: 'editorial' as TabKey, label: '编辑精选', count: undefined },
-                ]).map((t) => (
-                  <button
-                    key={t.key}
-                    className={`tab${activeTab === t.key ? ' active' : ''}`}
-                    onClick={() => setActiveTab(t.key)}
-                  >
-                    <span>{t.label}</span>
-                    {t.count !== undefined && t.count > 0 && (
-                      <span className="cnt">{t.count}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="right">
-                <span>排序：</span>
-                <span style={{ fontWeight: 600, color: 'var(--color-ink)' }}>最新发布</span>
-                <span>·</span>
-                <span>仅校招</span>
-              </div>
-            </div>
-
-            {/* ── Trending Keywords ──────────────────────────────────────────── */}
-            <div className="trending">
-              <span className="label">本周热词</span>
-              <div className="topics">
-                {TRENDING_TOPICS.map((t) => (
-                  <span key={t.text} className={`t${t.hot ? ' hot' : ''}`}>
-                    {t.text}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Feed Grid ──────────────────────────────────────────────────── */}
-            {filteredItems.length === 0 ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '64px 32px',
-                textAlign: 'center',
-                gap: '12px',
-              }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 16,
-                  background: 'linear-gradient(135deg, #eaf2ff 0%, #f0f4ff 100%)',
-                  border: '1px solid rgba(10,132,255,0.12)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Search size={24} color="var(--color-brand)" />
-                </div>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)' }}>
-                  暂无内容
-                </p>
-                <p style={{ fontSize: '13px', color: 'var(--color-ink-3)', maxWidth: 320, lineHeight: 1.6 }}>
-                  点击右上角「写一篇」分享你的面试经验，或等待 Coach 自动导入最新面经
-                </p>
-              </div>
-            ) : (
-              <div className="feed">
-                {filteredItems.map((item, i) => {
-                  const tag = getCategoryTag(item.category);
-                  const isPersonal = item.source === 'ugc' && item.user !== null;
-                  const gradient = isPersonal
-                    ? PERSONAL_GRADIENT
-                    : getCompanyGradient(item.company, i);
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`post${isPersonal ? ' personal' : ''}`}
-                      onClick={() => handleCardClick(item)}
-                      role={item.source_url ? 'link' : undefined}
-                    >
-                      {/* Cover */}
-                      <div className="cover" style={{ background: gradient }}>
-                        <div className="blob" />
-                        <span className={`tag-text${tag.isHot ? ' hot' : isPersonal ? ' coach' : ''}`}>
-                          {tag.label}
-                        </span>
-                        <span className="like-text">
-                          <Heart size={11} />
-                          <span>0</span>
-                        </span>
-                        <div className="co-mark">
-                          {item.company ?? tag.label}
-                          <span className="small">
-                            {item.role ?? 'Coach 整理'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Body */}
-                      <div className="body">
-                        <div className="ttl">{item.title}</div>
-                        <p className="ex">{truncate(item.content, 100)}</p>
-                        {item.source_url && (
-                          <a
-                            href={item.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="source-link"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            查看原文 <ExternalLink size={10} />
-                          </a>
-                        )}
-                        <div className="foot">
-                          <span className="av-init">
-                            {(item.author ?? item.user?.name ?? item.source_name ?? item.source ?? 'U')[0].toUpperCase()}
-                          </span>
-                          <span>
-                            <b>{item.author ?? item.user?.name ?? item.source_name ?? item.source}</b> · {timeAgo(item.created_at)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* ── Write Form Modal ─────────────────────────────────────────────── */}
-      {showForm && (
-        <div
-          className="mthly"
-          style={{ position: 'fixed', inset: 0, zIndex: 999 }}
-        >
-          <div
-            className="modal-overlay"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setShowForm(false);
-            }}
-          >
-            <form
-              className="modal-form"
-              onSubmit={(e) => void handleSubmit(e)}
+      <section className="controls" aria-label="月刊筛选">
+        <div className="search-box">
+          <Search size={16} />
+          <input
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="搜索公司、岗位、主题"
+            maxLength={100}
+          />
+        </div>
+        <div className="segmented" aria-label="来源筛选">
+          {SOURCE_FILTERS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={sourceFilter === option.value ? 'active' : ''}
+              onClick={() => { setLoading(true); setSourceFilter(option.value); }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-ink)', margin: 0 }}>
-                  写一篇面经
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--color-ink-3)', padding: '4px', display: 'flex',
-                  }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <div className="tabs" aria-label="类型筛选">
+          {CATEGORY_FILTERS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={categoryFilter === option.value ? 'active' : ''}
+              onClick={() => { setLoading(true); setCategoryFilter(option.value); }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label>标题 *</label>
-                <input
-                  name="title"
-                  value={form.title}
-                  onChange={handleChange}
-                  placeholder="例：字节跳动 产品经理 一面体验"
-                  maxLength={200}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label>公司</label>
-                  <input
-                    name="company"
-                    value={form.company}
-                    onChange={handleChange}
-                    placeholder="字节跳动"
-                    maxLength={100}
-                  />
-                </div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label>岗位</label>
-                  <input
-                    name="role"
-                    value={form.role}
-                    onChange={handleChange}
-                    placeholder="产品经理"
-                    maxLength={100}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label>分类</label>
-                  <select name="category" value={form.category} onChange={handleChange}>
-                    <option value="interview_exp">面经</option>
-                    <option value="trending">热点</option>
-                    <option value="market_insight">故事</option>
-                    <option value="job_tips">题库</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label>结果</label>
-                  <select name="outcome" value={form.outcome} onChange={handleChange}>
-                    <option value="">不填写</option>
-                    <option value="pass">通过</option>
-                    <option value="fail">未通过</option>
-                    <option value="offer">拿到 Offer</option>
-                    <option value="pending">等待结果</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label>内容 *</label>
-                <textarea
-                  name="content"
-                  value={form.content}
-                  onChange={handleChange}
-                  placeholder="分享面试题目、考察重点、面试官风格、复盘建议等..."
-                  maxLength={5000}
-                  required
-                  rows={8}
-                />
-                <span style={{ fontSize: '12px', color: 'var(--color-ink-3)', textAlign: 'right' }}>
-                  {form.content.length} / 5000
-                </span>
-              </div>
-
-              {error && (
-                <p style={{ fontSize: '13px', color: 'var(--color-danger)', margin: 0 }}>{error}</p>
-              )}
-
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  style={{
-                    padding: '9px 18px',
-                    border: '1px solid var(--color-line)',
-                    borderRadius: '8px',
-                    background: 'none',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    color: 'var(--color-ink-2)',
-                  }}
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !form.title.trim() || !form.content.trim()}
-                  style={{
-                    padding: '9px 24px',
-                    background: 'var(--color-brand)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    cursor: submitting ? 'not-allowed' : 'pointer',
-                    opacity: submitting ? 0.7 : 1,
-                  }}
-                >
-                  {submitting ? '发布中...' : '发布'}
-                </button>
-              </div>
-            </form>
-          </div>
+      {pageError && (
+        <div className="error-banner" role="alert">
+          <AlertCircle size={16} />
+          <span>{pageError}</span>
         </div>
       )}
-    </div>
+
+      {loading ? (
+        <div className="loading-state">
+          <Loader2 className="spin" size={20} />
+          正在读取真实来源...
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyDigestState
+          hasSources={sources.length > 0}
+          hasFilters={sourceFilter !== 'all' || categoryFilter !== 'all' || keyword.trim().length > 0}
+          onImport={() => void handleImport()}
+          onReset={resetFilters}
+          importing={importing}
+        />
+      ) : (
+        <section className="digest-grid" aria-label="月刊内容">
+          {items.map((item) => (
+            <DigestCard key={item.id} item={item} />
+          ))}
+        </section>
+      )}
+
+      {showForm && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <form className="digest-form" onSubmit={(event) => void handleSubmit(event)}>
+            <div className="form-title-row">
+              <div>
+                <h2>写一篇面经</h2>
+                <p>这会作为用户内容显示，不会伪装成外部来源。</p>
+              </div>
+              <button className="icon-button" type="button" onClick={() => setShowForm(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <label>
+              标题 *
+              <input
+                name="title"
+                value={form.title}
+                onChange={handleFormChange}
+                placeholder="例：字节跳动产品经理一面复盘"
+                maxLength={200}
+                required
+              />
+            </label>
+
+            <div className="form-grid">
+              <label>
+                公司
+                <input
+                  name="company"
+                  value={form.company}
+                  onChange={handleFormChange}
+                  placeholder="字节跳动"
+                  maxLength={100}
+                />
+              </label>
+              <label>
+                岗位
+                <input
+                  name="role"
+                  value={form.role}
+                  onChange={handleFormChange}
+                  placeholder="产品经理"
+                  maxLength={100}
+                />
+              </label>
+            </div>
+
+            <label>
+              结果
+              <select name="outcome" value={form.outcome} onChange={handleFormChange}>
+                <option value="">不填写</option>
+                <option value="pass">通过</option>
+                <option value="fail">未通过</option>
+                <option value="offer">拿到 Offer</option>
+                <option value="pending">等待结果</option>
+              </select>
+            </label>
+
+            <label>
+              内容 *
+              <textarea
+                name="content"
+                value={form.content}
+                onChange={handleFormChange}
+                placeholder="记录题目、追问、面试官风格、你当时的回答和复盘建议。"
+                maxLength={5000}
+                required
+                rows={8}
+              />
+              <span className="char-count">{form.content.length} / 5000</span>
+            </label>
+
+            {formError && (
+              <p className="form-error">
+                <AlertCircle size={14} />
+                {formError}
+              </p>
+            )}
+
+            <div className="form-actions">
+              <button className="secondary-button" type="button" onClick={() => setShowForm(false)}>
+                取消
+              </button>
+              <button
+                className="primary-button"
+                type="submit"
+                disabled={submitting || !form.title.trim() || !form.content.trim()}
+              >
+                {submitting ? <Loader2 className="spin" size={16} /> : null}
+                {submitting ? '发布中' : '发布'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </main>
   );
 }
+
+function SourceStrip({ sources }: { sources: FeedSource[] }) {
+  if (sources.length === 0) {
+    return (
+      <section className="source-strip empty">
+        <Settings size={16} />
+        还没有配置情报来源。月刊不会展示任何伪造内容。
+      </section>
+    );
+  }
+
+  return (
+    <section className="source-strip" aria-label="来源明细">
+      {sources.map((source) => (
+        <article key={source.id} className={`source-chip ${source.status}`}>
+          <div>
+            <strong>{source.name}</strong>
+            <span>{source.description ?? SOURCE_KIND_LABELS[source.kind]}</span>
+          </div>
+          <small>
+            {SOURCE_STATUS_LABELS[source.status]} · {formatDate(source.last_run_at)}
+          </small>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function RunNotice({ run }: { run: DigestRun | null }) {
+  if (!run) return null;
+
+  const icon = run.status === 'success' ? <CheckCircle2 size={16} /> : <Clock size={16} />;
+  return (
+    <section className={`run-notice ${run.status}`}>
+      {icon}
+      <span>
+        最近一次导入：{RUN_STATUS_LABELS[run.status]}，抓取 {run.fetched_count} 条，保存 {run.saved_count} 条，跳过{' '}
+        {run.skipped_count} 条。
+        {run.error_message ? ` ${run.error_message}` : ''}
+      </span>
+    </section>
+  );
+}
+
+function EmptyDigestState({
+  hasSources,
+  hasFilters,
+  importing,
+  onImport,
+  onReset,
+}: {
+  hasSources: boolean;
+  hasFilters: boolean;
+  importing: boolean;
+  onImport: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <section className="empty-state">
+      <Database size={26} />
+      <h2>{hasFilters ? '当前筛选下没有内容' : hasSources ? '还没有抓取到新情报' : '还没有配置情报来源'}</h2>
+      <p>
+        {hasFilters
+          ? '可以清空筛选重新查看，或先写一篇自己的面经。'
+          : hasSources
+            ? '请稍后重新导入，或先写一篇自己的面经。页面不会用假卡片填充空白。'
+            : '需要配置小红书 MCP、牛客 RSS 或人工校验来源后，月刊才会展示内容。'}
+      </p>
+      <div className="empty-actions">
+        {hasFilters && (
+          <button className="secondary-button" type="button" onClick={onReset}>
+            清空筛选
+          </button>
+        )}
+        <button className="primary-button" type="button" onClick={onImport} disabled={!hasSources || importing}>
+          {importing ? <Loader2 className="spin" size={16} /> : <Database size={16} />}
+          {importing ? '导入中' : '导入来源'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function DigestCard({ item }: { item: FeedItem }) {
+  return (
+    <article className="digest-card">
+      <div className="card-top">
+        <span className={`category-pill ${item.category}`}>{CATEGORY_LABELS[item.category]}</span>
+        <span className={`source-badge ${item.source_kind}`}>{SOURCE_KIND_LABELS[item.source_kind]}</span>
+      </div>
+      <h2>{item.title}</h2>
+      <p>{excerpt(item)}</p>
+      <div className="card-meta">
+        {item.company && <span>{item.company}</span>}
+        {item.role && <span>{item.role}</span>}
+        {item.outcome && <span>{item.outcome}</span>}
+      </div>
+      <div className="card-footer">
+        <div>
+          <strong>{displaySourceName(item)}</strong>
+          <small>
+            {formatDate(item.published_at ?? item.fetched_at ?? item.created_at)}
+            {item.quality_score > 0 ? ` · 质量 ${item.quality_score}` : ''}
+          </small>
+        </div>
+        {item.source_url && (
+          <a href={item.source_url} target="_blank" rel="noopener noreferrer">
+            原文
+            <ExternalLink size={13} />
+          </a>
+        )}
+      </div>
+    </article>
+  );
+}
+
+const DIGEST_CSS = `
+.digest-shell {
+  min-height: 100%;
+  padding: 28px 32px 40px;
+  color: var(--color-ink);
+}
+
+.digest-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-brand);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.digest-header h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.subtitle {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: var(--color-ink-3);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.header-actions,
+.form-actions,
+.empty-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button {
+  font-family: inherit;
+}
+
+.primary-button,
+.secondary-button,
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.primary-button {
+  padding: 0 14px;
+  background: var(--color-brand);
+  color: white;
+}
+
+.secondary-button {
+  padding: 0 12px;
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  border-color: var(--color-line);
+}
+
+.icon-button {
+  width: 34px;
+  color: var(--color-ink-3);
+  background: var(--color-surface-2);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.status-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.status-card span,
+.status-card small {
+  display: block;
+  color: var(--color-ink-3);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.status-card strong {
+  display: block;
+  margin: 4px 0;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.source-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.source-strip.empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink-3);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-line-2);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.source-chip {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.source-chip strong,
+.source-chip span,
+.source-chip small {
+  display: block;
+}
+
+.source-chip strong {
+  font-size: 13px;
+}
+
+.source-chip span,
+.source-chip small {
+  margin-top: 3px;
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.source-chip.needs_config {
+  border-color: var(--color-warn);
+  background: var(--color-warn-soft);
+}
+
+.run-notice,
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 11px 13px;
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+.run-notice {
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+}
+
+.run-notice.failed {
+  background: var(--color-danger-soft);
+  border-color: rgba(255, 59, 48, 0.25);
+}
+
+.run-notice.success {
+  background: var(--color-success-soft);
+  border-color: rgba(52, 199, 89, 0.25);
+}
+
+.error-banner {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.search-box input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 13px;
+}
+
+.segmented,
+.tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  grid-column: span 1;
+}
+
+.tabs {
+  grid-column: 1 / -1;
+}
+
+.segmented button,
+.tabs button {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink-3);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented button.active,
+.tabs button.active {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+  color: white;
+}
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  text-align: center;
+  color: var(--color-ink-3);
+}
+
+.empty-state {
+  border: 1px dashed var(--color-line-2);
+  border-radius: 8px;
+  background: var(--color-surface);
+  padding: 42px 20px;
+}
+
+.empty-state h2 {
+  margin: 12px 0 6px;
+  color: var(--color-ink);
+  font-size: 18px;
+}
+
+.empty-state p {
+  max-width: 520px;
+  margin: 0 0 18px;
+  line-height: 1.7;
+}
+
+.digest-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.digest-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 260px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.card-top,
+.card-meta,
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.category-pill,
+.source-badge,
+.card-meta span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.category-pill {
+  padding: 5px 8px;
+  color: var(--color-brand-ink);
+  background: var(--color-brand-soft);
+}
+
+.source-badge {
+  padding: 5px 8px;
+  color: var(--color-ink-2);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-line);
+}
+
+.source-badge.ugc {
+  color: #175f2b;
+  background: var(--color-success-soft);
+}
+
+.digest-card h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.digest-card p {
+  margin: 0;
+  color: var(--color-ink-3);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.card-meta span {
+  padding: 5px 8px;
+  color: var(--color-ink-2);
+  background: var(--color-surface-2);
+}
+
+.card-footer {
+  margin-top: auto;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-line);
+  padding-top: 12px;
+}
+
+.card-footer strong,
+.card-footer small {
+  display: block;
+}
+
+.card-footer strong {
+  font-size: 12.5px;
+}
+
+.card-footer small {
+  margin-top: 2px;
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+}
+
+.card-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-brand);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.digest-form {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--color-bg);
+  border-radius: 8px;
+  padding: 22px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+}
+
+.form-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.form-title-row h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.form-title-row p {
+  margin: 4px 0 0;
+  color: var(--color-ink-3);
+  font-size: 13px;
+}
+
+.digest-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-ink-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.digest-form input,
+.digest-form select,
+.digest-form textarea {
+  width: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  padding: 9px 11px;
+  outline: none;
+}
+
+.digest-form textarea {
+  resize: vertical;
+  min-height: 160px;
+  line-height: 1.65;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.char-count {
+  align-self: flex-end;
+  color: var(--color-ink-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.spin {
+  animation: digest-spin 0.8s linear infinite;
+}
+
+@keyframes digest-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1040px) {
+  .digest-grid,
+  .status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .digest-shell {
+    padding: 20px 16px 28px;
+  }
+
+  .digest-header {
+    flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions > button {
+    flex: 1 1 auto;
+  }
+
+  .status-grid,
+  .digest-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .source-chip,
+  .card-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .digest-header h1 {
+    font-size: 24px;
+  }
+
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 12px;
+  }
+}
+`;

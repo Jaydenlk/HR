@@ -272,6 +272,67 @@ export interface DailyTask {
   created_at: string;
 }
 
+export type FeedSourceKind =
+  | 'xhs'
+  | 'nowcoder'
+  | 'wechat'
+  | 'blog'
+  | 'ugc'
+  | 'coach';
+
+export type FeedCategory =
+  | 'interview_exp'
+  | 'market_insight'
+  | 'job_tips'
+  | 'hiring_signal'
+  | 'editorial';
+
+export type FeedSourceStatus = 'active' | 'paused' | 'needs_config';
+
+export type DigestRunStatus = 'running' | 'success' | 'partial' | 'failed';
+
+export interface FeedSource {
+  id: string;
+  kind: FeedSourceKind;
+  name: string;
+  homepage_url: string | null;
+  status: FeedSourceStatus;
+  description: string | null;
+  last_run_at: string | null;
+}
+
+export interface DigestRun {
+  id: string;
+  source_id: string | null;
+  status: DigestRunStatus;
+  fetched_count: number;
+  saved_count: number;
+  skipped_count: number;
+  error_message: string | null;
+  created_at: string;
+  source?: FeedSource | null;
+}
+
+export interface FeedItem {
+  id: string;
+  title: string;
+  content: string;
+  summary: string | null;
+  company: string | null;
+  role: string | null;
+  outcome: string | null;
+  source_kind: FeedSourceKind;
+  source_name: string | null;
+  category: FeedCategory;
+  source_url: string | null;
+  author: string | null;
+  quality_score: number;
+  published_at: string | null;
+  fetched_at: string | null;
+  created_at: string;
+  user?: User | null;
+}
+
 export interface CoverLetter {
   id: string;
   company: string | null;

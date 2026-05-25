@@ -22,7 +22,7 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 - [x] Source registry and feed filters implemented.
 - [x] RSS/XHS importers refactored into candidate adapters.
 - [x] Ingestion implemented.
-- [ ] Frontend Digest refactored.
+- [x] Frontend Digest refactored.
 - [ ] PJR passed.
 - [ ] Desktop Playwright E2E passed.
 - [ ] Mobile Playwright E2E passed.
@@ -51,3 +51,6 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 | 2026-05-25 | AI classifier unit tests | `packages/api> npx.cmd jest --config ./test/jest-e2e.json --runInBand --testRegex feed-classifier.service.spec.ts` | PASS, 3 tests |
 | 2026-05-25 | Feed ingestion E2E | `packages/api> npx.cmd jest --config ./test/jest-e2e.json --runInBand --testPathPatterns=feed.e2e-spec.ts` | PASS, 23 tests |
 | 2026-05-25 | Backend compile/build after ingestion | `packages/api> npx.cmd tsc --noEmit`; `packages/api> npx.cmd nest build` | PASS |
+| 2026-05-25 | Frontend handoff (Codex) | Started Task 6. Replaced Digest page with source-backed UI draft, added frontend Feed types, fixed source seed mojibake, and changed source registry matching to stable `kind + config_key`. | VERIFIED by Claude Code |
+| 2026-05-25 | Frontend ESLint fix (Claude Code) | Restructured data-fetching: separated effect-driven fetch (Promise chain with setState in callbacks only) from user-triggered `loadDigest()`. Removed `useCallback`; added `useMemo` for `feedPath`. Filter handlers set loading before state change. | PASS |
+| 2026-05-25 | Task 6 full verification | `eslint src/` 0 errors; `next build` PASS; `tsc --noEmit` PASS; `nest build` PASS; Feed E2E 23/23 PASS; Classifier 3/3 PASS | PASS |
