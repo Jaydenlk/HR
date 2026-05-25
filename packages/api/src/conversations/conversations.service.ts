@@ -50,18 +50,18 @@ export class ConversationsService {
     convId: string,
     userId: string,
     content: string,
-  ): Promise<Message> {
+  ): Promise<{ user_message: Message; assistant_message: Message }> {
     // Verify ownership and load messages
     const conv = await this.findOne(convId, userId);
 
     // Save user message
-    await this.msgRepo.save(
+    const userMsg = await this.msgRepo.save(
       this.msgRepo.create({
         conversation_id: convId,
         role: 'user',
         content,
       } as Partial<Message>),
-    );
+    ) as Message;
 
     // Build history (all messages before this one)
     const history = conv.messages;
@@ -99,7 +99,7 @@ export class ConversationsService {
     // Touch updated_at
     await this.convRepo.update(convId, { updated_at: new Date() });
 
-    return assistantMsg;
+    return { user_message: userMsg, assistant_message: assistantMsg };
   }
 
   async remove(id: string, userId: string): Promise<void> {
