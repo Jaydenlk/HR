@@ -28,6 +28,7 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] Write Digest source ingestion implementation plan.
 - [x] Write project execution standard.
 - [x] Write Claude Code operating prompt.
+- [x] Write Chinese Claude Code operating prompt.
 - [ ] Implement Digest source ingestion in dedicated worktree.
 - [ ] Run Simplify review for Digest.
 - [ ] Run PJR for Digest.
@@ -77,6 +78,7 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 | 2026-05-25 | Codex | Digest source design | `[x]` | `docs/superpowers/specs/2026-05-25-digest-source-ingestion-design.md`, commit `19adc88` | Digest plan |
 | 2026-05-25 | Codex | Digest implementation plan | `[x]` | `docs/superpowers/plans/2026-05-25-digest-source-ingestion.md`, commit `1473c30` | Execution standard |
 | 2026-05-25 | Codex | Collaboration standard | `[x]` | `PROJECT_EXECUTION_STANDARD.md`, `CLAUDE_CODE_OPERATING_PROMPT.md` | User chooses execution path |
+| 2026-05-25 | Codex | Chinese Claude prompt | `[x]` | `CLAUDE_CODE_OPERATING_PROMPT.zh-CN.md` | Create implementation worktree |
 
 ## Claude Code Compliance Audit Items
 
@@ -101,3 +103,8 @@ For the user to paste into Claude Code:
 Codex says: Read docs/codex-handoff/PROJECT_EXECUTION_STANDARD.md and docs/codex-handoff/WORKLIST.md before doing anything. Continue from the first unchecked item. Do not claim completion without updating WORKLIST.md with evidence.
 ```
 
+中文版本：
+
+```text
+Codex 说：先读 docs/codex-handoff/PROJECT_EXECUTION_STANDARD.md 和 docs/codex-handoff/WORKLIST.md，再做任何事。从第一个未勾选项继续。没有把证据写入 WORKLIST.md，不允许声称完成。
+```
