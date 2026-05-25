@@ -54,8 +54,9 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] Codex audit: PJR re-run — tsc/build/eslint/next build/36 E2E/6 AI all PASS.
 - [!] Codex audit: Playwright full E2E (desktop + mobile) — user-approved deferral. NOT passed. See opportunity-audit-log.md.
 - [!] Codex audit: AI scenario Codex 复跑 4min 超时未完成。Claude 侧 6/6 PASS。最终验收需 --testTimeout=180000。
-- [!] Codex audit: Track→Tasks fire-and-forget 需 Playwright 验证 Today 页面实际出现任务。
+- [x] Codex audit: Track→Tasks — fixed, Playwright verified Today shows 3 tasks after track.
 - [x] Codex audit: commit project assets (Claude design/ + data/seed/) — dev clean (d1e5241).
+- [x] Product Hardening: 7 P0/P1 fixes, PJR 4/4 PASS, Playwright desktop 10-step verified.
 - [~] Digest source integration: XHS + WeChat + Nowcoder.
   - [x] We-MP-RSS Docker deployed (localhost:8001), awaiting WeChat scan authorization.
   - [x] RedNote-MCP cloned, built, and QR-authorized (.tools/rednote-mcp). Cookie saved. Needs HTTP bridge.
