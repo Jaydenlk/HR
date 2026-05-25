@@ -73,8 +73,9 @@ Every worker must update this file before stopping. If context is lost, resume f
   - [!] Radar "加载更多" append 需 >20 条真实数据补 Playwright 验收。
   - [!] 个性化排序需用户投递/机会数据补验。
 - [x] parser.service.ts deepseek → clouddream 修复 (85caec0).
-- [x] Evidence Layer 设计 spec 完成，待审阅。
-- [ ] Implement EvidenceService + IntelligenceModule (E1).
+- [x] Evidence Layer 设计 spec 完成（v2, Codex 4 点修订采纳）。
+- [ ] E0: 移除业务层 deepseek provider 暴露。
+- [ ] E1: Implement EvidenceService + IntelligenceModule.
 - [ ] Migrate CoachContextService to EvidenceService (E2).
 - [ ] Migrate NewspaperService to EvidenceService (E3).
 - [ ] Migrate OpportunityEvaluatorService to EvidenceService (E4).

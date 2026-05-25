@@ -1,8 +1,27 @@
 # User Intelligence + Evidence Layer — 设计规格
 
-> 状态：设计完成，待 Codex/用户审阅
+> 状态：Codex 审阅后修订完成（v2），待最终确认
 > 分支：design/evidence-layer
 > 日期：2026-05-25
+
+---
+
+## 零、AI Provider 统一（E0）
+
+**规则：** 所有真实业务 AI 调用统一走 CloudDreamAI auto-v2。DeepSeek 不作为业务可调用 provider 暴露。
+
+**现状：**
+- `AiService.complete/completeStructured` 接受 `provider?: 'clouddream' | 'deepseek'` 参数
+- `parser.service.ts` 已修为 `clouddream`（85caec0）
+- 但 AiService 接口仍允许调用方传 `'deepseek'`
+
+**E0 修复方案：**
+1. 从 `CompleteParams` / `CompleteStructuredParams` 中移除 `provider` 字段
+2. AiService 内部硬编码使用 `clouddream` provider
+3. 如果未来需要 DeepSeek 作为降级 fallback，由 AiService 内部决定，不暴露给调用方
+4. 扫描全代码库确认无业务代码传 `provider: 'deepseek'`
+
+**验收：** `grep -r "provider.*deepseek\|provider.*clouddream" packages/api/src/ --include="*.ts"` 只在 `ai.service.ts` 内部出现。
 
 ---
 
@@ -55,6 +74,10 @@ interface Evidence {
   summary: string;             // 一句话摘要
   structured: Record<string, unknown>;  // 结构化数据（不同 source_type 不同结构）
   reason: string;              // 为什么这条证据被选中
+  url?: string;                // 可跳转链接（面经原帖、简历详情等）
+  quote?: string;              // 原文引用片段，用于 AI 输出时引用真实来源
+  observed_at: string;         // 证据观测时间（ISO timestamp）
+  weight: number;              // 0-1，权重（用于排序和 AI prompt 优先级）
 }
 
 interface UserIntelligence {
@@ -92,6 +115,24 @@ interface UserIntelligence {
 ---
 
 ## 四、EvidenceService 设计
+
+### 4.0 职责边界（硬性约束）
+
+EvidenceService **只做**：
+- ✅ 聚合用户数据为结构化 Evidence
+- ✅ 格式化 Evidence 为 AI prompt 字符串
+- ✅ 返回 companies_of_interest 等聚合信号
+
+EvidenceService **不做**：
+- ❌ 不调用 AI（不注入 AiService）
+- ❌ 不做投递/推荐/排序等业务决策
+- ❌ 不做内容分类/评分
+- ❌ 不写入任何数据（只读）
+
+业务决策仍由各消费者负责：
+- OpportunityEvaluator：用 evidence 做匹配评分
+- NewspaperService：用 companies_of_interest 做个性化排序
+- CoachContextService：用 formatted evidence 构建 AI 对话上下文
 
 ### 4.1 文件位置
 
@@ -228,11 +269,13 @@ async buildContext(userId: string): Promise<string> {
 
 | 阶段 | 动作 | 风险 |
 |------|------|------|
+| E0 | 移除业务层 deepseek provider 暴露 | 低（只改 AiService 接口类型） |
 | E1 | 创建 EvidenceService + IntelligenceModule | 零风险（新增） |
 | E2 | CoachContextService 迁移 | 低（接口不变，输出可能略有格式差异） |
 | E3 | NewspaperService 迁移 | 低（个性化排序逻辑不变） |
 | E4 | OpportunityEvaluatorService 迁移 | 中（AI prompt 上下文变化可能影响评分） |
 | E5 | 删除各 service 中的跨模块 Repository 注入 | 低（只有 E2-E4 全完成后才删） |
+| E6 | FeedSource health tracking + Nowcoder fallback | 低（扩展不破坏） |
 
 每个阶段完成后跑 E2E 确认不回退。
 
@@ -311,12 +354,46 @@ health: 'healthy' | 'degraded' | 'down' | 'unknown';
 
 ## 八、验收标准
 
-- [ ] EvidenceService.gather() 返回结构化 UserIntelligence
-- [ ] CoachContextService 改为调用 EvidenceService，Chat 回答质量不下降
-- [ ] OpportunityEvaluator 改为调用 EvidenceService，评分结果一致
-- [ ] NewspaperService 改为调用 EvidenceService，个性化排序一致
-- [ ] 各 service 的跨模块 @InjectRepository 全部删除
-- [ ] FeedSource 有 health/fail_count/last_error 字段
-- [ ] Nowcoder RSS importer 支持多 URL fallback
+### 8.1 EvidenceService 基础
+
+- [ ] gather() 返回结构化 UserIntelligence
+- [ ] 每条 Evidence 包含 source_type, source_id, confidence, freshness, reason, observed_at, weight
+- [ ] url 字段在 feed/opportunity/diagnosis 证据上有值
+- [ ] quote 字段在 feed 证据上包含内容摘要片段
+- [ ] EvidenceService 不注入 AiService（职责边界）
+
+### 8.2 Chat 测试（E2）
+
+- [ ] 构造用户：上传简历 + 创建投递 + 评估机会 + 导入 Feed
+- [ ] 发送 Chat 消息
+- [ ] 验证 AI prompt/context 中包含 evidence source_type 和 source_id 引用
+- [ ] 回答引用"根据你的简历"/"你投递的XX公司"等具体来源
+
+### 8.3 Opportunity 测试（E4）
+
+- [ ] 评估时 AI 上下文包含 resume evidence + feed evidence + salary evidence
+- [ ] 评估结果的 evidence_refs 中包含真实 source_id
+- [ ] 无简历时 confidence 受限于 medium（与之前行为一致）
+
+### 8.4 Newspaper 测试（E3）
+
+- [ ] 个性化排序使用 getCompaniesOfInterest() 而非直接查 applications
+- [ ] 有投递记录时，投递公司的内容排在前面
+- [ ] 无投递记录时，退化为 quality_score 排序
+
+### 8.5 FeedSource Health 测试
+
+- [ ] 一个 source 导入失败时 fail_count +1, last_error 更新, health 变 degraded/down
+- [ ] 其他 source 不受影响（隔离）
+- [ ] 成功导入后 success_count +1, health 恢复 healthy
 - [ ] 前端来源状态显示 health badge
-- [ ] PJR：tsc + build + eslint + next build + 全量 E2E
+
+### 8.6 E0 AI Provider 测试
+
+- [ ] `grep -r "provider.*deepseek" packages/api/src/ --include="*.ts"` 只在 ai.service.ts 内部
+- [ ] 无业务 service 传 provider 参数
+
+### 8.7 PJR
+
+- [ ] tsc + nest build + eslint + next build
+- [ ] 全量 E2E：feed + newspaper + opportunity（确认不回退）
