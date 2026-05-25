@@ -72,6 +72,14 @@ Every worker must update this file before stopping. If context is lost, resume f
   - [!] WeChat 公众号依赖 We-MP-RSS/Docker，需用户配置后补验。
   - [!] Radar "加载更多" append 需 >20 条真实数据补 Playwright 验收。
   - [!] 个性化排序需用户投递/机会数据补验。
+- [x] parser.service.ts deepseek → clouddream 修复 (85caec0).
+- [x] Evidence Layer 设计 spec 完成，待审阅。
+- [ ] Implement EvidenceService + IntelligenceModule (E1).
+- [ ] Migrate CoachContextService to EvidenceService (E2).
+- [ ] Migrate NewspaperService to EvidenceService (E3).
+- [ ] Migrate OpportunityEvaluatorService to EvidenceService (E4).
+- [ ] Remove cross-module Repository injections (E5).
+- [ ] FeedSource health tracking + Nowcoder multi-URL fallback.
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
