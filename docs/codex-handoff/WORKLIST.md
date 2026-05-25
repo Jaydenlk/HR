@@ -81,7 +81,12 @@ Every worker must update this file before stopping. If context is lost, resume f
   - 5 integration tests: sendMessage 传 userContext、简历+投递可见、空用户不崩、多轮重建、用户隔离
   - 第一批证据源已接入: resume, diagnoses, applications, opportunities, tasks, feed, salary
   - 未接入（需 E7）: interviews, mock_sessions, cover_letters — 不声称全平台懂你
-- [ ] Migrate NewspaperService to EvidenceService (E3).
+- [x] E3: NewspaperService → EvidenceService (950f7e0) + personalization tests (696e73b).
+  - 4 cross-module repos removed (Application/Opportunity/Resume/Diagnosis)
+  - Personalization via evidence.getCompaniesOfInterest(), Coach actions via evidence.gather()
+  - 5 personalization tests: empty user / quality sort / company boost / low-confidence excluded / EvidenceService called
+  - 26 newspaper E2E + 5 personalization = 31 tests PASS
+  - 未接入（需 E7）: interviews, mock_sessions, cover_letters — 不声称全平台懂你
 - [ ] Migrate OpportunityEvaluatorService to EvidenceService (E4).
 - [ ] Remove cross-module Repository injections (E5).
 - [ ] FeedSource health tracking + Nowcoder multi-URL fallback.
