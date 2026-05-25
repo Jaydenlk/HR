@@ -102,7 +102,12 @@ Every worker must update this file before stopping. If context is lost, resume f
   - Newspaper 重复排序修复、README 过度声明修正
   - deepseek/OpenAI/provider rg = 0
   - Codex 合跑: 7 suites / 100 tests PASS
-- [ ] FeedSource health tracking + Nowcoder multi-URL fallback.
+- [x] E6: FeedSource health tracking + Nowcoder multi-URL fallback (680654c).
+  - FeedSource: fail_count/success_count/last_success_at/last_failure_at/last_error/health
+  - SourceRegistry: recordSuccess (clears failures→healthy) + recordFailure (3+→down)
+  - Nowcoder RSS: comma-separated URLs, sequential fallback, all-fail only marks source failed
+  - 12 tests (7 health + 5 fallback), feed 23/23, newspaper 26/26 PASS
+  - 来源真实可用性: XHS bridge=需用户启动, Nowcoder RSS=多URL fallback, WeChat=需Docker+扫码
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
