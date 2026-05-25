@@ -115,6 +115,8 @@ Every worker must update this file before stopping. If context is lost, resume f
   - UserIntelligence: +interviews, +interview_patterns, +mock_sessions, +mock_readiness, +cover_letters, +cover_letter_targets
   - 28 evidence tests + 6 coach + 5 conversation PASS
   - 核心求职数据 10 个模块已接入 Evidence Layer：简历/诊断/投递/机会/任务/面经/薪资/面试复盘/模拟面试/求职信
+  - E7 信息链修复 (ada0474): gatherCompanySignals 统一 10 源公司提取; interview question text 不是 tone; mock latest_grade+average_score; README 10 模块
+  - Evidence 相关: 33 evidence + 8 opp-evidence tests; coach 6; conversation 5; newspaper-personalization 7
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
