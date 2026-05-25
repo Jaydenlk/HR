@@ -35,6 +35,15 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] Run desktop Playwright Digest E2E.
 - [x] Run mobile Playwright Digest E2E.
 - [x] Merge Digest hardening to `dev`.
+- [x] Write Opportunity Intelligence design audit.
+- [x] Codex review + design revision (8 points).
+- [x] Write Opportunity Intelligence implementation plan (6 phases, 22 tasks).
+- [x] Implement Phase O1: CloudDreamAI verification + data model.
+- [x] Implement Phase O2: Backend CRUD + AI evaluation pipeline (17 E2E PASS).
+- [x] Implement Phase O3: Application/Today/Chat integration.
+- [x] Implement Phase O4: Frontend Opportunity Center (3 pages + sidebar).
+- [x] Phase O5: PJR (tsc/build/eslint/next build all PASS) + Playwright E2E (desktop + mobile).
+- [x] Phase O6: Merge Opportunity Intelligence to dev.
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
