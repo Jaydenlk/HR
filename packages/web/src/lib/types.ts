@@ -388,3 +388,75 @@ export interface DashboardData {
     totalConversations: number;
   };
 }
+
+// Opportunity Intelligence
+export type OpportunityStatus = 'draft' | 'evaluating' | 'evaluated' | 'failed' | 'tracked' | 'dismissed';
+export type Recommendation = 'strongly_recommend' | 'recommend' | 'neutral' | 'cautious' | 'not_recommend';
+export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'insufficient';
+export type EvidenceKind = 'resume_match' | 'salary_data' | 'feed_item' | 'diagnosis_history' | 'market_signal' | 'jd_analysis';
+export type ActionType = 'optimize_resume' | 'write_cover_letter' | 'prepare_interview' | 'research_company' | 'apply' | 'dismiss';
+export type ActionStatus = 'pending' | 'in_progress' | 'done' | 'skipped';
+
+export interface Opportunity {
+  id: string;
+  company: string | null;
+  role: string | null;
+  location: string | null;
+  employment_type: string | null;
+  source_platform: string | null;
+  source_url: string | null;
+  jd_text: string;
+  jd_snapshot: Record<string, unknown> | null;
+  status: OpportunityStatus;
+  application_id: string | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+  evaluations?: OpportunityEvaluation[];
+  evidences?: OpportunityEvidence[];
+  actions?: OpportunityAction[];
+}
+
+export interface OpportunityEvaluation {
+  id: string;
+  opportunity_id: string;
+  match_score: number;
+  value_score: number;
+  credibility_score: number;
+  overall_score: number;
+  recommendation: Recommendation;
+  confidence: ConfidenceLevel;
+  risk_flags: Array<{ type: string; severity: string; evidence: string; confidence: string }>;
+  strengths: Array<{ dimension: string; description: string; evidence_ref: string }>;
+  gaps: Array<{ dimension: string; description: string; severity: string; suggestion: string }>;
+  next_actions: Array<{ action_type: string; title: string; reason: string; priority: string }>;
+  created_at: string;
+}
+
+export interface OpportunityEvidence {
+  id: string;
+  opportunity_id: string;
+  kind: EvidenceKind;
+  source_platform: string | null;
+  source_url: string | null;
+  title: string;
+  excerpt: string;
+  company: string | null;
+  role: string | null;
+  published_at: string | null;
+  fetched_at: string | null;
+  confidence: ConfidenceLevel;
+  created_at: string;
+}
+
+export interface OpportunityAction {
+  id: string;
+  opportunity_id: string;
+  action_type: ActionType;
+  title: string;
+  reason: string;
+  due_date: string | null;
+  linked_task_id: string | null;
+  status: ActionStatus;
+  created_at: string;
+}
