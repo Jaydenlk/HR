@@ -51,8 +51,8 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 - [x] Commit `digest-implementation-log.md` skeleton.
 - [x] Remove remote Google Font dependency and verify frontend build.
 - [x] Add strict feed source/domain model.
-- [~] Add source registry and query DTOs.
-- [ ] Refactor importers into source candidate adapters.
+- [x] Add source registry and query DTOs.
+- [~] Refactor importers into source candidate adapters.
 - [ ] Add ingestion orchestrator, CloudDreamAI classifier, and daily schedule.
 - [ ] Refactor Digest frontend around real API data.
 - [ ] Run backend quality gate and API acceptance.
@@ -83,6 +83,7 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 | 2026-05-25 | Codex | Remove remote Google Font dependency | `[x]` | `npx.cmd eslint src/` PASS; `npx.cmd next build` PASS; `rg next/font/google` no matches | Commit font fix |
 | 2026-05-25 | Codex | Add feed source/domain model | `[x]` | `npx.cmd tsc --noEmit` PASS; `npx.cmd nest build` PASS | Commit backend model |
 | 2026-05-25 | Codex | Add source registry and feed filters | `[x]` | `npx.cmd tsc --noEmit` PASS; `npx.cmd nest build` PASS; Feed E2E 20/20 PASS | Commit source registry |
+| 2026-05-25 | Codex | Refactor feed importers into adapters | `[x]` | no fallback/importFrom matches; `tsc` PASS; `nest build` PASS; Feed E2E 20/20 PASS | Commit importer adapter refactor |
 
 ## Claude Code Compliance Audit Items
 

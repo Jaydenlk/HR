@@ -5,7 +5,6 @@ import { FeedItem } from './entities/feed-item.entity';
 import { FeedSource } from './entities/feed-source.entity';
 import { FeedController } from './feed.controller';
 import { FeedService } from './feed.service';
-import { GithubImporterService } from './importers/github-importer.service';
 import { RssImporterService } from './importers/rss-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
 import { DigestGeneratorService } from './digest-generator.service';
@@ -17,7 +16,6 @@ import { SourceRegistryService } from './source-registry.service';
   controllers: [FeedController],
   providers: [
     FeedService,
-    GithubImporterService,
     RssImporterService,
     XhsImporterService,
     DigestGeneratorService,
