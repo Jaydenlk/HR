@@ -124,3 +124,17 @@ Audit conclusions:
 New files:
 - `docs/codex-handoff/codex-current-audit-2026-05-24.md`
 - `docs/codex-handoff/codex-to-claude-supervision-2026-05-24.md`
+
+# 2026-05-25 Digest Source Ingestion Design
+
+User confirmed that real source configuration must be completed; manual seed-only Digest is not acceptable as final.
+
+Codex wrote the design spec:
+- `docs/superpowers/specs/2026-05-25-digest-source-ingestion-design.md`
+
+Key design decisions:
+- Xiaohongshu must use a configured `xiaohongshu-mcp` or Apify path before being marked done.
+- NowCoder should use RSSHub/self-hosted RSSHub, and failed RSS must not silently become unrelated fallback data.
+- WeChat/media sources must be a configured source registry; manual verified items are allowed only with real URL/source/capture metadata.
+- Digest needs `feed_sources`, richer `feed_items`, and `digest_runs`.
+- Frontend must not show fake hot topics or fake fallback cards when no verified source data exists.
