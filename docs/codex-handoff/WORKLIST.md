@@ -47,7 +47,7 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] Fix Chat sendMessage bug (e3e8159) — frontend expected {user_message, assistant_message}, backend only returned assistant.
 - [~] Digest source integration: XHS + WeChat + Nowcoder.
   - [x] We-MP-RSS Docker deployed (localhost:8001), awaiting WeChat scan authorization.
-  - [x] RedNote-MCP cloned and built (.tools/rednote-mcp), needs HTTP bridge + QR login.
+  - [x] RedNote-MCP cloned, built, and QR-authorized (.tools/rednote-mcp). Cookie saved. Needs HTTP bridge.
   - [x] Local RSSHub deployed but Nowcoder routes broken — need custom adapter or alternative.
   - [ ] Connect We-MP-RSS JSON API to HRBP feed adapter.
   - [ ] Write XHS HTTP bridge over RedNote-MCP.
