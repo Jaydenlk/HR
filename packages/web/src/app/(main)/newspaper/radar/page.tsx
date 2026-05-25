@@ -133,7 +133,11 @@ export default function RadarPage() {
     fetchRadar(filters)
       .then((data) => {
         if (!cancelled) {
-          setResult(data);
+          setResult((prev) =>
+            filters.page > 1 && prev
+              ? { ...data, items: [...prev.items, ...data.items] }
+              : data,
+          );
           setPageError(null);
         }
       })

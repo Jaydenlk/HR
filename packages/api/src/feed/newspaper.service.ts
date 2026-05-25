@@ -449,6 +449,11 @@ export class NewspaperService {
     qb: ReturnType<Repository<FeedItem>['createQueryBuilder']>,
     query: RadarQuery,
   ): void {
+    qb.andWhere('item.source_kind IN (:...externalSources)', {
+      externalSources: ['xhs', 'nowcoder', 'wechat'],
+    });
+    qb.andWhere('item.source_url IS NOT NULL');
+    qb.andWhere("item.source_url != ''");
     if (query.company) {
       qb.andWhere('item.company = :company', { company: query.company });
     }

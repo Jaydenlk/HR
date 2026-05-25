@@ -508,10 +508,3 @@ export interface NewspaperEdition {
   total_count: number;
   categories: Record<string, number>;
 }
-
-export interface RadarResult {
-  items: FeedItem[];
-  total: number;
-  company_stats: Array<{ company: string; count: number }>;
-  role_stats: Array<{ role_category: string; count: number }>;
-}
