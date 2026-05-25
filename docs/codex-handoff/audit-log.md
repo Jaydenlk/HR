@@ -157,3 +157,23 @@ The plan intentionally stops before implementation. Execution must happen in a f
 Supervision note for Claude Code:
 - It is not acceptable to claim Digest/月刊 complete while keeping fake fallback cards, hardcoded hot topics, mislabeled NowCoder/GitHub data, or source-free monthly claims.
 - The consequence is product trust failure: users will treat the app as fabricating market intelligence, and later AI summaries will amplify unverified or wrongly attributed source data.
+
+# 2026-05-25 Collaboration Control Standard
+
+User requested a single standard and collaboration design so Claude Code can continue work even if Codex context is exhausted.
+
+Codex researched official Claude Code control surfaces:
+- `CLAUDE.md` project memory is auto-read at session start.
+- Custom subagents can be invoked explicitly and can carry scoped prompts/tools.
+- `SubagentStart` hooks can inject context into subagents.
+- `SubagentStop` and `Stop` hooks can block completion claims when evidence is missing.
+
+New handoff files:
+- `docs/codex-handoff/PROJECT_EXECUTION_STANDARD.md`
+- `docs/codex-handoff/WORKLIST.md`
+- `docs/codex-handoff/CLAUDE_CODE_OPERATING_PROMPT.md`
+
+Operational decision:
+- `PROJECT_EXECUTION_STANDARD.md` is now the single project execution standard below the user's latest instruction and above older phase plans/claims.
+- `WORKLIST.md` is the live ledger. Every worker must update it before stopping.
+- `CLAUDE_CODE_OPERATING_PROMPT.md` is the user-copyable prompt for forcing Claude Code to resume from the same standard.
