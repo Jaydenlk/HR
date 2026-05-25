@@ -164,18 +164,21 @@ export default function DigestPage() {
     return params.size > 0 ? `/feed?${params.toString()}` : '/feed';
   }, [categoryFilter, keyword, sourceFilter]);
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      api.get<FeedItem[]>(feedPath),
+  async function loadSourcesAndRuns() {
+    const [feedSources, digestRuns] = await Promise.all([
       api.get<FeedSource[]>('/feed/sources'),
       api.get<DigestRun[]>('/feed/runs'),
-    ])
-      .then(([feedItems, feedSources, digestRuns]) => {
+    ]);
+    setSources(feedSources);
+    setRuns(digestRuns);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get<FeedItem[]>(feedPath)
+      .then((feedItems) => {
         if (!cancelled) {
           setItems(feedItems);
-          setSources(feedSources);
-          setRuns(digestRuns);
           setPageError(null);
         }
       })
@@ -188,18 +191,27 @@ export default function DigestPage() {
     return () => { cancelled = true; };
   }, [feedPath]);
 
+  useEffect(() => {
+    Promise.all([
+      api.get<FeedSource[]>('/feed/sources'),
+      api.get<DigestRun[]>('/feed/runs'),
+    ])
+      .then(([feedSources, digestRuns]) => {
+        setSources(feedSources);
+        setRuns(digestRuns);
+      })
+      .catch(() => {});
+  }, []);
+
   async function loadDigest() {
     setLoading(true);
     setPageError(null);
     try {
-      const [feedItems, feedSources, digestRuns] = await Promise.all([
+      const [feedItems] = await Promise.all([
         api.get<FeedItem[]>(feedPath),
-        api.get<FeedSource[]>('/feed/sources'),
-        api.get<DigestRun[]>('/feed/runs'),
+        loadSourcesAndRuns(),
       ]);
       setItems(feedItems);
-      setSources(feedSources);
-      setRuns(digestRuns);
     } catch (error) {
       setPageError(getErrorMessage(error));
     } finally {
