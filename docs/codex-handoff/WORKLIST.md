@@ -110,6 +110,11 @@ Every worker must update this file before stopping. If context is lost, resume f
   - recordSuccess clears last_error=null on recovery (7fbb172)
   - feed-ingestion-stability mock updated: recordSuccess/recordFailure/searchScheduler (7fbb172)
   - 来源真实可用性: XHS bridge=需用户启动, Nowcoder RSS=多URL fallback, WeChat=需Docker+扫码
+- [x] E7: interviews/mock_sessions/cover_letters 接入 Evidence Layer (934a269).
+  - source_type: +mock_session, +cover_letter (interview 已有)
+  - UserIntelligence: +interviews, +interview_patterns, +mock_sessions, +mock_readiness, +cover_letters, +cover_letter_targets
+  - 28 evidence tests + 6 coach + 5 conversation PASS
+  - 核心求职数据 10 个模块已接入 Evidence Layer：简历/诊断/投递/机会/任务/面经/薪资/面试复盘/模拟面试/求职信
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
