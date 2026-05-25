@@ -84,7 +84,8 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] E3: NewspaperService → EvidenceService (950f7e0) + personalization tests (696e73b).
   - 4 cross-module repos removed (Application/Opportunity/Resume/Diagnosis)
   - Personalization via evidence.getCompaniesOfInterest(), Coach actions via evidence.gather()
-  - 5 personalization tests: empty user / quality sort / company boost / low-confidence excluded / EvidenceService called
+  - 7 personalization tests: empty user / quality sort / company boost / low-confidence excluded / EvidenceService called / user_voice truncation proof / tech_radar truncation proof
+  - 截断修复: rankPersonalized() 在 slice(0,10) 之前执行，用户关注公司不被高分内容挤掉
   - 26 newspaper E2E + 5 personalization = 31 tests PASS
   - 未接入（需 E7）: interviews, mock_sessions, cover_letters — 不声称全平台懂你
 - [ ] Migrate OpportunityEvaluatorService to EvidenceService (E4).
