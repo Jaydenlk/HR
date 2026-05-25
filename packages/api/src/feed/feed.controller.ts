@@ -4,8 +4,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FeedService } from './feed.service';
 import { CreateFeedItemDto } from './dto/create-feed-item.dto';
 import { FeedQueryDto } from './dto/feed-query.dto';
+import { ImportFeedDto } from './dto/import-feed.dto';
 import { DigestGeneratorService } from './digest-generator.service';
 import { SourceRegistryService } from './source-registry.service';
+import { FeedIngestionService } from './feed-ingestion.service';
 
 @Controller('feed')
 @UseGuards(JwtAuthGuard)
@@ -14,6 +16,7 @@ export class FeedController {
     private readonly feed: FeedService,
     private readonly digestGenerator: DigestGeneratorService,
     private readonly sources: SourceRegistryService,
+    private readonly ingestion: FeedIngestionService,
   ) {}
 
   @Post()
@@ -32,6 +35,16 @@ export class FeedController {
   @Get('sources')
   findSources() {
     return this.sources.findAll();
+  }
+
+  @Get('runs')
+  findRuns() {
+    return this.ingestion.findRuns();
+  }
+
+  @Post('import')
+  import(@Body() dto: ImportFeedDto) {
+    return this.ingestion.import(dto);
   }
 
   @Delete(':id')

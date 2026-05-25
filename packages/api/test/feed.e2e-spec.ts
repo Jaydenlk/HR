@@ -203,6 +203,43 @@ describe('Feed (e2e)', () => {
     });
   });
 
+  describe('POST /api/feed/import and GET /api/feed/runs', () => {
+    it('records a failed run when an explicit source needs configuration', async () => {
+      const sourcesRes = await request(app.getHttpServer())
+        .get('/api/feed/sources')
+        .set('Authorization', `Bearer ${token}`);
+      const xhs = sourcesRes.body.find((source: { kind: string }) => source.kind === 'xhs');
+
+      const importRes = await request(app.getHttpServer())
+        .post('/api/feed/import')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ source_id: xhs.id, keyword: '字节 面经' });
+
+      expect(importRes.status).toBe(201);
+      expect(importRes.body.runs).toHaveLength(1);
+      expect(importRes.body.runs[0].status).toBe('failed');
+      expect(importRes.body.runs[0].error_message).toContain('requires');
+    });
+
+    it('lists ingestion runs', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed/runs')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThan(0);
+    });
+
+    it('rejects unauthenticated import', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/feed/import')
+        .send({});
+
+      expect(res.status).toBe(401);
+    });
+  });
+
   describe('DELETE /api/feed/:id', () => {
     let itemId: string;
 

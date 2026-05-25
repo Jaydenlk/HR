@@ -4,6 +4,8 @@ import { Brackets, Repository } from 'typeorm';
 import { FeedItem } from './entities/feed-item.entity';
 import { CreateFeedItemDto } from './dto/create-feed-item.dto';
 import { FeedQueryDto } from './dto/feed-query.dto';
+import type { ClassifiedFeed } from './feed-classifier.service';
+import type { FeedCandidate } from './importers/feed-importer.interface';
 
 @Injectable()
 export class FeedService {
@@ -70,5 +72,44 @@ export class FeedService {
     const item = await this.repo.findOne({ where: { id, user_id: userId } });
     if (!item) throw new NotFoundException();
     await this.repo.remove(item);
+  }
+
+  async existsExternal(externalId: string, sourceUrl: string): Promise<boolean> {
+    const existing = await this.repo.findOne({
+      where: [
+        { external_id: externalId },
+        { source_url: sourceUrl },
+      ],
+    });
+    return Boolean(existing);
+  }
+
+  saveExternal(
+    candidate: FeedCandidate,
+    classified: ClassifiedFeed,
+    sourceId: string,
+  ): Promise<FeedItem> {
+    const item = this.repo.create({
+      user_id: null,
+      title: classified.title,
+      content: candidate.content,
+      summary: classified.summary,
+      company: classified.company,
+      role: classified.role,
+      outcome: classified.outcome,
+      source: candidate.source_kind,
+      source_kind: candidate.source_kind,
+      source_name: candidate.source_name,
+      source_id: sourceId,
+      source_url: candidate.source_url,
+      external_id: candidate.external_id,
+      fetched_at: candidate.fetched_at,
+      published_at: candidate.published_at,
+      category: classified.category,
+      tags_json: JSON.stringify(classified.tags),
+      quality_score: classified.quality_score,
+      author: candidate.author,
+    });
+    return this.repo.save(item);
   }
 }

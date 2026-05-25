@@ -21,7 +21,7 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 - [x] Backend feed source and digest run model implemented.
 - [x] Source registry and feed filters implemented.
 - [x] RSS/XHS importers refactored into candidate adapters.
-- [ ] Ingestion implemented.
+- [x] Ingestion implemented.
 - [ ] Frontend Digest refactored.
 - [ ] PJR passed.
 - [ ] Desktop Playwright E2E passed.
@@ -47,3 +47,7 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 | 2026-05-25 | Importer adapter refactor | Replaced RSS/XHS direct DB writers with `FeedImporter.fetch()` candidate adapters; removed dead GitHub importer | PASS |
 | 2026-05-25 | No fake fallback scan | `rg "FALLBACK|static fallback|GitHub fallback|importFromRSS|importFromXhs|importFromGitHub" packages/api/src/feed` | PASS, no matches |
 | 2026-05-25 | Adapter compile/build/E2E | `npx.cmd tsc --noEmit`; `npx.cmd nest build`; Feed E2E 20/20 | PASS |
+| 2026-05-25 | Scheduled ingestion pipeline | Added `FeedIngestionService`, `FeedClassifierService`, `POST /api/feed/import`, `GET /api/feed/runs`, and daily 03:00 Asia/Shanghai cron via `@nestjs/schedule` | PASS |
+| 2026-05-25 | AI classifier unit tests | `packages/api> npx.cmd jest --config ./test/jest-e2e.json --runInBand --testRegex feed-classifier.service.spec.ts` | PASS, 3 tests |
+| 2026-05-25 | Feed ingestion E2E | `packages/api> npx.cmd jest --config ./test/jest-e2e.json --runInBand --testPathPatterns=feed.e2e-spec.ts` | PASS, 23 tests |
+| 2026-05-25 | Backend compile/build after ingestion | `packages/api> npx.cmd tsc --noEmit`; `packages/api> npx.cmd nest build` | PASS |
