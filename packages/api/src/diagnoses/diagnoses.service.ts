@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import NodeCache from 'node-cache';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Diagnosis } from './entities/diagnosis.entity';
@@ -24,8 +24,24 @@ export class DiagnosesService {
   ) {}
 
   async create(userId: string, dto: CreateDiagnosisDto): Promise<Diagnosis> {
+    // 0. Validate JD text is substantive enough for meaningful analysis
+    const jdText = dto.jd_text?.trim() ?? '';
+    if (jdText.length < 50) {
+      throw new BadRequestException(
+        'JD 文本至少需要 50 字，包含岗位职责和要求。仅提供公司名称无法进行有效匹配。',
+      );
+    }
+
     // 1. Get resume and verify ownership
     const resume = await this.resumes.findOne(dto.resume_id, userId);
+
+    // 1.5 Validate resume has actual content
+    const resumeText = resume.raw_text?.trim() ?? '';
+    if (resumeText.length < 30) {
+      throw new BadRequestException(
+        '简历内容不足，请上传包含完整工作经历和技能的简历（至少 30 字）。',
+      );
+    }
 
     // 2. Parse resume if not already parsed
     let parsedResume = resume.parsed_json;

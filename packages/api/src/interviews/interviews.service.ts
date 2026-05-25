@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Interview } from './entities/interview.entity';
@@ -94,7 +94,9 @@ export class InterviewsService {
 
   async analyze(id: string, userId: string): Promise<Interview> {
     const interview = await this.findOne(id, userId);
-    if (!interview.transcript) throw new NotFoundException('面试记录没有 transcript，无法分析');
+    if (!interview.transcript) {
+      throw new BadRequestException('请先添加面试记录内容（transcript），再进行复盘分析');
+    }
 
     const result = await this.debrief.analyze(
       interview.transcript,

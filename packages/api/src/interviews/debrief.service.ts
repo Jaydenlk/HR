@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { AiService } from '../ai/ai.service';
 import type { ScoreItem, QuestionItem, InterviewPrediction } from './entities/interview.entity';
 
@@ -20,6 +20,13 @@ export class DebriefService {
     role?: string,
     round?: string,
   ): Promise<DebriefResult> {
+    const trimmedTranscript = transcript?.trim() ?? '';
+    if (trimmedTranscript.length < 20) {
+      throw new BadRequestException(
+        '请提供面试记录内容（至少 20 字），内容过短无法进行有效复盘分析。',
+      );
+    }
+
     const systemPrompt = `你是一位资深技术面试官，专精于帮助候选人进行面试复盘分析。
 你的任务是深入分析面试对话记录，从多个维度给出客观、专业的评估和改进建议。
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { AiService } from '../ai/ai.service';
 import { ResumesService } from '../resumes/resumes.service';
 
@@ -33,10 +33,17 @@ export class CareerService {
     const resumes = await this.resumes.findAllByUser(userId);
 
     if (resumes.length === 0) {
-      throw new Error('NO_RESUME');
+      throw new BadRequestException('请先上传简历后再使用职业地图功能');
     }
 
     const primaryResume = resumes.find((r) => r.is_primary) ?? resumes[0];
+
+    const resumeText = primaryResume.raw_text?.trim() ?? '';
+    if (resumeText.length < 30) {
+      throw new BadRequestException(
+        '简历内容不足，无法生成职业发展分析。请上传包含完整工作经历和技能的简历（至少 30 字）。',
+      );
+    }
 
     const system = `你是一位资深职业发展顾问，深谙职场发展规律与就业市场趋势。
 请用中文分析候选人背景，生成职业发展路径推荐和技能差距分析。

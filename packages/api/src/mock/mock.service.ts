@@ -216,6 +216,22 @@ ${qaList}
   }
 
   async create(userId: string, dto: CreateMockSessionDto): Promise<MockSession> {
+    // Validate: role is required — "字节" alone is meaningless without knowing the specific role
+    const role = dto.role?.trim() ?? '';
+    if (!role) {
+      throw new BadRequestException(
+        '请指定面试岗位（例如：后端开发工程师），仅提供公司名称无法生成有效面试题。',
+      );
+    }
+
+    // Validate: either jd_text (>=50 chars) or role must give enough context
+    const jdText = dto.jd_text?.trim() ?? '';
+    if (!jdText && role.length < 4) {
+      throw new BadRequestException(
+        '请提供职位描述（JD）或更具体的岗位名称，以便生成有针对性的面试题。',
+      );
+    }
+
     const count = dto.question_count ?? 5;
 
     const session = this.repo.create({
@@ -234,9 +250,9 @@ ${qaList}
 
     try {
       const questions = await this.generateQuestions(
-        dto.jd_text ?? '',
+        jdText,
         dto.company ?? '',
-        dto.role ?? '',
+        role,
         count,
       );
       saved.questions = questions;
