@@ -91,8 +91,9 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] E4: OpportunityEvaluator → EvidenceService (8df9f4f) + tests (14ba6b4).
   - 4 repos removed (Resume/Diagnosis/FeedItem/SalaryEntry), gatherUserContext deleted (~120 lines)
   - buildEvaluationContext: structured skills/diagnosis/feed/salary from UserIntelligence
-  - 5 unit tests: gather called / no-resume prompt / skills+diagnosis in AI / company feed / user isolation
-  - 36 opportunity E2E + 5 evidence integration = 41 tests PASS
+  - 8 unit tests: gather called / no-resume prompt / skills+diagnosis in AI / company feed / user isolation / company-salary in prompt / missing-salary saves evidence / present-salary skips evidence
+  - String glue removed: buildEvaluationContext returns { promptContext, hasResume, hasCompanySalary }
+  - 36 opportunity E2E + 8 evidence integration + 20 evidence base = 64 tests PASS
   - 未接入（需 E7）: interviews, mock_sessions, cover_letters — 不声称全平台懂你
 - [ ] Remove cross-module Repository injections (E5).
 - [ ] FeedSource health tracking + Nowcoder multi-URL fallback.
