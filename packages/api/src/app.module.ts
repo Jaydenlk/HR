@@ -18,6 +18,7 @@ import { CoverLettersModule } from './cover-letters/cover-letters.module';
 import { SalaryModule } from './salary/salary.module';
 import { CareerModule } from './career/career.module';
 import { FeedModule } from './feed/feed.module';
+import { OpportunityModule } from './opportunity/opportunity.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { FeedModule } from './feed/feed.module';
     SalaryModule,
     CareerModule,
     FeedModule,
+    OpportunityModule,
   ],
 })
 export class AppModule {}
