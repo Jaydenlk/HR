@@ -95,7 +95,13 @@ Every worker must update this file before stopping. If context is lost, resume f
   - String glue removed: buildEvaluationContext returns { promptContext, hasResume, hasCompanySalary }
   - 36 opportunity E2E + 8 evidence integration + 20 evidence base = 64 tests PASS
   - 未接入（需 E7）: interviews, mock_sessions, cover_letters — 不声称全平台懂你
-- [ ] Remove cross-module Repository injections (E5).
+- [x] E5: Simplify + cross-module cleanup (62a2f6f).
+  - 跨模块证据读取 repos: CoachContext=0, Newspaper=0, Evaluator=0 (全部迁移到 EvidenceService)
+  - 合理保留的集成写入 repos: OpportunityIntegration (Application/ApplicationEvent/DailyTask写入)
+  - 合理保留的上下文注入 repos: ConversationsService (Diagnosis/Opportunity/OppEval 用于 context_type)
+  - Newspaper 重复排序修复、README 过度声明修正
+  - deepseek/OpenAI/provider rg = 0
+  - 108 tests PASS across 7 suites
 - [ ] FeedSource health tracking + Nowcoder multi-URL fallback.
 - [ ] Re-run full product audit after merge.
 
