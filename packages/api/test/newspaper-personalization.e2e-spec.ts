@@ -403,4 +403,41 @@ describe('NewspaperService personalization (standalone)', () => {
     expect(titles).toContain('美团外卖算法面');
     expect(titles[0]).toBe('美团外卖算法面');
   });
+
+  it('E7 source: interview-only company boosts newspaper personalization', async () => {
+    await feedRepo.clear();
+    const interviewRepo = moduleRef.get<Repository<Interview>>(getRepositoryToken(Interview));
+    const user = await userRepo.save(userRepo.create({ email: 'e7-interview@test.com', name: 'E7Int', invite_code: 'TEST' }));
+
+    // User has NO applications/opportunities/diagnoses — only an interview
+    await interviewRepo.save(interviewRepo.create({
+      user_id: user.id,
+      company: '腾讯',
+      role: '后端开发',
+      round: 1,
+    }));
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // 11 high-score non-腾讯 items
+    for (let i = 0; i < 11; i++) {
+      await feedRepo.save(feedRepo.create({
+        title: `阿里面经${i}`, content: `内容${i}`, source_kind: 'xhs',
+        source_url: `https://xhs.com/ali-e7-${i}`, confidence: 'high',
+        quality_score: 90 - i, company: '阿里巴巴', created_at: yesterday,
+      }));
+    }
+    // 1 low-score 腾讯 item
+    await feedRepo.save(feedRepo.create({
+      title: '腾讯后端一面复盘', content: '系统设计题', source_kind: 'xhs',
+      source_url: 'https://xhs.com/tencent-e7', confidence: 'high',
+      quality_score: 1, company: '腾讯', created_at: yesterday,
+    }));
+
+    const edition = await newspaperService.getNewspaper(user.id);
+    const titles = edition.user_voice.map((i) => i.title);
+    expect(titles).toContain('腾讯后端一面复盘');
+    expect(titles[0]).toBe('腾讯后端一面复盘');
+  });
 });

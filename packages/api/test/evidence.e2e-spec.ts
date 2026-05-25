@@ -766,7 +766,7 @@ describe('EvidenceService (standalone)', () => {
     expect(intel.interview_patterns.recent_questions).not.toContain('bad');
 
     // Should contain knowledge_gaps
-    expect(intel.interview_patterns.knowledge_gaps).toContain('什么是事件循环');
+    expect(intel.interview_patterns.knowledge_gaps).toContain('事件循环');
   });
 
   // ── 25. mock_readiness has latest_grade and average_score ───────────

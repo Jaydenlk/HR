@@ -178,18 +178,7 @@ export class EvidenceService {
           .filter(Boolean),
       ),
     ];
-    const companiesOfInterest = [
-      ...new Set([
-        ...applicationCompanies,
-        ...opportunityCompanies,
-        ...interviewCompanies,
-        ...mockCompanies,
-        ...coverLetterTargets.companies,
-        ...diagnoses
-          .map((d) => d.structured['jd_company'] as string)
-          .filter(Boolean),
-      ]),
-    ];
+    const companiesOfInterest = [...await this.gatherCompanySignals(userId)];
 
     return {
       user_id: userId,
@@ -710,10 +699,7 @@ export class EvidenceService {
       ];
       const knowledgeGaps = [
         ...new Set(
-          questions
-            .filter((q) => q.tone === 'warn' || q.tone === 'bad')
-            .map((q) => q.question)
-            .filter(Boolean),
+          questions.flatMap((q) => q.knowledge_gaps ?? []).filter(Boolean),
         ),
       ];
 
