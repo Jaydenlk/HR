@@ -76,9 +76,11 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] Evidence Layer 设计 spec 完成（v2, Codex 4 点修订采纳）。
 - [x] E0: 移除业务层 deepseek provider (597a035). DeepSeek client/methods 全删 (6983e80). rg zero matches.
 - [x] E1: EvidenceService + IntelligenceModule (6f7c3c2). 独立测试不依赖 AppModule/AiService (6983e80). 12 E2E PASS.
-- [x] E2: CoachContextService → EvidenceService (65821e3). 7 repos → 1 service. 接口不变。
-  - 已接入: resume, diagnoses, applications, opportunities, tasks, feed, salary
-  - 未接入: interviews, mock_sessions, cover_letters (需 E7 扩展)
+- [x] E2: CoachContextService → EvidenceService (65821e3) + consumer tests (d4d86f3).
+  - 6 unit tests: gather/formatForAI 调用链、空数据/满数据/错误处理
+  - 5 integration tests: sendMessage 传 userContext、简历+投递可见、空用户不崩、多轮重建、用户隔离
+  - 第一批证据源已接入: resume, diagnoses, applications, opportunities, tasks, feed, salary
+  - 未接入（需 E7）: interviews, mock_sessions, cover_letters — 不声称全平台懂你
 - [ ] Migrate NewspaperService to EvidenceService (E3).
 - [ ] Migrate OpportunityEvaluatorService to EvidenceService (E4).
 - [ ] Remove cross-module Repository injections (E5).
