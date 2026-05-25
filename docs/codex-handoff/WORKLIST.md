@@ -48,8 +48,8 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 ### Execution Steps
 
 - [x] Create worktree `.worktrees\digest-source-ingestion` from `codex/current-audit` (`dev` + Codex docs).
-- [~] Commit `digest-implementation-log.md` skeleton.
-- [ ] Remove remote Google Font dependency and verify frontend build.
+- [x] Commit `digest-implementation-log.md` skeleton.
+- [~] Remove remote Google Font dependency and verify frontend build.
 - [ ] Add strict feed source/domain model.
 - [ ] Add source registry and query DTOs.
 - [ ] Refactor importers into source candidate adapters.
@@ -80,6 +80,7 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 | 2026-05-25 | Codex | Collaboration standard | `[x]` | `PROJECT_EXECUTION_STANDARD.md`, `CLAUDE_CODE_OPERATING_PROMPT.md` | User chooses execution path |
 | 2026-05-25 | Codex | Chinese Claude prompt | `[x]` | `CLAUDE_CODE_OPERATING_PROMPT.zh-CN.md` | Create implementation worktree |
 | 2026-05-25 | Codex | Create Digest implementation worktree | `[x]` | `E:\Agent program\HRBP\.worktrees\digest-source-ingestion`, branch `feature/digest-source-ingestion` | Commit implementation log |
+| 2026-05-25 | Codex | Remove remote Google Font dependency | `[x]` | `npx.cmd eslint src/` PASS; `npx.cmd next build` PASS; `rg next/font/google` no matches | Commit font fix |
 
 ## Claude Code Compliance Audit Items
 

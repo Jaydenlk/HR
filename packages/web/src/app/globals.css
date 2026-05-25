@@ -42,7 +42,7 @@
   --radius-xl: 28px;
 
   /* typography */
-  --font-sans: "Plus Jakarta Sans", "PingFang SC", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 

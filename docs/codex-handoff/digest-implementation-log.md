@@ -17,6 +17,7 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 ## Progress
 
 - [x] Worktree created: `E:\Agent program\HRBP\.worktrees\digest-source-ingestion`.
+- [x] Remote Google Font dependency removed from frontend root layout.
 - [ ] Backend model implemented.
 - [ ] Ingestion implemented.
 - [ ] Frontend Digest refactored.
@@ -29,4 +30,7 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 | Time | Step | Evidence | Result |
 |------|------|----------|--------|
 | 2026-05-25 | Create implementation worktree | `git worktree add ".worktrees\digest-source-ingestion" -b feature/digest-source-ingestion codex/current-audit` | Worktree created |
-
+| 2026-05-25 | Baseline web build after dependency setup | `npx.cmd next build` | PASS, but emitted worktree nested-root warning |
+| 2026-05-25 | Remove remote font dependency | Removed `next/font/google` and `Plus_Jakarta_Sans`; `rg "next/font/google|Plus_Jakarta_Sans" packages/web/src` returned no matches | PASS |
+| 2026-05-25 | Frontend lint | `packages/web> npx.cmd eslint src/` | PASS |
+| 2026-05-25 | Frontend build | `packages/web> npx.cmd next build` | PASS, with non-blocking nested worktree root warning |
