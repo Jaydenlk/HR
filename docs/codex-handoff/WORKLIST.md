@@ -106,7 +106,9 @@ Every worker must update this file before stopping. If context is lost, resume f
   - FeedSource: fail_count/success_count/last_success_at/last_failure_at/last_error/health
   - SourceRegistry: recordSuccess (clears failures→healthy) + recordFailure (3+→down)
   - Nowcoder RSS: comma-separated URLs, sequential fallback, all-fail only marks source failed
-  - 12 tests (7 health + 5 fallback), feed 23/23, newspaper 26/26 PASS
+  - 12 health tests + 3 stability tests + 5 fallback tests, feed 23/23, newspaper 26/26 PASS
+  - recordSuccess clears last_error=null on recovery (7fbb172)
+  - feed-ingestion-stability mock updated: recordSuccess/recordFailure/searchScheduler (7fbb172)
   - 来源真实可用性: XHS bridge=需用户启动, Nowcoder RSS=多URL fallback, WeChat=需Docker+扫码
 - [ ] Re-run full product audit after merge.
 
