@@ -43,6 +43,9 @@ describe('EvidenceService (standalone)', () => {
   let evalRepo: Repository<OpportunityEvaluation>;
   let feedRepo: Repository<FeedItem>;
   let salaryRepo: Repository<SalaryEntry>;
+  let interviewRepo: Repository<Interview>;
+  let mockSessionRepo: Repository<MockSession>;
+  let coverLetterRepo: Repository<CoverLetter>;
   let userRepo: Repository<User>;
   let userId: string;
 
@@ -107,6 +110,9 @@ describe('EvidenceService (standalone)', () => {
     evalRepo = moduleRef.get<Repository<OpportunityEvaluation>>(getRepositoryToken(OpportunityEvaluation));
     feedRepo = moduleRef.get<Repository<FeedItem>>(getRepositoryToken(FeedItem));
     salaryRepo = moduleRef.get<Repository<SalaryEntry>>(getRepositoryToken(SalaryEntry));
+    interviewRepo = moduleRef.get<Repository<Interview>>(getRepositoryToken(Interview));
+    mockSessionRepo = moduleRef.get<Repository<MockSession>>(getRepositoryToken(MockSession));
+    coverLetterRepo = moduleRef.get<Repository<CoverLetter>>(getRepositoryToken(CoverLetter));
     userRepo = moduleRef.get<Repository<User>>(getRepositoryToken(User));
 
     // Create a primary test user directly — no HTTP, no auth module
@@ -436,5 +442,200 @@ describe('EvidenceService (standalone)', () => {
       (a) => a.structured['company'] === 'Rejected Co',
     );
     expect(rejectedApp).toBeUndefined();
+  });
+
+  // ── 13. Interview evidence ──────────────────────────────────────────
+
+  it('gather() returns interview Evidence with company/score', async () => {
+    await interviewRepo.save(
+      interviewRepo.create({
+        user_id: userId,
+        company: 'TechCorp',
+        role: 'Backend Engineer',
+        round: '一面',
+        overall_grade: 'B+',
+        scores: [
+          { name: '技术能力', score: 85, color: 'green' },
+          { name: '沟通能力', score: 78, color: 'yellow' },
+        ],
+        questions: [
+          {
+            question: '介绍一下微服务架构',
+            tone: 'good',
+            coach_assessment: '回答清晰',
+            better_answer: '',
+            knowledge_gaps: [],
+          },
+        ],
+      }),
+    );
+
+    const intel = await evidenceService.gather(userId);
+
+    expect(intel.interviews.length).toBeGreaterThanOrEqual(1);
+    const techInterview = intel.interviews.find(
+      (i) => i.structured['company'] === 'TechCorp',
+    );
+    expect(techInterview).toBeDefined();
+    expect(techInterview!.source_type).toBe('interview');
+    expect(techInterview!.weight).toBe(0.8);
+    expect(techInterview!.structured['overall_grade']).toBe('B+');
+    expect(techInterview!.structured['overall_score']).toBe(81.5);
+  });
+
+  // ── 14. Interview patterns ──────────────────────────────────────────
+
+  it('gather() builds interview_patterns with companies and average_score', async () => {
+    await interviewRepo.save(
+      interviewRepo.create({
+        user_id: userId,
+        company: 'MegaCo',
+        role: 'Frontend Engineer',
+        round: '二面',
+        scores: [
+          { name: '代码能力', score: 90, color: 'green' },
+          { name: '系统设计', score: 70, color: 'yellow' },
+        ],
+      }),
+    );
+
+    const intel = await evidenceService.gather(userId);
+
+    expect(intel.interview_patterns.companies_interviewed).toContain('TechCorp');
+    expect(intel.interview_patterns.companies_interviewed).toContain('MegaCo');
+    expect(intel.interview_patterns.average_score).not.toBeNull();
+    expect(typeof intel.interview_patterns.average_score).toBe('number');
+  });
+
+  // ── 15. Mock session evidence ───────────────────────────────────────
+
+  it('gather() returns mock_session Evidence', async () => {
+    await mockSessionRepo.save(
+      mockSessionRepo.create({
+        user_id: userId,
+        company: 'StartupX',
+        role: 'Full Stack',
+        mode: 'text',
+        status: 'completed',
+        evaluation: {
+          overall_score: 82,
+          overall_grade: 'B+',
+          strengths: ['系统设计能力强'],
+          weaknesses: ['算法基础薄弱', '项目经验不够'],
+          summary: '整体表现不错',
+        },
+      }),
+    );
+
+    const intel = await evidenceService.gather(userId);
+
+    expect(intel.mock_sessions.length).toBeGreaterThanOrEqual(1);
+    const mockEvidence = intel.mock_sessions.find(
+      (m) => m.structured['company'] === 'StartupX',
+    );
+    expect(mockEvidence).toBeDefined();
+    expect(mockEvidence!.source_type).toBe('mock_session');
+    expect(mockEvidence!.weight).toBe(0.6);
+  });
+
+  // ── 16. Mock readiness ──────────────────────────────────────────────
+
+  it('gather() builds mock_readiness with grade and weak_areas', async () => {
+    const intel = await evidenceService.gather(userId);
+
+    expect(intel.mock_readiness.sessions_count).toBeGreaterThanOrEqual(1);
+    expect(intel.mock_readiness.average_grade).toBe('B+');
+    expect(intel.mock_readiness.weak_areas).toContain('算法基础薄弱');
+    expect(intel.mock_readiness.weak_areas).toContain('项目经验不够');
+  });
+
+  // ── 17. Cover letter evidence ───────────────────────────────────────
+
+  it('gather() returns cover_letter Evidence with company/role', async () => {
+    await coverLetterRepo.save(
+      coverLetterRepo.create({
+        user_id: userId,
+        company: 'DreamJob Inc',
+        role: 'Senior Developer',
+        tone: 'professional',
+        content: '尊敬的招聘经理，我对贵公司的Senior Developer岗位非常感兴趣...',
+        version: 1,
+      }),
+    );
+
+    const intel = await evidenceService.gather(userId);
+
+    expect(intel.cover_letters.length).toBeGreaterThanOrEqual(1);
+    const clEvidence = intel.cover_letters.find(
+      (c) => c.structured['company'] === 'DreamJob Inc',
+    );
+    expect(clEvidence).toBeDefined();
+    expect(clEvidence!.source_type).toBe('cover_letter');
+    expect(clEvidence!.weight).toBe(0.3);
+    expect(clEvidence!.structured['role']).toBe('Senior Developer');
+  });
+
+  // ── 18. Cover letter targets ────────────────────────────────────────
+
+  it('gather() builds cover_letter_targets with unique companies and roles', async () => {
+    await coverLetterRepo.save(
+      coverLetterRepo.create({
+        user_id: userId,
+        company: 'AnotherCo',
+        role: 'Tech Lead',
+        tone: 'warm',
+        content: '您好，我希望申请Tech Lead岗位...',
+        version: 1,
+      }),
+    );
+
+    const intel = await evidenceService.gather(userId);
+
+    expect(intel.cover_letter_targets.companies).toContain('DreamJob Inc');
+    expect(intel.cover_letter_targets.companies).toContain('AnotherCo');
+    expect(intel.cover_letter_targets.roles).toContain('Senior Developer');
+    expect(intel.cover_letter_targets.roles).toContain('Tech Lead');
+  });
+
+  // ── 19. Empty new fields default correctly ──────────────────────────
+
+  it('gather() returns empty arrays/null for new fields when no data', async () => {
+    const freshUser = await userRepo.save(
+      userRepo.create({
+        email: 'fresh@test.dev',
+        name: 'Fresh User',
+        invite_code: 'FRESHCODE',
+      }),
+    );
+
+    const intel = await evidenceService.gather(freshUser.id);
+
+    expect(intel.interviews).toEqual([]);
+    expect(intel.interview_patterns.companies_interviewed).toEqual([]);
+    expect(intel.interview_patterns.average_score).toBeNull();
+    expect(intel.interview_patterns.recent_questions).toEqual([]);
+
+    expect(intel.mock_sessions).toEqual([]);
+    expect(intel.mock_readiness.sessions_count).toBe(0);
+    expect(intel.mock_readiness.average_grade).toBeNull();
+    expect(intel.mock_readiness.weak_areas).toEqual([]);
+
+    expect(intel.cover_letters).toEqual([]);
+    expect(intel.cover_letter_targets.companies).toEqual([]);
+    expect(intel.cover_letter_targets.roles).toEqual([]);
+  });
+
+  // ── 20. formatForAI includes new sections ───────────────────────────
+
+  it('formatForAI() includes interview and mock session section headers', async () => {
+    const intel = await evidenceService.gather(userId);
+    const formatted = evidenceService.formatForAI(intel);
+
+    expect(formatted).toContain('### 面试记录');
+    expect(formatted).toContain('### 模拟面试');
+    expect(formatted).toContain('### 求职信');
+    expect(formatted).toContain('TechCorp');
+    expect(formatted).toContain('StartupX');
+    expect(formatted).toContain('DreamJob Inc');
   });
 });

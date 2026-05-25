@@ -44,6 +44,23 @@ describe('CoachContextService', () => {
       tasks: [],
       feed_relevant: [],
       salary_context: [],
+      interviews: [],
+      interview_patterns: {
+        companies_interviewed: [],
+        average_score: null,
+        recent_questions: [],
+      },
+      mock_sessions: [],
+      mock_readiness: {
+        sessions_count: 0,
+        average_grade: null,
+        weak_areas: [],
+      },
+      cover_letters: [],
+      cover_letter_targets: {
+        companies: [],
+        roles: [],
+      },
       companies_of_interest: [],
       has_resume: false,
       has_applications: false,

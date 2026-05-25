@@ -7,7 +7,9 @@ export interface Evidence {
     | 'opportunity'
     | 'task'
     | 'feed'
-    | 'salary';
+    | 'salary'
+    | 'mock_session'
+    | 'cover_letter';
   source_id: string;
   confidence: 'high' | 'medium' | 'low';
   freshness: 'current' | 'recent' | 'stale';
@@ -36,6 +38,26 @@ export interface UserIntelligence {
   feed_relevant: Evidence[];
   salary_context: Evidence[];
   companies_of_interest: string[];
+  interviews: Evidence[];
+  interview_patterns: {
+    companies_interviewed: string[];
+    average_score: number | null;
+    recent_questions: string[];
+  };
+
+  mock_sessions: Evidence[];
+  mock_readiness: {
+    sessions_count: number;
+    average_grade: string | null;
+    weak_areas: string[];
+  };
+
+  cover_letters: Evidence[];
+  cover_letter_targets: {
+    companies: string[];
+    roles: string[];
+  };
+
   has_resume: boolean;
   has_applications: boolean;
   has_opportunities: boolean;

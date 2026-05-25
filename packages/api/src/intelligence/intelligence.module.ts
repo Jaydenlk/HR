@@ -8,6 +8,9 @@ import { Opportunity } from '../opportunity/entities/opportunity.entity';
 import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
 import { FeedItem } from '../feed/entities/feed-item.entity';
 import { SalaryEntry } from '../salary/entities/salary-entry.entity';
+import { Interview } from '../interviews/entities/interview.entity';
+import { MockSession } from '../mock/entities/mock-session.entity';
+import { CoverLetter } from '../cover-letters/entities/cover-letter.entity';
 import { EvidenceService } from './evidence.service';
 
 @Module({
@@ -21,6 +24,9 @@ import { EvidenceService } from './evidence.service';
       OpportunityEvaluation,
       FeedItem,
       SalaryEntry,
+      Interview,
+      MockSession,
+      CoverLetter,
     ]),
   ],
   providers: [EvidenceService],

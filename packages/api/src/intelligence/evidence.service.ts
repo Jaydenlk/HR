@@ -9,6 +9,9 @@ import { Opportunity } from '../opportunity/entities/opportunity.entity';
 import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
 import { FeedItem } from '../feed/entities/feed-item.entity';
 import { SalaryEntry } from '../salary/entities/salary-entry.entity';
+import { Interview } from '../interviews/entities/interview.entity';
+import { MockSession } from '../mock/entities/mock-session.entity';
+import { CoverLetter } from '../cover-letters/entities/cover-letter.entity';
 import type { Evidence, UserIntelligence } from './evidence.types';
 
 @Injectable()
@@ -30,6 +33,12 @@ export class EvidenceService {
     private readonly feedRepo: Repository<FeedItem>,
     @InjectRepository(SalaryEntry)
     private readonly salaryRepo: Repository<SalaryEntry>,
+    @InjectRepository(Interview)
+    private readonly interviewRepo: Repository<Interview>,
+    @InjectRepository(MockSession)
+    private readonly mockRepo: Repository<MockSession>,
+    @InjectRepository(CoverLetter)
+    private readonly coverLetterRepo: Repository<CoverLetter>,
   ) {}
 
   // ── Public API ────────────────────────────────────────────────────────
@@ -43,6 +52,9 @@ export class EvidenceService {
       this.gatherOpportunities(userId),
       this.gatherRelevantFeed(userId),
       this.gatherSalary(userId),
+      this.gatherInterviews(userId),
+      this.gatherMockSessions(userId),
+      this.gatherCoverLetters(userId),
     ]);
 
     const resume = this.settled<Evidence | null>(results[0], null);
@@ -52,6 +64,9 @@ export class EvidenceService {
     const opportunities = this.settled<Evidence[]>(results[4], []);
     const feedRelevant = this.settled<Evidence[]>(results[5], []);
     const salaryContext = this.settled<Evidence[]>(results[6], []);
+    const interviews = this.settled<Evidence[]>(results[7], []);
+    const mockSessions = this.settled<Evidence[]>(results[8], []);
+    const coverLetters = this.settled<Evidence[]>(results[9], []);
 
     const skills = resume?.structured?.['skills'] as string[] ?? [];
     const targetRoles = [
@@ -81,10 +96,71 @@ export class EvidenceService {
       miss: [...new Set(missSets.flat())],
     };
 
+    const interviewCompanies = [
+      ...new Set(
+        interviews.map((i) => i.structured['company'] as string).filter(Boolean),
+      ),
+    ];
+    const interviewScores = interviews
+      .map((i) => i.structured['overall_score'] as number | null)
+      .filter((s): s is number => s !== null);
+    const interviewPatterns = {
+      companies_interviewed: interviewCompanies,
+      average_score:
+        interviewScores.length > 0
+          ? Math.round(
+              (interviewScores.reduce((a, b) => a + b, 0) /
+                interviewScores.length) *
+                10,
+            ) / 10
+          : null,
+      recent_questions: [
+        ...new Set(
+          interviews.flatMap(
+            (i) => (i.structured['question_types'] as string[]) ?? [],
+          ),
+        ),
+      ],
+    };
+
+    const mockGrades = mockSessions
+      .map((m) => m.structured['overall_grade'] as string | null)
+      .filter((g): g is string => g !== null);
+    const mockReadiness = {
+      sessions_count: mockSessions.length,
+      average_grade: mockGrades.length > 0 ? mockGrades[0] : null,
+      weak_areas: [
+        ...new Set(
+          mockSessions.flatMap(
+            (m) => (m.structured['weaknesses'] as string[]) ?? [],
+          ),
+        ),
+      ],
+    };
+
+    const coverLetterTargets = {
+      companies: [
+        ...new Set(
+          coverLetters
+            .map((c) => c.structured['company'] as string)
+            .filter(Boolean),
+        ),
+      ],
+      roles: [
+        ...new Set(
+          coverLetters
+            .map((c) => c.structured['role'] as string)
+            .filter(Boolean),
+        ),
+      ],
+    };
+
     const companiesOfInterest = [
       ...new Set([
         ...applicationCompanies,
         ...opportunityCompanies,
+        ...interviewCompanies,
+        ...coverLetterTargets.companies,
         ...diagnoses
           .map((d) => d.structured['jd_company'] as string)
           .filter(Boolean),
@@ -106,6 +182,12 @@ export class EvidenceService {
       tasks,
       feed_relevant: feedRelevant,
       salary_context: salaryContext,
+      interviews,
+      interview_patterns: interviewPatterns,
+      mock_sessions: mockSessions,
+      mock_readiness: mockReadiness,
+      cover_letters: coverLetters,
+      cover_letter_targets: coverLetterTargets,
       companies_of_interest: companiesOfInterest,
       has_resume: resume !== null,
       has_applications: applications.length > 0,
@@ -128,6 +210,9 @@ export class EvidenceService {
       ...intel.diagnoses.filter((e) => this.companyMatch(e, lc)),
       ...intel.feed_relevant.filter((e) => this.companyMatch(e, lc)),
       ...intel.salary_context.filter((e) => this.companyMatch(e, lc)),
+      ...intel.interviews.filter((e) => this.companyMatch(e, lc)),
+      ...intel.mock_sessions.filter((e) => this.companyMatch(e, lc)),
+      ...intel.cover_letters.filter((e) => this.companyMatch(e, lc)),
     ];
   }
 
@@ -242,6 +327,71 @@ export class EvidenceService {
       lines.push(`## 薪资参考 (${intelligence.salary_context.length}条)`);
       for (const sal of intelligence.salary_context) {
         lines.push(`- ${sal.summary}`);
+      }
+      lines.push('');
+    }
+
+    // Interviews
+    if (intelligence.interviews.length > 0) {
+      lines.push(`### 面试记录 (${intelligence.interviews.length}条)`);
+      if (intelligence.interview_patterns.companies_interviewed.length > 0) {
+        lines.push(
+          `- 面试公司: ${intelligence.interview_patterns.companies_interviewed.join(', ')}`,
+        );
+      }
+      if (intelligence.interview_patterns.average_score !== null) {
+        lines.push(
+          `- 平均分: ${intelligence.interview_patterns.average_score}`,
+        );
+      }
+      if (intelligence.interview_patterns.recent_questions.length > 0) {
+        lines.push(
+          `- 问题类型: ${intelligence.interview_patterns.recent_questions.join(', ')}`,
+        );
+      }
+      for (const iv of intelligence.interviews) {
+        lines.push(`- ${iv.summary}`);
+      }
+      lines.push('');
+    }
+
+    // Mock sessions
+    if (intelligence.mock_sessions.length > 0) {
+      lines.push(`### 模拟面试 (${intelligence.mock_sessions.length}条)`);
+      lines.push(
+        `- 总次数: ${intelligence.mock_readiness.sessions_count}`,
+      );
+      if (intelligence.mock_readiness.average_grade) {
+        lines.push(
+          `- 最近评级: ${intelligence.mock_readiness.average_grade}`,
+        );
+      }
+      if (intelligence.mock_readiness.weak_areas.length > 0) {
+        lines.push(
+          `- 薄弱环节: ${intelligence.mock_readiness.weak_areas.join(', ')}`,
+        );
+      }
+      for (const ms of intelligence.mock_sessions) {
+        lines.push(`- ${ms.summary}`);
+      }
+      lines.push('');
+    }
+
+    // Cover letters
+    if (intelligence.cover_letters.length > 0) {
+      lines.push(`### 求职信 (${intelligence.cover_letters.length}条)`);
+      if (intelligence.cover_letter_targets.companies.length > 0) {
+        lines.push(
+          `- 目标公司: ${intelligence.cover_letter_targets.companies.join(', ')}`,
+        );
+      }
+      if (intelligence.cover_letter_targets.roles.length > 0) {
+        lines.push(
+          `- 目标岗位: ${intelligence.cover_letter_targets.roles.join(', ')}`,
+        );
+      }
+      for (const cl of intelligence.cover_letters) {
+        lines.push(`- ${cl.summary}`);
       }
       lines.push('');
     }
@@ -480,6 +630,104 @@ export class EvidenceService {
       reason: '关注公司薪资数据',
       observed_at: s.created_at.toISOString(),
       weight: 0.4,
+    }));
+  }
+
+  private async gatherInterviews(userId: string): Promise<Evidence[]> {
+    const interviews = await this.interviewRepo.find({
+      where: { user_id: userId },
+      order: { created_at: 'DESC' },
+      take: 5,
+    });
+
+    return interviews.map((i) => {
+      const scores = i.scores ?? [];
+      const avgScore =
+        scores.length > 0
+          ? Math.round(
+              (scores.reduce((sum, s) => sum + s.score, 0) / scores.length) *
+                10,
+            ) / 10
+          : null;
+
+      const questionTypes = [
+        ...new Set((i.questions ?? []).map((q) => q.tone)),
+      ];
+
+      return {
+        source_type: 'interview' as const,
+        source_id: i.id,
+        confidence: i.overall_grade ? ('high' as const) : ('medium' as const),
+        freshness: this.calcFreshness(i.created_at),
+        summary: `${i.company ?? '未知公司'} - ${i.role ?? '未知岗位'} ${i.round}轮${i.overall_grade ? ` [${i.overall_grade}]` : ''}`,
+        structured: {
+          company: i.company,
+          role: i.role,
+          round: i.round,
+          overall_grade: i.overall_grade,
+          overall_score: avgScore,
+          question_types: questionTypes,
+          duration_min: i.duration_min,
+        },
+        reason: '面试记录',
+        observed_at: i.created_at.toISOString(),
+        weight: 0.8,
+      };
+    });
+  }
+
+  private async gatherMockSessions(userId: string): Promise<Evidence[]> {
+    const sessions = await this.mockRepo.find({
+      where: { user_id: userId },
+      order: { created_at: 'DESC' },
+      take: 5,
+    });
+
+    return sessions.map((s) => ({
+      source_type: 'mock_session' as const,
+      source_id: s.id,
+      confidence: s.evaluation ? ('high' as const) : ('low' as const),
+      freshness: this.calcFreshness(s.created_at),
+      summary: `模拟面试 ${s.company ?? ''} ${s.role ?? ''} [${s.status}]${s.evaluation ? ` ${s.evaluation.overall_grade}` : ''}`,
+      structured: {
+        company: s.company,
+        role: s.role,
+        mode: s.mode,
+        status: s.status,
+        overall_grade: s.evaluation?.overall_grade ?? null,
+        overall_score: s.evaluation?.overall_score ?? null,
+        strengths: s.evaluation?.strengths ?? [],
+        weaknesses: s.evaluation?.weaknesses ?? [],
+      },
+      reason: '模拟面试记录',
+      observed_at: s.created_at.toISOString(),
+      weight: 0.6,
+    }));
+  }
+
+  private async gatherCoverLetters(userId: string): Promise<Evidence[]> {
+    const letters = await this.coverLetterRepo.find({
+      where: { user_id: userId },
+      order: { created_at: 'DESC' },
+      take: 5,
+    });
+
+    return letters.map((c) => ({
+      source_type: 'cover_letter' as const,
+      source_id: c.id,
+      confidence: 'medium' as const,
+      freshness: this.calcFreshness(c.created_at),
+      summary: `求职信 ${c.company ?? ''} - ${c.role ?? ''} [${c.tone}]`,
+      structured: {
+        company: c.company,
+        role: c.role,
+        tone: c.tone,
+        version: c.version,
+        length_words: c.length_words,
+      },
+      reason: '求职信',
+      observed_at: c.created_at.toISOString(),
+      weight: 0.3,
     }));
   }
 
