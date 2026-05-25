@@ -88,7 +88,12 @@ Every worker must update this file before stopping. If context is lost, resume f
   - 截断修复: rankPersonalized() 在 slice(0,10) 之前执行，用户关注公司不被高分内容挤掉
   - 26 newspaper E2E + 5 personalization = 31 tests PASS
   - 未接入（需 E7）: interviews, mock_sessions, cover_letters — 不声称全平台懂你
-- [ ] Migrate OpportunityEvaluatorService to EvidenceService (E4).
+- [x] E4: OpportunityEvaluator → EvidenceService (8df9f4f) + tests (14ba6b4).
+  - 4 repos removed (Resume/Diagnosis/FeedItem/SalaryEntry), gatherUserContext deleted (~120 lines)
+  - buildEvaluationContext: structured skills/diagnosis/feed/salary from UserIntelligence
+  - 5 unit tests: gather called / no-resume prompt / skills+diagnosis in AI / company feed / user isolation
+  - 36 opportunity E2E + 5 evidence integration = 41 tests PASS
+  - 未接入（需 E7）: interviews, mock_sessions, cover_letters — 不声称全平台懂你
 - [ ] Remove cross-module Repository injections (E5).
 - [ ] FeedSource health tracking + Nowcoder multi-URL fallback.
 - [ ] Re-run full product audit after merge.
