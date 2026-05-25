@@ -43,12 +43,14 @@ export interface UserIntelligence {
     companies_interviewed: string[];
     average_score: number | null;
     recent_questions: string[];
+    knowledge_gaps: string[];
   };
 
   mock_sessions: Evidence[];
   mock_readiness: {
     sessions_count: number;
-    average_grade: string | null;
+    latest_grade: string | null;
+    average_score: number | null;
     weak_areas: string[];
   };
 

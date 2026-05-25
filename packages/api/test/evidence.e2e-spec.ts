@@ -540,11 +540,12 @@ describe('EvidenceService (standalone)', () => {
 
   // ── 16. Mock readiness ──────────────────────────────────────────────
 
-  it('gather() builds mock_readiness with grade and weak_areas', async () => {
+  it('gather() builds mock_readiness with latest_grade, average_score and weak_areas', async () => {
     const intel = await evidenceService.gather(userId);
 
     expect(intel.mock_readiness.sessions_count).toBeGreaterThanOrEqual(1);
-    expect(intel.mock_readiness.average_grade).toBe('B+');
+    expect(intel.mock_readiness.latest_grade).toBe('B+');
+    expect(intel.mock_readiness.average_score).toBe(82);
     expect(intel.mock_readiness.weak_areas).toContain('算法基础薄弱');
     expect(intel.mock_readiness.weak_areas).toContain('项目经验不够');
   });
@@ -614,10 +615,12 @@ describe('EvidenceService (standalone)', () => {
     expect(intel.interview_patterns.companies_interviewed).toEqual([]);
     expect(intel.interview_patterns.average_score).toBeNull();
     expect(intel.interview_patterns.recent_questions).toEqual([]);
+    expect(intel.interview_patterns.knowledge_gaps).toEqual([]);
 
     expect(intel.mock_sessions).toEqual([]);
     expect(intel.mock_readiness.sessions_count).toBe(0);
-    expect(intel.mock_readiness.average_grade).toBeNull();
+    expect(intel.mock_readiness.latest_grade).toBeNull();
+    expect(intel.mock_readiness.average_score).toBeNull();
     expect(intel.mock_readiness.weak_areas).toEqual([]);
 
     expect(intel.cover_letters).toEqual([]);
@@ -637,5 +640,188 @@ describe('EvidenceService (standalone)', () => {
     expect(formatted).toContain('TechCorp');
     expect(formatted).toContain('StartupX');
     expect(formatted).toContain('DreamJob Inc');
+  });
+
+  // ── 21. getCompaniesOfInterest includes interview company ───────────
+
+  it('getCompaniesOfInterest includes interview company', async () => {
+    const isolatedUser = await userRepo.save(
+      userRepo.create({
+        email: 'interview-only@test.dev',
+        name: 'Interview Only',
+        invite_code: 'IVONLY',
+      }),
+    );
+
+    await interviewRepo.save(
+      interviewRepo.create({
+        user_id: isolatedUser.id,
+        company: 'InterviewOnlyCo',
+        role: 'Engineer',
+        round: '一面',
+      }),
+    );
+
+    const companies = await evidenceService.getCompaniesOfInterest(isolatedUser.id);
+    expect(companies).toContain('InterviewOnlyCo');
+  });
+
+  // ── 22. getCompaniesOfInterest includes mock_session company ────────
+
+  it('getCompaniesOfInterest includes mock_session company', async () => {
+    const isolatedUser = await userRepo.save(
+      userRepo.create({
+        email: 'mock-only@test.dev',
+        name: 'Mock Only',
+        invite_code: 'MKONLY',
+      }),
+    );
+
+    await mockSessionRepo.save(
+      mockSessionRepo.create({
+        user_id: isolatedUser.id,
+        company: 'MockOnlyCo',
+        role: 'Designer',
+        mode: 'text',
+        status: 'completed',
+      }),
+    );
+
+    const companies = await evidenceService.getCompaniesOfInterest(isolatedUser.id);
+    expect(companies).toContain('MockOnlyCo');
+  });
+
+  // ── 23. getCompaniesOfInterest includes cover_letter company ────────
+
+  it('getCompaniesOfInterest includes cover_letter company', async () => {
+    const isolatedUser = await userRepo.save(
+      userRepo.create({
+        email: 'cl-only@test.dev',
+        name: 'CL Only',
+        invite_code: 'CLONLY',
+      }),
+    );
+
+    await coverLetterRepo.save(
+      coverLetterRepo.create({
+        user_id: isolatedUser.id,
+        company: 'CoverLetterCo',
+        role: 'PM',
+        tone: 'professional',
+        content: '求职信内容',
+        version: 1,
+      }),
+    );
+
+    const companies = await evidenceService.getCompaniesOfInterest(isolatedUser.id);
+    expect(companies).toContain('CoverLetterCo');
+  });
+
+  // ── 24. formatForAI shows real question text, not tone ──────────────
+
+  it('formatForAI shows real question text, not tone values', async () => {
+    const isolatedUser = await userRepo.save(
+      userRepo.create({
+        email: 'qtxt@test.dev',
+        name: 'Question Text',
+        invite_code: 'QTXT01',
+      }),
+    );
+
+    await interviewRepo.save(
+      interviewRepo.create({
+        user_id: isolatedUser.id,
+        company: 'QTextCorp',
+        role: 'Backend',
+        round: '一面',
+        questions: [
+          {
+            question: '请解释REST和GraphQL的区别',
+            tone: 'good',
+            coach_assessment: '回答不错',
+            better_answer: '',
+            knowledge_gaps: [],
+          },
+          {
+            question: '什么是事件循环',
+            tone: 'warn',
+            coach_assessment: '回答有些偏差',
+            better_answer: '应该从宏任务和微任务讲起',
+            knowledge_gaps: ['事件循环'],
+          },
+        ],
+      }),
+    );
+
+    const intel = await evidenceService.gather(isolatedUser.id);
+    const formatted = evidenceService.formatForAI(intel);
+
+    // Should contain the actual question text
+    expect(formatted).toContain('请解释REST和GraphQL的区别');
+    expect(formatted).toContain('什么是事件循环');
+
+    // recent_questions should NOT contain tone values
+    expect(intel.interview_patterns.recent_questions).not.toContain('good');
+    expect(intel.interview_patterns.recent_questions).not.toContain('warn');
+    expect(intel.interview_patterns.recent_questions).not.toContain('bad');
+
+    // Should contain knowledge_gaps
+    expect(intel.interview_patterns.knowledge_gaps).toContain('什么是事件循环');
+  });
+
+  // ── 25. mock_readiness has latest_grade and average_score ───────────
+
+  it('mock_readiness has latest_grade and average_score with multiple sessions', async () => {
+    const isolatedUser = await userRepo.save(
+      userRepo.create({
+        email: 'mock-multi@test.dev',
+        name: 'Mock Multi',
+        invite_code: 'MKMUL',
+      }),
+    );
+
+    await mockSessionRepo.save(
+      mockSessionRepo.create({
+        user_id: isolatedUser.id,
+        company: 'Co1',
+        role: 'Dev',
+        mode: 'text',
+        status: 'completed',
+        evaluation: {
+          overall_score: 70,
+          overall_grade: 'B-',
+          strengths: [],
+          weaknesses: ['算法'],
+          summary: '一般',
+        },
+      }),
+    );
+
+    await mockSessionRepo.save(
+      mockSessionRepo.create({
+        user_id: isolatedUser.id,
+        company: 'Co2',
+        role: 'Dev',
+        mode: 'text',
+        status: 'completed',
+        evaluation: {
+          overall_score: 90,
+          overall_grade: 'A',
+          strengths: ['系统设计'],
+          weaknesses: [],
+          summary: '很好',
+        },
+      }),
+    );
+
+    const intel = await evidenceService.gather(isolatedUser.id);
+
+    // latest_grade comes from the first session in DESC order
+    expect(['A', 'B-']).toContain(intel.mock_readiness.latest_grade);
+    // average_score should be (70 + 90) / 2 = 80
+    expect(intel.mock_readiness.average_score).toBe(80);
+    expect(intel.mock_readiness.sessions_count).toBe(2);
+    // old field name must NOT exist
+    expect(intel.mock_readiness).not.toHaveProperty('average_grade');
   });
 });

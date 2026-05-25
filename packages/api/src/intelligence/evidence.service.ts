@@ -117,7 +117,14 @@ export class EvidenceService {
       recent_questions: [
         ...new Set(
           interviews.flatMap(
-            (i) => (i.structured['question_types'] as string[]) ?? [],
+            (i) => (i.structured['question_texts'] as string[]) ?? [],
+          ),
+        ),
+      ],
+      knowledge_gaps: [
+        ...new Set(
+          interviews.flatMap(
+            (i) => (i.structured['knowledge_gaps'] as string[]) ?? [],
           ),
         ),
       ],
@@ -126,9 +133,18 @@ export class EvidenceService {
     const mockGrades = mockSessions
       .map((m) => m.structured['overall_grade'] as string | null)
       .filter((g): g is string => g !== null);
+    const mockScores = mockSessions
+      .map((m) => m.structured['overall_score'] as number | null)
+      .filter((s): s is number => s !== null);
     const mockReadiness = {
       sessions_count: mockSessions.length,
-      average_grade: mockGrades.length > 0 ? mockGrades[0] : null,
+      latest_grade: mockGrades.length > 0 ? mockGrades[0] : null,
+      average_score:
+        mockScores.length > 0
+          ? Math.round(
+              (mockScores.reduce((a, b) => a + b, 0) / mockScores.length) * 10,
+            ) / 10
+          : null,
       weak_areas: [
         ...new Set(
           mockSessions.flatMap(
@@ -155,11 +171,19 @@ export class EvidenceService {
       ],
     };
 
+    const mockCompanies = [
+      ...new Set(
+        mockSessions
+          .map((m) => m.structured['company'] as string)
+          .filter(Boolean),
+      ),
+    ];
     const companiesOfInterest = [
       ...new Set([
         ...applicationCompanies,
         ...opportunityCompanies,
         ...interviewCompanies,
+        ...mockCompanies,
         ...coverLetterTargets.companies,
         ...diagnoses
           .map((d) => d.structured['jd_company'] as string)
@@ -217,26 +241,46 @@ export class EvidenceService {
   }
 
   async getCompaniesOfInterest(userId: string): Promise<string[]> {
-    const [apps, opps, diags] = await Promise.all([
-      this.appRepo.find({
-        where: { user_id: userId },
-        select: { company: true },
-      }),
-      this.oppRepo.find({
-        where: { user_id: userId },
-        select: { company: true },
-      }),
-      this.diagnosisRepo.find({
-        where: { user_id: userId },
-        select: { jd_company: true },
-      }),
-    ]);
+    return [...await this.gatherCompanySignals(userId)];
+  }
+
+  private async gatherCompanySignals(userId: string): Promise<Set<string>> {
+    const [apps, opps, diags, interviews, mocks, coverLetters] =
+      await Promise.all([
+        this.appRepo.find({
+          where: { user_id: userId },
+          select: { company: true },
+        }),
+        this.oppRepo.find({
+          where: { user_id: userId },
+          select: { company: true },
+        }),
+        this.diagnosisRepo.find({
+          where: { user_id: userId },
+          select: { jd_company: true },
+        }),
+        this.interviewRepo.find({
+          where: { user_id: userId },
+          select: { company: true },
+        }),
+        this.mockRepo.find({
+          where: { user_id: userId },
+          select: { company: true },
+        }),
+        this.coverLetterRepo.find({
+          where: { user_id: userId },
+          select: { company: true },
+        }),
+      ]);
 
     const set = new Set<string>();
     for (const a of apps) if (a.company) set.add(a.company);
     for (const o of opps) if (o.company) set.add(o.company);
     for (const d of diags) if (d.jd_company) set.add(d.jd_company);
-    return [...set];
+    for (const i of interviews) if (i.company) set.add(i.company);
+    for (const m of mocks) if (m.company) set.add(m.company);
+    for (const c of coverLetters) if (c.company) set.add(c.company);
+    return set;
   }
 
   formatForAI(intelligence: UserIntelligence): string {
@@ -346,7 +390,12 @@ export class EvidenceService {
       }
       if (intelligence.interview_patterns.recent_questions.length > 0) {
         lines.push(
-          `- 问题类型: ${intelligence.interview_patterns.recent_questions.join(', ')}`,
+          `- 近期问题: ${intelligence.interview_patterns.recent_questions.join(', ')}`,
+        );
+      }
+      if (intelligence.interview_patterns.knowledge_gaps.length > 0) {
+        lines.push(
+          `- 知识薄弱点: ${intelligence.interview_patterns.knowledge_gaps.join(', ')}`,
         );
       }
       for (const iv of intelligence.interviews) {
@@ -361,9 +410,14 @@ export class EvidenceService {
       lines.push(
         `- 总次数: ${intelligence.mock_readiness.sessions_count}`,
       );
-      if (intelligence.mock_readiness.average_grade) {
+      if (intelligence.mock_readiness.latest_grade) {
         lines.push(
-          `- 最近评级: ${intelligence.mock_readiness.average_grade}`,
+          `- 最近评级: ${intelligence.mock_readiness.latest_grade}`,
+        );
+      }
+      if (intelligence.mock_readiness.average_score !== null) {
+        lines.push(
+          `- 平均分: ${intelligence.mock_readiness.average_score}`,
         );
       }
       if (intelligence.mock_readiness.weak_areas.length > 0) {
@@ -650,8 +704,17 @@ export class EvidenceService {
             ) / 10
           : null;
 
-      const questionTypes = [
-        ...new Set((i.questions ?? []).map((q) => q.tone)),
+      const questions = i.questions ?? [];
+      const questionTexts = [
+        ...new Set(questions.map((q) => q.question).filter(Boolean)),
+      ];
+      const knowledgeGaps = [
+        ...new Set(
+          questions
+            .filter((q) => q.tone === 'warn' || q.tone === 'bad')
+            .map((q) => q.question)
+            .filter(Boolean),
+        ),
       ];
 
       return {
@@ -666,7 +729,8 @@ export class EvidenceService {
           round: i.round,
           overall_grade: i.overall_grade,
           overall_score: avgScore,
-          question_types: questionTypes,
+          question_texts: questionTexts,
+          knowledge_gaps: knowledgeGaps,
           duration_min: i.duration_min,
         },
         reason: '面试记录',
