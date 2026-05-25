@@ -78,7 +78,7 @@ export class SourceRegistryService implements OnModuleInit {
 
   private resolveStatus(seed: DigestSourceSeed): FeedSourceStatus {
     if (!seed.config_key) return seed.status;
-    return process.env[seed.config_key] ? seed.status : 'needs_config';
+    return process.env[seed.config_key] ? 'active' : 'needs_config';
   }
 
   private async readSeedFile(): Promise<DigestSourceSeed[]> {
