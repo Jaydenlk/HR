@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CoverageMetric } from './entities/coverage-metric.entity';
+import { FeedItem } from './entities/feed-item.entity';
 import { Company } from './entities/company.entity';
 import { RoleCategory } from './entities/role-category.entity';
 import { CompanyRegistryService } from './company-registry.service';
@@ -32,7 +33,10 @@ export class SearchSchedulerService {
   constructor(
     @InjectRepository(CoverageMetric)
     private readonly metricsRepo: Repository<CoverageMetric>,
+    @InjectRepository(FeedItem)
+    private readonly feedItemRepo: Repository<FeedItem>,
     private readonly companyRegistry: CompanyRegistryService,
+    @Inject(forwardRef(() => FeedIngestionService))
     private readonly ingestion: FeedIngestionService,
     private readonly sourceRegistry: SourceRegistryService,
   ) {}
@@ -105,7 +109,7 @@ export class SearchSchedulerService {
         }
 
         await this.ingestion.import({ source_id: matchedSource.id, keyword: job.query });
-        await this.incrementCoverageMetric(job.company_id, job.role_category_id, job.source, quarter, job.target_count);
+        await this.updateCoverage(job.company_id, job.role_category_id, job.source, quarter, job.target_count);
       } catch (error) {
         this.logger.error(`Job failed for ${job.company_name}/${job.role_key}: ${this.message(error)}`);
       }
@@ -146,13 +150,24 @@ export class SearchSchedulerService {
     return 'nowcoder';
   }
 
-  private async incrementCoverageMetric(
+  private async updateCoverage(
     companyId: string,
     roleCategoryId: string,
     source: string,
     quarter: string,
     targetCount: number,
   ): Promise<void> {
+    // Count actual saved items that are valid (not low confidence, has source_url)
+    const validCount = await this.feedItemRepo
+      .createQueryBuilder('fi')
+      .where('fi.company_id = :companyId', { companyId })
+      .andWhere('fi.role_category_id = :roleCategoryId', { roleCategoryId })
+      .andWhere('fi.quarter = :quarter', { quarter })
+      .andWhere('fi.confidence != :low', { low: 'low' })
+      .andWhere('fi.source_url IS NOT NULL')
+      .andWhere("fi.source_url != ''")
+      .getCount();
+
     let metric = await this.metricsRepo.findOne({
       where: { company_id: companyId, role_category_id: roleCategoryId, quarter, source },
     });
@@ -171,8 +186,9 @@ export class SearchSchedulerService {
       });
     }
 
-    metric.valid_count = metric.valid_count + 1;
-    metric.gap_level = metric.valid_count >= metric.target_count ? 'ok' : 'critical';
+    metric.valid_count = validCount;
+    metric.target_count = targetCount;
+    metric.gap_level = validCount >= targetCount ? 'ok' : validCount > 0 ? 'partial' : 'critical';
     await this.metricsRepo.save(metric);
   }
 

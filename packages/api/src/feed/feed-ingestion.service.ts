@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { Repository } from 'typeorm';
@@ -11,6 +11,7 @@ import { FeedClassifierService } from './feed-classifier.service';
 import { RssImporterService } from './importers/rss-importer.service';
 import { WechatImporterService } from './importers/wechat-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
+import { SearchSchedulerService } from './search-scheduler.service';
 import type { DigestRunStatus, FeedSourceKind } from './types/feed.types';
 import type { FeedImporter } from './importers/feed-importer.interface';
 
@@ -33,6 +34,8 @@ export class FeedIngestionService {
     private readonly rss: RssImporterService,
     private readonly wechat: WechatImporterService,
     private readonly xhs: XhsImporterService,
+    @Inject(forwardRef(() => SearchSchedulerService))
+    private readonly searchScheduler: SearchSchedulerService,
   ) {}
 
   findRuns(): Promise<DigestRun[]> {
@@ -63,6 +66,12 @@ export class FeedIngestionService {
 
   @Cron('0 0 3 * * *', { name: 'digest-daily-ingestion', timeZone: 'Asia/Shanghai' })
   async importDaily(): Promise<void> {
+    // First: run gap-based targeted search
+    const jobs = await this.searchScheduler.planDailyJobs();
+    if (jobs.length > 0) {
+      await this.searchScheduler.executeJobs(jobs);
+    }
+    // Then: run default broad import for active sources
     await this.import({});
   }
 

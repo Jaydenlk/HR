@@ -9,6 +9,8 @@ import { RoleCategory } from './entities/role-category.entity';
 import { CoverageMetric } from './entities/coverage-metric.entity';
 import { Application } from '../applications/entities/application.entity';
 import { Opportunity } from '../opportunity/entities/opportunity.entity';
+import { Resume } from '../resumes/entities/resume.entity';
+import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { FeedController } from './feed.controller';
 import { NewspaperController } from './newspaper.controller';
 import { FeedService } from './feed.service';
@@ -28,7 +30,7 @@ import { SearchSchedulerService } from './search-scheduler.service';
   imports: [
     TypeOrmModule.forFeature([
       FeedItem, FeedSource, DigestRun, Company, Department, RoleCategory, CoverageMetric,
-      Application, Opportunity,
+      Application, Opportunity, Resume, Diagnosis,
     ]),
     AiModule,
   ],
