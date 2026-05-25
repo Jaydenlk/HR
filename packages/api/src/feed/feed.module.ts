@@ -6,6 +6,7 @@ import { FeedSource } from './entities/feed-source.entity';
 import { FeedController } from './feed.controller';
 import { FeedService } from './feed.service';
 import { RssImporterService } from './importers/rss-importer.service';
+import { WechatImporterService } from './importers/wechat-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
 import { DigestGeneratorService } from './digest-generator.service';
 import { AiModule } from '../ai/ai.module';
@@ -19,6 +20,7 @@ import { FeedIngestionService } from './feed-ingestion.service';
   providers: [
     FeedService,
     RssImporterService,
+    WechatImporterService,
     XhsImporterService,
     DigestGeneratorService,
     SourceRegistryService,

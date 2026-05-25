@@ -9,6 +9,7 @@ import { SourceRegistryService } from './source-registry.service';
 import { FeedService } from './feed.service';
 import { FeedClassifierService } from './feed-classifier.service';
 import { RssImporterService } from './importers/rss-importer.service';
+import { WechatImporterService } from './importers/wechat-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
 import type { DigestRunStatus, FeedSourceKind } from './types/feed.types';
 import type { FeedImporter } from './importers/feed-importer.interface';
@@ -28,6 +29,7 @@ export class FeedIngestionService {
     private readonly feed: FeedService,
     private readonly classifier: FeedClassifierService,
     private readonly rss: RssImporterService,
+    private readonly wechat: WechatImporterService,
     private readonly xhs: XhsImporterService,
   ) {}
 
@@ -97,6 +99,7 @@ export class FeedIngestionService {
   private importerFor(kind: FeedSourceKind): FeedImporter {
     if (kind === 'xhs') return this.xhs;
     if (kind === 'nowcoder') return this.rss;
+    if (kind === 'wechat') return this.wechat;
     throw new Error(`No importer configured for source kind "${kind}"`);
   }
 
