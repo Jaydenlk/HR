@@ -34,7 +34,7 @@ interface NavItem {
 function buildMainNav(interviewCount: number): NavItem[] {
   return [
     { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true },
-    { id: 'monthly', label: '月刊·面经', href: '/digest', icon: <BookOpen size={16} /> },
+    { id: 'monthly', label: '月刊·面经', href: '/newspaper', icon: <BookOpen size={16} /> },
     {
       id: 'debrief',
       label: '面试复盘',

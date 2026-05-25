@@ -333,6 +333,13 @@ export interface FeedItem {
   user?: User | null;
 }
 
+export interface RadarResult {
+  items: FeedItem[];
+  total: number;
+  company_stats: Array<{ company: string; count: number }>;
+  role_stats: Array<{ role_category: string; count: number }>;
+}
+
 export interface CoverLetter {
   id: string;
   company: string | null;
@@ -459,4 +466,52 @@ export interface OpportunityAction {
   linked_task_id: string | null;
   status: ActionStatus;
   created_at: string;
+}
+
+// Monthly Newspaper
+export interface HeadlineObservation {
+  observation: string;
+  evidence_items: FeedItem[];
+}
+
+export interface InsightCard {
+  title: string;
+  source_name: string;
+  source_url: string;
+  why_read: string;
+  career_implication: string;
+  impact_tags: string[];
+  summary: string;
+}
+
+export interface RoleTrend {
+  role_category: string;
+  label: string;
+  hot_topics: string[];
+  item_count: number;
+}
+
+export interface CoachAction {
+  action: string;
+  reason: string;
+  data_source: string;
+}
+
+export interface NewspaperEdition {
+  headline_observations: HeadlineObservation[];
+  insight_cards: InsightCard[];
+  user_voice: FeedItem[];
+  tech_radar: FeedItem[];
+  role_trends: RoleTrend[];
+  coach_actions: CoachAction[];
+  trending_tags: string[];
+  total_count: number;
+  categories: Record<string, number>;
+}
+
+export interface RadarResult {
+  items: FeedItem[];
+  total: number;
+  company_stats: Array<{ company: string; count: number }>;
+  role_stats: Array<{ role_category: string; count: number }>;
 }
