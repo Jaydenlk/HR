@@ -61,8 +61,11 @@ Every worker must update this file before stopping. If context is lost, resume f
   - [x] RedNote-MCP cloned, built, and QR-authorized (.tools/rednote-mcp). Cookie saved. Needs HTTP bridge.
   - [x] Local RSSHub deployed but Nowcoder routes broken — need custom adapter or alternative.
   - [ ] Connect We-MP-RSS JSON API to HRBP feed adapter.
-  - [ ] Write XHS HTTP bridge over RedNote-MCP.
-  - [ ] Decide Nowcoder approach (custom API adapter vs user-contributed).
+  - [x] Write XHS HTTP bridge (.tools/xhs-bridge.mjs) + set XHS_MCP_BASE_URL.
+  - [!] XHS bridge crashed during import — Playwright scraping inherently fragile. Needs retry/timeout hardening.
+  - [x] Nowcoder resolved: RSSHub rsshub.rssforever.com/nowcoder/interview/11200 (public instance, may be intermittent).
+  - [x] All 3 sources show active (3/3) on Digest page.
+  - [!] Ingestion run stuck at 'running' when XHS source fails — pipeline error handling needs fix.
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
