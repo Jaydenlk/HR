@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { OpportunityService } from './opportunity.service';
 import { OpportunityEvaluatorService } from './opportunity-evaluator.service';
+import { OpportunityIntegrationService } from './opportunity-integration.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { OpportunityQueryDto } from './dto/opportunity-query.dto';
@@ -13,6 +14,7 @@ export class OpportunityController {
   constructor(
     private readonly opportunityService: OpportunityService,
     private readonly evaluator: OpportunityEvaluatorService,
+    private readonly integration: OpportunityIntegrationService,
   ) {}
 
   @Post()
@@ -72,5 +74,29 @@ export class OpportunityController {
     @Param('id') id: string,
   ) {
     return this.opportunityService.remove(id, user.id);
+  }
+
+  @Post(':id/track')
+  trackToApplication(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+  ) {
+    return this.integration.trackToApplication(id, user.id);
+  }
+
+  @Post(':id/tasks')
+  generateTasks(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+  ) {
+    return this.integration.generateTasks(id, user.id);
+  }
+
+  @Get(':id/chat-context')
+  getChatContext(
+    @CurrentUser() user: { id: string },
+    @Param('id') id: string,
+  ) {
+    return this.integration.getChatContext(id, user.id);
   }
 }
