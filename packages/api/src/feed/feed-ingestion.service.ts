@@ -18,6 +18,8 @@ export interface ImportResult {
   runs: DigestRun[];
 }
 
+const DEFAULT_SOURCE_TIMEOUT_MS = 45_000;
+
 @Injectable()
 export class FeedIngestionService {
   private readonly logger = new Logger(FeedIngestionService.name);
@@ -48,7 +50,12 @@ export class FeedIngestionService {
     const runs: DigestRun[] = [];
 
     for (const source of sources) {
-      runs.push(await this.importSource(source, dto.keyword));
+      try {
+        runs.push(await this.importSource(source, dto.keyword));
+      } catch (error) {
+        this.logger.error(`Import source ${source.name} crashed outside run handling: ${this.message(error)}`);
+        runs.push(await this.recordUnhandledFailure(source.id, error));
+      }
     }
 
     return { runs };
@@ -70,8 +77,13 @@ export class FeedIngestionService {
         return this.finishRun(run, 'failed', fetched, saved, skipped, `${source.name} requires ${source.config_key ?? 'configuration'}`);
       }
 
+      const timeoutMs = this.sourceTimeoutMs();
       const importer = this.importerFor(source.kind);
-      const candidates = await importer.fetch(source, keyword);
+      const candidates = await this.withTimeout(
+        importer.fetch(source, keyword),
+        timeoutMs,
+        `${source.name} import timed out after ${timeoutMs}ms`,
+      );
       fetched = candidates.length;
 
       for (const candidate of candidates) {
@@ -80,7 +92,11 @@ export class FeedIngestionService {
           continue;
         }
         try {
-          const classified = await this.classifier.classify(candidate);
+          const classified = await this.withTimeout(
+            this.classifier.classify(candidate),
+            timeoutMs,
+            `${source.name} classification timed out after ${timeoutMs}ms`,
+          );
           await this.feed.saveExternal(candidate, classified, source.id);
           saved++;
         } catch (error) {
@@ -128,6 +144,28 @@ export class FeedIngestionService {
     run.skipped_count = skipped;
     run.error_message = error ?? null;
     return this.runs.save(run);
+  }
+
+  private async recordUnhandledFailure(sourceId: string, error: unknown): Promise<DigestRun> {
+    const run = await this.startRun(sourceId);
+    return this.finishRun(run, 'failed', 0, 0, 0, this.message(error));
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+    });
+    try {
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+  }
+
+  private sourceTimeoutMs(): number {
+    const parsed = Number.parseInt(process.env.FEED_SOURCE_TIMEOUT_MS ?? '', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_SOURCE_TIMEOUT_MS;
   }
 
   private message(error: unknown): string {

@@ -8,7 +8,9 @@ out/
 .DS_Store
 coach-dev.db
 .worktrees/
-.tools/
+.tools/*
+!.tools/
+!.tools/xhs-bridge.mjs
 .playwright-mcp/
 package-lock.json
 data/we-mp-rss/

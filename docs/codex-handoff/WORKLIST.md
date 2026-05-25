@@ -63,10 +63,10 @@ Every worker must update this file before stopping. If context is lost, resume f
   - [x] Local RSSHub deployed but Nowcoder routes broken — need custom adapter or alternative.
   - [ ] Connect We-MP-RSS JSON API to HRBP feed adapter.
   - [x] Write XHS HTTP bridge (.tools/xhs-bridge.mjs) + set XHS_MCP_BASE_URL.
-  - [!] XHS bridge crashed during import — Playwright scraping inherently fragile. Needs retry/timeout hardening.
+  - [x] XHS bridge crashed during import - fixed with tracked bridge script, timeout, retry, and graceful 503. See xhs-ingestion-stability-log.md.
   - [x] Nowcoder resolved: RSSHub rsshub.rssforever.com/nowcoder/interview/11200 (public instance, may be intermittent).
   - [x] All 3 sources show active (3/3) on Digest page.
-  - [!] Ingestion run stuck at 'running' when XHS source fails — pipeline error handling needs fix.
+  - [x] Ingestion run stuck at 'running' when XHS source fails - fixed with per-source timeout and failed-run recording. See xhs-ingestion-stability-log.md.
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
@@ -118,6 +118,7 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 | 2026-05-25 | Codex | Refactor feed importers into adapters | `[x]` | no fallback/importFrom matches; `tsc` PASS; `nest build` PASS; Feed E2E 20/20 PASS | Commit importer adapter refactor |
 | 2026-05-25 | Codex | Add ingestion orchestrator, CloudDreamAI classifier, and daily schedule | `[x]` | `tsc` PASS; `nest build` PASS; classifier unit tests 3/3 PASS; Feed E2E 23/23 PASS | Commit ingestion pipeline |
 | 2026-05-25 | Claude Code | Verify and fix Digest frontend | `[x]` | Fixed ESLint `set-state-in-effect` violation (restructured to Promise chain pattern); `eslint src/` 0 errors; `next build` PASS; `tsc --noEmit` PASS; `nest build` PASS; Feed E2E 23/23; Classifier 3/3 | Task 7: backend quality gate |
+| 2026-05-25 | Codex | XHS ingestion stability | `[x]` | Feed+stability Jest 25/25 PASS; api tsc PASS; nest build PASS; node --check .tools/xhs-bridge.mjs PASS | Claude continues product usability hardening |
 
 ## Claude Code Compliance Audit Items
 
