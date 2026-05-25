@@ -13,8 +13,8 @@ interface McpSearchResult {
 }
 
 const DEFAULT_KEYWORD = '校招 面经';
-const IMPORT_LIMIT = 20;
-const DEFAULT_TIMEOUT_MS = 30_000;
+const IMPORT_LIMIT = 5;
+const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_RETRIES = 1;
 
 @Injectable()

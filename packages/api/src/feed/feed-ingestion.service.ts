@@ -18,7 +18,7 @@ export interface ImportResult {
   runs: DigestRun[];
 }
 
-const DEFAULT_SOURCE_TIMEOUT_MS = 45_000;
+const DEFAULT_SOURCE_TIMEOUT_MS = 180_000;
 
 @Injectable()
 export class FeedIngestionService {

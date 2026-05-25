@@ -45,8 +45,12 @@ export class FeedClassifierService {
   }
 
   private parseJson(raw: string): unknown {
+    const cleaned = raw
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/, '')
+      .trim();
     try {
-      return JSON.parse(raw);
+      return JSON.parse(cleaned);
     } catch {
       throw new BadRequestException('Feed classifier returned invalid JSON');
     }

@@ -75,12 +75,11 @@ export class FeedService {
   }
 
   async existsExternal(externalId: string, sourceUrl: string): Promise<boolean> {
-    const existing = await this.repo.findOne({
-      where: [
-        { external_id: externalId },
-        { source_url: sourceUrl },
-      ],
-    });
+    const conditions: Array<Record<string, string>> = [];
+    if (externalId) conditions.push({ external_id: externalId });
+    if (sourceUrl) conditions.push({ source_url: sourceUrl });
+    if (conditions.length === 0) return false;
+    const existing = await this.repo.findOne({ where: conditions });
     return Boolean(existing);
   }
 
