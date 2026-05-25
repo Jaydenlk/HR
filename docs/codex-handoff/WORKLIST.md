@@ -67,6 +67,11 @@ Every worker must update this file before stopping. If context is lost, resume f
   - [x] Nowcoder resolved: RSSHub rsshub.rssforever.com/nowcoder/interview/11200 (public instance, may be intermittent).
   - [x] All 3 sources show active (3/3) on Digest page.
   - [x] Ingestion run stuck at 'running' when XHS source fails - fixed with per-source timeout and failed-run recording. See xhs-ingestion-stability-log.md.
+- [x] Monthly Newspaper v1 merged to dev. XHS 主链路真实可用。
+  - [!] Nowcoder RSS 公共实例不稳定，需自建 RSSHub 或备用适配器。
+  - [!] WeChat 公众号依赖 We-MP-RSS/Docker，需用户配置后补验。
+  - [!] Radar "加载更多" append 需 >20 条真实数据补 Playwright 验收。
+  - [!] 个性化排序需用户投递/机会数据补验。
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
