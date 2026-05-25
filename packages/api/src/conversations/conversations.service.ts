@@ -8,6 +8,7 @@ import { Opportunity } from '../opportunity/entities/opportunity.entity';
 import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ChatService } from './chat.service';
+import { CoachContextService } from './coach-context.service';
 import type { RewriteSuggestion } from '../common/types';
 
 @Injectable()
@@ -24,6 +25,7 @@ export class ConversationsService {
     @InjectRepository(OpportunityEvaluation)
     private readonly evalRepo: Repository<OpportunityEvaluation>,
     private readonly chat: ChatService,
+    private readonly coachContext: CoachContextService,
   ) {}
 
   async create(userId: string, dto: CreateConversationDto): Promise<Conversation> {
@@ -100,8 +102,11 @@ export class ConversationsService {
       }
     }
 
+    // Build user context from platform data
+    const userContext = await this.coachContext.buildContext(userId);
+
     // Get AI reply
-    const replyText = await this.chat.reply(history, content, context);
+    const replyText = await this.chat.reply(history, content, context, userContext);
 
     // Save assistant message
     const assistantMsg = await this.msgRepo.save(

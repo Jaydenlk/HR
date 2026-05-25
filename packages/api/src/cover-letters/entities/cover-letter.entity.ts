@@ -40,6 +40,9 @@ export class CoverLetter {
   @Column({ nullable: true })
   role: string;
 
+  @Column('text', { nullable: true })
+  jd_text: string;
+
   @Column('text')
   content: string;
 

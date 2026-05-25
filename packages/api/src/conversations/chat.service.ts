@@ -10,6 +10,7 @@ export class ChatService {
     history: Message[],
     userMessage: string,
     context?: { type: string; data: string },
+    userContext?: string,
   ): Promise<string> {
     const system = `你是一位专业的职业发展教练，专注于帮助应届毕业生和职场新人进行求职规划和简历优化。
 
@@ -20,9 +21,18 @@ export class ChatService {
 - 擅长简历优化、面试准备、职业规划等领域
 - 回答简洁有力，避免空洞的套话${
       context
-        ? `\n\n当前上下文：\n类型：${context.type}\n数据：${context.data}`
+        ? `\n\n当前上下文：\n类型：${context.type}\n数据：${context.data}\n`
         : ''
-    }`;
+    }${
+      userContext
+        ? `\n\n## 用户在平台上的完整求职数据（请基于以下真实数据回答，不要编造）\n${userContext}`
+        : ''
+    }
+
+重要规则：
+- 回答必须基于上述用户数据，不要凭空编造简历内容、投递记录或面试经历
+- 如果用户数据中没有某项信息，诚实说"你还没有上传简历/创建投递/..."
+- 引用具体数据时标明来源（"根据你的简历"、"你投递的字节跳动岗位"）`;
 
     // Build conversation history as a formatted prompt
     const historyText = history
