@@ -142,8 +142,8 @@ export class NewspaperService {
     return {
       headline_observations: headlineObservations,
       insight_cards: insightCards,
-      user_voice: rankPersonalized(userVoiceRaw),
-      tech_radar: rankPersonalized(techRadarRaw),
+      user_voice: userVoiceRaw,
+      tech_radar: techRadarRaw,
       role_trends: roleTrends,
       coach_actions: coachActions,
       trending_tags: trendingTags,
