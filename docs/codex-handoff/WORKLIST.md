@@ -29,12 +29,12 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] Write project execution standard.
 - [x] Write Claude Code operating prompt.
 - [x] Write Chinese Claude Code operating prompt.
-- [ ] Implement Digest source ingestion in dedicated worktree.
-- [ ] Run Simplify review for Digest.
-- [ ] Run PJR for Digest.
-- [ ] Run desktop Playwright Digest E2E.
-- [ ] Run mobile Playwright Digest E2E.
-- [ ] Merge Digest hardening to `dev`.
+- [x] Implement Digest source ingestion in dedicated worktree.
+- [x] Run Simplify review for Digest.
+- [x] Run PJR for Digest.
+- [x] Run desktop Playwright Digest E2E.
+- [x] Run mobile Playwright Digest E2E.
+- [x] Merge Digest hardening to `dev`.
 - [ ] Re-run full product audit after merge.
 
 ## Active Task: Digest Source Ingestion
@@ -59,8 +59,8 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 - [x] Run frontend desktop E2E.
 - [x] Run frontend mobile E2E.
 - [x] Run Simplify.
-- [~] Run PJR.
-- [ ] Merge to `dev`.
+- [x] Run PJR.
+- [x] Merge to `dev`.
 
 ## Blockers
 
