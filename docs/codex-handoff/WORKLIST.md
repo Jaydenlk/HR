@@ -74,8 +74,8 @@ Every worker must update this file before stopping. If context is lost, resume f
   - [!] 个性化排序需用户投递/机会数据补验。
 - [x] parser.service.ts deepseek → clouddream 修复 (85caec0).
 - [x] Evidence Layer 设计 spec 完成（v2, Codex 4 点修订采纳）。
-- [ ] E0: 移除业务层 deepseek provider 暴露。
-- [ ] E1: Implement EvidenceService + IntelligenceModule.
+- [x] E0: 移除业务层 deepseek provider (597a035). grep 确认零业务 provider 引用。
+- [x] E1: EvidenceService + IntelligenceModule (6f7c3c2). 12 E2E PASS. 只读、无 AI、无业务决策。
 - [ ] Migrate CoachContextService to EvidenceService (E2).
 - [ ] Migrate NewspaperService to EvidenceService (E3).
 - [ ] Migrate OpportunityEvaluatorService to EvidenceService (E4).
