@@ -80,6 +80,13 @@ const RUN_STATUS_LABELS: Record<DigestRunStatus, string> = {
   failed: '失败',
 };
 
+const OUTCOME_LABELS: Record<string, string> = {
+  pass: '通过',
+  fail: '未通过',
+  offer: '拿到 Offer',
+  pending: '等待结果',
+};
+
 const SOURCE_FILTERS: Array<{ value: SourceFilter; label: string }> = [
   { value: 'all', label: '全部来源' },
   { value: 'xhs', label: '小红书' },
@@ -578,7 +585,7 @@ function DigestCard({ item }: { item: FeedItem }) {
       <div className="card-meta">
         {item.company && <span>{item.company}</span>}
         {item.role && <span>{item.role}</span>}
-        {item.outcome && <span>{item.outcome}</span>}
+        {item.outcome && <span>{OUTCOME_LABELS[item.outcome] ?? item.outcome}</span>}
       </div>
       <div className="card-footer">
         <div>
