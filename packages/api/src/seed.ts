@@ -8,6 +8,7 @@ import * as path from 'path';
 import { DataSource } from 'typeorm';
 import { SalaryEntry } from './salary/entities/salary-entry.entity';
 import { FeedItem } from './feed/entities/feed-item.entity';
+import type { FeedCategory, FeedSourceKind } from './feed/types/feed.types';
 
 // Resolve JSON data files relative to the repo root (two levels up from packages/api)
 const dataRoot = path.resolve(__dirname, '..', '..', '..', 'data', 'seed');
@@ -54,6 +55,44 @@ interface CuratedFeedRecord {
   source_name: string;
   author: string;
   tags: string[];
+}
+
+function toFeedCategory(value: string | null | undefined): FeedCategory {
+  switch (value) {
+    case 'interview_exp':
+    case 'market_insight':
+    case 'job_tips':
+    case 'hiring_signal':
+    case 'editorial':
+      return value;
+    case 'trending':
+    case 'hot':
+      return 'hiring_signal';
+    case 'story':
+      return 'market_insight';
+    default:
+      return 'interview_exp';
+  }
+}
+
+function toFeedSourceKind(value: string | null | undefined): FeedSourceKind {
+  switch (value) {
+    case 'xhs':
+    case 'xhs_trend':
+      return 'xhs';
+    case 'nowcoder':
+      return 'nowcoder';
+    case 'wechat':
+      return 'wechat';
+    case 'ugc':
+      return 'ugc';
+    case 'coach':
+    case 'ai_digest':
+    case 'market_research':
+      return 'coach';
+    default:
+      return 'blog';
+  }
 }
 
 async function seed() {
@@ -118,14 +157,16 @@ async function seed() {
 
     const feedEntities = interviewData.map((rec) =>
       feedRepo.create({
-        user_id: null as unknown as string,
+        user_id: null,
         title: rec.title,
         content: rec.content,
         company: rec.company,
         role: rec.role,
         outcome: rec.result,
         source: 'market_research',
-        category: rec.category ?? 'interview_exp',
+        source_kind: 'coach',
+        source_name: 'Coach seed',
+        category: toFeedCategory(rec.category),
         author: '匿名',
       }),
     );
@@ -151,14 +192,17 @@ async function seed() {
     }
     await feedRepo.save(
       feedRepo.create({
-        user_id: null as unknown as string,
+        user_id: null,
         title: rec.title,
         content: rec.content,
-        company: rec.company ?? (undefined as unknown as string),
-        role: rec.role ?? (undefined as unknown as string),
+        company: rec.company,
+        role: rec.role,
         source: rec.source,
+        source_kind: toFeedSourceKind(rec.source),
+        source_name: rec.source_name,
         source_url: rec.source_url,
-        category: rec.category,
+        external_id: rec.source_url,
+        category: toFeedCategory(rec.category),
         author: rec.author,
       }),
     );
