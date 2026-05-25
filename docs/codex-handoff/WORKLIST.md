@@ -101,7 +101,7 @@ Every worker must update this file before stopping. If context is lost, resume f
   - 合理保留的上下文注入 repos: ConversationsService (Diagnosis/Opportunity/OppEval 用于 context_type)
   - Newspaper 重复排序修复、README 过度声明修正
   - deepseek/OpenAI/provider rg = 0
-  - 108 tests PASS across 7 suites
+  - Codex 合跑: 7 suites / 100 tests PASS
 - [ ] FeedSource health tracking + Nowcoder multi-URL fallback.
 - [ ] Re-run full product audit after merge.
 
