@@ -12,7 +12,7 @@ export class ParserService {
 
   parseResume(text: string): Promise<ParsedResume> {
     return this.ai.completeStructured<ParsedResume>({
-      provider: 'deepseek',
+      provider: 'clouddream',
       system: RESUME_SYSTEM,
       prompt: buildParseResumePrompt(text),
       toolName: 'parse_resume',
@@ -23,7 +23,7 @@ export class ParserService {
 
   parseJD(text: string): Promise<ParsedJD> {
     return this.ai.completeStructured<ParsedJD>({
-      provider: 'deepseek',
+      provider: 'clouddream',
       system: JD_SYSTEM,
       prompt: buildParseJDPrompt(text),
       toolName: 'parse_jd',
