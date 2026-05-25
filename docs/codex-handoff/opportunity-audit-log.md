@@ -72,11 +72,30 @@
 | Frontend eslint src/ | 0 errors PASS |
 | Frontend next build | PASS |
 
+## 验收诚实声明
+
+### Playwright 前端验收状态
+
+Playwright 桌面+移动完整链路（create→evaluate→track→today→chat）**本轮由用户允许暂缓**。Opportunity 模块**未通过完整前端验收**。后续验收需要：
+- 启动 dev server
+- 桌面端：创建机会→等待评估→查看结果→加入看板→确认 Today 任务→Chat 追问
+- 移动端：375px 下全流程无溢出、按钮可达
+- 不能只截图，必须完整点击/输入/提交/等待/跳转
+
+### AI 复杂场景复现状态
+
+`opportunity-ai.e2e-spec.ts` 6 个真实 AI 场景**已在 Claude 侧跑过并全部通过**（6/6 PASS，410s）。Codex 复跑时 4 分钟超时未完成复现（每个场景需约 60-90 秒 AI 调用，6 个场景总计需 7-10 分钟）。后续最终验收需单独留足时间（建议 `--testTimeout=180000`，总运行时间预计 10 分钟）。
+
+### Track→Tasks 联动验证状态
+
+`POST /:id/track` 成功后会 fire-and-forget 调用 `generateTasks()`。mock E2E 测试已验证 `POST /:id/tasks` 端点能创建 DailyTask 记录。但**尚未通过 Playwright 验证 Today 页面实际显示对应任务**。后续 Playwright E2E 必须包含：track 后导航到 /today → 确认出现与 Opportunity 关联的任务。
+
 ## 仍未完成项
 
 | 项 | 状态 | 说明 |
 |---|------|------|
-| Playwright 完整 E2E（桌面+移动） | 待做 | 需要启动 dev server 后完整走 create→evaluate→track→today→chat 链路 |
+| Playwright 完整 E2E（桌面+移动） | 用户允许暂缓 | 未通过完整前端验收 |
+| Playwright Today 任务验证 | 待做 | track→tasks fire-and-forget，需验证 Today 页面实际出现任务 |
 | 小红书 HTTP 桥接 | 待做 | RedNote-MCP 已授权，缺 MCP→REST 转换层 |
 | 公众号订阅内容 | 待操作 | We-MP-RSS 已运行，用户需添加目标公众号 |
 | 全产品审计 | 未开始 | WORKLIST 最后一项 |
