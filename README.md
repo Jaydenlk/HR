@@ -185,4 +185,4 @@ packages/
 
 ## License
 
-Private - All rights reserved.
+[MIT](LICENSE)
