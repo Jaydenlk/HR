@@ -1,0 +1,27 @@
+[
+  {
+    "kind": "xhs",
+    "name": "小红书面经",
+    "homepage_url": "https://www.xiaohongshu.com",
+    "config_key": "XHS_MCP_BASE_URL",
+    "status": "needs_config",
+    "description": "面经、面试体验、校招求职信息差。必须按公司和岗位标注。"
+  },
+  {
+    "kind": "nowcoder",
+    "name": "牛客面经",
+    "homepage_url": "https://www.nowcoder.com",
+    "config_key": "RSS_FEED_URL",
+    "status": "active",
+    "description": "面经与校招讨论。只保存标题、摘要和原文链接。"
+  },
+  {
+    "kind": "wechat",
+    "name": "公众号深度观察",
+    "homepage_url": null,
+    "config_key": "WECHAT_SOURCE_FEEDS",
+    "status": "needs_config",
+    "description": "晚点、行业观察、真实市场一线信息。无合法来源接口前只允许人工校验种子。"
+  }
+]
+

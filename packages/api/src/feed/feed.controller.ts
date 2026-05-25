@@ -3,10 +3,12 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FeedService } from './feed.service';
 import { CreateFeedItemDto } from './dto/create-feed-item.dto';
+import { FeedQueryDto } from './dto/feed-query.dto';
 import { GithubImporterService } from './importers/github-importer.service';
 import { RssImporterService } from './importers/rss-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
 import { DigestGeneratorService } from './digest-generator.service';
+import { SourceRegistryService } from './source-registry.service';
 
 @Controller('feed')
 @UseGuards(JwtAuthGuard)
@@ -17,6 +19,7 @@ export class FeedController {
     private readonly rssImporter: RssImporterService,
     private readonly xhsImporter: XhsImporterService,
     private readonly digestGenerator: DigestGeneratorService,
+    private readonly sources: SourceRegistryService,
   ) {}
 
   @Post()
@@ -28,8 +31,13 @@ export class FeedController {
   }
 
   @Get()
-  findAll() {
-    return this.feed.findAll();
+  findAll(@Query() query: FeedQueryDto) {
+    return this.feed.findAll(query);
+  }
+
+  @Get('sources')
+  findSources() {
+    return this.sources.findAll();
   }
 
   @Delete(':id')

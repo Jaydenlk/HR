@@ -9,6 +9,9 @@ describe('Feed (e2e)', () => {
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
     process.env.DB_PATH = ':memory:';
+    process.env.CLOUDDREAM_API_KEY = 'test-key';
+    process.env.CLOUDDREAM_MODEL = 'auto-v2';
+    delete process.env.XHS_MCP_BASE_URL;
     app = await createTestApp();
     token = await loginUser(app, 'feed1@coach.dev', 'Feed User One');
     otherToken = await loginUser(app, 'feed2@coach.dev', 'Feed User Two');
@@ -18,10 +21,8 @@ describe('Feed (e2e)', () => {
     await app.close();
   });
 
-  // ─── POST /api/feed ───────────────────────────────────────────────────────
-
   describe('POST /api/feed', () => {
-    it('valid data → 201 + feed item', async () => {
+    it('creates a feed item with valid required fields', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
@@ -31,12 +32,14 @@ describe('Feed (e2e)', () => {
         });
 
       expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('id');
+      expect(res.body.id).toBeDefined();
       expect(res.body.title).toBe('My Interview Experience at Acme');
-      expect(res.body).toHaveProperty('created_at');
+      expect(res.body.source_kind).toBe('ugc');
+      expect(res.body.source_name).toBe('用户投稿');
+      expect(res.body.created_at).toBeDefined();
     });
 
-    it('valid data with optional fields → 201', async () => {
+    it('creates a feed item with optional fields', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
@@ -52,55 +55,46 @@ describe('Feed (e2e)', () => {
       expect(res.body.company).toBe('Big Tech Co');
       expect(res.body.role).toBe('Senior Engineer');
       expect(res.body.outcome).toBe('offer');
+      expect(res.body.source_kind).toBe('ugc');
     });
 
-    it('missing title → 400', async () => {
+    it('rejects missing title', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          content: 'Some content without a title.',
-        });
+        .send({ content: 'Some content without a title.' });
 
       expect(res.status).toBe(400);
     });
 
-    it('missing content → 400', async () => {
+    it('rejects missing content', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'A title with no content',
-        });
+        .send({ title: 'A title with no content' });
 
       expect(res.status).toBe(400);
     });
 
-    it('empty title string → 400', async () => {
+    it('rejects empty title', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: '',
-          content: 'Some valid content here.',
-        });
+        .send({ title: '', content: 'Some valid content here.' });
 
       expect(res.status).toBe(400);
     });
 
-    it('empty content string → 400', async () => {
+    it('rejects empty content', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
-        .send({
-          title: 'Valid title',
-          content: '',
-        });
+        .send({ title: 'Valid title', content: '' });
 
       expect(res.status).toBe(400);
     });
 
-    it('title exceeds 200 characters → 400', async () => {
+    it('rejects title over 200 characters', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
@@ -112,33 +106,28 @@ describe('Feed (e2e)', () => {
       expect(res.status).toBe(400);
     });
 
-    it('without JWT → 401', async () => {
+    it('rejects unauthenticated create', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/feed')
-        .send({
-          title: 'No Auth Post',
-          content: 'This should fail.',
-        });
+        .send({ title: 'No Auth Post', content: 'This should fail.' });
 
       expect(res.status).toBe(401);
     });
   });
 
-  // ─── GET /api/feed ────────────────────────────────────────────────────────
-
   describe('GET /api/feed', () => {
     beforeAll(async () => {
-      // Seed an entry so the list is not empty
       await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
         .send({
           title: 'Seeded Feed Entry',
           content: 'This entry is seeded for GET tests.',
+          company: 'SeedCo',
         });
     });
 
-    it('returns 200 + array', async () => {
+    it('returns feed items', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/feed')
         .set('Authorization', `Bearer ${token}`);
@@ -146,30 +135,73 @@ describe('Feed (e2e)', () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBeGreaterThan(0);
+      expect(res.body[0].title).toBeDefined();
+      expect(res.body[0].content).toBeDefined();
     });
 
-    it('feed items include user relation', async () => {
+    it('filters by source_kind', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/feed')
+        .get('/api/feed?source_kind=ugc')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.length).toBeGreaterThan(0);
-      // Feed returns all items (public), each with a user relation
-      const item = res.body[0];
-      expect(item).toHaveProperty('title');
-      expect(item).toHaveProperty('content');
+      expect(res.body.every((item: { source_kind: string }) => item.source_kind === 'ugc')).toBe(true);
     });
 
-    it('without JWT → 401', async () => {
+    it('filters by company', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/feed');
+        .get('/api/feed?company=SeedCo')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThan(0);
+      expect(res.body.every((item: { company: string }) => item.company === 'SeedCo')).toBe(true);
+    });
+
+    it('rejects unsupported category filter', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed?category=trending')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects unauthenticated list', async () => {
+      const res = await request(app.getHttpServer()).get('/api/feed');
 
       expect(res.status).toBe(401);
     });
   });
 
-  // ─── DELETE /api/feed/:id ─────────────────────────────────────────────────
+  describe('GET /api/feed/sources', () => {
+    it('returns configured source registry', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed/sources')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.some((source: { kind: string }) => source.kind === 'xhs')).toBe(true);
+      expect(res.body.some((source: { kind: string }) => source.kind === 'nowcoder')).toBe(true);
+    });
+
+    it('marks missing configured sources as needs_config', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed/sources')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      const xhs = res.body.find((source: { kind: string }) => source.kind === 'xhs');
+      expect(xhs.status).toBe('needs_config');
+    });
+
+    it('rejects unauthenticated source registry access', async () => {
+      const res = await request(app.getHttpServer()).get('/api/feed/sources');
+
+      expect(res.status).toBe(401);
+    });
+  });
 
   describe('DELETE /api/feed/:id', () => {
     let itemId: string;
@@ -185,7 +217,7 @@ describe('Feed (e2e)', () => {
       itemId = res.body.id;
     });
 
-    it('owner can delete → 200', async () => {
+    it('lets owner delete a feed item', async () => {
       const res = await request(app.getHttpServer())
         .delete(`/api/feed/${itemId}`)
         .set('Authorization', `Bearer ${token}`);
@@ -193,7 +225,7 @@ describe('Feed (e2e)', () => {
       expect(res.status).toBe(200);
     });
 
-    it('deleting non-existent item → 404', async () => {
+    it('returns 404 for missing item', async () => {
       const res = await request(app.getHttpServer())
         .delete('/api/feed/00000000-0000-0000-0000-000000000000')
         .set('Authorization', `Bearer ${token}`);
@@ -201,7 +233,7 @@ describe('Feed (e2e)', () => {
       expect(res.status).toBe(404);
     });
 
-    it('other user cannot delete another user feed item → 404', async () => {
+    it('does not let another user delete the item', async () => {
       const createRes = await request(app.getHttpServer())
         .post('/api/feed')
         .set('Authorization', `Bearer ${token}`)
@@ -217,32 +249,9 @@ describe('Feed (e2e)', () => {
       expect(deleteRes.status).toBe(404);
     });
 
-    it('without JWT → 401', async () => {
-      const res = await request(app.getHttpServer())
-        .delete(`/api/feed/${itemId}`);
+    it('rejects unauthenticated delete', async () => {
+      const res = await request(app.getHttpServer()).delete(`/api/feed/${itemId}`);
 
-      expect(res.status).toBe(401);
-    });
-  });
-
-  // ─── All routes without JWT → 401 ────────────────────────────────────────
-
-  describe('All routes without JWT → 401', () => {
-    it('POST /api/feed without token → 401', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/feed')
-        .send({ title: 'X', content: 'Y' });
-      expect(res.status).toBe(401);
-    });
-
-    it('GET /api/feed without token → 401', async () => {
-      const res = await request(app.getHttpServer()).get('/api/feed');
-      expect(res.status).toBe(401);
-    });
-
-    it('DELETE /api/feed/:id without token → 401', async () => {
-      const res = await request(app.getHttpServer())
-        .delete('/api/feed/00000000-0000-0000-0000-000000000000');
       expect(res.status).toBe(401);
     });
   });

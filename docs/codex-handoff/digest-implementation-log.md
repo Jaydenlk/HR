@@ -19,6 +19,7 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 - [x] Worktree created: `E:\Agent program\HRBP\.worktrees\digest-source-ingestion`.
 - [x] Remote Google Font dependency removed from frontend root layout.
 - [x] Backend feed source and digest run model implemented.
+- [x] Source registry and feed filters implemented.
 - [ ] Ingestion implemented.
 - [ ] Frontend Digest refactored.
 - [ ] PJR passed.
@@ -37,3 +38,8 @@ Replace hardcoded Digest content with verified source-backed ingestion, classifi
 | 2026-05-25 | Backend feed source model | Added `FeedSource`, `DigestRun`, strict feed type unions, and new source metadata fields on `FeedItem` | PASS |
 | 2026-05-25 | Backend compile | `packages/api> npx.cmd tsc --noEmit` | PASS |
 | 2026-05-25 | Backend build | `packages/api> npx.cmd nest build` | PASS |
+| 2026-05-25 | Source registry | Added `data/sources/digest_sources.json`, `SourceRegistryService`, `/api/feed/sources`, and feed filters | PASS |
+| 2026-05-25 | Plan adjustment | Deferred `POST /feed/import` and `/feed/runs` to Task 5 so they can be backed by real ingestion/run records instead of a fake no-op endpoint | ACCEPTED |
+| 2026-05-25 | Feed E2E | `packages/api> npx.cmd jest --config ./test/jest-e2e.json --runInBand --testPathPatterns=feed.e2e-spec.ts` | PASS, 20 tests |
+| 2026-05-25 | Jest environment root cause | Fixed `uuid` mapper from pnpm-internal path to package-local `node_modules/uuid/dist-node/index.js` | PASS |
+| 2026-05-25 | SQLite entity root cause | Added explicit `varchar` column types for nullable FeedItem string fields | PASS |

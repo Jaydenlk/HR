@@ -10,6 +10,7 @@ import { RssImporterService } from './importers/rss-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
 import { DigestGeneratorService } from './digest-generator.service';
 import { AiModule } from '../ai/ai.module';
+import { SourceRegistryService } from './source-registry.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([FeedItem, FeedSource, DigestRun]), AiModule],
@@ -20,6 +21,7 @@ import { AiModule } from '../ai/ai.module';
     RssImporterService,
     XhsImporterService,
     DigestGeneratorService,
+    SourceRegistryService,
   ],
 })
 export class FeedModule {}

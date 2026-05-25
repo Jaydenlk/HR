@@ -15,7 +15,7 @@ export class FeedItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   user_id: string | null;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: true })
@@ -28,13 +28,13 @@ export class FeedItem {
   @Column('text')
   content: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   company: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   role: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   outcome: string | null;
 
   /** Legacy source label kept only while feed services migrate to source_kind. */
@@ -57,7 +57,7 @@ export class FeedItem {
   @Column({ type: 'varchar', default: 'interview_exp' })
   category: FeedCategory;
 
-  @Column({ nullable: true, length: 1000 })
+  @Column({ type: 'varchar', nullable: true, length: 1000 })
   source_url: string | null;
 
   @Column({ type: 'varchar', nullable: true })
@@ -78,7 +78,7 @@ export class FeedItem {
   @Column({ type: 'integer', default: 0 })
   quality_score: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   author: string | null;
 
   @CreateDateColumn()

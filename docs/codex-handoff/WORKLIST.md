@@ -50,8 +50,8 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 - [x] Create worktree `.worktrees\digest-source-ingestion` from `codex/current-audit` (`dev` + Codex docs).
 - [x] Commit `digest-implementation-log.md` skeleton.
 - [x] Remove remote Google Font dependency and verify frontend build.
-- [~] Add strict feed source/domain model.
-- [ ] Add source registry and query DTOs.
+- [x] Add strict feed source/domain model.
+- [~] Add source registry and query DTOs.
 - [ ] Refactor importers into source candidate adapters.
 - [ ] Add ingestion orchestrator, CloudDreamAI classifier, and daily schedule.
 - [ ] Refactor Digest frontend around real API data.
@@ -82,6 +82,7 @@ docs/superpowers/plans/2026-05-25-digest-source-ingestion.md
 | 2026-05-25 | Codex | Create Digest implementation worktree | `[x]` | `E:\Agent program\HRBP\.worktrees\digest-source-ingestion`, branch `feature/digest-source-ingestion` | Commit implementation log |
 | 2026-05-25 | Codex | Remove remote Google Font dependency | `[x]` | `npx.cmd eslint src/` PASS; `npx.cmd next build` PASS; `rg next/font/google` no matches | Commit font fix |
 | 2026-05-25 | Codex | Add feed source/domain model | `[x]` | `npx.cmd tsc --noEmit` PASS; `npx.cmd nest build` PASS | Commit backend model |
+| 2026-05-25 | Codex | Add source registry and feed filters | `[x]` | `npx.cmd tsc --noEmit` PASS; `npx.cmd nest build` PASS; Feed E2E 20/20 PASS | Commit source registry |
 
 ## Claude Code Compliance Audit Items
 
