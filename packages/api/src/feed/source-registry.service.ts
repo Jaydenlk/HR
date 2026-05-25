@@ -74,6 +74,7 @@ export class SourceRegistryService implements OnModuleInit {
     source.fail_count = 0;
     source.last_success_at = new Date();
     source.last_run_at = new Date();
+    source.last_error = null;
     source.health = 'healthy';
     await this.repo.save(source);
   }

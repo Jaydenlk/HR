@@ -178,6 +178,7 @@ describe('Source Health Tracking (standalone)', () => {
     expect(updated!.health).toBe('healthy');
     expect(updated!.fail_count).toBe(0);
     expect(updated!.success_count).toBe(1);
+    expect(updated!.last_error).toBeNull();
   });
 });
 
