@@ -33,6 +33,24 @@ export class FeedSource {
   @Column({ type: 'datetime', nullable: true })
   last_run_at: Date | null;
 
+  @Column({ type: 'integer', default: 0 })
+  fail_count: number;
+
+  @Column({ type: 'integer', default: 0 })
+  success_count: number;
+
+  @Column({ type: 'datetime', nullable: true })
+  last_success_at: Date | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  last_failure_at: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  last_error: string | null;
+
+  @Column({ type: 'varchar', default: 'unknown' })
+  health: 'healthy' | 'degraded' | 'down' | 'unknown';
+
   @CreateDateColumn()
   created_at: Date;
 

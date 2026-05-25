@@ -67,6 +67,28 @@ export class SourceRegistryService implements OnModuleInit {
     await this.repo.update(sourceId, { last_run_at: new Date() });
   }
 
+  async recordSuccess(sourceId: string): Promise<void> {
+    const source = await this.repo.findOne({ where: { id: sourceId } });
+    if (!source) return;
+    source.success_count = (source.success_count ?? 0) + 1;
+    source.fail_count = 0;
+    source.last_success_at = new Date();
+    source.last_run_at = new Date();
+    source.health = 'healthy';
+    await this.repo.save(source);
+  }
+
+  async recordFailure(sourceId: string, error: string): Promise<void> {
+    const source = await this.repo.findOne({ where: { id: sourceId } });
+    if (!source) return;
+    source.fail_count = (source.fail_count ?? 0) + 1;
+    source.last_failure_at = new Date();
+    source.last_error = error;
+    source.last_run_at = new Date();
+    source.health = source.fail_count >= 3 ? 'down' : 'degraded';
+    await this.repo.save(source);
+  }
+
   private findExistingSource(seed: DigestSourceSeed): Promise<FeedSource | null> {
     if (seed.config_key) {
       return this.repo.findOne({

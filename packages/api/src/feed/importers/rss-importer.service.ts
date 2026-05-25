@@ -33,32 +33,44 @@ export class RssImporterService implements FeedImporter {
   });
 
   async fetch(source: FeedSource): Promise<FeedCandidate[]> {
-    const url = source.config_key ? process.env[source.config_key] : process.env.RSS_FEED_URL;
-    if (!url) return [];
+    const rawUrl = source.config_key ? process.env[source.config_key] : process.env.RSS_FEED_URL;
+    if (!rawUrl) return [];
 
-    this.logger.log(`Fetching RSS source "${source.name}" from ${url}`);
-    const parsed = await this.parser.parseURL(url);
-    const now = new Date();
+    const urls = rawUrl.split(',').map((u) => u.trim()).filter(Boolean);
 
-    return (parsed.items ?? [])
-      .filter((item) => Boolean(item.link ?? item.guid))
-      .slice(0, IMPORT_LIMIT)
-      .map((item) => {
-        const sourceUrl = item.link ?? item.guid ?? '';
-        const rawContent = item.contentEncoded ?? item.content ?? item.summary ?? '';
-        return {
-          source_kind: 'nowcoder',
-          source_name: source.name,
-          source_url: sourceUrl,
-          external_id: sourceUrl,
-          title: this.stripHtml(item.title ?? '').slice(0, 200) || '牛客面经',
-          content: this.stripHtml(rawContent).slice(0, 5000),
-          author: item.creator ?? null,
-          published_at: item.isoDate ? new Date(item.isoDate) : null,
-          fetched_at: now,
-          raw: {},
-        };
-      });
+    let lastError: Error | null = null;
+    for (const url of urls) {
+      try {
+        this.logger.log(`Fetching RSS source "${source.name}" from ${url}`);
+        const parsed = await this.parser.parseURL(url);
+        const now = new Date();
+
+        return (parsed.items ?? [])
+          .filter((item) => Boolean(item.link ?? item.guid))
+          .slice(0, IMPORT_LIMIT)
+          .map((item) => {
+            const sourceUrl = item.link ?? item.guid ?? '';
+            const rawContent = item.contentEncoded ?? item.content ?? item.summary ?? '';
+            return {
+              source_kind: 'nowcoder',
+              source_name: source.name,
+              source_url: sourceUrl,
+              external_id: sourceUrl,
+              title: this.stripHtml(item.title ?? '').slice(0, 200) || '牛客面经',
+              content: this.stripHtml(rawContent).slice(0, 5000),
+              author: item.creator ?? null,
+              published_at: item.isoDate ? new Date(item.isoDate) : null,
+              fetched_at: now,
+              raw: {},
+            };
+          });
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        this.logger.warn(`RSS URL failed: ${url} — ${lastError.message}. Trying next...`);
+      }
+    }
+
+    throw lastError ?? new Error(`All ${urls.length} RSS URLs failed for "${source.name}"`);
   }
 
   private stripHtml(html: string): string {

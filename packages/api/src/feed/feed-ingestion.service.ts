@@ -114,9 +114,10 @@ export class FeedIngestionService {
         }
       }
 
-      await this.registry.markRun(source.id);
+      await this.registry.recordSuccess(source.id);
       return this.finishRun(run, 'success', fetched, saved, skipped);
     } catch (error) {
+      await this.registry.recordFailure(source.id, this.message(error));
       return this.finishRun(run, 'failed', fetched, saved, skipped, this.message(error));
     }
   }
@@ -156,6 +157,7 @@ export class FeedIngestionService {
   }
 
   private async recordUnhandledFailure(sourceId: string, error: unknown): Promise<DigestRun> {
+    await this.registry.recordFailure(sourceId, this.message(error));
     const run = await this.startRun(sourceId);
     return this.finishRun(run, 'failed', 0, 0, 0, this.message(error));
   }
