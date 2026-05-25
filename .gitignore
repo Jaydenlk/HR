@@ -8,3 +8,10 @@ out/
 .DS_Store
 coach-dev.db
 .worktrees/
+.tools/
+.playwright-mcp/
+package-lock.json
+data/we-mp-rss/
+*.png
+*.jpg
+*.jpeg
