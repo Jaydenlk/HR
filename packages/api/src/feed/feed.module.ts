@@ -7,8 +7,12 @@ import { Company } from './entities/company.entity';
 import { Department } from './entities/department.entity';
 import { RoleCategory } from './entities/role-category.entity';
 import { CoverageMetric } from './entities/coverage-metric.entity';
+import { Application } from '../applications/entities/application.entity';
+import { Opportunity } from '../opportunity/entities/opportunity.entity';
 import { FeedController } from './feed.controller';
+import { NewspaperController } from './newspaper.controller';
 import { FeedService } from './feed.service';
+import { NewspaperService } from './newspaper.service';
 import { RssImporterService } from './importers/rss-importer.service';
 import { WechatImporterService } from './importers/wechat-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
@@ -21,10 +25,17 @@ import { CompanyRegistryService } from './company-registry.service';
 import { SearchSchedulerService } from './search-scheduler.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FeedItem, FeedSource, DigestRun, Company, Department, RoleCategory, CoverageMetric]), AiModule],
-  controllers: [FeedController],
+  imports: [
+    TypeOrmModule.forFeature([
+      FeedItem, FeedSource, DigestRun, Company, Department, RoleCategory, CoverageMetric,
+      Application, Opportunity,
+    ]),
+    AiModule,
+  ],
+  controllers: [FeedController, NewspaperController],
   providers: [
     FeedService,
+    NewspaperService,
     RssImporterService,
     WechatImporterService,
     XhsImporterService,

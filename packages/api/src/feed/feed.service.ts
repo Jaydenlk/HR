@@ -6,12 +6,14 @@ import { CreateFeedItemDto } from './dto/create-feed-item.dto';
 import { FeedQueryDto } from './dto/feed-query.dto';
 import type { ClassifiedFeed } from './feed-classifier.service';
 import type { FeedCandidate } from './importers/feed-importer.interface';
+import { CompanyRegistryService } from './company-registry.service';
 
 @Injectable()
 export class FeedService {
   constructor(
     @InjectRepository(FeedItem)
     private readonly repo: Repository<FeedItem>,
+    private readonly companyRegistry: CompanyRegistryService,
   ) {}
 
   create(userId: string, dto: CreateFeedItemDto): Promise<FeedItem> {
@@ -83,7 +85,7 @@ export class FeedService {
     return Boolean(existing);
   }
 
-  saveExternal(
+  async saveExternal(
     candidate: FeedCandidate,
     classified: ClassifiedFeed,
     sourceId: string,
@@ -108,7 +110,26 @@ export class FeedService {
       tags_json: JSON.stringify(classified.tags),
       quality_score: classified.quality_score,
       author: candidate.author,
+      department: classified.department,
+      role_category: classified.role_category,
+      interview_round: classified.interview_round,
+      question_types: classified.question_types,
+      difficulty: classified.difficulty,
+      quarter: classified.quarter,
+      confidence: classified.confidence,
     });
+    if (classified.company) {
+      const matched = await this.companyRegistry.matchCompany(classified.company);
+      if (matched) {
+        item.company_id = matched.id;
+      }
+    }
+    if (classified.role_category) {
+      const matched = await this.companyRegistry.matchRoleCategory(classified.role_category);
+      if (matched) {
+        item.role_category_id = matched.id;
+      }
+    }
     return this.repo.save(item);
   }
 }

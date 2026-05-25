@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AiService } from '../ai/ai.service';
 import { FeedCandidate } from './importers/feed-importer.interface';
 import type { FeedCategory, FeedTags } from './types/feed.types';
+import type { FeedConfidence } from './types/newspaper.types';
 
 interface ClassifiedFeed {
   category: FeedCategory;
@@ -12,6 +13,13 @@ interface ClassifiedFeed {
   outcome: string | null;
   tags: FeedTags;
   quality_score: number;
+  department: string | null;
+  role_category: string | null;
+  interview_round: string | null;
+  question_types: string[];
+  difficulty: string | null;
+  quarter: string | null;
+  confidence: FeedConfidence;
 }
 
 @Injectable()
@@ -36,6 +44,14 @@ export class FeedClassifierService {
         '输出严格 JSON，不要 Markdown。',
         'JSON 字段：category,title,summary,company,role,outcome,tags,quality_score。',
         'category 只能是 interview_exp, market_insight, job_tips, hiring_signal, editorial。',
+        '新增输出字段（全部加入 JSON）：',
+        '- department: 部门/BU名（如"抖音电商"），不确定返回 null',
+        '- role_category: 岗位大类 key，只能是：backend/frontend/algorithm/embedded/product/operations/hr/design/data/finance/consulting/marketing，不确定返回 null',
+        '- interview_round: 面试轮次（一面/二面/三面/HR面/笔试），不确定返回 null',
+        '- question_types: 问题类型数组（如["算法","系统设计"]），不确定返回 []',
+        '- difficulty: 难度（easy/medium/hard），不确定返回 null',
+        '- quarter: 内容所属季度（如"2026Q2"），根据发布时间判断，不确定返回 null',
+        '- confidence: 分类置信度（high=公司岗位轮次都明确/medium=公司明确其他模糊/low=不确定）',
       ].join('\n'),
       prompt,
       maxTokens: 1200,
@@ -70,6 +86,13 @@ export class FeedClassifierService {
       outcome: this.toNullableText(record.outcome),
       tags: this.toTags(record.tags),
       quality_score: this.toScore(record.quality_score),
+      department: this.toNullableText(record.department),
+      role_category: this.toNullableText(record.role_category),
+      interview_round: this.toNullableText(record.interview_round),
+      question_types: this.toStringArray(record.question_types),
+      difficulty: this.toNullableText(record.difficulty),
+      quarter: this.toNullableText(record.quarter),
+      confidence: this.toConfidence(record.confidence),
     };
   }
 
@@ -118,6 +141,11 @@ export class FeedClassifierService {
   private toScore(value: unknown): number {
     if (typeof value !== 'number' || Number.isNaN(value)) return 0;
     return Math.max(0, Math.min(100, Math.round(value)));
+  }
+
+  private toConfidence(value: unknown): FeedConfidence {
+    if (value === 'high' || value === 'medium' || value === 'low') return value;
+    return 'medium';
   }
 }
 
