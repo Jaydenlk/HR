@@ -14,6 +14,8 @@ interface McpSearchResult {
 
 const DEFAULT_KEYWORD = '校招 面经';
 const IMPORT_LIMIT = 20;
+const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_RETRIES = 1;
 
 @Injectable()
 export class XhsImporterService implements FeedImporter {
@@ -26,20 +28,11 @@ export class XhsImporterService implements FeedImporter {
     if (!baseUrl) return [];
 
     const url = `${baseUrl.replace(/\/$/, '')}/api/v1/search_feeds`;
+    const timeoutMs = readPositiveInt(process.env.XHS_IMPORT_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
+    const retries = readPositiveInt(process.env.XHS_IMPORT_RETRIES, DEFAULT_RETRIES);
+
     this.logger.log(`Fetching XHS source "${source.name}" with keyword "${keyword}"`);
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ keyword, limit: IMPORT_LIMIT }),
-      signal: AbortSignal.timeout(30000),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`XHS MCP ${res.status}: ${text.slice(0, 200)}`);
-    }
-
-    const data = (await res.json()) as McpSearchResult;
+    const data = await this.fetchWithRetry(url, keyword, timeoutMs, retries);
     const now = new Date();
 
     return (data.feeds ?? [])
@@ -61,5 +54,49 @@ export class XhsImporterService implements FeedImporter {
         };
       });
   }
+
+  private async fetchWithRetry(
+    url: string,
+    keyword: string,
+    timeoutMs: number,
+    retries: number,
+  ): Promise<McpSearchResult> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await this.fetchOnce(url, keyword, timeoutMs);
+      } catch (error) {
+        lastError = error;
+        if (attempt < retries) {
+          this.logger.warn(`XHS fetch attempt ${attempt + 1} failed: ${message(error)}; retrying`);
+        }
+      }
+    }
+    throw new Error(`XHS bridge failed after ${retries + 1} attempt(s): ${message(lastError)}`);
+  }
+
+  private async fetchOnce(url: string, keyword: string, timeoutMs: number): Promise<McpSearchResult> {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword, limit: IMPORT_LIMIT }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`XHS bridge ${res.status}: ${text.slice(0, 200)}`);
+    }
+
+    return (await res.json()) as McpSearchResult;
+  }
 }
 
+function readPositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function message(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
