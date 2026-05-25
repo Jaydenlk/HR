@@ -163,6 +163,7 @@ export class SearchSchedulerService {
       .where('fi.company_id = :companyId', { companyId })
       .andWhere('fi.role_category_id = :roleCategoryId', { roleCategoryId })
       .andWhere('fi.quarter = :quarter', { quarter })
+      .andWhere('fi.source_kind = :source', { source })
       .andWhere('fi.confidence != :low', { low: 'low' })
       .andWhere('fi.source_url IS NOT NULL')
       .andWhere("fi.source_url != ''")
