@@ -44,7 +44,15 @@ Every worker must update this file before stopping. If context is lost, resume f
 - [x] Implement Phase O4: Frontend Opportunity Center (3 pages + sidebar).
 - [x] Phase O5: PJR (tsc/build/eslint/next build all PASS) + Playwright E2E (desktop + mobile).
 - [x] Phase O6: Merge Opportunity Intelligence to dev.
-- [x] Fix Chat sendMessage bug (e3e8159) — frontend expected {user_message, assistant_message}, backend only returned assistant.
+- [x] Fix Chat sendMessage bug (e3e8159).
+- [x] Codex audit: fix evaluator to read resume/diagnosis/feed/salary data (570ce88).
+- [x] Codex audit: fix Chat opportunity context integration (570ce88).
+- [x] Codex audit: fix Track auto-generates tasks (570ce88).
+- [x] Codex audit: rewrite E2E with mock AiService, 36 tests (7a58043).
+- [x] Codex audit: 6 real AI complex scenarios all PASS (4bd5cf0).
+- [x] Codex audit: git cleanup + .gitignore (22264b8).
+- [x] Codex audit: PJR re-run — tsc/build/eslint/next build/36 E2E/6 AI all PASS.
+- [ ] Codex audit: Playwright full E2E (desktop + mobile) — pending.
 - [~] Digest source integration: XHS + WeChat + Nowcoder.
   - [x] We-MP-RSS Docker deployed (localhost:8001), awaiting WeChat scan authorization.
   - [x] RedNote-MCP cloned, built, and QR-authorized (.tools/rednote-mcp). Cookie saved. Needs HTTP bridge.
