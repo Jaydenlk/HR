@@ -1,0 +1,38 @@
+{
+  "description": "简历只提到 Java，输出中不得包含 Python（幻觉防护）",
+  "input": {
+    "resume_text": "王芳\n\n工作经历\n某金融科技公司 2021.03 - 至今\nJava 后端工程师\n- 使用 Java Spring Boot 开发支付系统后端接口\n- 负责 MySQL 数据库设计和优化\n- 熟悉 Maven 构建工具和 Git 版本管理\n\n技能：Java、Spring Boot、MySQL、Git、Maven"
+  },
+  "assertions": [
+    {
+      "path": "profile.skills.technical[*].name",
+      "operator": "not_contains",
+      "value": "Python",
+      "description": "Python 未在简历中出现，不得被推断添加"
+    },
+    {
+      "path": "profile.skills.technical[*].name",
+      "operator": "not_contains",
+      "value": "Go",
+      "description": "Go 未在简历中出现，不得被推断添加"
+    },
+    {
+      "path": "profile.skills.technical[*].name",
+      "operator": "not_contains",
+      "value": "JavaScript",
+      "description": "JavaScript 未在简历中出现，不得被推断添加"
+    },
+    {
+      "path": "profile.skills.technical",
+      "operator": "every_item_has_field",
+      "value": "evidence_source",
+      "description": "每项技术技能必须有 evidence_source"
+    },
+    {
+      "path": "profile.skills.technical[*].name",
+      "operator": "contains",
+      "value": "Java",
+      "description": "Java 在简历中明确出现，必须被提取"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+name: profile-builder
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户提交简历文本，需要解析结构化画像
+  - 求职主理人需要了解用户背景和能力
+  - 进行匹配诊断前的画像构建步骤
+  - 用户描述自己背景但未提供完整简历
+
+when_not_to_use:
+  - 用户已明确提供结构化画像（JSON/YAML 格式）
+  - 输入内容与求职背景完全无关（如描述产品/新闻）
+  - 用户明确拒绝提供背景信息
+
+inputs:
+  primary:
+    - name: resume_text
+      type: string
+      required: false
+      min_length: 30
+      description: "简历全文（纯文本，可含换行）"
+    - name: user_background
+      type: string
+      required: false
+      min_length: 20
+      description: "用户对话中描述的背景信息"
+  constraint: "resume_text 和 user_background 至少提供一个"
+  optional:
+    - name: existing_profile
+      type: object
+      description: "已有画像（用于增量更新，不做全量覆盖）"
+
+confidence_policy:
+  high:
+    condition: "完整简历，包含教育背景、至少2段工作经历、技能描述"
+    threshold: "输入 >= 300 字且包含关键结构段落"
+  medium:
+    condition: "简历残缺，或主要依赖对话描述"
+    threshold: "输入 100-299 字，或缺少关键段落"
+  low:
+    condition: "信息极少，无法构建可靠画像"
+    threshold: "输入 < 100 字"
+  insufficient:
+    condition: "输入内容不是简历或求职背景描述"
+    action: "返回 error，不输出 profile"
+
+failure_modes:
+  - type: non_resume_input
+    trigger: "输入为新闻、产品描述、代码等非求职内容"
+    response: "返回 error，message 说明需要简历或背景描述"
+  - type: empty_input
+    trigger: "resume_text 和 user_background 均为空或低于最小长度"
+    response: "返回 validation_error，列出缺失字段"
+  - type: all_fields_null
+    trigger: "解析后所有字段均为 null（极度稀疏输入）"
+    response: "返回低置信度结果，建议用户补充信息"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - profile.basic
+    - profile.skills
+    - profile.experience
+    - profile.strengths
+    - profile.weaknesses
+    - profile.constraints
+    - profile.career_intent
+  metadata:
+    - confidence
+    - evidence_count
+    - missing_fields[]
+
+dependencies:
+  shared_schemas:
+    - shared/evidence-schema/evidence.schema.json
+    - shared/output-schema/skill-output-base.schema.json
+  knowledge:
+    - knowledge/role-taxonomy/

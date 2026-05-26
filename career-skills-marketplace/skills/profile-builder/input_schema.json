@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "profile-builder/input",
+  "title": "profile-builder 输入",
+  "description": "至少提供 resume_text 或 user_background 之一",
+  "type": "object",
+  "anyOf": [
+    { "required": ["resume_text"] },
+    { "required": ["user_background"] }
+  ],
+  "properties": {
+    "resume_text": {
+      "type": "string",
+      "minLength": 30,
+      "description": "简历全文，纯文本格式"
+    },
+    "user_background": {
+      "type": "string",
+      "minLength": 20,
+      "description": "用户在对话中描述的背景信息"
+    },
+    "existing_profile": {
+      "type": "object",
+      "description": "已有画像对象，用于增量更新",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "description": "简历与对话描述职级矛盾，期望 current_role 使用冲突结构双存",
+  "input": {
+    "resume_text": "李明\n高级工程师\n\n工作经历\n某互联网公司 高级工程师 2024.01 - 至今\n- 负责后端 API 开发\n- 使用 Java 完成业务需求开发",
+    "user_background": "我在简历上写了高级工程师，但其实我是刚晋升的，工作上还有很多不懂的地方，感觉自己还算初级"
+  },
+  "assertions": [
+    { "path": "profile.basic.current_role.conflict", "operator": "eq", "value": true },
+    { "path": "profile.basic.current_role.source_a.value", "operator": "eq", "value": "高级工程师" },
+    { "path": "profile.basic.current_role.source_b", "operator": "exists" },
+    { "path": "profile.basic.current_role.source_b.value", "operator": "not_eq", "value": "高级工程师" },
+    { "path": "confidence", "operator": "not_eq", "value": "high" }
+  ]
+}
