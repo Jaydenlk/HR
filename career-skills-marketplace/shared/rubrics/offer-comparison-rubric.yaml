@@ -103,7 +103,7 @@ dimensions:
           tencent:  { period: "3年", schedule: "1/3 per year after cliff" }
           alibaba:  { period: "4年", schedule: "25% per year after 1-year cliff" }
           bytedance: { period: "4年", schedule: "25% per year after 1-year cliff" }
-          huawei:   { period: "TBD", note: "虚拟股票（TUP），无二级市场，按绩效分配" }
+          huawei:   { period: "不适用", note: "虚拟股票（TUP），无二级市场，按绩效分配，无固定归属期" }
         pre_ipo_note: "未上市公司期权流动性极低，估值与实际变现存在巨大不确定性"
       bonus_note:
         label: "年终奖绩效挂钩说明"
