@@ -2,7 +2,7 @@
 
 > Date: 2026-05-26
 > Platform: Windows 11 Pro (PowerShell 5.1 + Git Bash)
-> Branch: dev @ commit 1df34b6
+> Branch: dev, smoke commit: 088570a
 
 ---
 
@@ -88,12 +88,9 @@ Target: <repo>/.tmp-install-test/bash-codex/skills
 
 ## Test 4: Cleanup
 
-**Command:**
-```powershell
-Remove-Item -Recurse -Force "<repo>\.tmp-install-test"
-```
+测试后手动删除临时目录 `.tmp-install-test`，并确认 git status clean。
 
-**Result:** PASS — directory removed, git status clean
+**Result:** PASS — 目录已清理，git status 无残留
 
 ---
 
