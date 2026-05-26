@@ -228,7 +228,13 @@ export default function NewspaperPage() {
                 本周热词:
               </span>
               {edition.trending_tags.map(tag => (
-                <span key={tag} className="np-tag-pill">{tag}</span>
+                <Link
+                  key={tag}
+                  href={`/newspaper/radar?keyword=${encodeURIComponent(tag)}`}
+                  className="np-tag-pill np-tag-clickable"
+                >
+                  {tag}
+                </Link>
               ))}
             </div>
           )}
@@ -784,7 +790,12 @@ const NP_CSS = `
   font-weight: 600;
   background: var(--color-brand-soft);
   color: var(--color-brand-ink);
-  cursor: default;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.np-tag-clickable:hover {
+  opacity: 0.85;
 }
 
 /* Sort Controls */
