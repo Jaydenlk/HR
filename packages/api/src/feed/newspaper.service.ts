@@ -132,7 +132,7 @@ export interface TrendRadarResponse {
   period: { current_start: string; current_end: string; previous_start: string; previous_end: string; };
   this_week: { new_items: number; new_companies: string[]; new_role_categories: string[]; top_sources: Array<{ source_kind: string; count: number }>; };
   comparison: { has_baseline: boolean; item_count_delta: number; item_count_previous: number; message: string; };
-  hot_posts: Array<{ title: string; company: string | null; role_category: string | null; source_kind: string; source_url: string; created_at: string; }>;
+  hot_posts: Array<{ title: string; company: string | null; role_category: string | null; source_kind: string; source_url: string; created_at: string; published_at: string | null; date_confidence: string; }>;
 }
 
 @Injectable()
@@ -158,9 +158,26 @@ export class NewspaperService {
       .getMany();
 
     // Issue 8: Filter out items with empty/null source_url
-    const allItems = allItemsRaw.filter(
+    const urlFiltered = allItemsRaw.filter(
       (i) => i.source_url && i.source_url.trim() !== '',
     );
+
+    // Issue 4 (freshness): Only usable items on homepage
+    const allItems = urlFiltered.filter(isUsable);
+
+    if (allItems.length === 0) {
+      return {
+        headline_observations: [],
+        insight_cards: [],
+        user_voice: [],
+        tech_radar: [],
+        role_trends: [],
+        coach_actions: await this.buildCoachActions(userId),
+        trending_tags: [],
+        total_count: 0,
+        categories: {},
+      };
+    }
 
     // Build user companies set for personalization
     const companiesOfInterest = await this.evidence.getCompaniesOfInterest(userId);
@@ -697,6 +714,8 @@ export class NewspaperService {
         source_kind: i.source_kind,
         source_url: i.source_url as string,
         created_at: i.created_at?.toISOString() ?? '',
+        published_at: i.published_at ? new Date(i.published_at).toISOString() : null,
+        date_confidence: i.date_confidence || 'unknown',
       }));
 
     return {
