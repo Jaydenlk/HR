@@ -10,6 +10,7 @@ export interface FeedCandidate {
   content: string;
   author: string | null;
   published_at: Date | null;
+  date_confidence: 'high' | 'medium' | 'low' | 'unknown';
   fetched_at: Date;
   raw: Record<string, unknown>;
 }

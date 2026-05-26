@@ -60,6 +60,7 @@ export class RssImporterService implements FeedImporter {
               content: this.stripHtml(rawContent).slice(0, 5000),
               author: item.creator ?? null,
               published_at: item.isoDate ? new Date(item.isoDate) : null,
+              date_confidence: item.isoDate ? 'high' : 'unknown',
               fetched_at: now,
               raw: {},
             };

@@ -49,6 +49,7 @@ export class XhsImporterService implements FeedImporter {
           content: item.desc ?? item.title ?? '',
           author: item.user?.nickname ?? null,
           published_at: null,
+          date_confidence: 'unknown',
           fetched_at: now,
           raw: { liked_count: item.liked_count ?? null },
         };

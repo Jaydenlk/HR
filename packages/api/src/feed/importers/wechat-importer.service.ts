@@ -68,6 +68,7 @@ export class WechatImporterService implements FeedImporter {
         content: (a.content ?? a.summary ?? '').slice(0, 5000),
         author: a.author ?? a.mp_name ?? null,
         published_at: a.publish_time ? new Date(a.publish_time) : null,
+        date_confidence: a.publish_time ? 'high' : 'unknown',
         fetched_at: now,
         raw: { mp_name: a.mp_name ?? null },
       }));
