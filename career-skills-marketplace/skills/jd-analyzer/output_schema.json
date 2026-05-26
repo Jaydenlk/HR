@@ -3,10 +3,10 @@
   "$id": "jd-analyzer/output",
   "title": "jd-analyzer 输出",
   "allOf": [
-    { "$ref": "../../shared/output-schema/skill-output-base.schema.json" }
+    { "$ref": "../_career-skills-shared/output-schema/skill-output-base.schema.json" }
   ],
   "properties": {
-    "skill": { "const": "jd-analyzer" },
+    "skill_name": { "const": "jd-analyzer" },
     "confidence": {
       "type": "string",
       "enum": ["high", "medium", "low", "insufficient"],

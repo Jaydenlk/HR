@@ -42,7 +42,7 @@ Career Skills Marketplace 是一套以 Claude Code 为运行时的 skill 插件�
 ### macOS / Linux
 
 ```bash
-git clone https://github.com/your-org/career-skills-marketplace.git
+git clone https://github.com/career-skills/career-skills-marketplace.git
 cd career-skills-marketplace
 bash install.sh
 ```
@@ -50,7 +50,7 @@ bash install.sh
 ### Windows
 
 ```powershell
-git clone https://github.com/your-org/career-skills-marketplace.git
+git clone https://github.com/career-skills/career-skills-marketplace.git
 cd career-skills-marketplace
 .\install.ps1
 ```

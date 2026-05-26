@@ -1,0 +1,10 @@
+.env
+.env.local
+.env.*.local
+.evidence/
+*.local
+secrets/
+secrets.*
+node_modules/
+.DS_Store
+Thumbs.db

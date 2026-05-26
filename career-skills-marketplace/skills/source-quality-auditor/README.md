@@ -109,8 +109,8 @@ depends_on:
 
 - `references/source-grading-policy.md` — 各平台详细分级规则
 - `references/freshness-rules.md` — 各内容类型有效期规则
-- `shared/source-policy/grading-policy.yaml` — 机器可读分级策略
-- `shared/source-policy/freshness-rules.yaml` — 机器可读时效性规则
+- `_career-skills-shared/source-policy/grading-policy.yaml` — 机器可读分级策略
+- `_career-skills-shared/source-policy/freshness-rules.yaml` — 机器可读时效性规则
 - `examples/` — 4 个典型场景的完整输入/输出示例
 - `tests/` — 5 个测试用例，含防幻觉核心测试
 

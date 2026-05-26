@@ -3,10 +3,10 @@
   "$id": "profile-builder/output",
   "title": "profile-builder 输出",
   "allOf": [
-    { "$ref": "../../shared/output-schema/skill-output-base.schema.json" }
+    { "$ref": "../_career-skills-shared/output-schema/skill-output-base.schema.json" }
   ],
   "properties": {
-    "skill": { "const": "profile-builder" },
+    "skill_name": { "const": "profile-builder" },
     "confidence": {
       "type": "string",
       "enum": ["high", "medium", "low", "insufficient"],

@@ -213,23 +213,23 @@ jd-analyzer      ──► resume-tailor
 
 ## 9. 知识图谱使用
 
-`knowledge/` 目录包含静态结构化知识，在以下情况下读取：
+`../_career-skills-shared/knowledge/` 目录包含静态结构化知识（安装后位于 `~/.claude/skills/_career-skills-shared/knowledge/`），在以下情况下读取：
 
-- **公司信息查询**：`knowledge/companies/` 目录（若存在）
-- **岗位要求参考**：`knowledge/roles/` 目录（若存在）
-- **行业信号**：`knowledge/signals/` 目录（若存在）
+- **公司信息查询**：`../_career-skills-shared/knowledge/company-taxonomy/` 目录
+- **岗位要求参考**：`../_career-skills-shared/knowledge/role-taxonomy/` 目录
+- **求职黑话**：`../_career-skills-shared/knowledge/market-vocabulary/` 目录
 
 读取方式：
 
 ```
 # 查找公司信息
-Glob: knowledge/companies/{company_name}.*
+Grep: ../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml 关键词搜索
 
 # 查找岗位知识
-Glob: knowledge/roles/{role_type}.*
+Grep: ../_career-skills-shared/knowledge/role-taxonomy/roles.yaml 关键词搜索
 
-# 全文搜索
-Grep: knowledge/ 目录，关键词搜索
+# 查找求职黑话
+Read: ../_career-skills-shared/knowledge/market-vocabulary/china-job-search-terms.yaml
 ```
 
 **使用限制**：

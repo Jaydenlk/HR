@@ -69,10 +69,10 @@ outputs:
 
 dependencies:
   shared_schemas:
-    - shared/evidence-schema/evidence.schema.json
-    - shared/output-schema/skill-output-base.schema.json
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
   knowledge:
-    - knowledge/company-taxonomy/
-    - knowledge/market-vocabulary/
+    - _career-skills-shared/knowledge/company-taxonomy/
+    - _career-skills-shared/knowledge/market-vocabulary/
   references:
     - references/jd-risk-signals.md

@@ -73,7 +73,7 @@ outputs:
 
 dependencies:
   shared_schemas:
-    - shared/evidence-schema/evidence.schema.json
-    - shared/output-schema/skill-output-base.schema.json
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
   knowledge:
-    - knowledge/role-taxonomy/
+    - _career-skills-shared/knowledge/role-taxonomy/
