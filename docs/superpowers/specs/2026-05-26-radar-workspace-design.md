@@ -378,7 +378,7 @@ Newspaper 首页的 trending tags 加 `onClick`：
 |---------|------|
 | 公司聚合 source 分布 | xhs_count + nowcoder_count + wechat_count = total_count |
 | role_category 归一化 | 不出现 "产品经理"/"AI产品经理"/"产品实习" 碎片，全部归 "product" |
-| low confidence 不计入 usable | usable_count 只含 medium/high + quality_score>=50 + content>200 |
+| low confidence 不计入 usable | usable_count 只含 medium/high + normalized_quality_score>=50 + content>=200 |
 | current quarter 映射 | normalizeQuarter('current') = '2026Q2' |
 | 无历史数据时趋势 | comparison.has_baseline=false, message 为诚实提示 |
 | 公司卡片字段完整 | company_card 包含所有 CompanyRadarItem 字段 |
