@@ -590,6 +590,81 @@ describe('Newspaper (e2e)', () => {
   });
 
   /* ================================================================ */
+  /*  GET /newspaper/radar/trends                                      */
+  /* ================================================================ */
+
+  describe('GET /api/newspaper/radar/trends', () => {
+    it('returns TrendRadarResponse structure with period, this_week, comparison, hot_posts', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.period).toBeDefined();
+      expect(typeof res.body.period.current_start).toBe('string');
+      expect(typeof res.body.period.current_end).toBe('string');
+      expect(typeof res.body.period.previous_start).toBe('string');
+      expect(typeof res.body.period.previous_end).toBe('string');
+      expect(res.body.this_week).toBeDefined();
+      expect(res.body.comparison).toBeDefined();
+      expect(Array.isArray(res.body.hot_posts)).toBe(true);
+    });
+
+    it('this_week contains new_items, new_companies, new_role_categories, top_sources', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(typeof res.body.this_week.new_items).toBe('number');
+      expect(Array.isArray(res.body.this_week.new_companies)).toBe(true);
+      expect(Array.isArray(res.body.this_week.new_role_categories)).toBe(true);
+      expect(Array.isArray(res.body.this_week.top_sources)).toBe(true);
+    });
+
+    it('comparison has has_baseline, item_count_delta, item_count_previous, message', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(typeof res.body.comparison.has_baseline).toBe('boolean');
+      expect(typeof res.body.comparison.item_count_delta).toBe('number');
+      expect(typeof res.body.comparison.item_count_previous).toBe('number');
+      expect(typeof res.body.comparison.message).toBe('string');
+    });
+
+    it('hot_posts entries have title, source_kind, source_url, created_at', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const post of res.body.hot_posts) {
+        expect(typeof post.title).toBe('string');
+        expect(typeof post.source_kind).toBe('string');
+        expect(typeof post.source_url).toBe('string');
+        expect(post.source_url.length).toBeGreaterThan(0);
+        expect(typeof post.created_at).toBe('string');
+      }
+    });
+
+    it('top_sources entries have source_kind and numeric count', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const src of res.body.this_week.top_sources) {
+        expect(typeof src.source_kind).toBe('string');
+        expect(typeof src.count).toBe('number');
+        expect(src.count).toBeGreaterThan(0);
+      }
+    });
+
+    it('returns 401 without auth token', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  /* ================================================================ */
   /*  User personalization — coach_actions react to user state        */
   /* ================================================================ */
 

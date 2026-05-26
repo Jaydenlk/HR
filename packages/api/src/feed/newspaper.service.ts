@@ -126,6 +126,13 @@ export interface RoleRadarResponse {
   generated_at: string;
 }
 
+export interface TrendRadarResponse {
+  period: { current_start: string; current_end: string; previous_start: string; previous_end: string; };
+  this_week: { new_items: number; new_companies: string[]; new_role_categories: string[]; top_sources: Array<{ source_kind: string; count: number }>; };
+  comparison: { has_baseline: boolean; item_count_delta: number; item_count_previous: number; message: string; };
+  hot_posts: Array<{ title: string; company: string | null; role_category: string | null; source_kind: string; source_url: string; created_at: string; }>;
+}
+
 @Injectable()
 export class NewspaperService {
   constructor(
@@ -612,6 +619,93 @@ export class NewspaperService {
       roles,
       total_roles: roles.length,
       generated_at: new Date().toISOString(),
+    };
+  }
+
+  // --- Radar Trends ---
+
+  async getRadarTrends(): Promise<TrendRadarResponse> {
+    const now = new Date();
+
+    const currentEnd = now;
+    const currentStart = new Date(now);
+    currentStart.setDate(currentStart.getDate() - 7);
+
+    const previousEnd = new Date(currentStart);
+    const previousStart = new Date(currentStart);
+    previousStart.setDate(previousStart.getDate() - 7);
+
+    const allItems = await this.feedRepo.find({
+      where: {
+        source_kind: In(['xhs', 'nowcoder', 'wechat']),
+      },
+    });
+
+    const currentItems = allItems.filter(
+      (i) => i.created_at && i.created_at >= currentStart && i.created_at <= currentEnd,
+    );
+    const previousItems = allItems.filter(
+      (i) => i.created_at && i.created_at >= previousStart && i.created_at < previousEnd,
+    );
+
+    const currentCompanies = new Set(currentItems.map((i) => i.company).filter(Boolean) as string[]);
+    const previousCompanies = new Set(previousItems.map((i) => i.company).filter(Boolean) as string[]);
+    const newCompanies = [...currentCompanies].filter((c) => !previousCompanies.has(c));
+
+    const currentRoles = new Set(currentItems.map((i) => i.role_category).filter(Boolean) as string[]);
+    const previousRoles = new Set(previousItems.map((i) => i.role_category).filter(Boolean) as string[]);
+    const newRoleCategories = [...currentRoles].filter((r) => !previousRoles.has(r));
+
+    // top_sources by count
+    const sourceCounts = new Map<string, number>();
+    for (const item of currentItems) {
+      sourceCounts.set(item.source_kind, (sourceCounts.get(item.source_kind) ?? 0) + 1);
+    }
+    const topSources = [...sourceCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([source_kind, count]) => ({ source_kind, count }));
+
+    // comparison
+    const hasBaseline = previousItems.length > 0;
+    const itemCountDelta = hasBaseline ? currentItems.length - previousItems.length : 0;
+    const message = hasBaseline
+      ? `本周${currentItems.length}条，环比${itemCountDelta >= 0 ? '+' : ''}${itemCountDelta}条`
+      : '暂无足够历史数据计算环比';
+
+    // hot_posts: usable items from current period, most recent 5
+    const hotPosts = currentItems
+      .filter((i) => isUsable(i) && i.source_url && i.source_url.trim() !== '')
+      .sort((a, b) => (b.created_at?.getTime() ?? 0) - (a.created_at?.getTime() ?? 0))
+      .slice(0, 5)
+      .map((i) => ({
+        title: i.title,
+        company: i.company,
+        role_category: i.role_category,
+        source_kind: i.source_kind,
+        source_url: i.source_url as string,
+        created_at: i.created_at?.toISOString() ?? '',
+      }));
+
+    return {
+      period: {
+        current_start: currentStart.toISOString(),
+        current_end: currentEnd.toISOString(),
+        previous_start: previousStart.toISOString(),
+        previous_end: previousEnd.toISOString(),
+      },
+      this_week: {
+        new_items: currentItems.length,
+        new_companies: newCompanies,
+        new_role_categories: newRoleCategories,
+        top_sources: topSources,
+      },
+      comparison: {
+        has_baseline: hasBaseline,
+        item_count_delta: itemCountDelta,
+        item_count_previous: previousItems.length,
+        message,
+      },
+      hot_posts: hotPosts,
     };
   }
 
