@@ -515,6 +515,28 @@ describe('Newspaper (e2e)', () => {
       }
     });
 
+    it('company radar excludes literal "null" company', async () => {
+      // Seed an item with literal "null" company string
+      await seedFeedItem(feedRepo, {
+        title: '字面null公司面经',
+        source: 'xhs',
+        source_kind: 'xhs',
+        source_name: '小红书',
+        source_url: 'https://www.xiaohongshu.com/post/null-company-001',
+        company: 'null',
+        role_category: 'backend',
+      });
+
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/companies')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const c of res.body.companies) {
+        expect(c.company.toLowerCase()).not.toBe('null');
+        expect(c.company.trim()).not.toBe('');
+      }
+    });
+
     it('returns 401 without auth token', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/newspaper/radar/companies');
@@ -642,6 +664,18 @@ describe('Newspaper (e2e)', () => {
         expect(typeof post.source_url).toBe('string');
         expect(post.source_url.length).toBeGreaterThan(0);
         expect(typeof post.created_at).toBe('string');
+      }
+    });
+
+    it('trend new_role_categories does not contain "null"', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const rc of res.body.this_week.new_role_categories) {
+        expect(rc).not.toBe('null');
+        expect(rc).not.toBe('');
+        expect(rc).not.toBeNull();
       }
     });
 

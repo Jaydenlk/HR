@@ -416,9 +416,14 @@ export class NewspaperService {
       },
     });
 
-    // Filter to items with non-null, non-empty company
+    // Filter to items with non-null, non-empty company (exclude literal "null" and placeholder values)
     const companyItems = items.filter(
-      (i) => i.company !== null && i.company.trim() !== '',
+      (i) =>
+        i.company !== null &&
+        i.company.trim() !== '' &&
+        i.company.trim().toLowerCase() !== 'null' &&
+        i.company.trim() !== '(未分类)' &&
+        i.company.trim() !== '(???)',
     );
 
     // Group by company
@@ -649,12 +654,15 @@ export class NewspaperService {
       (i) => i.created_at && i.created_at >= previousStart && i.created_at < previousEnd,
     );
 
-    const currentCompanies = new Set(currentItems.map((i) => i.company).filter(Boolean) as string[]);
-    const previousCompanies = new Set(previousItems.map((i) => i.company).filter(Boolean) as string[]);
+    const isValidCompany = (c: string | null): c is string =>
+      !!c && c.trim() !== '' && c.trim().toLowerCase() !== 'null' && c.trim() !== '(未分类)' && c.trim() !== '(???)';
+
+    const currentCompanies = new Set(currentItems.map((i) => i.company).filter(isValidCompany));
+    const previousCompanies = new Set(previousItems.map((i) => i.company).filter(isValidCompany));
     const newCompanies = [...currentCompanies].filter((c) => !previousCompanies.has(c));
 
-    const currentRoles = new Set(currentItems.map((i) => i.role_category).filter(Boolean) as string[]);
-    const previousRoles = new Set(previousItems.map((i) => i.role_category).filter(Boolean) as string[]);
+    const currentRoles = new Set(currentItems.map((i) => normalizeRoleCategory(i.role_category)));
+    const previousRoles = new Set(previousItems.map((i) => normalizeRoleCategory(i.role_category)));
     const newRoleCategories = [...currentRoles].filter((r) => !previousRoles.has(r));
 
     // top_sources by count
