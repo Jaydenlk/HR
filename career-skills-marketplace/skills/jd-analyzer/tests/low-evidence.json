@@ -1,0 +1,14 @@
+{
+  "description": "超短 JD（< 50 字），期望低置信度，大量字段为 null",
+  "input": {
+    "jd_text": "招 Java 后端，3 年以上，上海，薪资面议，有意者加微信"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "low" },
+    { "path": "parsed_jd.basic.title", "operator": "eq", "value": null },
+    { "path": "parsed_jd.basic.company", "operator": "eq", "value": null },
+    { "path": "parsed_jd.basic.location", "operator": "not_null" },
+    { "path": "parsed_jd.responsibilities", "operator": "length_eq", "value": 0 },
+    { "path": "parsed_jd.benefits", "operator": "length_eq", "value": 0 }
+  ]
+}

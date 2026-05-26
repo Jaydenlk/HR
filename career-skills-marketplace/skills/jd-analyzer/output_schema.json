@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "jd-analyzer/output",
+  "title": "jd-analyzer 输出",
+  "allOf": [
+    { "$ref": "../../shared/output-schema/skill-output-base.schema.json" }
+  ],
+  "properties": {
+    "skill": { "const": "jd-analyzer" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "JD 解析整体置信度"
+    },
+    "risk_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "识别到的风险信号总数"
+    },
+    "implicit_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "识别到的隐性要求总数"
+    },
+    "parsed_jd": {
+      "type": "object",
+      "required": ["basic", "requirements", "responsibilities"],
+      "properties": {
+        "basic": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "oneOf": [{ "type": "string" }, { "type": "null" }]
+            },
+            "company": {
+              "oneOf": [{ "type": "string" }, { "type": "null" }]
+            },
+            "location": {
+              "oneOf": [{ "type": "string" }, { "type": "null" }]
+            },
+            "salary_range": {
+              "oneOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "原文薪资字符串，无薪资信息时必须为 null"
+            },
+            "employment_type": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "enum": ["full_time", "part_time", "internship", "contract", "unknown"]
+                },
+                { "type": "null" }
+              ]
+            }
+          }
+        },
+        "requirements": {
+          "type": "object",
+          "required": ["explicit", "implicit"],
+          "properties": {
+            "explicit": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["text", "type", "priority"],
+                "properties": {
+                  "text": { "type": "string" },
+                  "type": {
+                    "type": "string",
+                    "enum": ["education", "experience", "technical", "soft", "other"]
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": ["must_have", "nice_to_have"]
+                  }
+                }
+              }
+            },
+            "implicit": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["text", "inference_reason", "confidence"],
+                "properties": {
+                  "text": { "type": "string" },
+                  "inference_reason": {
+                    "type": "string",
+                    "description": "推断依据，必须引用原文片段"
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": ["high", "medium", "low"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "risk_signals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["signal", "real_meaning", "severity", "evidence"],
+            "properties": {
+              "signal": {
+                "type": "string",
+                "description": "JD 中的原始表述"
+              },
+              "real_meaning": {
+                "type": "string",
+                "description": "实际含义（来自知识图谱）"
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["red", "yellow", "notice"]
+              },
+              "evidence": {
+                "type": "string",
+                "description": "原文片段"
+              }
+            }
+          }
+        },
+        "responsibilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["text", "category"],
+            "properties": {
+              "text": { "type": "string" },
+              "category": {
+                "type": "string",
+                "enum": ["core", "ancillary", "unclear"]
+              }
+            }
+          }
+        },
+        "benefits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["text", "verified"],
+            "properties": {
+              "text": { "type": "string" },
+              "verified": {
+                "type": "boolean",
+                "description": "是否可客观验证（五险一金=true，「有竞争力薪酬」=false）"
+              }
+            }
+          }
+        },
+        "company_context": {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "type": "string",
+              "enum": ["startup", "growth", "mature", "unknown"]
+            },
+            "signals": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "判断发展阶段的依据"
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["skill", "confidence", "risk_count", "implicit_count", "parsed_jd"]
+}
