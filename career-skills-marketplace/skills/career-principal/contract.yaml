@@ -74,6 +74,24 @@ tools_allowed: [Read, Grep, Glob]
 confidence_policy:
   rule: "取所有 sub-skill confidence 中最低值"
 
+knowledge_dependencies:
+  - path: knowledge/company-taxonomy/companies.seed.yaml
+    usage: "公司基本信息、公司类型和已知风险信号查询"
+    required: false
+    degradation: "仅使用 JD 原文中的公司信息，不补充知识图谱数据"
+  - path: knowledge/company-taxonomy/company-types.yaml
+    usage: "判断公司发展阶段（初创/成长/成熟）"
+    required: false
+    degradation: "company_context.stage 标注为 unknown"
+  - path: knowledge/role-taxonomy/roles.yaml
+    usage: "岗位技能要求参考，辅助匹配诊断"
+    required: false
+    degradation: "仅依赖 JD 中的显性技能要求"
+  - path: knowledge/market-vocabulary/china-job-search-terms.yaml
+    usage: "中国求职黑话解析（996/大小周/虚拟股等）"
+    required: false
+    degradation: "使用内置术语表，可能覆盖不全"
+
 failure_modes:
   - sub_skill_unavailable: "降级到可用 skill + 知识图谱查询"
   - insufficient_input: "追问缺失信息（最多3轮）"

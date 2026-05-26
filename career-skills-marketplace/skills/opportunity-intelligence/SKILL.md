@@ -62,3 +62,12 @@ allowed-tools:
 ## 输出格式
 
 见 `output_schema.json`。输出语言为中文（字段名保持英文）。
+
+## 知识图谱引用
+
+本 skill 使用以下知识文件辅助判断：
+
+| 文件 | 用途 | 何时使用 | 不可用时降级 |
+|------|------|---------|------------|
+| `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 查询目标公司的已知风险信号、公司类型（tier）和发展阶段，辅助风险维度评分 | 计算风险系数（25%权重）时，判断公司是否属于已知高风险类别 | 风险维度仅依赖 jd-analyzer 输出的 risk_signals，不补充公司历史信息 |
+| `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型分类，辅助判断市场定位维度（35%权重）中的品牌价值评估 | 评估公司品牌/成长维度时 | 品牌维度标注为 uncertain，仅依赖 JD 文本推断 |

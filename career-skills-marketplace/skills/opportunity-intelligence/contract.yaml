@@ -80,6 +80,16 @@ test_cases:
   - tests/source-conflict.json
   - tests/hallucination-guard.json
 
+knowledge_dependencies:
+  - path: knowledge/company-taxonomy/companies.seed.yaml
+    usage: "查询目标公司已知风险信号和公司类型（tier），辅助风险维度（25%）评分"
+    required: false
+    degradation: "风险维度仅依赖传入的 jd_analysis.risk_signals，不补充公司历史数据"
+  - path: knowledge/company-taxonomy/company-types.yaml
+    usage: "公司类型分类，辅助市场定位维度（35%）中品牌价值判断"
+    required: false
+    degradation: "品牌维度标注 uncertain，评分保守估算"
+
 china_market_specificity: high
 
 live_research_required: false

@@ -171,6 +171,16 @@ outputs:
     type: string
     description: 置信度为 insufficient 时，说明具体缺失的数据项（评分时此字段不存在）
 
+knowledge_dependencies:
+  - path: knowledge/role-taxonomy/roles.yaml
+    usage: "目标岗位标准技能要求，补充 JD 未列出的隐性技能要求，用于技能匹配维度评分"
+    required: false
+    degradation: "仅比对 JD 中的显性技能要求，技能维度评分可能偏宽松"
+  - path: knowledge/role-taxonomy/role-categories.yaml
+    usage: "岗位大类分类，辅助判断用户职业轨迹与目标岗位的一致性（role 维度）"
+    required: false
+    degradation: "仅依赖职位名称文字匹配，岗位目标维度评分准确度降低"
+
 failure_modes:
   - id: missing_user_profile
     condition: user_profile 未提供
