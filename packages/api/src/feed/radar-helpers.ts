@@ -63,6 +63,18 @@ export function normalizeQuarter(input: string): string | null {
   return input;
 }
 
+export function deriveQuarterFromPublishedAt(
+  publishedAt: Date | string | null,
+  dateConfidence: string,
+): string | null {
+  if (!publishedAt) return null;
+  if (dateConfidence === 'low' || dateConfidence === 'unknown') return null;
+  const date = typeof publishedAt === 'string' ? new Date(publishedAt) : publishedAt;
+  if (isNaN(date.getTime())) return null;
+  const q = Math.ceil((date.getMonth() + 1) / 3);
+  return `${date.getFullYear()}Q${q}`;
+}
+
 const KNOWN_ROLE_KEYS = new Set([
   'backend', 'frontend', 'algorithm', 'embedded', 'product',
   'operations', 'hr', 'design', 'data', 'finance', 'consulting', 'marketing',

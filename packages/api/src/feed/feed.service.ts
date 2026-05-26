@@ -7,6 +7,7 @@ import { FeedQueryDto } from './dto/feed-query.dto';
 import type { ClassifiedFeed } from './feed-classifier.service';
 import type { FeedCandidate } from './importers/feed-importer.interface';
 import { CompanyRegistryService } from './company-registry.service';
+import { deriveQuarterFromPublishedAt } from './radar-helpers';
 
 @Injectable()
 export class FeedService {
@@ -106,6 +107,7 @@ export class FeedService {
       external_id: candidate.external_id,
       fetched_at: candidate.fetched_at,
       published_at: candidate.published_at,
+      date_confidence: candidate.date_confidence,
       category: classified.category,
       tags_json: JSON.stringify(classified.tags),
       quality_score: classified.quality_score,
@@ -118,6 +120,7 @@ export class FeedService {
       quarter: classified.quarter,
       confidence: classified.confidence,
     });
+    item.quarter = deriveQuarterFromPublishedAt(candidate.published_at, candidate.date_confidence);
     if (classified.company) {
       const matched = await this.companyRegistry.matchCompany(classified.company);
       if (matched) {
