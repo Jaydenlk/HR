@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   ExternalLink,
@@ -10,7 +11,27 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { FeedItem, FeedSourceKind, RadarResult } from '@/lib/types';
+import type {
+  FeedItem,
+  FeedSourceKind,
+  RadarResult,
+  CompanyRadarItem,
+  CompanyRadarResponse,
+  RoleRadarItem,
+  RoleRadarResponse,
+  TrendRadarResponse,
+} from '@/lib/types';
+
+/* ---- Constants ---- */
+
+type RadarTab = 'search' | 'company' | 'role' | 'trend';
+
+const TAB_LIST: Array<{ value: RadarTab; label: string }> = [
+  { value: 'search', label: '搜索' },
+  { value: 'company', label: '公司雷达' },
+  { value: 'role', label: '岗位雷达' },
+  { value: 'trend', label: '趋势' },
+];
 
 const SOURCE_KIND_LABELS: Record<FeedSourceKind, string> = {
   xhs: '小红书',
@@ -27,6 +48,22 @@ const CATEGORY_LABELS: Record<string, string> = {
   job_tips: '求职策略',
   hiring_signal: '招聘信号',
   editorial: '编辑精选',
+};
+
+const ROLE_CATEGORY_LABELS: Record<string, string> = {
+  backend: '后端',
+  frontend: '前端',
+  algorithm: '算法',
+  embedded: '嵌入式',
+  product: '产品',
+  operations: '运营',
+  hr: 'HR',
+  design: '设计',
+  data: '数据',
+  finance: '金融',
+  consulting: '咨询',
+  marketing: '市场',
+  general: '综合',
 };
 
 const ROLE_TABS: Array<{ value: string; label: string }> = [
@@ -52,6 +89,8 @@ const QUARTER_TABS: Array<{ value: string; label: string }> = [
   { value: 'previous', label: '上季度' },
 ];
 
+/* ---- Interfaces ---- */
+
 interface Filters {
   company: string;
   role_category: string;
@@ -70,6 +109,8 @@ const INITIAL_FILTERS: Filters = {
   page: 1,
 };
 
+/* ---- Helpers ---- */
+
 function formatDate(value: string | null): string {
   if (!value) return '';
   const date = new Date(value);
@@ -80,6 +121,21 @@ function formatDate(value: string | null): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m 前`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h 前`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d 前`;
+}
+
+function formatDateShort(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}.${d.getDate()}`;
 }
 
 function excerpt(item: FeedItem): string {
@@ -97,11 +153,41 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : '请求失败，请稍后再试';
 }
 
+/* ---- Exported Page (Suspense boundary for useSearchParams) ---- */
+
 export default function RadarPage() {
+  return (
+    <Suspense fallback={<RadarLoading />}>
+      <RadarPageInner />
+    </Suspense>
+  );
+}
+
+function RadarLoading() {
+  return (
+    <main className="radar-shell">
+      <style>{RADAR_CSS}</style>
+      <div className="loading-state">
+        <Loader2 className="spin" size={20} />
+        正在加载...
+      </div>
+    </main>
+  );
+}
+
+/* ---- Main Page Component ---- */
+
+function RadarPageInner() {
+  const searchParams = useSearchParams();
+
+  const [activeTab, setActiveTab] = useState<RadarTab>('search');
   const [result, setResult] = useState<RadarResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
+  const [filters, setFilters] = useState<Filters>(() => {
+    const urlKeyword = searchParams.get('keyword') ?? '';
+    return { ...INITIAL_FILTERS, keyword: urlKeyword };
+  });
 
   const updateFilter = useCallback(
     (key: keyof Filters, value: string | number) => {
@@ -152,11 +238,19 @@ export default function RadarPage() {
     };
   }, [filters, fetchRadar]);
 
-  const items = result?.items ?? [];
-  const total = result?.total ?? 0;
-  const companyStats = result?.company_stats ?? [];
-  const roleStats = result?.role_stats ?? [];
-  const hasMore = total > filters.page * 20;
+  const handleViewCompany = useCallback((company: string) => {
+    setFilters((prev) => ({ ...prev, company, page: 1 }));
+    setLoading(true);
+    setPageError(null);
+    setActiveTab('search');
+  }, []);
+
+  const handleViewRole = useCallback((roleCategory: string) => {
+    setFilters((prev) => ({ ...prev, role_category: roleCategory, page: 1 }));
+    setLoading(true);
+    setPageError(null);
+    setActiveTab('search');
+  }, []);
 
   return (
     <main className="radar-shell">
@@ -176,6 +270,66 @@ export default function RadarPage() {
         </div>
       </section>
 
+      {/* Tab Bar */}
+      <div className="radar-tabs" role="tablist" aria-label="雷达模式">
+        {TAB_LIST.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.value}
+            className={`radar-tab${activeTab === tab.value ? ' active' : ''}`}
+            onClick={() => setActiveTab(tab.value)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'search' && (
+        <SearchTab
+          filters={filters}
+          updateFilter={updateFilter}
+          result={result}
+          loading={loading}
+          pageError={pageError}
+        />
+      )}
+      {activeTab === 'company' && (
+        <CompanyTab onViewCompany={handleViewCompany} />
+      )}
+      {activeTab === 'role' && (
+        <RoleTab onViewRole={handleViewRole} />
+      )}
+      {activeTab === 'trend' && <TrendTab />}
+    </main>
+  );
+}
+
+/* ---- Search Tab (existing functionality preserved) ---- */
+
+function SearchTab({
+  filters,
+  updateFilter,
+  result,
+  loading,
+  pageError,
+}: {
+  filters: Filters;
+  updateFilter: (key: keyof Filters, value: string | number) => void;
+  result: RadarResult | null;
+  loading: boolean;
+  pageError: string | null;
+}) {
+  const items = result?.items ?? [];
+  const total = result?.total ?? 0;
+  const companyStats = result?.company_stats ?? [];
+  const roleStats = result?.role_stats ?? [];
+  const hasMore = total > filters.page * 20;
+
+  return (
+    <>
       {/* Filter Bar */}
       <section className="filter-bar" aria-label="筛选条件">
         <div className="filter-row">
@@ -333,9 +487,11 @@ export default function RadarPage() {
           )}
         </>
       )}
-    </main>
+    </>
   );
 }
+
+/* ---- Radar Card (existing search result card) ---- */
 
 function RadarCard({ item }: { item: FeedItem }) {
   const confidence = getConfidence(item);
@@ -393,6 +549,358 @@ function RadarCard({ item }: { item: FeedItem }) {
   );
 }
 
+/* ---- Company Tab ---- */
+
+function CompanyTab({ onViewCompany }: { onViewCompany: (company: string) => void }) {
+  const [data, setData] = useState<CompanyRadarResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get<CompanyRadarResponse>('/newspaper/radar/companies')
+      .then((d) => { if (!cancelled) { setData(d); setError(null); } })
+      .catch((e) => { if (!cancelled) setError(getErrorMessage(e)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) return <div className="loading-state"><Loader2 className="spin" size={20} />加载公司雷达...</div>;
+  if (error) return <div className="error-banner" role="alert"><AlertCircle size={16} /><span>{error}</span></div>;
+  if (!data || data.companies.length === 0) {
+    return (
+      <div className="empty-state">
+        <Search size={26} />
+        <h2>暂无公司数据</h2>
+        <p>还没有采集到带公司标签的面经。</p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="radar-grid" aria-label="公司雷达">
+      {data.companies.map((c) => (
+        <CompanyCard key={c.company} item={c} onView={() => onViewCompany(c.company)} />
+      ))}
+    </section>
+  );
+}
+
+function CompanyCard({ item, onView }: { item: CompanyRadarItem; onView: () => void }) {
+  const total = item.total_count || 1;
+  const xhsPct = Math.round((item.xhs_count / total) * 100);
+  const ncPct = Math.round((item.nowcoder_count / total) * 100);
+  const wxPct = 100 - xhsPct - ncPct;
+
+  const latestStr = item.latest_collected_at ? formatRelativeTime(item.latest_collected_at) : '';
+
+  return (
+    <article
+      className="radar-card company-card"
+      style={item.priority === 'B' ? { opacity: 0.85 } : undefined}
+    >
+      <div className="card-top">
+        <span className="company-name">{item.company}</span>
+        <span className="company-meta">
+          {item.priority && <span className="priority-badge">{item.priority}</span>}
+          {item.sector && <span className="sector-label">{item.sector}</span>}
+        </span>
+      </div>
+
+      <div className="company-stats-row">
+        <span>面经 <strong>{item.total_count}</strong> 条</span>
+        <span className="dot-sep" />
+        <span>可用 <strong>{item.usable_count}</strong> 条</span>
+      </div>
+
+      {/* Source distribution bar */}
+      <div className="source-bar">
+        {item.xhs_count > 0 && (
+          <div className="source-seg xhs" style={{ width: `${xhsPct}%` }}
+            title={`小红书 ${item.xhs_count}`} />
+        )}
+        {item.nowcoder_count > 0 && (
+          <div className="source-seg nowcoder" style={{ width: `${ncPct}%` }}
+            title={`牛客 ${item.nowcoder_count}`} />
+        )}
+        {item.wechat_count > 0 && (
+          <div className="source-seg wechat" style={{ width: `${wxPct}%` }}
+            title={`公众号 ${item.wechat_count}`} />
+        )}
+      </div>
+      <div className="source-legend">
+        {item.xhs_count > 0 && <span className="legend-item xhs">XHS {item.xhs_count}</span>}
+        {item.nowcoder_count > 0 && <span className="legend-item nowcoder">牛客 {item.nowcoder_count}</span>}
+        {item.wechat_count > 0 && <span className="legend-item wechat">公众号 {item.wechat_count}</span>}
+      </div>
+
+      {/* Top roles */}
+      {item.top_roles.length > 0 && (
+        <div className="card-company-role">
+          {item.top_roles.map((r) => (
+            <span key={r} className="role-tag">{ROLE_CATEGORY_LABELS[r] ?? r}</span>
+          ))}
+        </div>
+      )}
+
+      <div className="company-signal-row">
+        <span>质量分 {item.quality_score_avg}</span>
+        {item.dominant_signal && (
+          <>
+            <span className="dot-sep" />
+            <span className="signal-text">{item.dominant_signal}</span>
+          </>
+        )}
+      </div>
+
+      <div className="card-footer">
+        <small>{latestStr ? `最新采集 ${latestStr}` : ''}</small>
+        <button type="button" className="view-company-btn" onClick={onView}>
+          查看该公司面经 →
+        </button>
+      </div>
+    </article>
+  );
+}
+
+/* ---- Role Tab ---- */
+
+function RoleTab({ onViewRole }: { onViewRole: (role: string) => void }) {
+  const [data, setData] = useState<RoleRadarResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get<RoleRadarResponse>('/newspaper/radar/roles')
+      .then((d) => { if (!cancelled) { setData(d); setError(null); } })
+      .catch((e) => { if (!cancelled) setError(getErrorMessage(e)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) return <div className="loading-state"><Loader2 className="spin" size={20} />加载岗位雷达...</div>;
+  if (error) return <div className="error-banner" role="alert"><AlertCircle size={16} /><span>{error}</span></div>;
+  if (!data || data.roles.length === 0) {
+    return (
+      <div className="empty-state">
+        <Search size={26} />
+        <h2>暂无岗位数据</h2>
+        <p>还没有按岗位分类的面经数据。</p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="radar-grid" aria-label="岗位雷达">
+      {data.roles.map((r) => (
+        <RoleCard key={r.role_category} item={r} onView={() => onViewRole(r.role_category)} />
+      ))}
+    </section>
+  );
+}
+
+function RoleCard({ item, onView }: { item: RoleRadarItem; onView: () => void }) {
+  const sourcePreference =
+    item.xhs_count > item.nowcoder_count * 2 ? '偏 XHS'
+    : item.nowcoder_count > item.xhs_count * 2 ? '偏牛客'
+    : '均衡';
+
+  const total = item.total_count || 1;
+  const xhsPct = Math.round((item.xhs_count / total) * 100);
+  const ncPct = Math.round((item.nowcoder_count / total) * 100);
+  const wxPct = Math.max(100 - xhsPct - ncPct, 0);
+
+  return (
+    <article className="radar-card role-card">
+      <div className="card-top">
+        <span className="role-card-name">{item.label}</span>
+        <span className={`source-pref-badge ${sourcePreference === '偏 XHS' ? 'xhs' : sourcePreference === '偏牛客' ? 'nowcoder' : ''}`}>
+          {sourcePreference}
+        </span>
+      </div>
+
+      <div className="company-stats-row">
+        <span>面经 <strong>{item.total_count}</strong> 条</span>
+        <span className="dot-sep" />
+        <span>覆盖 <strong>{item.companies_covered}</strong> 家公司</span>
+      </div>
+
+      {/* Source bar */}
+      <div className="source-bar">
+        {item.xhs_count > 0 && <div className="source-seg xhs" style={{ width: `${xhsPct}%` }} />}
+        {item.nowcoder_count > 0 && <div className="source-seg nowcoder" style={{ width: `${ncPct}%` }} />}
+        {item.wechat_count > 0 && <div className="source-seg wechat" style={{ width: `${wxPct}%` }} />}
+      </div>
+
+      {/* Top companies */}
+      {item.top_companies.length > 0 && (
+        <div className="card-company-role">
+          {item.top_companies.map((c) => (
+            <span key={c} className="company-tag">{c}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Common question keywords */}
+      {item.common_question_keywords.length > 0 && (
+        <div className="question-keywords">
+          <small className="section-label">常见考点:</small>
+          <div className="keyword-tags">
+            {item.common_question_keywords.map((kw) => (
+              <span key={kw} className="keyword-tag">{kw}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Representative posts */}
+      {item.representative_posts.length > 0 && (
+        <div className="repr-posts">
+          <small className="section-label">精选面经:</small>
+          {item.representative_posts.map((post, i) => (
+            <a
+              key={i}
+              href={post.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="repr-post-link"
+            >
+              {post.title}
+              {post.company && <span className="repr-company">({post.company})</span>}
+              <ExternalLink size={11} />
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div className="card-footer">
+        <small>可用 {item.usable_count} 条</small>
+        <button type="button" className="view-company-btn" onClick={onView}>
+          查看该岗位面经 →
+        </button>
+      </div>
+    </article>
+  );
+}
+
+/* ---- Trend Tab ---- */
+
+function TrendTab() {
+  const [data, setData] = useState<TrendRadarResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get<TrendRadarResponse>('/newspaper/radar/trends')
+      .then((d) => { if (!cancelled) { setData(d); setError(null); } })
+      .catch((e) => { if (!cancelled) setError(getErrorMessage(e)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) return <div className="loading-state"><Loader2 className="spin" size={20} />加载趋势...</div>;
+  if (error) return <div className="error-banner" role="alert"><AlertCircle size={16} /><span>{error}</span></div>;
+  if (!data) return null;
+
+  const periodLabel = `${formatDateShort(data.period.current_start)} - ${formatDateShort(data.period.current_end)}`;
+
+  return (
+    <section className="trend-section" aria-label="趋势">
+      {/* Header */}
+      <div className="trend-header">
+        <h2>本周趋势</h2>
+        <span className="trend-period">{periodLabel}</span>
+      </div>
+
+      {/* This week stats */}
+      <div className="trend-stat-card">
+        <div className="trend-big-number">
+          本周新增 <strong>{data.this_week.new_items}</strong> 条面经
+        </div>
+        <div className={`trend-comparison ${!data.comparison.has_baseline ? 'muted' : ''}`}>
+          {data.comparison.message}
+        </div>
+      </div>
+
+      {/* New companies & roles */}
+      {data.this_week.new_companies.length > 0 && (
+        <div className="trend-new-section">
+          <h3>新增公司</h3>
+          <div className="card-company-role">
+            {data.this_week.new_companies.map((c) => (
+              <span key={c} className="company-tag">{c}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.this_week.new_role_categories.length > 0 && (
+        <div className="trend-new-section">
+          <h3>新增岗位类</h3>
+          <div className="card-company-role">
+            {data.this_week.new_role_categories.map((r) => (
+              <span key={r} className="role-tag">{ROLE_CATEGORY_LABELS[r] ?? r}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Source distribution */}
+      {data.this_week.top_sources.length > 0 && (
+        <div className="trend-new-section">
+          <h3>本周来源分布</h3>
+          <div className="source-legend">
+            {data.this_week.top_sources.map((s) => (
+              <span key={s.source_kind} className={`legend-item ${s.source_kind}`}>
+                {SOURCE_KIND_LABELS[s.source_kind as FeedSourceKind] ?? s.source_kind} {s.count} 条
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hot posts */}
+      {data.hot_posts.length > 0 && (
+        <div className="trend-new-section">
+          <h3>本周热门面经</h3>
+          <div className="hot-posts-list">
+            {data.hot_posts.map((post, i) => (
+              <a
+                key={i}
+                href={post.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hot-post-item"
+              >
+                <span className="hot-post-rank">{i + 1}</span>
+                <span className="hot-post-title">{post.title}</span>
+                {post.company && <span className="hot-post-company">{post.company}</span>}
+                <span className={`source-badge ${post.source_kind}`}>
+                  {SOURCE_KIND_LABELS[post.source_kind as FeedSourceKind] ?? post.source_kind}
+                </span>
+                <ExternalLink size={11} />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state for no hot_posts and no new_items */}
+      {data.this_week.new_items === 0 && data.hot_posts.length === 0 && (
+        <div className="empty-state">
+          <Search size={26} />
+          <h2>本周暂无新增面经</h2>
+          <p>系统会持续采集，请稍后再查看。</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---- Styles ---- */
+
 const RADAR_CSS = `
 .radar-shell {
   min-height: 100%;
@@ -428,6 +936,38 @@ const RADAR_CSS = `
   color: var(--color-ink-3);
   font-size: 14px;
   line-height: 1.65;
+}
+
+/* Tab bar */
+.radar-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--color-line);
+  padding-bottom: 0;
+}
+
+.radar-tab {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.radar-tab.active {
+  color: var(--color-brand);
+  border-bottom-color: var(--color-brand);
+}
+
+.radar-tab:hover:not(.active) {
+  color: var(--color-ink);
 }
 
 /* Filter bar */
@@ -763,6 +1303,274 @@ const RADAR_CSS = `
   color: var(--color-ink-2);
   background: var(--color-surface);
   font-family: inherit;
+}
+
+/* Company card */
+.company-card .company-name {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.company-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-ink);
+}
+
+.sector-label {
+  font-size: 11px;
+  color: var(--color-ink-3);
+}
+
+.company-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-ink-2);
+}
+
+.dot-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--color-ink-4);
+}
+
+.source-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-surface-3);
+}
+
+.source-seg { min-width: 3px; }
+.source-seg.xhs { background: #ff2442; }
+.source-seg.nowcoder { background: #00c853; }
+.source-seg.wechat { background: #1890ff; }
+
+.source-legend {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--color-ink-3);
+}
+
+.legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.legend-item.xhs::before { background: #ff2442; }
+.legend-item.nowcoder::before { background: #00c853; }
+.legend-item.wechat::before { background: #1890ff; }
+
+.company-signal-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-ink-3);
+}
+
+.signal-text {
+  color: var(--color-brand);
+  font-weight: 600;
+}
+
+.view-company-btn {
+  border: none;
+  background: none;
+  color: var(--color-brand);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+
+/* Role card */
+.role-card-name {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.source-pref-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  margin-left: auto;
+  color: var(--color-ink-3);
+  background: var(--color-surface-3);
+}
+
+.source-pref-badge.xhs { color: #ff2442; background: rgba(255,36,66,0.08); }
+.source-pref-badge.nowcoder { color: #00c853; background: rgba(0,200,83,0.08); }
+
+.question-keywords {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.section-label {
+  font-size: 11.5px;
+  color: var(--color-ink-4);
+  font-weight: 600;
+}
+
+.keyword-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.keyword-tag {
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--color-surface-2);
+  color: var(--color-ink-2);
+}
+
+.repr-posts {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.repr-post-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--color-ink-2);
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+.repr-post-link:hover { color: var(--color-brand); }
+.repr-company { color: var(--color-ink-4); font-size: 11px; }
+
+/* Trend tab */
+.trend-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trend-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.trend-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.trend-period {
+  font-size: 13px;
+  color: var(--color-ink-3);
+}
+
+.trend-stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.trend-big-number {
+  font-size: 16px;
+  color: var(--color-ink);
+  margin-bottom: 8px;
+}
+
+.trend-big-number strong {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-brand);
+}
+
+.trend-comparison {
+  font-size: 14px;
+  color: var(--color-ink-2);
+}
+
+.trend-comparison.muted {
+  color: var(--color-ink-4);
+  font-style: italic;
+}
+
+.trend-new-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.trend-new-section h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hot-posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hot-post-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-ink);
+  text-decoration: none;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.hot-post-item:last-child { border-bottom: none; }
+.hot-post-item:hover { color: var(--color-brand); }
+
+.hot-post-rank {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-brand);
+  min-width: 20px;
+}
+
+.hot-post-title { flex: 1; }
+
+.hot-post-company {
+  font-size: 11px;
+  color: var(--color-ink-3);
 }
 
 /* Responsive */
