@@ -1,4 +1,4 @@
-# Career Skills Marketplace Phase 1 Implementation Plan
+﻿# Career Skills Marketplace Phase 1 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -15,6 +15,49 @@
 - `docs/codex-handoff/career-skills-phase1-decisions.md` — confirmed decisions
 
 **Repo root:** A new directory `career-skills-marketplace/` will be created inside the current project as a standalone repo structure, ready to be extracted to its own Git repo.
+
+---
+
+## Task 0: Worktree Preparation
+
+**Subagent boundary: Main agent only — run before dispatching implementation subagents**
+
+**Files:** No project files created in this task. This task creates an isolated worktree and branch for Phase 1 implementation.
+
+- [ ] **Step 1: Verify current branch and clean working tree**
+
+```bash
+git status --short
+git branch --show-current
+```
+
+Expected: working tree has no unrelated uncommitted changes that would be mixed into Phase 1. If unrelated changes exist, stop and ask the user whether to stash, commit separately, or choose a different base branch.
+
+- [ ] **Step 2: Create a Phase 1 worktree from dev**
+
+```bash
+git fetch origin
+git switch dev
+git pull --ff-only
+git worktree add ../HRBP-career-skills-phase1 -b feature/career-skills-marketplace-phase1
+cd ../HRBP-career-skills-phase1
+```
+
+Expected: new worktree exists on branch `feature/career-skills-marketplace-phase1` and the shell is now inside it.
+
+- [ ] **Step 3: Confirm the plan and handoff docs are visible in the worktree**
+
+```bash
+test -f docs/superpowers/plans/2026-05-26-career-skills-marketplace-phase1.md
+test -f docs/codex-handoff/career-skills-phase1-decisions.md
+test -f docs/codex-handoff/career-skills-marketplace-implementation-constraints.md
+```
+
+Expected: all three commands exit 0.
+
+- [ ] **Step 4: Commit nothing in Task 0**
+
+Task 0 is environment setup only. Do not commit worktree creation metadata.
 
 ---
 
@@ -1189,26 +1232,20 @@ echo "Career Skills Marketplace Installer"
 echo "===================================="
 echo ""
 
-# Step 1: Check target directory
 if [ -d "$TARGET_DIR" ]; then
-  echo "WARNING: $TARGET_DIR already exists."
-  read -p "Overwrite? (y/N) " confirm
-  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-    echo "Aborted."
-    exit 0
-  fi
-  rm -rf "$TARGET_DIR"
+  echo "ERROR: $TARGET_DIR already exists."
+  echo "This Phase 1 installer never deletes or overwrites an existing skills directory."
+  echo "Move the existing directory yourself if you want a clean reinstall."
+  exit 1
 fi
 
 mkdir -p "$TARGET_DIR"
 
-# Step 2: Copy skills + shared + knowledge
-cp -r "$MARKETPLACE_DIR/skills" "$TARGET_DIR/"
-cp -r "$MARKETPLACE_DIR/shared" "$TARGET_DIR/"
-cp -r "$MARKETPLACE_DIR/knowledge" "$TARGET_DIR/"
+cp -R "$MARKETPLACE_DIR/skills" "$TARGET_DIR/"
+cp -R "$MARKETPLACE_DIR/shared" "$TARGET_DIR/"
+cp -R "$MARKETPLACE_DIR/knowledge" "$TARGET_DIR/"
 cp "$MARKETPLACE_DIR/marketplace.yaml" "$TARGET_DIR/"
 
-# Step 3: Verify 6 SKILL.md files exist
 SKILLS=("career-principal" "profile-builder" "jd-analyzer" "resume-tailor" "match-diagnosis" "source-quality-auditor")
 ALL_OK=true
 for skill in "${SKILLS[@]}"; do
@@ -1233,11 +1270,65 @@ fi
 
 - [ ] **Step 2: Create install.ps1**
 
-Same logic in PowerShell. Target: `$env:USERPROFILE\.claude\skills\career-skills-marketplace`. Copy skills/shared/knowledge, verify 6 SKILL.md files, output result.
+```powershell
+$ErrorActionPreference = "Stop"
 
-- [ ] **Step 3: Verify install.sh does not contain dangerous commands**
+$MarketplaceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$TargetDir = Join-Path $env:USERPROFILE ".claude\skills\career-skills-marketplace"
 
-Grep for: `rm -rf /`, `kill`, `pkill`, `sudo`, `chmod 777`. Must find none except the controlled `rm -rf "$TARGET_DIR"` with user confirmation.
+Write-Host "Career Skills Marketplace Installer"
+Write-Host "===================================="
+Write-Host ""
+
+if (Test-Path -LiteralPath $TargetDir) {
+    Write-Host "ERROR: $TargetDir already exists."
+    Write-Host "This Phase 1 installer never deletes or overwrites an existing skills directory."
+    Write-Host "Move the existing directory yourself if you want a clean reinstall."
+    exit 1
+}
+
+New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $MarketplaceDir "skills") -Destination $TargetDir -Recurse
+Copy-Item -LiteralPath (Join-Path $MarketplaceDir "shared") -Destination $TargetDir -Recurse
+Copy-Item -LiteralPath (Join-Path $MarketplaceDir "knowledge") -Destination $TargetDir -Recurse
+Copy-Item -LiteralPath (Join-Path $MarketplaceDir "marketplace.yaml") -Destination $TargetDir
+
+$Skills = @("career-principal", "profile-builder", "jd-analyzer", "resume-tailor", "match-diagnosis", "source-quality-auditor")
+$AllOk = $true
+foreach ($Skill in $Skills) {
+    $SkillFile = Join-Path $TargetDir "skills\$Skill\SKILL.md"
+    if (Test-Path -LiteralPath $SkillFile) {
+        Write-Host "  ✓ $Skill/SKILL.md"
+    } else {
+        Write-Host "  ✗ $Skill/SKILL.md MISSING"
+        $AllOk = $false
+    }
+}
+
+Write-Host ""
+if ($AllOk) {
+    Write-Host "Installed to: $TargetDir"
+    Write-Host ""
+    Write-Host "Next: Open Claude Code and say \"帮我分析一个 JD\""
+} else {
+    Write-Host "ERROR: Some skills are missing. Installation may be incomplete."
+    exit 1
+}
+```
+
+- [ ] **Step 3: Verify installers do not contain dangerous commands**
+
+```bash
+if grep -E "rm -rf|sudo |kill |pkill |chmod 777|del /|rmdir" career-skills-marketplace/install.sh; then
+  echo "FAIL: install.sh contains a dangerous command"
+  exit 1
+fi
+if grep -E "Remove-Item|Stop-Process|del |rmdir|Format-Volume" career-skills-marketplace/install.ps1; then
+  echo "FAIL: install.ps1 contains a dangerous command"
+  exit 1
+fi
+echo "PASS: installers do not delete user data or kill processes"
+```
 
 - [ ] **Step 4: Commit**
 
@@ -1394,8 +1485,15 @@ Check that skills involving market/external facts reference source-quality-audit
 - [ ] **Step 6: Verify install scripts are safe**
 
 ```bash
-# Check install.sh does not contain dangerous patterns
-grep -E "rm -rf /|sudo |kill |pkill |chmod 777|>/dev/null" career-skills-marketplace/install.sh | grep -v 'rm -rf "$TARGET_DIR"' || echo "PASS: install.sh is safe"
+if grep -E "rm -rf|sudo |kill |pkill |chmod 777|del /|rmdir" career-skills-marketplace/install.sh; then
+  echo "FAIL: install.sh contains a dangerous command"
+  exit 1
+fi
+if grep -E "Remove-Item|Stop-Process|del |rmdir|Format-Volume" career-skills-marketplace/install.ps1; then
+  echo "FAIL: install.ps1 contains a dangerous command"
+  exit 1
+fi
+echo "PASS: install scripts are safe"
 ```
 
 - [ ] **Step 7: Verify company count is 50**
@@ -1411,24 +1509,188 @@ git commit -m "fix: validation audit fixes" || echo "Nothing to fix"
 
 ---
 
+## Task 11: Simplify Review
+
+**Subagent boundary: Reviewer only — run after Task 10 passes**
+
+**Files:** No planned new files. Modify only files that fail the review.
+
+- [ ] **Step 1: Review scope creep against Phase 1 decisions**
+
+Check `career-skills-marketplace/` for forbidden Phase 1 runtime scope:
+
+```bash
+rg -n "career doctor|career ask|career run|Local API|POST /|npm package|npx skills|SQLite|JSONL evidence store|XHS adapter|Nowcoder adapter|Web UI" career-skills-marketplace/
+```
+
+Expected: no matches except docs that explicitly say those items are deferred.
+
+- [ ] **Step 2: Review file responsibility and duplication**
+
+Manually inspect these directories:
+
+```bash
+find career-skills-marketplace/skills -maxdepth 2 -type f | sort
+find career-skills-marketplace/shared -maxdepth 3 -type f | sort
+find career-skills-marketplace/knowledge -maxdepth 3 -type f | sort
+```
+
+Expected: each skill owns only its own instructions/examples/tests; shared schemas and policies are referenced rather than duplicated inside every skill.
+
+- [ ] **Step 3: Review installer simplicity and safety**
+
+Confirm both installers only create directories, copy files, and verify files. They must not delete existing target directories, modify PATH, install dependencies, start services, or kill processes.
+
+- [ ] **Step 4: Review examples for real-looking but non-private data**
+
+Open all `examples/*.md` files and verify examples are realistic, explicitly synthetic, and contain no real private resume, phone number, email, salary slip, or chat log.
+
+- [ ] **Step 5: Commit simplify fixes if needed**
+
+```bash
+git add career-skills-marketplace/
+git commit -m "refactor: simplify Phase 1 marketplace artifacts" || echo "No simplify fixes needed"
+```
+
+---
+
+## Task 12: PJR Quality Gate
+
+**Subagent boundary: Reviewer only — run after Simplify Review**
+
+**Files:** No planned new files. Fix only parse, formatting, or policy violations found by the gate.
+
+- [ ] **Step 1: Run git whitespace check**
+
+```bash
+git diff --check
+```
+
+Expected: no trailing whitespace or conflict markers.
+
+- [ ] **Step 2: Parse JSON and YAML artifacts**
+
+```bash
+python -c "
+import json, pathlib, sys
+errors=[]
+for path in pathlib.Path('career-skills-marketplace').rglob('*.json'):
+    try:
+        json.loads(path.read_text(encoding='utf-8'))
+    except Exception as exc:
+        errors.append(f'{path}: {exc}')
+if errors:
+    print('\n'.join(errors))
+    sys.exit(1)
+print('JSON parse OK')
+"
+python -c "
+import pathlib, sys, yaml
+errors=[]
+for path in pathlib.Path('career-skills-marketplace').rglob('*.yaml'):
+    try:
+        yaml.safe_load(path.read_text(encoding='utf-8'))
+    except Exception as exc:
+        errors.append(f'{path}: {exc}')
+if errors:
+    print('\n'.join(errors))
+    sys.exit(1)
+print('YAML parse OK')
+"
+```
+
+Expected: `JSON parse OK` and `YAML parse OK`.
+
+- [ ] **Step 3: Validate shell syntax**
+
+```bash
+bash -n career-skills-marketplace/install.sh
+pwsh -NoProfile -Command "`$null = [scriptblock]::Create((Get-Content -Raw -Encoding UTF8 'career-skills-marketplace/install.ps1')); 'PowerShell parse OK'"
+```
+
+Expected: both commands exit 0. If `pwsh` is unavailable, run the PowerShell parse check in Windows PowerShell and record the command output in the handoff.
+
+- [ ] **Step 4: Re-run Task 10 validation commands**
+
+Run every command from Task 10 again after Simplify fixes.
+
+- [ ] **Step 5: Commit PJR fixes if needed**
+
+```bash
+git add career-skills-marketplace/
+git commit -m "fix: PJR quality gate corrections" || echo "No PJR fixes needed"
+```
+
+---
+
+## Task 13: merge-to-dev Handoff
+
+**Subagent boundary: Main agent only — run after Task 12 passes and reviewer approves**
+
+**Files:** Git integration only.
+
+- [ ] **Step 1: Confirm feature branch status**
+
+```bash
+git status --short
+git branch --show-current
+git log --oneline -5
+```
+
+Expected: clean working tree on `feature/career-skills-marketplace-phase1` with Phase 1 commits visible.
+
+- [ ] **Step 2: Review final diff summary**
+
+```bash
+git diff --stat dev...HEAD
+git diff --name-only dev...HEAD
+```
+
+Expected: changes are limited to `career-skills-marketplace/` plus any explicit handoff notes requested by the user.
+
+- [ ] **Step 3: Merge to dev after approval**
+
+```bash
+git switch dev
+git pull --ff-only
+git merge --no-ff feature/career-skills-marketplace-phase1 -m "merge: career skills marketplace Phase 1 skeleton"
+```
+
+Expected: merge completes without conflicts.
+
+- [ ] **Step 4: Report merge result**
+
+```bash
+git log --oneline -3
+git status --short
+```
+
+Expected: newest commit is the merge commit and working tree is clean.
+
+---
+
 ## Parallelization Map
 
 ```
+Task 0 (worktree) ──────────────────────────→ dispatch subagents
+
 Task 1 (root/manifest) ─────────────────────┐
 Task 2 (shared schemas) ────────────────────┐│
 Task 3 (career-principal) ──────────────────┤│
-Task 4 (profile-builder + jd-analyzer) ─────┤├─→ Task 8 (installer) ─→ Task 10 (validation)
-Task 5 (resume-tailor + match-diagnosis) ───┤│                         ↑
-Task 6 (source-quality-auditor) ────────────┤│   Task 9 (docs) ────────┘
+Task 4 (profile-builder + jd-analyzer) ─────┤├─→ Task 8 (installer) ─┐
+Task 5 (resume-tailor + match-diagnosis) ───┤│                        ├─→ Task 10 (validation) → Task 11 (Simplify) → Task 12 (PJR) → Task 13 (merge-to-dev)
+Task 6 (source-quality-auditor) ────────────┤│   Task 9 (docs) ───────┘
 Task 7 (knowledge seed) ───────────────────┘│
                                              │
 Tasks 1-7 are fully parallelizable ──────────┘
 Task 8 depends on 1-7 (needs files to validate)
 Task 9 depends on 1-7 (needs content for docs)
-Task 10 depends on ALL (final audit)
+Task 10 depends on ALL implementation/docs tasks
+Tasks 11-13 are sequential quality/integration gates
 ```
 
 **Recommended subagent assignment:**
+- Main agent: Task 0 + Task 13
 - Subagent A: Task 1 + Task 8
 - Subagent B: Task 2
 - Subagent C: Task 3
@@ -1436,6 +1698,8 @@ Task 10 depends on ALL (final audit)
 - Subagent E: Task 5
 - Subagent F: Task 6
 - Subagent G: Task 7
-- Subagent H: Task 9 + Task 10
+- Subagent H: Task 9 + Task 10 + Task 11 + Task 12
 
-**8 subagents, 10 tasks, 7 parallelizable + 3 sequential (8→9→10)**
+**8 implementation/review subagents, 14 total tasks, 7 parallelizable implementation tasks + sequential gates (8→9/10→11→12→13)**
+
+
