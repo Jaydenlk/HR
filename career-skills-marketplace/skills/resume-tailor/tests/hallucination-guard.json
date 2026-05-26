@@ -1,0 +1,34 @@
+{
+  "name": "幻觉防护 — 原文只有 Java，改写中不能出现 Python",
+  "description": "验证技能严格遵守零编造政策：当原始简历中只提到 Java，改写后的简历中不得出现 Python 或任何其他原文未提及的编程语言",
+  "input": {
+    "resume_text": "刘强，Java 开发工程师\n工作经历：\n2020.01 - 至今 | 某银行 | Java 开发工程师\n- 使用 Java 开发银行核心交易系统\n- 使用 Spring Framework 构建服务\n- 维护 Oracle 数据库存储过程\n\n技能：Java、Spring Framework、Oracle、MyBatis",
+    "jd_text": "岗位：后端工程师\n要求：熟悉 Java 或 Python，有金融系统开发经验，熟悉数据库"
+  },
+  "expected_properties": {
+    "modifications": { "minItems": 1 },
+    "overall_assessment.honest_gaps": { "contains": "Python" }
+  },
+  "assertions": [
+    {
+      "id": "no_python_in_modified",
+      "description": "所有 modifications[].modified 字段中均不包含 'Python'",
+      "check": "none_of(modifications, field='modified', contains='Python')"
+    },
+    {
+      "id": "source_traceable",
+      "description": "每个 modification.source 字段可在原始 resume_text 中找到对应文本",
+      "check": "all_of(modifications, field='source', non_empty=true)"
+    },
+    {
+      "id": "honest_gaps_has_python",
+      "description": "overall_assessment.honest_gaps 包含关于 Python 缺失的说明",
+      "check": "any_of(overall_assessment.honest_gaps, contains='Python')"
+    },
+    {
+      "id": "modifications_not_empty",
+      "description": "modifications 数组至少包含 1 个元素",
+      "check": "length(modifications) >= 1"
+    }
+  ]
+}

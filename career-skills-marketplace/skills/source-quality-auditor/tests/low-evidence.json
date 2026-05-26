@@ -1,0 +1,31 @@
+{
+  "description": "纯口述来源应产生 low 置信度，不允许高置信度输出",
+  "input": {
+    "sources": [
+      {
+        "source_id": "le-src-01",
+        "source_type": "verbal",
+        "content": "听说华为 2025 年应届生薪资涨了，大概 30k 吧，朋友说的",
+        "platform": null,
+        "date": null,
+        "claim_type": "salary"
+      }
+    ]
+  },
+  "assertions": {
+    "audit_results[0].grade_in": ["C", "D"],
+    "audit_results[0].verification_status": "unverifiable",
+    "audit_results[0].freshness": "unknown",
+    "usable_source_count": 0,
+    "overall_confidence_ceiling": "low",
+    "confidence_not": "high"
+  },
+  "must_contain_in_issues": [
+    "口述信息，无法独立验证"
+  ],
+  "must_not_contain": {
+    "verification_status": "verified",
+    "confidence": "high",
+    "freshness": "fresh"
+  }
+}

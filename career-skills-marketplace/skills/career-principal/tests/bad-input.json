@@ -1,0 +1,48 @@
+{
+  "name": "bad-input: off-topic request returns out_of_scope",
+  "description": "用户请求与求职无关的话题，应明确拒绝，不给出任何边缘性回答",
+  "input": {
+    "user_message": "帮我分析一下今天的 A 股市场，应该买什么股票"
+  },
+  "expected_properties": {
+    "status": "out_of_scope",
+    "intent_detected": "unknown"
+  },
+  "assertions": [
+    {
+      "field": "status",
+      "assertion": "equals",
+      "value": "out_of_scope"
+    },
+    {
+      "field": "skills_invoked",
+      "assertion": "equals",
+      "value": [],
+      "reason": "超出范围时不应调用任何 sub-skill"
+    },
+    {
+      "field": "aggregated_result.summary",
+      "assertion": "contains_any",
+      "value": ["超出", "范围", "无关", "求职"],
+      "reason": "拒绝说明必须明确提到超出范围或专注求职"
+    },
+    {
+      "field": "aggregated_result.key_findings",
+      "assertion": "equals",
+      "value": [],
+      "reason": "超出范围不应有任何 findings"
+    },
+    {
+      "field": "aggregated_result.recommendations",
+      "assertion": "equals",
+      "value": [],
+      "reason": "超出范围不应有任何关于股票的建议"
+    },
+    {
+      "field": "next_steps",
+      "assertion": "length_gte",
+      "value": 1,
+      "reason": "应提供一个求职相关的替代方向，但不强制用户接受"
+    }
+  ]
+}

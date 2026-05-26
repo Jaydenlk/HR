@@ -1,0 +1,49 @@
+{
+  "description": "多条 B+ 来源应正确分级并允许高置信度",
+  "input": {
+    "sources": [
+      {
+        "source_id": "hp-src-01",
+        "source_type": "url",
+        "source_url": "https://careers.tencent.com/jobdesc.html?postId=1600051031",
+        "content": "腾讯后端开发工程师（广州），薪资 25k-45k，2024-08-15 发布",
+        "platform": "official_website",
+        "date": "2024-08-15",
+        "claim_type": "salary"
+      },
+      {
+        "source_id": "hp-src-02",
+        "source_type": "url",
+        "source_url": "https://www.boss.zhipin.com/job_detail/abc123def456",
+        "content": "腾讯游戏后端开发（广州），30k-50k，要求 3 年以上经验，2024-09-01 更新",
+        "platform": "boss_jd",
+        "date": "2024-09-01",
+        "claim_type": "salary"
+      },
+      {
+        "source_id": "hp-src-03",
+        "source_type": "url",
+        "source_url": "https://www.nowcoder.com/discuss/56789012",
+        "content": "腾讯广州后端 2024 秋招面经，技术面 3 轮，最终 35k*15",
+        "platform": "nowcoder",
+        "date": "2024-10-12",
+        "claim_type": "interview_experience"
+      }
+    ]
+  },
+  "assertions": {
+    "audit_results[0].grade": "A",
+    "audit_results[0].verification_status": "verified",
+    "audit_results[0].recommendation": "use",
+    "audit_results[1].grade": "B",
+    "audit_results[1].recommendation": "use",
+    "audit_results[2].grade": "B",
+    "usable_source_count_gte": 2,
+    "overall_confidence_ceiling_in": ["high", "medium"],
+    "conflict_detected": false
+  },
+  "must_not_contain": {
+    "any_grade": "D",
+    "any_verification_status": "unreachable"
+  }
+}

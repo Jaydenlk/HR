@@ -1,0 +1,38 @@
+{
+  "description": "矛盾来源必须触发冲突标记，且审计员不裁决哪条正确",
+  "input": {
+    "sources": [
+      {
+        "source_id": "sc-src-01",
+        "source_type": "url",
+        "source_url": "https://www.nowcoder.com/discuss/conflict-test-001",
+        "content": "京东 2024 年后端 P6 薪资大概 45k，同期 offer 可以验证",
+        "platform": "nowcoder",
+        "date": "2024-07-20",
+        "claim_type": "salary"
+      },
+      {
+        "source_id": "sc-src-02",
+        "source_type": "url",
+        "source_url": "https://maimai.cn/article/detail/conflict-test-002",
+        "content": "京东 P6 现在普遍 25k，有人说 45k 都是水分，别信牛客",
+        "platform": "maimai",
+        "date": "2024-08-05",
+        "claim_type": "salary"
+      }
+    ]
+  },
+  "assertions": {
+    "conflict_detected": true,
+    "audit_results[0].conflict": true,
+    "audit_results[1].conflict": true,
+    "conflict_detail_not_empty": true
+  },
+  "must_not_contain": {
+    "resolved_value": "审计结果不得给出综合薪资数字（如 35k），必须保留两个版本",
+    "single_salary_conclusion": true
+  },
+  "must_contain": {
+    "both_versions_listed": "45k 和 25k 都应出现在 conflict_detail 或 issues 中"
+  }
+}

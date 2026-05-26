@@ -1,0 +1,105 @@
+# 置信度策略 (Confidence Levels Policy)
+# Career Skills Marketplace — 所有 skill 共用
+# 版本: 1.0.0
+
+policy_version: "1.0.0"
+description: "定义四档置信度的含义、触发条件与使用规则"
+
+# ============================================================
+# 四档置信度定义
+# ============================================================
+levels:
+
+  high:
+    label: "高置信度"
+    definition: "有充分的多来源交叉验证证据，结论可直接指导决策"
+    trigger_conditions:
+      - "至少 2 个 A 或 B 级来源相互印证"
+      - "证据均为 current 或 recent 鲜度"
+      - "无重大相互矛盾的证据"
+      - "结论的所有关键维度均有证据支撑"
+    presentation: "直接给出结论，无需额外声明"
+    example_phrasing:
+      - "根据多个来源确认，该岗位薪资区间为 25-35k，置信度高"
+      - "简历结构符合行业标准，建议直接投递"
+
+  medium:
+    label: "中置信度"
+    definition: "有一定证据基础，但存在信息缺口或来源质量不均，结论供参考"
+    trigger_conditions:
+      - "仅有 1 个 B 级来源，或 3+ 个 C 级来源印证"
+      - "部分证据为 stale 鲜度"
+      - "存在次要维度信息缺失"
+      - "来源存在轻微矛盾但主体一致"
+    presentation: "给出结论但标注参考性，建议用户自行核实关键数据"
+    example_phrasing:
+      - "根据现有信息，该岗位竞争度较高，但样本有限，建议参考"
+      - "以下建议基于部分信息，如有更多简历细节可进一步优化"
+
+  low:
+    label: "低置信度"
+    definition: "证据稀少、质量较低或相互矛盾，结论属于推断性意见"
+    trigger_conditions:
+      - "仅有 C 级来源且少于 3 条"
+      - "证据来源均为 stale"
+      - "存在较多相互矛盾的证据"
+      - "主要证据来自 ai_inference"
+      - "关键维度信息缺失超过 50%"
+    presentation: "明确标注为推断，说明局限性，不建议直接决策"
+    example_phrasing:
+      - "以下为基于有限信息的推断，不建议作为唯一决策依据"
+      - "当前信息不足以给出可靠判断，以下仅供参考"
+
+  insufficient:
+    label: "信息不足"
+    definition: "缺乏做出任何有意义结论的基本信息，拒绝给出结论"
+    trigger_conditions:
+      - "没有任何 A 或 B 级来源"
+      - "关键输入（简历/JD）为空或残缺"
+      - "无法识别用户意图或目标岗位"
+      - "所有可用来源均为 D 级（已被丢弃）"
+    presentation: "拒绝给出结论，明确列出需要补充的信息清单"
+    required_fields:
+      - "must_provide_missing_list: true"
+    example_phrasing:
+      - "当前信息不足以评估，请补充以下内容：[具体清单]"
+      - "无法给出建议，需要：1. 目标岗位JD  2. 完整简历"
+
+# ============================================================
+# 核心校准规则
+# ============================================================
+calibration_rules:
+
+  barrel_principle:
+    rule: "整体 confidence 取所有维度中最低的（木桶原则）"
+    rationale: "一个 skill 有多个评估维度时，整体可信度受最薄弱环节限制"
+    example: "技能匹配 high + 薪资数据 low = 整体 low"
+
+  insufficient_requires_list:
+    rule: "insufficient 必须附带需要补充什么的具体清单，不能只说'信息不足'"
+    rationale: "用户需要明确知道下一步应该提供什么，模糊的'信息不足'无价值"
+    format: "cannot_determine 字段中列出具体缺失项，follow_up_questions 中给出追问"
+
+  no_uniform_medium:
+    rule: "禁止所有用户都得 medium — medium 必须有明确的信息缺口理由"
+    rationale: "uniform medium 是规避判断的懒惰行为，用户无法从中获得价值"
+    enforcement: "若给出 medium，必须在 risks 中至少列出 1 条具体缺失原因"
+
+  no_fabrication_on_low:
+    rule: "low 和 insufficient 时，禁止填充编造的细节或'典型案例'"
+    rationale: "低信息量时编造内容会给用户错误信心，比承认不确定性危害更大"
+
+  confidence_must_match_evidence:
+    rule: "confidence 字段必须与 evidence_used 中的来源级别和数量相符"
+    enforcement:
+      - "evidence_used 为空时，confidence 必须为 insufficient"
+      - "所有证据为 D 级时，confidence 必须为 insufficient"
+      - "仅有 C 级证据时，confidence 上限为 medium"
+
+  dimension_level_visibility:
+    rule: "多维度 skill（如匹配评估）应在输出中展示每个维度的独立 confidence"
+    rationale: "让用户知道哪个维度是短板，帮助其针对性补充信息"
+
+  upgrade_path:
+    rule: "insufficient/low 时，always 提供 follow_up_questions 帮助用户升级到更高 confidence"
+    rationale: "给出提升路径比单纯拒绝更有价值"

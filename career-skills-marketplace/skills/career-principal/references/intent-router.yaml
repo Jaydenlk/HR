@@ -1,0 +1,254 @@
+description: "求职主理人意图路由表，定义12种意图的触发条件、所需输入和调度规则"
+version: "1.0.0"
+
+intents:
+
+  - name: analyze_jd
+    label: "分析职位描述"
+    trigger_examples:
+      - "帮我看这个 JD"
+      - "这个岗位值不值得投"
+      - "分析一下这个职位"
+      - "这个 JD 要求高吗"
+      - "职位要求有哪些"
+      - "这个岗位主要做什么"
+    required_inputs:
+      - jd_text
+    missing_input_questions:
+      jd_text: "请粘贴 JD 原文或提供链接，这样我才能分析具体要求、隐含条件和薪资合理性"
+    primary_skill: jd-analyzer
+    secondary_skills:
+      - source-quality-auditor
+    confidence_gate: "jd_text 字符数 >= 50"
+    fallback: "JD 信息太少，只能做有限分析 (confidence: low)"
+
+  - name: tailor_resume
+    label: "针对 JD 优化简历"
+    trigger_examples:
+      - "帮我改简历"
+      - "简历针对这个 JD 优化一下"
+      - "我简历需要怎么改才能符合这个职位"
+      - "帮我写一版针对这个岗位的简历"
+      - "简历怎么更好地匹配这个 JD"
+    required_inputs:
+      - resume_text
+      - jd_text
+    missing_input_questions:
+      resume_text: "请提供你的简历原文，这样我才能针对性地优化而不是凭空改写"
+      jd_text: "请提供目标职位的 JD，我需要了解岗位要求才能有针对性地调整简历"
+    primary_skill: resume-tailor
+    secondary_skills:
+      - jd-analyzer
+      - profile-builder
+    confidence_gate: "resume_text 字符数 >= 100 且 jd_text 字符数 >= 50"
+    fallback: "输入信息不足，无法生成有针对性的简历建议 (confidence: low)"
+
+  - name: match_diagnosis
+    label: "诊断匹配度"
+    trigger_examples:
+      - "我适合这个岗位吗"
+      - "我和这个职位的匹配度怎么样"
+      - "我有多大机会"
+      - "值得投这个职位吗"
+      - "我的背景符合要求吗"
+      - "这个 JD 我能达标几条"
+    required_inputs:
+      - resume_text
+      - jd_text
+    missing_input_questions:
+      resume_text: "请提供你的简历，匹配度分析需要了解你的实际经历和技能"
+      jd_text: "请提供 JD 原文，我需要知道岗位要求才能评估匹配情况"
+    primary_skill: match-diagnosis
+    secondary_skills:
+      - jd-analyzer
+      - profile-builder
+    confidence_gate: "resume_text 字符数 >= 100 且 jd_text 字符数 >= 50"
+    fallback: "缺少简历或 JD，只能给出框架性评估 (confidence: low)"
+
+  - name: career_direction
+    label: "职业方向规划"
+    trigger_examples:
+      - "我不知道下一步往哪个方向走"
+      - "帮我规划职业路径"
+      - "我该转行吗"
+      - "我适合做什么方向"
+      - "3年后我应该往哪发展"
+      - "产品经理和运营哪个更适合我"
+    required_inputs: []
+    optional_inputs:
+      - resume_text
+      - user_profile
+    missing_input_questions:
+      resume_text: "如果能提供你的简历或工作经历，建议会更有针对性；如果暂时没有，请简单描述你的背景"
+    primary_skill: profile-builder
+    secondary_skills:
+      - source-quality-auditor
+    confidence_gate: "user_profile 存在 或 resume_text 字符数 >= 50"
+    fallback: "背景信息不足，方向建议为通用框架 (confidence: low)"
+
+  - name: interview_prep
+    label: "面试准备"
+    trigger_examples:
+      - "帮我准备面试"
+      - "面试可能会问什么"
+      - "这家公司的面试怎么准备"
+      - "技术面一般考什么"
+      - "行为面试题怎么答"
+      - "我明天有面试，怎么准备"
+    required_inputs: []
+    optional_inputs:
+      - jd_text
+      - resume_text
+      - user_profile
+    missing_input_questions:
+      jd_text: "如果能提供 JD，我可以针对这个岗位的具体要求设计面试题"
+    primary_skill: profile-builder
+    secondary_skills:
+      - jd-analyzer
+      - source-quality-auditor
+    confidence_gate: "jd_text 字符数 >= 50 或 user_profile 存在"
+    fallback: "没有具体 JD，只能提供通用面试准备建议 (confidence: low)"
+
+  - name: interview_debrief
+    label: "面试复盘"
+    trigger_examples:
+      - "刚面完，帮我复盘一下"
+      - "面试表现如何"
+      - "我感觉这轮面试没答好，怎么看"
+      - "面试官问了 xxx，我回答了 xxx，这样答对吗"
+      - "这轮面试能过吗"
+    required_inputs:
+      - user_message
+    optional_inputs:
+      - resume_text
+      - jd_text
+    missing_input_questions:
+      user_message: "请描述面试过程：问了什么问题、你怎么回答的，这样我才能做有效复盘"
+    primary_skill: profile-builder
+    secondary_skills:
+      - source-quality-auditor
+    confidence_gate: "user_message 字符数 >= 50"
+    fallback: "描述太简短，只能给出一般性反馈 (confidence: low)"
+
+  - name: offer_evaluation
+    label: "offer 评估"
+    trigger_examples:
+      - "这个 offer 值得接吗"
+      - "帮我分析一下这个 offer"
+      - "两个 offer 怎么选"
+      - "这个薪资合理吗"
+      - "offer 里的期权/股票值钱吗"
+      - "入职时间可以谈吗"
+    required_inputs:
+      - user_message
+    optional_inputs:
+      - resume_text
+      - user_profile
+    missing_input_questions:
+      user_message: "请提供 offer 的具体内容（薪资结构、公司名、岗位、福利等），这样我才能做全面评估"
+    primary_skill: jd-analyzer
+    secondary_skills:
+      - source-quality-auditor
+      - profile-builder
+    confidence_gate: "user_message 字符数 >= 30"
+    fallback: "offer 信息不足，只能给出框架性评估 (confidence: low)"
+
+  - name: company_check
+    label: "公司背景调查"
+    trigger_examples:
+      - "帮我查一下这家公司"
+      - "这个公司靠谱吗"
+      - "这家公司发展前景怎么样"
+      - "这个公司是外包吗"
+      - "这家公司的口碑怎么样"
+      - "这个公司值得去吗"
+    required_inputs:
+      - user_message
+    missing_input_questions:
+      user_message: "请告诉我公司名称（最好包括具体部门或业务方向），这样我才能给出有针对性的分析"
+    primary_skill: source-quality-auditor
+    secondary_skills: []
+    confidence_gate: "user_message 包含公司名称"
+    fallback: "未提供公司名，只能给出通用评估框架 (confidence: low)"
+
+  - name: salary_check
+    label: "薪资合理性判断"
+    trigger_examples:
+      - "这个薪资范围正常吗"
+      - "我现在的薪资在市场上什么水平"
+      - "这个岗位市场薪资是多少"
+      - "给的薪资低了吗"
+      - "我该要多少薪资"
+      - "年薪 30 万在北京这个岗位算高还是低"
+    required_inputs:
+      - user_message
+    optional_inputs:
+      - user_profile
+      - jd_text
+    missing_input_questions:
+      user_message: "请提供岗位名称、城市和你的经验年限，薪资判断需要这些基本参数"
+    primary_skill: source-quality-auditor
+    secondary_skills:
+      - jd-analyzer
+    confidence_gate: "user_message 包含岗位信息 或 jd_text 字符数 >= 30"
+    fallback: "岗位信息不足，薪资判断可信度较低 (confidence: low)"
+
+  - name: find_interview_experience
+    label: "寻找面经"
+    trigger_examples:
+      - "有没有这家公司的面经"
+      - "这个岗位的面试流程是什么"
+      - "字节跳动产品经理面试怎么样"
+      - "有没有类似职位的面试真题"
+      - "这家公司几轮面试"
+    required_inputs:
+      - user_message
+    missing_input_questions:
+      user_message: "请提供公司名称和岗位，这样我才能查找相关面经信息"
+    primary_skill: source-quality-auditor
+    secondary_skills: []
+    confidence_gate: "user_message 包含公司名称"
+    fallback: "未提供公司和岗位信息，只能给出通用面试资源 (confidence: low)"
+
+  - name: write_message
+    label: "撰写求职沟通消息"
+    trigger_examples:
+      - "帮我写一封自荐信"
+      - "怎么给 HR 发消息"
+      - "帮我写一下 LinkedIn 上的联系消息"
+      - "内推申请怎么写"
+      - "怎么跟猎头沟通"
+      - "感谢信怎么写"
+    required_inputs:
+      - user_message
+    optional_inputs:
+      - resume_text
+      - jd_text
+      - user_profile
+    missing_input_questions:
+      user_message: "请说明消息类型（自荐信/感谢信/内推申请等）以及发给谁，这样我才能写出合适的内容"
+    primary_skill: profile-builder
+    secondary_skills:
+      - jd-analyzer
+    confidence_gate: "user_message 字符数 >= 20"
+    fallback: "信息不足，只能提供消息模板框架 (confidence: low)"
+
+  - name: daily_planning
+    label: "求职日程规划"
+    trigger_examples:
+      - "帮我规划一下求职计划"
+      - "我这周应该做什么"
+      - "求职时间管理怎么做"
+      - "我同时有 5 个流程，怎么安排"
+      - "帮我做一个投递计划"
+      - "求职阶段怎么分配时间"
+    required_inputs: []
+    optional_inputs:
+      - user_profile
+      - user_message
+    missing_input_questions:
+      user_message: "请告诉我你目前的求职状态（在投几个岗位、哪些在面试阶段、目标时间线），这样规划会更实用"
+    primary_skill: profile-builder
+    secondary_skills: []
+    confidence_gate: "user_message 字符数 >= 20 或 user_profile 存在"
+    fallback: "背景不明，只能给出通用求职时间管理框架 (confidence: low)"

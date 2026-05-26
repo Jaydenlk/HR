@@ -1,0 +1,67 @@
+{
+  "name": "source-conflict-propagation",
+  "description": "When two input sources give conflicting information, the conflict is surfaced in output rather than silently resolved.",
+  "input": {
+    "user_message": "我朋友说某公司福利很好，但我在脉脉上看到有人说福利很差，帮我综合分析一下这家公司。",
+    "context": {
+      "resume_text": "",
+      "jd_text": "某科技公司，业务运营岗，要求 2 年以上互联网运营经验。",
+      "additional_context": {
+        "source_a": {
+          "content": "该公司福利优秀，弹性工作制，年终奖 4-6 个月，团队氛围好。",
+          "source_type": "oral_referral",
+          "source_label": "朋友口述",
+          "date": "2024-11"
+        },
+        "source_b": {
+          "content": "福利缩水严重，2024 年下半年取消了弹性工作，年终从 4 个月降到 1 个月。",
+          "source_type": "forum_post",
+          "source_label": "脉脉帖子",
+          "date": "2025-01"
+        }
+      }
+    }
+  },
+  "expected_skills_invoked": [
+    "source-quality-auditor",
+    "career-principal"
+  ],
+  "expected_output_properties": {
+    "confidence_level": "low",
+    "has_source_citations": true,
+    "refuses_fabrication": false,
+    "conflict_flagged": true
+  },
+  "assertions": [
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "source-quality-auditor"
+    },
+    {
+      "type": "contains",
+      "path": "output.conflict_report.description",
+      "expected": "信息冲突"
+    },
+    {
+      "type": "equals",
+      "path": "output.conflict_report.conflict_present",
+      "expected": true
+    },
+    {
+      "type": "source_cited",
+      "path": "output.sources",
+      "expected": "朋友口述"
+    },
+    {
+      "type": "source_cited",
+      "path": "output.sources",
+      "expected": "脉脉帖子"
+    },
+    {
+      "type": "confidence_below",
+      "path": "output.confidence_score",
+      "expected": 0.45
+    }
+  ]
+}

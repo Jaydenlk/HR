@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SkillEvidence",
+  "description": "Career Skills Marketplace 共享证据结构",
+  "type": "object",
+  "required": [
+    "evidence_id",
+    "source_type",
+    "source_name",
+    "content_excerpt",
+    "observed_at",
+    "freshness",
+    "confidence",
+    "relevance",
+    "reason"
+  ],
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^ev_",
+      "description": "唯一证据标识符，以 ev_ 开头"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "user_resume",
+        "user_input",
+        "jd_text",
+        "jd_url",
+        "knowledge_graph",
+        "web_search",
+        "xhs",
+        "nowcoder",
+        "wechat",
+        "ai_inference",
+        "peer_review"
+      ],
+      "description": "证据来源类型"
+    },
+    "source_name": {
+      "type": "string",
+      "description": "如 '用户简历.pdf'、'Boss直聘'"
+    },
+    "source_url": {
+      "type": ["string", "null"],
+      "description": "可追溯链接，无则 null"
+    },
+    "content_excerpt": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "原文摘录，最多 500 字符"
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "证据采集时间（ISO 8601）"
+    },
+    "published_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "原始内容发布时间，无则 null"
+    },
+    "freshness": {
+      "type": "string",
+      "enum": ["current", "recent", "stale"],
+      "description": "current: <7天, recent: 7-30天, stale: >30天"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "单条证据可信度"
+    },
+    "relevance": {
+      "type": "string",
+      "description": "与当前判断的关联说明"
+    },
+    "market": {
+      "type": "string",
+      "enum": ["china", "global"],
+      "default": "china",
+      "description": "适用市场"
+    },
+    "reason": {
+      "type": "string",
+      "description": "为什么采用这条证据"
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "已知局限，如'样本偏差'、'单一城市数据'"
+    }
+  },
+  "additionalProperties": false
+}

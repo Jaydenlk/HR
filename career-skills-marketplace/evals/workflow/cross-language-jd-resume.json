@@ -1,0 +1,59 @@
+{
+  "name": "cross-language-jd-resume",
+  "description": "English JD and Chinese resume are analyzed together; output is in Chinese with field-level language mapping.",
+  "input": {
+    "user_message": "我的简历是中文的，JD 是英文的，帮我分析匹配度并给出改写建议。",
+    "context": {
+      "resume_text": "虚构用户G，数据分析师\n工作经历：\n- 2022-2024 某零售公司，数据分析，负责用户行为分析和销售数据报表，使用 SQL 和 Python（pandas）\n- 主导过一次 A/B 测试，优化推荐算法点击率提升 12%\n技术栈：SQL、Python、Tableau、Excel\n教育背景：统计学学士",
+      "jd_text": "Senior Data Analyst\nRequirements:\n- 3+ years of data analysis experience\n- Proficient in SQL and Python (pandas, numpy)\n- Experience with A/B testing and experiment design\n- Strong data visualization skills (Tableau or Power BI)\n- Experience in cross-functional collaboration with product and engineering teams\nNice to have:\n- Experience with machine learning model evaluation\n- Familiarity with dbt or Airflow",
+      "additional_context": {
+        "target_output_language": "zh-CN"
+      }
+    }
+  },
+  "expected_skills_invoked": [
+    "jd-analyzer",
+    "profile-builder",
+    "match-diagnosis",
+    "resume-tailor"
+  ],
+  "expected_output_properties": {
+    "confidence_level": "medium",
+    "has_source_citations": false,
+    "refuses_fabrication": false,
+    "cross_language_mapping": true,
+    "output_language": "zh-CN"
+  },
+  "assertions": [
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "jd-analyzer"
+    },
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "match-diagnosis"
+    },
+    {
+      "type": "contains",
+      "path": "jd_analyzer.mapped_fields.core_skills",
+      "expected": "SQL"
+    },
+    {
+      "type": "contains",
+      "path": "match_diagnosis.matched_skills",
+      "expected": "A/B 测试"
+    },
+    {
+      "type": "contains",
+      "path": "match_diagnosis.gaps",
+      "expected": "机器学习"
+    },
+    {
+      "type": "equals",
+      "path": "output.language",
+      "expected": "zh-CN"
+    }
+  ]
+}

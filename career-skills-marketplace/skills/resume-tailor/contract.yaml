@@ -1,0 +1,111 @@
+name: resume-tailor
+version: "1.0"
+
+inputs:
+  resume_source:
+    description: 简历来源，二选一
+    oneOf:
+      - field: profile
+        type: object
+        description: 用户结构化画像（来自用户系统）
+        required: false
+      - field: resume_text
+        type: string
+        description: 简历原始文本（直接粘贴）
+        required: false
+    validation: at_least_one_required
+
+  jd_text:
+    type: string
+    required: false
+    description: 目标职位 JD 文本。不提供则执行通用优化。
+
+  confidence_policy:
+    type: object
+    required: false
+    description: 置信度策略
+    properties:
+      allow_inference:
+        type: boolean
+        default: false
+        description: 是否允许合理推断（推断项标记 NEED_USER_CONFIRM）
+
+outputs:
+  modifications:
+    type: array
+    description: 每处改写的详细记录
+    items:
+      type: object
+      required: [section, original, modified, reason, source, fabrication_check]
+      properties:
+        section:
+          type: string
+          description: "改写所在部分（如：工作经历、技能、项目经历）"
+        original:
+          type: string
+          description: 原始文本
+        modified:
+          type: string
+          description: 改写后文本
+        reason:
+          type: string
+          description: 改写理由，需关联 JD 具体要求
+        source:
+          type: string
+          description: 原始材料中的证据位置
+        fabrication_check:
+          type: string
+          enum: [PASS, NEED_USER_CONFIRM]
+          description: 编造风险检查结果
+
+  evidence_chain_summary:
+    type: array
+    description: 所有修改的证据链摘要表
+    items:
+      type: object
+      properties:
+        modification_id:
+          type: string
+        source_location:
+          type: string
+        fabrication_check:
+          type: string
+
+  overall_assessment:
+    type: object
+    description: 整体评估
+    properties:
+      match_improvement:
+        type: string
+        description: 改写预计提升的匹配程度（定性描述）
+      items_needing_confirmation:
+        type: integer
+        description: 需要用户确认的项数
+      honest_gaps:
+        type: array
+        items:
+          type: string
+        description: 无法通过改写弥补、需要用户真实补充的差距
+
+failure_modes:
+  - id: no_input
+    condition: profile 和 resume_text 均未提供
+    response: 拒绝执行，提示用户提供简历内容
+
+  - id: fabrication_request_refused
+    condition: 用户明确要求添加原材料中不存在的内容
+    response: |
+      明确拒绝，说明零编造政策。
+      提示用户提供真实依据后重新请求。
+
+  - id: severe_background_mismatch
+    condition: 用户背景与目标 JD 存在严重跨领域不匹配（重叠度 < 20%）
+    response: |
+      诚实告知匹配难度。
+      列出可迁移的技能（仅限原材料中存在的）。
+      建议用户补充的真实经历方向。
+      不强行改写，不制造虚假匹配感。
+
+  - id: jd_missing
+    condition: jd_text 未提供
+    response: 执行通用简历优化，不做岗位定向调整，输出说明。

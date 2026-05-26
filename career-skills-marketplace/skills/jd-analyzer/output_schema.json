@@ -1,17 +1,28 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "jd-analyzer/output",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "jd-analyzer 输出",
-  "allOf": [
-    { "$ref": "../../shared/output-schema/skill-output-base.schema.json" }
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "risk_count", "implicit_count", "parsed_jd"
   ],
   "properties": {
-    "skill": { "const": "jd-analyzer" },
+    "skill_name": { "const": "jd-analyzer" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "JD 分析结果概述" },
     "confidence": {
       "type": "string",
       "enum": ["high", "medium", "low", "insufficient"],
       "description": "JD 解析整体置信度"
     },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
     "risk_count": {
       "type": "integer",
       "minimum": 0,
@@ -164,6 +175,5 @@
         }
       }
     }
-  },
-  "required": ["skill", "confidence", "risk_count", "implicit_count", "parsed_jd"]
+  }
 }

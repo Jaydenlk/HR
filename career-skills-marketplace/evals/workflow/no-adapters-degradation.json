@@ -1,0 +1,50 @@
+{
+  "name": "no-adapters-degradation",
+  "description": "When no worker skills (adapters) are available, career-principal degrades gracefully with an explicit message.",
+  "input": {
+    "user_message": "帮我分析这个 JD 并改写我的简历。",
+    "context": {
+      "resume_text": "虚构用户E，设计师，5年平面设计经验，熟练使用 PS、AI、Figma。",
+      "jd_text": "UI 设计师，要求 3 年以上 App 界面设计经验，熟悉 Figma，有 Design System 搭建经验。",
+      "additional_context": {
+        "available_skills": []
+      }
+    }
+  },
+  "expected_skills_invoked": [
+    "career-principal"
+  ],
+  "expected_output_properties": {
+    "confidence_level": "low",
+    "has_source_citations": false,
+    "refuses_fabrication": false,
+    "degraded_mode": true
+  },
+  "assertions": [
+    {
+      "type": "skill_not_invoked",
+      "path": "execution_trace",
+      "expected": "jd-analyzer"
+    },
+    {
+      "type": "skill_not_invoked",
+      "path": "execution_trace",
+      "expected": "resume-tailor"
+    },
+    {
+      "type": "contains",
+      "path": "output.degradation_notice",
+      "expected": "工具不可用"
+    },
+    {
+      "type": "contains",
+      "path": "output.user_guidance",
+      "expected": "当前环境缺少"
+    },
+    {
+      "type": "equals",
+      "path": "output.degraded_mode",
+      "expected": true
+    }
+  ]
+}

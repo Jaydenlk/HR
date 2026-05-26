@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MatchDiagnosisOutput",
+  "type": "object",
+  "required": [
+    "skill_name",
+    "skill_version",
+    "summary",
+    "confidence",
+    "evidence_used",
+    "recommendations",
+    "risks",
+    "next_actions",
+    "follow_up_questions",
+    "cannot_determine",
+    "match_result"
+  ],
+  "properties": {
+    "skill_name": { "type": "string" },
+    "skill_version": { "type": "string" },
+    "summary": { "type": "string" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "match_result": {
+      "type": "object",
+      "required": [
+        "overall_match_pct",
+        "match_label",
+        "confidence",
+        "dimension_scores",
+        "strengths",
+        "weaknesses",
+        "gap_classification",
+        "improvement_suggestions"
+      ],
+      "properties": {
+        "overall_match_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "总体匹配百分比（整数）。85-100: perfect_fit，70-84: strong_match，50-69: moderate_match，30-49: weak_match，0-29: no_match"
+        },
+        "match_label": {
+          "type": "string",
+          "enum": ["perfect_fit", "strong_match", "moderate_match", "weak_match", "no_match"],
+          "description": "匹配标签，必须与 overall_match_pct 的区间一致"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low", "insufficient"],
+          "description": "评分置信度"
+        },
+        "dimension_scores": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "description": "五个维度的评分，顺序为 skills, experience, education, role, constraints",
+          "items": {
+            "type": "object",
+            "required": ["dimension", "score", "max_score", "analysis"],
+            "properties": {
+              "dimension": {
+                "type": "string",
+                "enum": ["skills", "experience", "education", "role", "constraints"]
+              },
+              "score": { "type": "number", "minimum": 0 },
+              "max_score": {
+                "type": "number",
+                "description": "各维度满分: skills=30, experience=25, education=15, role=15, constraints=15"
+              },
+              "analysis": {
+                "type": "string",
+                "minLength": 20,
+                "description": "具体分析，不能是模板化通用文字"
+              }
+            }
+          }
+        },
+        "strengths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 5 },
+          "description": "用户的优势项，每条必须具体"
+        },
+        "weaknesses": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 5 },
+          "description": "差距描述，每条具体指向某个 JD 要求"
+        },
+        "gap_classification": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["gap_item", "gap_type", "description"],
+            "properties": {
+              "gap_item": { "type": "string" },
+              "gap_type": {
+                "type": "string",
+                "enum": ["quick_fix", "needs_time", "hard_mismatch", "uncertain"]
+              },
+              "description": { "type": "string", "minLength": 10 }
+            }
+          }
+        },
+        "improvement_suggestions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["suggestion", "priority", "estimated_effort"],
+            "properties": {
+              "suggestion": { "type": "string", "minLength": 10 },
+              "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+              "estimated_effort": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "insufficient_data_explanation": {
+      "type": "string",
+      "description": "仅当 confidence = insufficient 时存在。说明具体缺失哪些数据导致无法评分。"
+    }
+  }
+}

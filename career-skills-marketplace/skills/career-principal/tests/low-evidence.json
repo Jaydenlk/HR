@@ -1,0 +1,49 @@
+{
+  "name": "low-evidence: minimal input produces low confidence",
+  "description": "用户只提供公司名，没有 JD 或简历，应触发追问且最终结论 confidence 不得为 high",
+  "input": {
+    "user_message": "帮我了解一下阿里巴巴"
+  },
+  "expected_properties": {
+    "status": ["partial", "success"],
+    "intent_detected": "company_check",
+    "confidence": "low"
+  },
+  "assertions": [
+    {
+      "field": "confidence",
+      "assertion": "not_equals",
+      "value": "high",
+      "reason": "只有公司名，没有足够证据支持高置信度结论"
+    },
+    {
+      "field": "follow_up_questions",
+      "assertion": "length_gte",
+      "value": 1,
+      "reason": "意图不明确，必须追问用户的具体需求"
+    },
+    {
+      "field": "follow_up_questions[*].reason",
+      "assertion": "all_non_empty",
+      "reason": "每个追问问题必须说明为什么需要该信息"
+    },
+    {
+      "field": "missing_information",
+      "assertion": "length_gte",
+      "value": 1,
+      "reason": "关键上下文（目标岗位、用户背景、具体关注点）缺失"
+    },
+    {
+      "field": "aggregated_result.evidence",
+      "assertion": "all_have_source_prefix",
+      "pattern": "\\[source-quality-auditor\\]|\\[jd-analyzer\\]|\\[profile-builder\\]",
+      "reason": "所有 evidence 必须标注来源"
+    },
+    {
+      "field": "cannot_determine",
+      "assertion": "length_gte",
+      "value": 1,
+      "reason": "没有用户背景时，个人匹配度无法判断"
+    }
+  ]
+}

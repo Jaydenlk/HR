@@ -1,0 +1,157 @@
+{
+  "name": "分数区分度 — 不允许趋中打分",
+  "description": "验证评分系统的区分度：对三种明显不同匹配程度的候选人，评分必须落在不同的区间内，不允许所有人都在 60-80% 区间",
+  "input": {
+    "scenarios": [
+      {
+        "scenario_id": "A",
+        "label": "极高匹配（应得 85+）",
+        "user_profile": {
+          "basic_info": {
+            "name": "候选人A",
+            "years_of_experience": 5,
+            "location": "北京"
+          },
+          "work_experience": [
+            {
+              "company": "腾讯",
+              "title": "Java 后端工程师",
+              "description": "Spring Cloud 微服务开发，10万 QPS 高并发系统设计"
+            }
+          ],
+          "education": [
+            {
+              "school": "985院校",
+              "degree": "本科",
+              "major": "计算机科学"
+            }
+          ],
+          "skills": {
+            "technical": ["Java", "Spring Cloud", "微服务", "高并发", "MySQL", "Redis"]
+          }
+        },
+        "jd_analysis": {
+          "job_title": "阿里云后端工程师",
+          "required_skills": [
+            { "skill": "Java", "level": "required", "years": "3年以上" },
+            { "skill": "微服务", "level": "required" },
+            { "skill": "高并发", "level": "required" }
+          ]
+        },
+        "expected_score_range": { "min": 80, "max": 100 },
+        "expected_labels": ["perfect_fit", "strong_match"]
+      },
+      {
+        "scenario_id": "B",
+        "label": "中等匹配（应得 40-65）",
+        "user_profile": {
+          "basic_info": {
+            "name": "候选人B",
+            "years_of_experience": 3,
+            "location": "上海"
+          },
+          "work_experience": [
+            {
+              "company": "某公司",
+              "title": "前端工程师",
+              "description": "Node.js BFF 层开发，JavaScript/TypeScript，了解 Spring Boot"
+            }
+          ],
+          "education": [
+            {
+              "school": "某大学",
+              "degree": "本科",
+              "major": "软件工程"
+            }
+          ],
+          "skills": {
+            "technical": ["JavaScript", "TypeScript", "Node.js", "Spring Boot"]
+          }
+        },
+        "jd_analysis": {
+          "job_title": "阿里云后端工程师",
+          "required_skills": [
+            { "skill": "Java", "level": "required", "years": "3年以上" },
+            { "skill": "微服务", "level": "required" },
+            { "skill": "高并发", "level": "required" }
+          ]
+        },
+        "expected_score_range": { "min": 35, "max": 70 },
+        "expected_labels": ["weak_match", "moderate_match"]
+      },
+      {
+        "scenario_id": "C",
+        "label": "极低匹配（应得 < 25）",
+        "user_profile": {
+          "basic_info": {
+            "name": "候选人C",
+            "years_of_experience": 5,
+            "location": "广州"
+          },
+          "work_experience": [
+            {
+              "company": "某翻译公司",
+              "title": "英语翻译",
+              "description": "英语文件翻译，无任何编程经验"
+            }
+          ],
+          "education": [
+            {
+              "school": "某大学",
+              "degree": "本科",
+              "major": "英语语言文学"
+            }
+          ],
+          "skills": {
+            "technical": []
+          }
+        },
+        "jd_analysis": {
+          "job_title": "阿里云后端工程师",
+          "required_skills": [
+            { "skill": "Java", "level": "required", "years": "3年以上" },
+            { "skill": "微服务", "level": "required" },
+            { "skill": "高并发", "level": "required" }
+          ]
+        },
+        "expected_score_range": { "min": 0, "max": 25 },
+        "expected_labels": ["no_match", "weak_match"]
+      }
+    ]
+  },
+  "expected_properties": {
+    "score_discrimination": { "min_gap_A_minus_C": 60 }
+  },
+  "assertions": [
+    {
+      "id": "scenario_a_score_high",
+      "description": "场景 A：overall_match_pct >= 80",
+      "check": "scenario('A').match_result.overall_match_pct >= 80"
+    },
+    {
+      "id": "scenario_b_score_mid",
+      "description": "场景 B：overall_match_pct 在 35-70 之间",
+      "check": "scenario('B').match_result.overall_match_pct >= 35 AND scenario('B').match_result.overall_match_pct <= 70"
+    },
+    {
+      "id": "scenario_c_score_low",
+      "description": "场景 C：overall_match_pct <= 25",
+      "check": "scenario('C').match_result.overall_match_pct <= 25"
+    },
+    {
+      "id": "discrimination_gap",
+      "description": "场景 A 与场景 C 的评分差距 >= 60 分",
+      "check": "scenario('A').match_result.overall_match_pct - scenario('C').match_result.overall_match_pct >= 60"
+    },
+    {
+      "id": "scenario_c_label_no_or_weak",
+      "description": "场景 C 的 match_label 为 no_match 或 weak_match",
+      "check": "scenario('C').match_result.match_label in ['no_match', 'weak_match']"
+    },
+    {
+      "id": "scenario_a_label_high",
+      "description": "场景 A 的 match_label 为 perfect_fit 或 strong_match",
+      "check": "scenario('A').match_result.match_label in ['perfect_fit', 'strong_match']"
+    }
+  ]
+}

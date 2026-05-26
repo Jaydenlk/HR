@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SourceQualityAuditorOutput",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "audit_results"
+  ],
+  "properties": {
+    "skill_name": { "const": "source-quality-auditor" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": {
+      "type": "string",
+      "description": "整体审计结果的简短中文说明"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "整体置信度，受 overall_confidence_ceiling 约束"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "审计过程中使用的证据"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "行动建议"
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "已识别的来源风险"
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "因来源不足无法判断的事项"
+    },
+    "audit_results": {
+      "type": "array",
+      "minItems": 1,
+      "description": "每条输入来源的审计结果",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "grade", "freshness", "verification_status", "issues", "recommendation"],
+        "properties": {
+          "source_id": { "type": "string" },
+          "grade": { "type": "string", "enum": ["A", "B", "C", "D"] },
+          "freshness": { "type": "string", "enum": ["current", "recent", "stale", "unknown"] },
+          "verification_status": { "type": "string", "enum": ["verified", "unverifiable", "unreachable", "mismatch"] },
+          "issues": { "type": "array", "items": { "type": "string" } },
+          "recommendation": { "type": "string", "enum": ["use", "use_with_caution", "discard"] },
+          "conflict": { "type": "boolean" },
+          "conflict_detail": { "type": "string" }
+        }
+      }
+    },
+    "overall_confidence_ceiling": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "基于来源质量的整体置信度上限"
+    },
+    "conflict_detected": { "type": "boolean" },
+    "usable_source_count": { "type": "integer", "minimum": 0 }
+  }
+}

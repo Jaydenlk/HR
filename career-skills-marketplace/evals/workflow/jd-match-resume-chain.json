@@ -1,0 +1,67 @@
+{
+  "name": "jd-match-resume-chain",
+  "description": "Full four-skill chain: JD analysis → profile building → match diagnosis → resume tailoring.",
+  "input": {
+    "user_message": "我是后端工程师，三年 Go 经验，有微服务和 API 网关项目，想投下面这个 JD，帮我做完整分析并改写简历。",
+    "context": {
+      "resume_text": "姓名：虚构用户A\n工作经历：\n- 2021-2024 某创业公司，后端工程师，负责 API 网关开发，日处理请求 50 万次，使用 Go + gRPC\n- 参与微服务架构迁移，将单体服务拆分为 8 个独立服务\n技术栈：Go, gRPC, Docker, Redis, PostgreSQL\n教育背景：某大学计算机科学学士",
+      "jd_text": "职位：高级后端工程师\n公司：某互联网科技公司\n要求：\n- 5年以上后端开发经验，精通 Go 或 Java\n- 熟悉分布式系统设计，有高并发场景经验\n- 有微服务架构设计经验\n- 了解消息队列（Kafka/RabbitMQ）\n- 有大规模系统（日活百万以上）经验优先\n职责：\n- 设计和开发核心业务系统\n- 参与系统架构评审\n- 跨团队技术协作",
+      "additional_context": {}
+    }
+  },
+  "expected_skills_invoked": [
+    "jd-analyzer",
+    "profile-builder",
+    "match-diagnosis",
+    "resume-tailor"
+  ],
+  "expected_output_properties": {
+    "confidence_level": "medium",
+    "has_source_citations": true,
+    "refuses_fabrication": false,
+    "has_match_score": true,
+    "has_tailored_resume": true
+  },
+  "assertions": [
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "jd-analyzer"
+    },
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "profile-builder"
+    },
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "match-diagnosis"
+    },
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "resume-tailor"
+    },
+    {
+      "type": "contains",
+      "path": "match_diagnosis.gaps",
+      "expected": "消息队列"
+    },
+    {
+      "type": "confidence_below",
+      "path": "match_diagnosis.confidence_score",
+      "expected": 0.85
+    },
+    {
+      "type": "contains",
+      "path": "resume_tailor.output",
+      "expected": "API 网关"
+    },
+    {
+      "type": "refusal_present",
+      "path": "resume_tailor.fabrication_refused",
+      "expected": false
+    }
+  ]
+}

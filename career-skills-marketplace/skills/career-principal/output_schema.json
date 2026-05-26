@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CareerPrincipalOutput",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "intent_detected", "skills_invoked"
+  ],
+  "properties": {
+    "skill_name": { "const": "career-principal" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "综合结论（中文，200字以内）" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "综合置信度，取所有 sub-skill 置信度的最低值"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "所有 sub-skill 的证据合并去重"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "行动建议列表"
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "风险提醒"
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "建议用户采取的下一步行动"
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "追问问题列表"
+    },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "因信息不足无法判断的事项"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "partial", "out_of_scope", "error"]
+    },
+    "intent_detected": {
+      "type": "string",
+      "enum": [
+        "analyze_jd", "tailor_resume", "match_diagnosis", "career_direction",
+        "interview_prep", "interview_debrief", "offer_evaluation", "company_check",
+        "salary_check", "find_interview_experience", "write_message", "daily_planning",
+        "unknown"
+      ]
+    },
+    "skills_invoked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "status", "result_summary"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "status": { "type": "string", "enum": ["completed", "failed", "skipped"] },
+          "result_summary": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low", "insufficient"] }
+        }
+      }
+    },
+    "missing_information": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "conflict_markers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field": { "type": "string" },
+          "source_a": { "type": "string" },
+          "source_b": { "type": "string" },
+          "value_a": { "type": "string" },
+          "value_b": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "name": "缺少 JD 数据时返回 insufficient 置信度，不产生评分",
+  "description": "验证缺少必要输入时的降级处理：当 jd_analysis 未提供时，技能必须返回 confidence = insufficient，并说明原因，而不是凭空猜测 JD 要求进行评分",
+  "input": {
+    "user_profile": {
+      "basic_info": {
+        "name": "王芳",
+        "years_of_experience": 5,
+        "location": "北京"
+      },
+      "work_experience": [
+        {
+          "company": "某互联网公司",
+          "title": "项目经理",
+          "description": "管理多个研发项目"
+        }
+      ],
+      "skills": {
+        "technical": ["PMP", "JIRA", "Confluence", "项目管理"]
+      }
+    }
+  },
+  "expected_properties": {
+    "match_result.confidence": { "equals": "insufficient" },
+    "insufficient_data_explanation": { "exists": true, "non_empty": true }
+  },
+  "assertions": [
+    {
+      "id": "confidence_insufficient",
+      "description": "match_result.confidence === 'insufficient'",
+      "check": "match_result.confidence == 'insufficient'"
+    },
+    {
+      "id": "no_match_pct",
+      "description": "不输出具体的匹配百分比数字",
+      "check": "match_result.overall_match_pct is null OR field_not_exists(match_result.overall_match_pct)"
+    },
+    {
+      "id": "insufficient_explanation_exists",
+      "description": "insufficient_data_explanation 字段存在，内容说明缺少 jd_analysis 数据",
+      "check": "field_exists(insufficient_data_explanation) AND non_empty(insufficient_data_explanation)"
+    },
+    {
+      "id": "preliminary_observation_provided",
+      "description": "输出中包含对用户画像的初步描述性观察，但明确标注这不是评分结果",
+      "check": "output_contains_any(['初步', '观察', '描述', '非评分', '无法评分'])"
+    },
+    {
+      "id": "no_dimension_scores",
+      "description": "不产生五维评分",
+      "check": "field_not_exists(match_result.dimension_scores) OR length(match_result.dimension_scores) == 0"
+    }
+  ]
+}
