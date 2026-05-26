@@ -1651,34 +1651,47 @@ final_output_shape:
 
 ## 10. Roadmap
 
-### Phase 1: MVP 6 Skills
+### Phase 1: Skills Marketplace Skeleton + 6 MVP Skills
+
+**Runtime: Claude Code / Codex Skill Files — 不做 CLI / API / Web UI**
 
 **时间估计（非绝对值）**：
 - Skeleton + 6 skills 初版：~2 周
-- 含 eval + installer + 50 公司 seed + examples：~4 周
-- 含 production-grade docs 和跨环境支持：~6 周
+- 含 eval fixtures + installer + 50 公司 seed + examples：~4 周
+- 含 production-grade docs 和跨环境验证：~6 周
 
 ```yaml
 deliverables:
-  - 可安装的 npm 包 (@career-skills/marketplace)
+  - marketplace.yaml (manifest)
   - Career Principal SKILL.md
   - 5 个 sub-skills (profile/jd/resume/match/auditor)
-  - Evidence Layer schema
+  - Evidence Layer schema (shared/evidence-schema/)
   - Knowledge Graph Stage A seed (50 公司)
-  - 6 skill × 5 eval = 30 个 test cases + 10 个 workflow eval
+  - 6 skill × 5 eval = 30 个 test fixtures + 10 个 workflow fixtures
   - README.zh-CN.md
-  - CLI entry point (career ask / career run)
+  - install.ps1 / install.sh (安装到 Claude Code skills 目录)
+
+not_in_phase_1:
+  - career CLI 工具
+  - career doctor 命令
+  - npm binary / package
+  - Local API
+  - Web UI
+  - JSONL/SQLite evidence store
+  - Live adapters
 
 acceptance_criteria:
-  - npx skills add 成功安装
+  - install.sh/ps1 成功安装到 ~/.claude/skills/
+  - Claude Code 加载后 career-principal 可触发
   - 完整闭环可用（JD→画像→匹配→改写→审计）
-  - 所有 test cases 通过
-  - 用户从安装到首次使用 < 5分钟
-  - fabrication check 通过
+  - 所有 eval fixtures 有 input + expected schema
+  - 用户从 clone 到首次使用 < 5分钟
+  - fabrication check 规则在 SKILL.md 中内嵌
 
 risks:
   - SKILL.md 规范限制导致 skill 间通信困难
   - 知识图谱 50 公司覆盖不够用户常见场景
+  - 无 eval runner（只有 fixtures，人工/AI 验证）
 
 parallelizable_subagent_tasks:
   - A: Career Principal + 编排逻辑
@@ -1686,13 +1699,15 @@ parallelizable_subagent_tasks:
   - C: match-diagnosis + resume-tailor
   - D: source-quality-auditor + evidence schema
   - E: Knowledge Graph seed data (50 公司)
-  - F: evals + README + CLI
+  - F: eval fixtures + README + installer scripts
 ```
 
-### Phase 2: Interview + Opportunity (+4周 → +8周)
+### Phase 2: Local Evidence Store + Eval Runner + Interview Skills
 
 ```yaml
 deliverables:
+  - JSONL evidence store (.evidence/)
+  - eval runner 脚本（验证 fixtures）
   - interview-intelligence skill
   - mock-interviewer skill
   - interview-debrief skill
@@ -1701,49 +1716,56 @@ deliverables:
   - Knowledge Graph 扩展到 100 公司 (Stage A→B 过渡)
 
 acceptance_criteria:
+  - evidence store 可读写用户数据（JSONL 模式）
+  - eval runner 可自动跑全部 fixtures
   - "明天面试"意图路由完整可用
   - "这个 JD 值不值得投"有深度评估
   - 面试复盘结构化输出
-  - STAR 故事积累机制工作
-  - 新增 skill ×7 类测试 全部通过
+  - 新增 skill × 5 eval fixtures 全部通过
 
 risks:
   - 面经数据不足导致 interview-intelligence 降级过多
   - mock-interviewer 的多轮交互在 SKILL.md 框架下受限
 
 parallelizable_subagent_tasks:
-  - A: interview-intelligence + question-bank
-  - B: mock-interviewer（三阶段）
-  - C: interview-debrief（蒸馏自 HRBP）
-  - D: opportunity-intelligence
-  - E: Knowledge Graph 扩展
+  - A: JSONL evidence store + eval runner
+  - B: interview-intelligence + question-bank
+  - C: mock-interviewer（三阶段）
+  - D: interview-debrief（蒸馏自 HRBP）
+  - E: opportunity-intelligence
+  - F: Knowledge Graph 扩展
 ```
 
-### Phase 3: Market Radar + Live Research (+8周 → +12周)
+### Phase 3: CLI / Doctor / Packaging + Market Intelligence
 
 ```yaml
 deliverables:
+  - career CLI 工具 (career ask / career run / career doctor)
+  - npm 包发布 (@career-skills/marketplace)
+  - npx skills add 支持
   - market-radar skill
   - Web Search adapter
   - salary-radar skill
   - company-risk-auditor skill
-  - Live Research 安全 pipeline（第6章）
+  - Live Research 安全 pipeline
   - source-quality-auditor 增强版
 
 acceptance_criteria:
+  - career CLI 可用
+  - career doctor 输出完整能力清单
+  - npx skills add 成功安装
   - 联网搜索结果经过完整安全 pipeline
-  - 薪资数据标注年份/城市/岗位/来源
   - D 级来源被正确过滤
   - 无 adapter 时所有 skill 正常降级
 
 risks:
+  - CLI 跨平台兼容性
   - Web Search API 质量参差不齐
-  - 薪资数据来源有限
 
 parallelizable_subagent_tasks:
-  - A: market-radar + web search adapter
-  - B: salary-radar
-  - C: company-risk-auditor
+  - A: career CLI + doctor + npm packaging
+  - B: market-radar + web search adapter
+  - C: salary-radar + company-risk-auditor
   - D: Live Research safety pipeline
 ```
 

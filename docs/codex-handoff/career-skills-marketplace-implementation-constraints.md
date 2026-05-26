@@ -380,120 +380,96 @@ knowledge/
 
 ## 5. Installer / Setup 具体设计
 
-### 安装方式
+### 安装方式（Phase 1）
 
 ```bash
-# 方式 1: Claude Code plugin (推荐)
-npx skills add @career-skills/marketplace
-
-# 方式 2: 手动 clone
+# 方式 1: 直接 clone
 git clone https://github.com/career-skills/marketplace.git
 cd marketplace
-npm run setup
+
+# Windows
+.\install.ps1
+
+# macOS / Linux
+./install.sh
 ```
 
-### setup 脚本做什么
+Phase 1 不做 `npx skills add`（需要 npm 包发布，放到 Phase 3）。
+
+### install 脚本做什么
 
 ```
-Step 1: 检查 Node.js >= 18
-Step 2: 检查 npm/pnpm
-Step 3: 创建 .evidence/ 目录（JSONL mode）
-Step 4: 导入 seed knowledge（复制 knowledge/ 到工作目录）
-Step 5: 检测 AI provider 配置（扫描环境变量）
-Step 6: 跑 smoke tests（验证 skill 文件完整性）
-Step 7: 输出可用能力清单
+Step 1: 检查目标 skills 目录是否存在
+        - Claude Code: ~/.claude/skills/
+        - Codex: 对应 skills 目录
+Step 2: 复制/链接 skills/ 目录到目标位置
+Step 3: 复制 shared/ 和 knowledge/ 到 skills 子目录
+Step 4: 验证 6 个 skill 的 SKILL.md 文件存在
+Step 5: 输出安装结果
 ```
 
 ### 不做的事
 
+- 不检查 Node/pnpm（不需要 runtime）
+- 不启动任何服务
+- 不创建 API
+- 不跑 Web server
+- 不创建 JSONL/SQLite evidence store（Phase 2）
 - 不删除用户数据
-- 不 kill 全部 node 进程
 - 不修改系统 PATH
-- 不要求 sudo/管理员权限
-- 不自动安装 Python/Docker
 
-### setup 输出示例
+### install 输出示例
 
 ```
-Career Skills Marketplace v1.0.0 Ready
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Career Skills Marketplace v1.0.0 Installed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Core Skills:
-  ✓ career-principal
-  ✓ profile-builder
-  ✓ jd-analyzer
-  ✓ resume-tailor
-  ✓ match-diagnosis
-  ✓ source-quality-auditor
+Installed to: ~/.claude/skills/career-skills-marketplace/
 
-Knowledge Graph:
-  ✓ 50 companies loaded (Stage A seed)
-  ✓ 12 role categories loaded
-  ✓ 18 market vocabulary terms loaded
-  ✓ 4 rubrics loaded
+Skills:
+  ✓ career-principal/SKILL.md
+  ✓ profile-builder/SKILL.md
+  ✓ jd-analyzer/SKILL.md
+  ✓ resume-tailor/SKILL.md
+  ✓ match-diagnosis/SKILL.md
+  ✓ source-quality-auditor/SKILL.md
 
-Evidence Store:
-  ✓ .evidence/ initialized (JSONL mode)
+Knowledge:
+  ✓ 50 companies (Stage A seed)
+  ✓ 12 role categories
+  ✓ 18 market vocabulary terms
+  ✓ 4 rubrics
 
-Optional (not configured):
-  - XHS adapter: not installed
-  - Nowcoder adapter: not installed
-  - Web search: no API key
-
-Next steps:
-  career ask "帮我分析一个 JD"
-  career run jd-analyzer --file jd.txt
+Next: Open Claude Code and say "帮我分析一个 JD"
 ```
 
 ---
 
 ## 6. Runtime 形态
 
-### MVP 支持：CLI + Skill Files
+### Phase 1: Skill Files Only
 
-```bash
-# 对话模式（通过 Career Principal）
-career ask "帮我看这个 JD 值不值得投"
-
-# 直接调用特定 skill
-career run jd-analyzer --file jd.txt
-career run resume-tailor --resume resume.md --jd jd.txt
-career run match-diagnosis --resume resume.md --jd jd.txt
-
-# 查看状态
-career doctor          # 检查配置和可用能力
-career skills          # 列出所有可用 skill
-career evidence list   # 列出本地证据
-```
-
-### Agent Skill Runtime（同步支持）
-
-Claude Code / Codex / Gemini CLI 加载 SKILL.md 后直接在对话中使用：
+Claude Code / Codex 加载 SKILL.md 后直接在对话中使用：
 
 ```
 用户在 Claude Code 中: "帮我分析这个 JD [粘贴内容]"
 → Career Principal SKILL.md 被触发
-→ 调度 jd-analyzer
+→ 调度 jd-analyzer（同 repo 内的另一个 skill）
+→ 读取 knowledge/ 下的知识图谱
 → 输出结构化分析
 ```
 
-### Local API（Phase 3+，当前不做）
+career-principal 的 SKILL.md 中定义 skill 间调用规则：通过 Anthropic Agent Skills 的 skill 发现和调用机制，主理人可以触发同 marketplace 下的其他 skill。
 
-```
-POST /skills/jd-analyzer/run
-POST /principal/ask
-GET  /evidence/list
-GET  /skills
-GET  /doctor
-```
+### Deferred Runtimes
 
-### 优先级
-
-| Runtime | 支持阶段 | 原因 |
-|---------|---------|------|
-| CLI (`career` 命令) | Phase 1 MVP | 最轻量，跨平台 |
-| Skill Files (SKILL.md) | Phase 1 MVP | Anthropic 标准，被 17+ 环境支持 |
-| Local API | Phase 3+ | 需要 HTTP server，增加复杂度 |
+| Runtime | 阶段 | 原因 |
+|---------|------|------|
+| Skill Files (SKILL.md) | **Phase 1 MVP** | Anthropic 标准，被 17+ 环境支持 |
+| CLI (`career` 命令) | Phase 3 | 需要 npm 包和 bin entry，增加复杂度 |
+| `career doctor` | Phase 3 | 依赖 CLI 基础设施 |
+| npm package / `npx skills add` | Phase 3 | 需要发布到 npm registry |
+| Local API | Phase 4+ | 需要 HTTP server |
 | Web UI | 不做 | 产品形态是 plugin，不是 app |
 
 ---
@@ -758,25 +734,46 @@ why_trustworthy: "诚实拒绝而非编造——这正是 evidence layer 的核�
 
 | 决策项 | 确认值 | 来源 |
 |--------|--------|------|
-| npm scope | `@career-skills` | 用户确认 |
 | repo name | `career-skills-marketplace` | Codex 建议，用户认可 |
 | MVP 语言 | 中文输出，schema 英文字段 | 用户确认 |
 | License | Code: MIT, Knowledge: CC BY 4.0 | Codex 建议，用户认可 |
-| Runtime target | CLI + Skill Files first | Codex 建议，用户认可 |
-| Evidence store | MVP 先 JSONL，SQLite Phase 2 | Codex 建议，用户认可 |
+| **Phase 1 Runtime** | **Skill Files only (Claude Code / Codex)** | **用户修订 2026-05-26** |
+| Evidence store | **Phase 1: file-based fixtures only; JSONL Phase 2** | **用户修订** |
 | Initial companies | 50 家 (Stage A seed) | 用户确认 |
 | Initial roles | 12-15 大类 | Codex 建议 |
-| CLI in MVP | Yes (`career` 命令) | Codex 建议 |
 | AI Provider | 完全可插拔，无默认 | 用户确认 |
+
+### Phase 1 明确 Deferred
+
+| 内容 | 推迟到 | 原因 |
+|------|--------|------|
+| `career` CLI 工具 | Phase 3 | 需要 npm bin，不是 MVP 核心 |
+| `career doctor` 命令 | Phase 3 | 依赖 CLI |
+| npm package / `npx skills add` | Phase 3 | 需要发布到 registry |
+| JSONL evidence store | Phase 2 | Phase 1 只用 fixtures |
+| SQLite evidence store | Phase 3+ | 更重 |
+| Live adapters | Phase 3+ | 需要外部 API |
+| Local API | Phase 4+ | 需要 HTTP server |
+| Web UI | 不做 | 产品形态是 plugin |
+
+### Phase 1 目标体验
+
+```
+用户 clone marketplace repo
+→ 运行 install.sh / install.ps1
+→ 文件复制到 ~/.claude/skills/career-skills-marketplace/
+→ 打开 Claude Code
+→ 说"帮我分析一个 JD"
+→ career-principal 被触发，调度 jd-analyzer
+→ 输出结构化分析
+```
 
 ### 仍需确认
 
 | 问题 | 影响 | 建议 |
 |------|------|------|
 | 初始 50 家公司的具体名单 | Phase 1 知识图谱种子 | 见 roadmap 中的分类表，按类别配额选取 |
-| CLI 工具名 `career` 是否确认 | package.json bin 字段 | 建议 `career`，简短好记 |
-| 是否包含 `career doctor` 命令 | Phase 1 scope | 建议包含，是开箱即用体验的关键 |
-| Eval 框架选型 | 测试基础设施 | 建议 JSON fixture + 自定义 assertion，不引入重框架 |
+| Eval 方式 | Phase 1 只有 fixtures 无 runner | 人工/AI 在 Claude Code 中验证 |
 
 ---
 
