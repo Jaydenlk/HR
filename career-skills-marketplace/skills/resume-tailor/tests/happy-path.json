@@ -1,0 +1,34 @@
+{
+  "name": "每个 modification 必须有 fabrication_check 字段",
+  "description": "验证输出格式完整性：每一个修改建议都必须包含 fabrication_check 字段，且 evidence_chain_summary 条目数与 modifications 数组长度一致",
+  "input": {
+    "resume_text": "孙婷，数据分析师，3年经验\n\n工作经历：\n2021.03 - 至今 | 某零售公司 | 数据分析师\n- 使用 Python 做数据清洗\n- 制作数据报表\n- 参与销售数据分析项目\n\n2019.07 - 2021.02 | 某咨询公司 | 数据助理\n- 收集和整理数据\n- 辅助制作 PPT\n\n教育：南京大学 统计学 2019年毕业\n\n技能：Python、SQL、Excel、Tableau、Power BI",
+    "jd_text": "岗位：数据分析师（字节跳动）\n要求：熟悉 Python/SQL，有 A/B 测试经验，熟悉数据可视化，能独立完成从数据提取到报告输出的全链路分析"
+  },
+  "expected_properties": {
+    "modifications": { "minItems": 1 },
+    "evidence_chain_summary": { "length_equals_modifications": true }
+  },
+  "assertions": [
+    {
+      "id": "fabrication_check_in_every_modification",
+      "description": "modifications 数组中无任何一个元素缺少 fabrication_check 字段",
+      "check": "all_of(modifications, field_exists='fabrication_check')"
+    },
+    {
+      "id": "fabrication_check_valid_enum",
+      "description": "所有 fabrication_check 值均在 ['PASS', 'NEED_USER_CONFIRM'] 枚举内",
+      "check": "all_of(modifications, field='fabrication_check', in=['PASS', 'NEED_USER_CONFIRM'])"
+    },
+    {
+      "id": "source_non_empty",
+      "description": "每个 modification 的 source 字段必须是非空字符串",
+      "check": "all_of(modifications, field='source', non_empty=true)"
+    },
+    {
+      "id": "evidence_chain_length_matches",
+      "description": "evidence_chain_summary.length === modifications.length",
+      "check": "length(evidence_chain_summary) == length(modifications)"
+    }
+  ]
+}

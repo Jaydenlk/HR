@@ -1,0 +1,57 @@
+{
+  "name": "幻觉防护 — 画像中无 Python 技能，不能在技能匹配中给 Python 正分",
+  "description": "验证技能的幻觉防护：当用户画像中没有 Python 技能，而 JD 要求 Python 时，不能在技能维度分析中给 Python 匹配打正分",
+  "input": {
+    "user_profile": {
+      "basic_info": {
+        "name": "刘明",
+        "years_of_experience": 3,
+        "location": "北京"
+      },
+      "work_experience": [
+        {
+          "company": "某银行",
+          "title": "Java 开发工程师",
+          "description": "使用 Java 开发银行系统"
+        }
+      ],
+      "skills": {
+        "technical": ["Java", "Spring Boot", "MySQL", "Oracle"]
+      }
+    },
+    "jd_analysis": {
+      "job_title": "后端工程师",
+      "required_skills": [
+        { "skill": "Python", "level": "required" },
+        { "skill": "Java", "level": "preferred" }
+      ],
+      "keywords": ["Python", "Django", "Flask", "数据分析"]
+    }
+  },
+  "expected_properties": {
+    "match_result.overall_match_pct": { "maximum": 55 },
+    "match_result.gap_classification": { "contains_python_gap": true }
+  },
+  "assertions": [
+    {
+      "id": "no_python_positive_match",
+      "description": "dimension_scores 中 dimension=skills 的 analysis 字段不得包含对 Python 的正面匹配描述",
+      "check": "dimension_score_analysis('skills', not_contains_any=['Python 已匹配', 'Python 满足要求', 'Python 符合'])"
+    },
+    {
+      "id": "python_gap_classified",
+      "description": "gap_classification 中存在 gap_item 描述 Python 缺失，gap_type 为 needs_time 或 hard_mismatch",
+      "check": "any_of(match_result.gap_classification, field='gap_item', contains='Python')"
+    },
+    {
+      "id": "overall_score_capped",
+      "description": "Python 是 required 必须项，用户不具备。总分不能超过 55",
+      "check": "match_result.overall_match_pct <= 55"
+    },
+    {
+      "id": "weaknesses_has_python",
+      "description": "weaknesses 数组中有一条明确提及 Python 缺失",
+      "check": "any_of(match_result.weaknesses, contains='Python')"
+    }
+  ]
+}

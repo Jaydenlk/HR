@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ResumeTailorInput",
+  "type": "object",
+  "oneOf": [
+    { "required": ["profile"] },
+    { "required": ["resume_text"] }
+  ],
+  "properties": {
+    "profile": {
+      "type": "object",
+      "description": "用户结构化画像（来自用户系统或自行填写）",
+      "properties": {
+        "basic_info": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "target_role": { "type": "string", "description": "求职目标岗位" },
+            "years_of_experience": { "type": "number" },
+            "location": { "type": "string" }
+          },
+          "required": ["name"]
+        },
+        "work_experience": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "company": { "type": "string" },
+              "title": { "type": "string" },
+              "start_date": { "type": "string" },
+              "end_date": { "type": "string" },
+              "description": { "type": "string" },
+              "achievements": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "required": ["company", "title", "description"]
+          }
+        },
+        "education": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "school": { "type": "string" },
+              "degree": { "type": "string" },
+              "major": { "type": "string" },
+              "graduation_date": { "type": "string" }
+            },
+            "required": ["school", "degree", "major"]
+          }
+        },
+        "skills": {
+          "type": "object",
+          "properties": {
+            "technical": { "type": "array", "items": { "type": "string" } },
+            "soft": { "type": "array", "items": { "type": "string" } },
+            "certifications": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "role": { "type": "string" },
+              "technologies": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "required": ["name", "description"]
+          }
+        }
+      }
+    },
+    "resume_text": {
+      "type": "string",
+      "minLength": 50,
+      "description": "简历原始文本，最少50字"
+    },
+    "jd_text": {
+      "type": "string",
+      "minLength": 20,
+      "description": "目标职位 JD 原文，不提供则做通用优化"
+    },
+    "confidence_policy": {
+      "type": "object",
+      "properties": {
+        "allow_inference": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否允许对隐含信息做合理推断（推断项标记 NEED_USER_CONFIRM）"
+        }
+      }
+    }
+  }
+}

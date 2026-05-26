@@ -1,0 +1,34 @@
+{
+  "name": "严重不匹配时 honest_gaps 必须存在且非空",
+  "description": "验证当用户背景与 JD 存在严重跨领域不匹配时，技能必须诚实列出无法弥补的差距，而不是强行产生改写建议制造虚假匹配感",
+  "input": {
+    "resume_text": "林艺，厨师，10年经验\n\n工作经历：\n2014.01 - 至今 | 某五星级酒店 | 主厨\n- 负责宴会厅菜品研发和出品\n- 管理厨房团队15人\n- 负责食材采购和成本控制\n\n技能：中式烹饪、粤菜、成本管理、团队管理",
+    "jd_text": "岗位：机器学习工程师\n要求：Python/TensorFlow/PyTorch，有模型训练和部署经验，熟悉深度学习算法，计算机科学相关专业背景"
+  },
+  "expected_properties": {
+    "overall_assessment.honest_gaps": { "minItems": 3 },
+    "modifications": { "no_fabricated_tech_skills": true }
+  },
+  "assertions": [
+    {
+      "id": "honest_gaps_not_empty",
+      "description": "overall_assessment.honest_gaps 包含至少 3 条真实差距说明，涵盖技术技能缺失",
+      "check": "length(overall_assessment.honest_gaps) >= 3"
+    },
+    {
+      "id": "mismatch_acknowledged",
+      "description": "技能输出中有明确说明跨领域不匹配，且未强行将厨师经历改写为技术经历",
+      "check": "output_contains_any(['不匹配', '跨领域', '差距', '无法改写'])"
+    },
+    {
+      "id": "no_ml_skills_fabricated",
+      "description": "所有 modified 字段不包含 'Python'、'TensorFlow'、'深度学习'、'模型训练'",
+      "check": "none_of(modifications, field='modified', contains_any=['Python', 'TensorFlow', '深度学习', '模型训练'])"
+    },
+    {
+      "id": "transferable_skills_mentioned",
+      "description": "即使匹配度极低，技能也应指出原材料中可能具有迁移价值的技能（如团队管理）",
+      "check": "length(modifications) >= 1 OR output_contains_any(['团队管理', '可迁移', '管理能力'])"
+    }
+  ]
+}

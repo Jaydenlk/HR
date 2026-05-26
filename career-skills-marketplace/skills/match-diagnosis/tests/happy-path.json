@@ -1,0 +1,63 @@
+{
+  "name": "输出中必须包含五个维度评分",
+  "description": "验证输出格式完整性：无论输入数据多简单，dimension_scores 必须包含五个维度（skills, experience, education, role, constraints），各维度满分固定",
+  "input": {
+    "user_profile": {
+      "basic_info": {
+        "name": "李磊",
+        "years_of_experience": 4,
+        "location": "深圳"
+      },
+      "work_experience": [
+        {
+          "company": "某互联网公司",
+          "title": "数据分析师",
+          "description": "负责用户行为分析"
+        }
+      ],
+      "skills": {
+        "technical": ["Python", "SQL", "Tableau"]
+      }
+    },
+    "jd_analysis": {
+      "job_title": "高级数据分析师",
+      "required_skills": [
+        { "skill": "Python", "level": "required" },
+        { "skill": "SQL", "level": "required" }
+      ],
+      "location": "深圳",
+      "work_type": "full_time",
+      "keywords": ["数据分析", "Python", "SQL"]
+    }
+  },
+  "expected_properties": {
+    "match_result.dimension_scores": { "length": 5 }
+  },
+  "assertions": [
+    {
+      "id": "five_dimension_scores",
+      "description": "dimension_scores 包含恰好 5 个元素",
+      "check": "length(match_result.dimension_scores) == 5"
+    },
+    {
+      "id": "all_five_dimension_names",
+      "description": "dimension 字段的值集合为 {skills, experience, education, role, constraints}",
+      "check": "dimension_names_equal(['skills', 'experience', 'education', 'role', 'constraints'])"
+    },
+    {
+      "id": "max_scores_correct",
+      "description": "各维度满分符合规范：skills=30, experience=25, education=15, role=15, constraints=15",
+      "check": "max_score('skills')==30 AND max_score('experience')==25 AND max_score('education')==15 AND max_score('role')==15 AND max_score('constraints')==15"
+    },
+    {
+      "id": "score_within_max",
+      "description": "所有维度的 score 不超过其 max_score",
+      "check": "all_of(match_result.dimension_scores, score_le_max_score=true)"
+    },
+    {
+      "id": "overall_matches_sum",
+      "description": "|overall_match_pct - sum(dimension_scores[i].score)| <= 3",
+      "check": "abs(match_result.overall_match_pct - sum(match_result.dimension_scores, field='score')) <= 3"
+    }
+  ]
+}

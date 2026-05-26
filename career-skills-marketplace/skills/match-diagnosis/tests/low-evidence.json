@@ -1,0 +1,61 @@
+{
+  "name": "必须项缺失时总分不超过 50",
+  "description": "验证评分校准规则：当 JD 中标注为 required 的技能完全缺失时，总分不能超过 50",
+  "input": {
+    "user_profile": {
+      "basic_info": {
+        "name": "张萍",
+        "years_of_experience": 2,
+        "location": "成都"
+      },
+      "work_experience": [
+        {
+          "company": "某设计公司",
+          "title": "UI 设计师",
+          "description": "负责移动端 APP UI 设计"
+        }
+      ],
+      "skills": {
+        "technical": ["Figma", "Sketch", "Photoshop", "Illustrator"]
+      }
+    },
+    "jd_analysis": {
+      "job_title": "前端开发工程师",
+      "required_skills": [
+        { "skill": "JavaScript", "level": "required", "years": "2年以上" },
+        { "skill": "React 或 Vue", "level": "required" },
+        { "skill": "HTML/CSS", "level": "required" }
+      ],
+      "qualifications": {
+        "must_have": ["JavaScript", "框架经验"]
+      },
+      "keywords": ["JavaScript", "React", "Vue", "前端开发", "HTML", "CSS"]
+    }
+  },
+  "expected_properties": {
+    "match_result.overall_match_pct": { "maximum": 50 },
+    "match_result.match_label": { "enum": ["weak_match", "no_match"] }
+  },
+  "assertions": [
+    {
+      "id": "score_capped_at_50",
+      "description": "用户完全不具备 JavaScript、React/Vue、HTML/CSS，overall_match_pct 不超过 50",
+      "check": "match_result.overall_match_pct <= 50"
+    },
+    {
+      "id": "match_label_weak_or_no",
+      "description": "match_label 为 weak_match 或 no_match",
+      "check": "match_result.match_label in ['weak_match', 'no_match']"
+    },
+    {
+      "id": "skills_score_low",
+      "description": "dimension_scores 中 dimension=skills 的 score 不超过 5",
+      "check": "dimension_score('skills') <= 5"
+    },
+    {
+      "id": "all_required_gaps_classified",
+      "description": "JavaScript、React/Vue、HTML/CSS 均出现在 gap_classification 中",
+      "check": "gap_classification_contains_all(['JavaScript', 'React', 'HTML'])"
+    }
+  ]
+}
