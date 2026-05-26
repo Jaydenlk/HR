@@ -1,3 +1,19 @@
+export function getCurrentQuarter(): { start: Date; end: Date; label: string } {
+  const now = new Date();
+  const q = Math.ceil((now.getMonth() + 1) / 3);
+  const year = now.getFullYear();
+  const start = new Date(year, (q - 1) * 3, 1);
+  const end = new Date(year, q * 3, 0, 23, 59, 59, 999);
+  return { start, end, label: `${year}Q${q}` };
+}
+
+export function isCurrentQuarter(publishedAt: Date | string | null): boolean {
+  if (!publishedAt) return false;
+  const date = typeof publishedAt === 'string' ? new Date(publishedAt) : publishedAt;
+  const { start, end } = getCurrentQuarter();
+  return date >= start && date <= end;
+}
+
 export function normalizeQualityScore(raw: number | null): number {
   if (raw === null || raw === undefined || raw < 0) return 0;
   if (raw <= 10) return raw * 10;

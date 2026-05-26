@@ -41,6 +41,8 @@ async function seedFeedItem(
     difficulty: 'medium',
     quarter: '2026Q2',
     confidence: 'high',
+    published_at: new Date('2026-05-20'),
+    date_confidence: 'high',
     tags_json: JSON.stringify({
       companies: ['字节跳动'],
       roles: ['后端'],
@@ -794,6 +796,118 @@ describe('Newspaper (e2e)', () => {
       const actions = res.body.coach_actions as Array<{ action: string }>;
       const hasStartApplying = actions.some((a) => a.action === '开始投递');
       expect(hasStartApplying).toBe(true);
+    });
+  });
+
+  /* ================================================================ */
+  /*  Freshness rules                                                  */
+  /* ================================================================ */
+
+  describe('Freshness rules', () => {
+    it('2021 post does not appear in newspaper homepage', async () => {
+      await seedFeedItem(feedRepo, {
+        title: 'Old 2021 interview',
+        published_at: new Date('2021-03-15'),
+        date_confidence: 'high',
+        source_kind: 'xhs',
+        source_url: 'https://example.com/old-2021',
+        quality_score: 8,
+        confidence: 'high',
+      });
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const allItems = [
+        ...(res.body.headline_observations?.flatMap((o: { evidence_items?: Array<{ source_url: string }> }) => o.evidence_items) || []),
+        ...(res.body.user_voice || []),
+        ...(res.body.tech_radar || []),
+      ];
+      for (const item of allItems) {
+        expect(item.source_url).not.toBe('https://example.com/old-2021');
+      }
+    });
+
+    it('2026Q2 high confidence post appears in homepage', async () => {
+      await seedFeedItem(feedRepo, {
+        title: 'Fresh 2026Q2 interview',
+        published_at: new Date('2026-05-20'),
+        date_confidence: 'high',
+        source_kind: 'xhs',
+        source_url: 'https://example.com/fresh-2026q2',
+        quality_score: 8,
+        confidence: 'high',
+        content: 'a'.repeat(300),
+      });
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const allUrls = [
+        ...(res.body.headline_observations?.flatMap((o: { evidence_items?: Array<{ source_url: string }> }) => o.evidence_items?.map((e: { source_url: string }) => e.source_url)) || []),
+        ...(res.body.user_voice?.map((v: { source_url: string }) => v.source_url) || []),
+        ...(res.body.tech_radar?.map((t: { source_url: string }) => t.source_url) || []),
+      ];
+      expect(allUrls).toContain('https://example.com/fresh-2026q2');
+    });
+
+    it('fetched today but published 2021 is not this week new', async () => {
+      await seedFeedItem(feedRepo, {
+        title: 'Fetched today published 2021',
+        published_at: new Date('2021-06-01'),
+        fetched_at: new Date(),
+        date_confidence: 'high',
+        source_kind: 'nowcoder',
+        source_url: 'https://example.com/old-fetched-today',
+      });
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      // The old post should not contribute to this week's trends
+      // (it would only if we used fetched_at instead of published_at)
+      const hotPostUrls = (res.body.hot_posts || []).map((p: { source_url: string }) => p.source_url);
+      expect(hotPostUrls).not.toContain('https://example.com/old-fetched-today');
+    });
+
+    it('published_at=null and date_confidence=unknown does not enter homepage', async () => {
+      await seedFeedItem(feedRepo, {
+        title: 'Unknown date interview',
+        published_at: null,
+        date_confidence: 'unknown',
+        source_kind: 'xhs',
+        source_url: 'https://example.com/unknown-date',
+        quality_score: 9,
+        confidence: 'high',
+      });
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const allItems = [
+        ...(res.body.headline_observations?.flatMap((o: { evidence_items?: Array<{ source_url: string }> }) => o.evidence_items) || []),
+        ...(res.body.user_voice || []),
+        ...(res.body.tech_radar || []),
+      ];
+      for (const item of allItems) {
+        expect(item.source_url).not.toBe('https://example.com/unknown-date');
+      }
+    });
+
+    it('radar can find posts from last 5 years', async () => {
+      await seedFeedItem(feedRepo, {
+        title: '2023 old post for radar',
+        published_at: new Date('2023-09-15'),
+        date_confidence: 'high',
+        source_kind: 'nowcoder',
+        source_url: 'https://example.com/2023-radar',
+      });
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const urls = res.body.items?.map((i: { source_url: string }) => i.source_url) || [];
+      expect(urls).toContain('https://example.com/2023-radar');
     });
   });
 

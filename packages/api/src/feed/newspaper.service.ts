@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, Not, In } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { FeedItem } from './entities/feed-item.entity';
 import { EvidenceService } from '../intelligence/evidence.service';
 import { CompanyRegistryService } from './company-registry.service';
@@ -12,6 +12,7 @@ import {
   buildDominantSignal,
   normalizeRoleCategory,
   normalizeQuarter,
+  getCurrentQuarter,
 } from './radar-helpers';
 
 // --- Response interfaces ---
@@ -144,17 +145,17 @@ export class NewspaperService {
   ) {}
 
   async getNewspaper(userId: string): Promise<NewspaperEdition> {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const { start, end } = getCurrentQuarter();
 
-    // Query all non-low-confidence items from last 7 days
-    const allItemsRaw = await this.feedRepo.find({
-      where: {
-        confidence: Not('low') as never,
-        created_at: MoreThanOrEqual(sevenDaysAgo),
-      },
-      order: { quality_score: 'DESC' },
-    });
+    // Query items from current quarter with high/medium date_confidence
+    const allItemsRaw = await this.feedRepo
+      .createQueryBuilder('item')
+      .where('item.confidence != :lowConf', { lowConf: 'low' })
+      .andWhere('item.published_at >= :qStart', { qStart: start.toISOString() })
+      .andWhere('item.published_at <= :qEnd', { qEnd: end.toISOString() })
+      .andWhere("item.date_confidence IN ('high', 'medium')")
+      .orderBy('item.quality_score', 'DESC')
+      .getMany();
 
     // Issue 8: Filter out items with empty/null source_url
     const allItems = allItemsRaw.filter(
@@ -640,17 +641,21 @@ export class NewspaperService {
     const previousStart = new Date(currentStart);
     previousStart.setDate(previousStart.getDate() - 7);
 
-    const allItems = await this.feedRepo.find({
-      where: {
-        source_kind: In(['xhs', 'nowcoder', 'wechat']),
-      },
-    });
+    // Only include items with high/medium date_confidence for trend calculations
+    const allItems = await this.feedRepo
+      .createQueryBuilder('item')
+      .where('item.source_kind IN (:...externalSources)', {
+        externalSources: ['xhs', 'nowcoder', 'wechat'],
+      })
+      .andWhere("item.date_confidence IN ('high', 'medium')")
+      .getMany();
 
+    // Use published_at (not created_at) for time-window filtering
     const currentItems = allItems.filter(
-      (i) => i.created_at && i.created_at >= currentStart && i.created_at <= currentEnd,
+      (i) => i.published_at && i.published_at >= currentStart && i.published_at <= currentEnd,
     );
     const previousItems = allItems.filter(
-      (i) => i.created_at && i.created_at >= previousStart && i.created_at < previousEnd,
+      (i) => i.published_at && i.published_at >= previousStart && i.published_at < previousEnd,
     );
 
     const isValidCompany = (c: string | null): c is string =>
@@ -793,6 +798,14 @@ export class NewspaperService {
     });
     qb.andWhere('item.source_url IS NOT NULL');
     qb.andWhere("item.source_url != ''");
+
+    // Radar shows content from last 5 years; null published_at allowed
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+    qb.andWhere(
+      '(item.published_at >= :fiveYearsAgo OR item.published_at IS NULL)',
+      { fiveYearsAgo: fiveYearsAgo.toISOString() },
+    );
     if (query.company) {
       qb.andWhere('item.company = :company', { company: query.company });
     }

@@ -6,6 +6,8 @@ import {
   normalizeQuarter,
   normalizeRoleCategory,
   buildDominantSignal,
+  getCurrentQuarter,
+  isCurrentQuarter,
 } from './radar-helpers';
 
 describe('normalizeQualityScore', () => {
@@ -133,6 +135,49 @@ describe('normalizeRoleCategory', () => {
   it('normalizes testing', () => expect(normalizeRoleCategory('testing')).toBe('testing'));
   it('normalizes client', () => expect(normalizeRoleCategory('client')).toBe('client'));
   it('normalizes general', () => expect(normalizeRoleCategory('general')).toBe('general'));
+});
+
+describe('getCurrentQuarter', () => {
+  it('returns start, end, and label for current quarter', () => {
+    const result = getCurrentQuarter();
+    expect(result.start).toBeInstanceOf(Date);
+    expect(result.end).toBeInstanceOf(Date);
+    expect(result.label).toMatch(/^\d{4}Q[1-4]$/);
+    expect(result.start < result.end).toBe(true);
+  });
+
+  it('label matches the current date quarter', () => {
+    const now = new Date();
+    const q = Math.ceil((now.getMonth() + 1) / 3);
+    const expected = `${now.getFullYear()}Q${q}`;
+    expect(getCurrentQuarter().label).toBe(expected);
+  });
+
+  it('start is first day of quarter month', () => {
+    const { start } = getCurrentQuarter();
+    expect(start.getDate()).toBe(1);
+    expect([0, 3, 6, 9]).toContain(start.getMonth());
+  });
+});
+
+describe('isCurrentQuarter', () => {
+  it('returns true for a date in the current quarter', () => {
+    const now = new Date();
+    expect(isCurrentQuarter(now)).toBe(true);
+  });
+
+  it('returns false for null', () => {
+    expect(isCurrentQuarter(null)).toBe(false);
+  });
+
+  it('returns false for a date from 2021', () => {
+    expect(isCurrentQuarter(new Date('2021-03-15'))).toBe(false);
+  });
+
+  it('accepts ISO string input', () => {
+    const now = new Date();
+    expect(isCurrentQuarter(now.toISOString())).toBe(true);
+  });
 });
 
 describe('buildDominantSignal', () => {
