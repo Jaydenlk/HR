@@ -340,6 +340,90 @@ export interface RadarResult {
   role_stats: Array<{ role_category: string; count: number }>;
 }
 
+// Radar workspace types
+export interface CompanyRadarItem {
+  company: string;
+  company_id: string | null;
+  company_type: string | null;
+  priority: string | null;
+  sector: string | null;
+  total_count: number;
+  usable_count: number;
+  low_confidence_count: number;
+  candidate_count: number;
+  rejected_count: number;
+  xhs_count: number;
+  nowcoder_count: number;
+  wechat_count: number;
+  top_roles: string[];
+  high_confidence_count: number;
+  quality_score_avg: number;
+  latest_collected_at: string | null;
+  dominant_signal: string | null;
+}
+
+export interface CompanyRadarResponse {
+  companies: CompanyRadarItem[];
+  total_companies: number;
+  generated_at: string;
+}
+
+export interface RoleRadarItem {
+  role_category: string;
+  label: string;
+  total_count: number;
+  usable_count: number;
+  candidate_count: number;
+  rejected_count: number;
+  xhs_count: number;
+  nowcoder_count: number;
+  wechat_count: number;
+  top_companies: string[];
+  companies_covered: number;
+  common_question_keywords: string[];
+  representative_posts: Array<{
+    title: string;
+    company: string | null;
+    source_url: string;
+    source_kind: string;
+  }>;
+}
+
+export interface RoleRadarResponse {
+  roles: RoleRadarItem[];
+  total_roles: number;
+  generated_at: string;
+}
+
+export interface TrendRadarResponse {
+  period: {
+    current_start: string;
+    current_end: string;
+    previous_start: string;
+    previous_end: string;
+  };
+  this_week: {
+    new_items: number;
+    new_companies: string[];
+    new_role_categories: string[];
+    top_sources: Array<{ source_kind: string; count: number }>;
+  };
+  comparison: {
+    has_baseline: boolean;
+    item_count_delta: number;
+    item_count_previous: number;
+    message: string;
+  };
+  hot_posts: Array<{
+    title: string;
+    company: string | null;
+    role_category: string | null;
+    source_kind: string;
+    source_url: string;
+    created_at: string;
+  }>;
+}
+
 export interface CoverLetter {
   id: string;
   company: string | null;
