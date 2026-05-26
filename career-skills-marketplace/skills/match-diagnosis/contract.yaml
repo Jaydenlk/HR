@@ -64,6 +64,24 @@ inputs:
       work_type: { type: string }
       keywords: { type: array, items: { type: string } }
 
+scoring_model:
+  dimensions:
+    skills: { weight: 30, description: "技能匹配度" }
+    experience: { weight: 25, description: "经验匹配度" }
+    education: { weight: 15, description: "教育匹配度" }
+    role: { weight: 15, description: "角色相似度" }
+    constraints: { weight: 15, description: "约束匹配度（地点/薪资/工作方式）" }
+  calibration:
+    perfect_fit: ">= 85"
+    strong_match: "70-84"
+    moderate_match: "50-69"
+    weak_match: "30-49"
+    no_match: "< 30"
+  rules:
+    - "总分 = 各维度加权求和"
+    - "整体 confidence 取各维度最低值"
+    - "禁止趋中打分（不允许所有用户都 60-80）"
+
   confidence_policy:
     type: object
     required: false

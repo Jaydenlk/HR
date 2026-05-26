@@ -18,10 +18,15 @@
       "description": "无数据时必须列出具体无法确认的项目"
     },
     {
-      "path": "common_questions[0].source_hint",
-      "operator": "not_contains",
-      "value": "面经",
-      "description": "没有真实面经时，source_hint 不得声称来自该公司面经"
+      "path": "common_questions",
+      "operator": "length_eq",
+      "value": 0,
+      "description": "无真实面经时 common_questions 必须为空数组，不得编造题目"
     }
+  ],
+  "must_not_contain": [
+    "高频考题",
+    "以下题目已被多人验证",
+    "根据该公司面经"
   ]
 }

@@ -47,7 +47,7 @@
 {
   "skill_name": "offer-comparator",
   "skill_version": "1.0.0",
-  "summary": "字节跳动年总包（不含RSU）约 59万，银行约 38万；时薪字节约 224元/时，银行约 154元/时。考虑工作生活平衡优先级，银行时薪差距缩小但仍显著低于字节。",
+  "summary": "字节跳动年总包（不含RSU）约 59万，银行约 40万；综合时薪字节约 224元/时（60h/周），银行约 192元/时（40h/周）。银行时薪接近字节但工时少 33%。",
   "confidence": "high",
   "evidence_used": [
     { "source": "用户提供 offer_a 数据", "grade": "A" },

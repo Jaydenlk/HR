@@ -17,11 +17,11 @@
 {
   "skill_name": "salary-radar",
   "skill_version": "1.0.0",
-  "summary": "北京互联网后端工程师（3年经验）薪资中位数约 30k/月，来自 3 个 B 级以上来源，数据时间在 60 天内。",
+  "summary": "北京互联网后端工程师（3年经验）薪资中位数约 30k/月，来自 2 个 B 级来源，数据时间在 90 天内。",
   "confidence": "medium",
   "evidence_used": [
-    { "source": "BOSS直聘薪资报告 2026Q1", "grade": "A" },
-    { "source": "猎聘薪资白皮书 2026", "grade": "B" }
+    { "source": "BOSS直聘 JD 薪资范围 2026Q1", "grade": "B" },
+    { "source": "猎聘薪资报告 2026", "grade": "B" }
   ],
   "recommendations": [
     "3 年经验后端工程师在北京大厂中位数约 28-35k，您可参考此区间评估 offer",

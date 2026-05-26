@@ -26,8 +26,8 @@ offer-comparator
 {
   "skill_name": "offer-comparator",
   "skill_version": "1.0.0",
-  "summary": "当前仅提供1个 offer，无法进行比较分析。同时关键字段（months_per_year、equity_type、weekly_hours）缺失，无法计算准确总包。以下为基于已知信息的部分估算，置信度低。",
-  "confidence": "low",
+  "summary": "当前仅提供1个 offer，无法进行比较分析。同时关键字段（months_per_year、equity_type、weekly_hours）缺失，无法计算准确总包。",
+  "confidence": "insufficient",
   "offers_analyzed": 1,
   "ranking": [],
   "comparison_table": [

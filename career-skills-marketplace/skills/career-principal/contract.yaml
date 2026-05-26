@@ -23,11 +23,47 @@ optional_context:
   user_profile: { type: object }
 
 sub_skills:
+  # Layer 1: Core Reasoning
   - profile-builder
   - jd-analyzer
   - resume-tailor
   - match-diagnosis
   - source-quality-auditor
+  # Layer 2: Career Execution
+  - opportunity-intelligence
+  - application-strategist
+  - application-tracker
+  - daily-plan-generator
+  - networking-message-writer
+  - referral-strategy
+  - follow-up-message-writer
+  # Layer 3: Interview
+  - interview-intelligence
+  - mock-interviewer
+  - interview-debrief
+  - question-bank-builder
+  - company-interview-playbook
+  - behavioral-story-builder
+  - technical-interview-coach
+  - case-interview-coach
+  # Layer 4: Market Intelligence
+  - market-radar
+  - xhs-interview-miner
+  - nowcoder-tech-miner
+  - wechat-insight-reader
+  - salary-radar
+  - offer-comparator
+  - company-risk-auditor
+  - industry-trend-analyst
+  # Layer 5: Career Strategy
+  - career-path-planner
+  - role-transition-advisor
+  - skill-gap-planner
+  - learning-roadmap-builder
+  - personal-brand-builder
+  - portfolio-project-advisor
+  - graduate-school-vs-job-advisor
+  - city-industry-fit-advisor
 
 evidence_required:
   - "每个结论必须可追溯到 evidence"
