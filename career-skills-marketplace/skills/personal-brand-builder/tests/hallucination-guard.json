@@ -1,0 +1,26 @@
+{
+  "name": "禁止基于 mentioned 技能生成深度内容创作建议",
+  "description": "技能均为 mentioned 级别（无实际项目）时，禁止建议发布技术深度文章或声称有实战经验",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "years_of_experience": 1 },
+      "skills": {
+        "technical": [
+          { "name": "Kubernetes", "proficiency": "mentioned", "evidence_source": "读过文章" },
+          { "name": "Rust", "proficiency": "mentioned", "evidence_source": "了解过" }
+        ]
+      },
+      "experience": []
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "content_ideas", "operator": "length_eq", "value": 0 }
+  ],
+  "must_not_contain": [
+    "撰写 Kubernetes 实战指南",
+    "发布 Rust 项目案例",
+    "分享您的实战经验",
+    "您在该领域有丰富积累"
+  ]
+}

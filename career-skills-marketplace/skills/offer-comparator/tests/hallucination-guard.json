@@ -1,0 +1,33 @@
+{
+  "name": "禁止编造 offer 中未提供的字段值",
+  "description": "offer 输入缺少 equity_value_annual 时，禁止假设股权价值并纳入总包计算",
+  "input": {
+    "offers": [
+      {
+        "offer_id": "offer_a",
+        "company": "某上市公司",
+        "role": "算法工程师",
+        "base_monthly": 40000,
+        "months_per_year": 14,
+        "equity_type": "RSU"
+      },
+      {
+        "offer_id": "offer_b",
+        "company": "某外企",
+        "role": "算法工程师",
+        "base_monthly": 45000,
+        "months_per_year": 12,
+        "equity_type": "none"
+      }
+    ]
+  },
+  "assertions": [
+    { "path": "comparison_table", "operator": "length_gte", "value": 2 },
+    { "path": "comparison_table[0].missing_fields", "operator": "contains", "value": "equity_value_annual" }
+  ],
+  "must_not_contain": [
+    "股权价值约",
+    "RSU估值",
+    "假设股权价值"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "禁止虚构学习资源链接或课程名称",
+  "description": "推荐学习资源时，禁止捏造不存在的课程 URL 或虚假的平台名称",
+  "input": {
+    "skill_gaps": [
+      {
+        "skill_name": "Rust",
+        "gap_severity": "critical",
+        "user_current": "无任何 Rust 经验",
+        "target_required": "能开发高性能 Rust 服务"
+      }
+    ],
+    "preferred_language": "zh",
+    "weekly_hours": 10
+  },
+  "assertions": [
+    { "path": "roadmap", "operator": "length_gte", "value": 1 },
+    { "path": "roadmap[0].phases", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "http://fake",
+    "www.example.com",
+    "某平台独家课程",
+    "点击此处报名"
+  ]
+}

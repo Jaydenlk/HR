@@ -1,0 +1,17 @@
+{
+  "name": "禁止在缺少 profile 时生成城市适配评分",
+  "description": "无 profile 数据时，禁止为城市-行业组合生成具体的 fit_score 数值",
+  "input": {
+    "candidate_cities": ["北京", "上海", "杭州"]
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "fit_matrix", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "fit_score",
+    "综合适配度",
+    "建议优先考虑"
+  ]
+}

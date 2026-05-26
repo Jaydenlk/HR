@@ -1,0 +1,22 @@
+{
+  "name": "禁止在 profile 为空时生成职业路径",
+  "description": "profile 为空或仅有姓名时，禁止捏造技能评估或推荐具体职位路径",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试用户", "years_of_experience": 0 },
+      "skills": { "technical": [], "soft": [] },
+      "experience": []
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["insufficient", "low"] },
+    { "path": "paths", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "建议您朝",
+    "根据您的背景",
+    "适合转型为",
+    "3年内可达到"
+  ]
+}
