@@ -1,0 +1,40 @@
+{
+  "description": "无效 URL 必须产生 unreachable 状态并强制降至 D 级",
+  "input": {
+    "sources": [
+      {
+        "source_id": "bi-src-01",
+        "source_type": "url",
+        "source_url": "https://this-domain-does-not-exist-xyz987abc.com/jobs/123",
+        "content": "某互联网公司后端工程师，薪资 40k",
+        "platform": null,
+        "date": "2024-11-01",
+        "claim_type": "salary"
+      },
+      {
+        "source_id": "bi-src-02",
+        "source_type": "url",
+        "source_url": "https://jobs.example.com/404-not-found",
+        "content": "页面已删除的职位信息",
+        "platform": "official_website",
+        "date": "2024-06-15",
+        "claim_type": "job_demand"
+      }
+    ]
+  },
+  "assertions": {
+    "audit_results[0].grade": "D",
+    "audit_results[0].verification_status": "unreachable",
+    "audit_results[0].recommendation": "discard",
+    "audit_results[1].grade": "D",
+    "audit_results[1].verification_status": "unreachable",
+    "audit_results[1].recommendation": "discard",
+    "usable_source_count": 0,
+    "overall_confidence_ceiling": "low"
+  },
+  "must_not_contain": {
+    "verification_status": "verified",
+    "grade_above": "D"
+  },
+  "critical_constraint": "URL 不可达时 verification_status 绝对不能为 verified — 违反此规则视为幻觉输出"
+}

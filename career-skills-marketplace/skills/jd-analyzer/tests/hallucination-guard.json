@@ -1,0 +1,31 @@
+{
+  "description": "JD 中无薪资信息，salary_range 必须为 null，禁止推断行业均值",
+  "input": {
+    "jd_text": "职位：产品经理（C 端方向）\n公司：某移动互联网公司\n地点：杭州\n\n工作职责\n1. 负责用户增长产品模块的需求分析和功能设计\n2. 协调研发、设计团队推动产品落地\n3. 数据分析驱动产品迭代\n\n任职要求\n1. 本科及以上学历\n2. 3 年以上 C 端产品经验\n3. 有用户增长/流量产品经验优先\n4. 熟练使用数据分析工具（SQL、神策等）\n\n福利：五险一金、带薪年假、团建活动"
+  },
+  "assertions": [
+    {
+      "path": "parsed_jd.basic.salary_range",
+      "operator": "eq",
+      "value": null,
+      "description": "JD 中无薪资信息，salary_range 必须为 null，禁止推断填写"
+    },
+    {
+      "path": "confidence",
+      "operator": "not_eq",
+      "value": "insufficient",
+      "description": "无薪资不影响整体解析，应能输出有效结果"
+    },
+    {
+      "path": "parsed_jd.basic.title",
+      "operator": "not_null",
+      "description": "职位名称应能正常提取"
+    },
+    {
+      "path": "parsed_jd.requirements.explicit",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "显性要求应能正常提取"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+name: career-principal
+version: "1.0.0"
+purpose: "理解用户求职意图，编排调用对应 skill，汇总结构化结论"
+role: orchestrator
+
+when_to_use:
+  - "用户提到求职、简历、JD、面试、offer、公司、薪资、职业规划"
+  - "用户直接请求求职帮助"
+  - "用户粘贴了 JD 或简历文本"
+
+when_not_to_use:
+  - "与求职完全无关的话题"
+  - "用户明确指定了要调用的具体 skill"
+
+inputs_required:
+  user_message:
+    type: string
+    description: "用户的自然语言消息"
+
+optional_context:
+  resume_text: { type: string }
+  jd_text: { type: string }
+  user_profile: { type: object }
+
+sub_skills:
+  - profile-builder
+  - jd-analyzer
+  - resume-tailor
+  - match-diagnosis
+  - source-quality-auditor
+
+evidence_required:
+  - "每个结论必须可追溯到 evidence"
+  - "涉及市场事实必须经过 source-quality-auditor"
+
+tools_allowed: [Read, Grep, Glob]
+
+confidence_policy:
+  rule: "取所有 sub-skill confidence 中最低值"
+
+failure_modes:
+  - sub_skill_unavailable: "降级到可用 skill + 知识图谱查询"
+  - insufficient_input: "追问缺失信息（最多3轮）"
+  - out_of_scope: "明确拒绝 + 建议其他方向"

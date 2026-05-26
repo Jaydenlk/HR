@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SkillOutputBase",
+  "description": "所有 skill 输出的通用基础字段",
+  "type": "object",
+  "required": [
+    "skill_name",
+    "skill_version",
+    "summary",
+    "confidence",
+    "evidence_used",
+    "recommendations",
+    "risks",
+    "cannot_determine"
+  ],
+  "properties": {
+    "skill_name": {
+      "type": "string",
+      "description": "Skill 名称，如 'opportunity-evaluator'"
+    },
+    "skill_version": {
+      "type": "string",
+      "default": "1.0.0",
+      "description": "Skill 版本号（语义化版本）"
+    },
+    "summary": {
+      "type": "string",
+      "description": "一句话结论，供用户快速获取核心判断"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "整体置信度，取所有维度中最低（木桶原则）"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "使用的证据列表，每项符合 SkillEvidence 结构"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "具体可行的改进建议"
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "已识别风险点"
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "推荐的后续行动步骤"
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "需要用户补充的追问"
+    },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "因信息不足无法判断的事项，不可为空（有则列出，无则 []）"
+    }
+  },
+  "additionalProperties": true,
+  "$comment": "各 skill 可在此基础上扩展专属字段，但必须包含所有 required 字段"
+}

@@ -1,0 +1,42 @@
+# 时效性规则 — 机器可读版本
+# 被 source-quality-auditor 及所有依赖外部事实的 skill 引用
+# 详细说明见 skills/source-quality-auditor/references/freshness-rules.md
+
+version: "1.0.0"
+
+# 各内容类型的有效期（天）
+expiry_days:
+  salary: 365              # 薪资数据：1年
+  job_demand: 90           # 招聘需求：3个月（招聘季变化快）
+  company_info: 730        # 公司信息：2年（基本面变化慢）
+  interview_experience: 548 # 面经：18个月（题库周期性更新）
+  market_trend: 180        # 市场趋势：6个月
+  other: 365               # 默认：1年
+
+# 时效性计算逻辑
+calculation:
+  method: "current_date - publish_date > expiry_days[claim_type]"
+  fresh_condition: "(current_date - publish_date) <= expiry_days[claim_type]"
+  stale_condition: "(current_date - publish_date) > expiry_days[claim_type]"
+  unknown_condition: "publish_date is missing or unparseable"
+
+# 无日期内容处理
+missing_date_handling:
+  freshness: unknown
+  max_grade: C
+  add_issue: "无发布日期，时效性无法判断"
+  recommendation_impact: "不得标记为 use，至少为 use_with_caution"
+
+# 过期内容处理
+stale_handling:
+  grade_unchanged: true    # 过期不自动降级，但影响 recommendation 和置信度
+  recommendation: use_with_caution
+  add_issue_template: "内容发布于 {date}，已超过 {claim_type} 的 {expiry_days} 天有效期"
+  sole_source_confidence_impact:
+    condition: "this is the only source AND claim contains '当前'/'最新'/'现在'"
+    effect: "overall_confidence_ceiling 降至 low"
+
+# 历史数据例外
+historical_exception:
+  description: "当问题明确指向历史时点时（如'2022年薪资'），过期内容仍可标记为 fresh"
+  applies_when: "question explicitly references a past time period matching the content date"

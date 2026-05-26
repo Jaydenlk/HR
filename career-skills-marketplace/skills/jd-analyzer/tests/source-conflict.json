@@ -1,0 +1,26 @@
+{
+  "description": "JD 内部矛盾（职位名称与要求年限不符），期望识别矛盾并记录风险信号",
+  "input": {
+    "jd_text": "职位：初级 Java 工程师\n公司：某金融科技公司\n地点：深圳\n薪资：30k-50k\n\n任职要求\n1. 10 年以上 Java 后端开发经验\n2. 有大型分布式系统架构设计经验（百万级 QPS）\n3. 主导过至少 3 个核心系统从 0 到 1 建设\n4. 有团队管理经验，曾带领 10 人以上团队\n\n工作职责\n1. 负责核心交易系统架构升级\n2. 制定团队技术规范和代码标准\n3. 培养初级工程师成长\n\n福利\n- 五险一金\n- 股票期权\n- 团队氛围像家人一样"
+  },
+  "assertions": [
+    {
+      "path": "parsed_jd.risk_signals[*].severity",
+      "operator": "contains",
+      "value": "red",
+      "description": "职级矛盾应被标记为 red 级风险"
+    },
+    {
+      "path": "risk_count",
+      "operator": "gte",
+      "value": 2,
+      "description": "至少识别职级矛盾和家文化两个风险"
+    },
+    {
+      "path": "parsed_jd.requirements.implicit",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "应推断出实际目标为高级工程师"
+    }
+  ]
+}

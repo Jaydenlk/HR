@@ -1,0 +1,52 @@
+name: career-skills-marketplace
+version: "1.0.0"
+description: "求职主理人 + 可调用 skill 的半自动求职操作系统"
+author: "Career Skills Community"
+license: "MIT (code) / CC BY 4.0 (knowledge)"
+language: "zh-CN"
+min_environment: "Claude Code / Codex / any SKILL.md compatible agent"
+
+skills:
+  - name: career-principal
+    path: skills/career-principal
+    role: orchestrator
+    description: "求职主理人：意图识别 + skill 编排 + 结果汇总"
+  - name: profile-builder
+    path: skills/profile-builder
+    role: worker
+    description: "用户画像构建：从简历/对话中提取结构化能力画像"
+  - name: jd-analyzer
+    path: skills/jd-analyzer
+    role: worker
+    description: "JD 分析：解析职位描述为结构化字段 + 风险信号"
+  - name: resume-tailor
+    path: skills/resume-tailor
+    role: worker
+    description: "简历改写：基于 JD 重组简历表达，不编造经历"
+  - name: match-diagnosis
+    path: skills/match-diagnosis
+    role: worker
+    description: "匹配诊断：对比画像和 JD，输出多维匹配度"
+  - name: source-quality-auditor
+    path: skills/source-quality-auditor
+    role: worker
+    description: "来源质量审计：评估信息来源的可信度和时效性"
+
+shared:
+  evidence_schema: shared/evidence-schema/evidence.schema.json
+  output_schema: shared/output-schema/skill-output-base.schema.json
+  source_policy: shared/source-policy/
+  confidence_policy: shared/confidence-policy/
+  rubrics: shared/rubrics/
+
+knowledge:
+  company_taxonomy: knowledge/company-taxonomy/
+  role_taxonomy: knowledge/role-taxonomy/
+  market_vocabulary: knowledge/market-vocabulary/
+  rubrics: knowledge/rubrics/
+
+knowledge_stats:
+  companies: 50
+  company_stage: "A (seed)"
+  role_categories: 12
+  market_terms: 18

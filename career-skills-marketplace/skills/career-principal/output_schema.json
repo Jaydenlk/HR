@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CareerPrincipalOutput",
+  "type": "object",
+  "required": ["status", "intent_detected", "confidence", "skills_invoked", "aggregated_result"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["success", "partial", "out_of_scope", "error"],
+      "description": "整体执行状态"
+    },
+    "intent_detected": {
+      "type": "string",
+      "enum": [
+        "analyze_jd",
+        "tailor_resume",
+        "match_diagnosis",
+        "career_direction",
+        "interview_prep",
+        "interview_debrief",
+        "offer_evaluation",
+        "company_check",
+        "salary_check",
+        "find_interview_experience",
+        "write_message",
+        "daily_planning",
+        "unknown"
+      ],
+      "description": "识别到的用户意图"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "综合置信度，取所有 sub-skill 置信度的最低值"
+    },
+    "skills_invoked": {
+      "type": "array",
+      "description": "本次调用的 sub-skill 列表及状态",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "status", "result_summary"],
+        "properties": {
+          "skill_name": {
+            "type": "string",
+            "enum": [
+              "profile-builder",
+              "jd-analyzer",
+              "resume-tailor",
+              "match-diagnosis",
+              "source-quality-auditor"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["completed", "failed", "skipped"]
+          },
+          "result_summary": {
+            "type": "string",
+            "description": "该 skill 输出的简要描述"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          }
+        }
+      }
+    },
+    "aggregated_result": {
+      "type": "object",
+      "required": ["summary", "key_findings", "recommendations", "evidence"],
+      "description": "多 skill 输出汇总后的结构化结论",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "综合结论（中文，200字以内）"
+        },
+        "key_findings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "关键发现列表"
+        },
+        "recommendations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "行动建议列表"
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "支撑结论的证据来源"
+        },
+        "conflict_markers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["field", "source_a", "source_b", "value_a", "value_b"],
+            "properties": {
+              "field": { "type": "string" },
+              "source_a": { "type": "string" },
+              "source_b": { "type": "string" },
+              "value_a": { "type": "string" },
+              "value_b": { "type": "string" }
+            }
+          },
+          "description": "数据冲突标记，当 JD 信息与知识图谱冲突时填写"
+        }
+      }
+    },
+    "missing_information": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "尚未获得的必要信息列表"
+    },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "因信息不足无法判断的问题列表"
+    },
+    "next_steps": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "建议用户采取的下一步行动"
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["question", "reason"],
+        "properties": {
+          "question": { "type": "string" },
+          "reason": { "type": "string", "description": "为什么需要这个信息" }
+        }
+      },
+      "description": "追问问题列表（最多2个）"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,78 @@
+name: jd-analyzer
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户粘贴职位描述，询问岗位情况
+  - 用户问"这个 JD 值不值得投"、"岗位要求是什么"
+  - 进行简历-JD 匹配诊断前的 JD 结构化步骤
+  - 用户询问某职位的隐性风险或潜台词
+
+when_not_to_use:
+  - 输入内容明显不是 JD（新闻、代码、聊天记录等）
+  - 用户已提供结构化的 JD 解析结果
+
+inputs:
+  primary:
+    - name: jd_text
+      type: string
+      required: true
+      min_length: 20
+      description: "职位描述原文（纯文本）"
+  optional:
+    - name: user_profile
+      type: object
+      description: "用户画像（来自 profile-builder），用于个性化风险评估"
+    - name: market_context
+      type: object
+      description: "市场背景（如行业、城市），用于补充公司阶段判断"
+
+confidence_policy:
+  high:
+    condition: "JD 内容完整，含职位名称、公司、职责、要求"
+    threshold: "输入 >= 200 字"
+  medium:
+    condition: "JD 部分字段缺失，或内容较简短"
+    threshold: "100-199 字"
+  low:
+    condition: "JD 极短，仅含部分信息"
+    threshold: "< 100 字"
+  insufficient:
+    condition: "输入不是职位描述（缺乏职位/职责/要求等 JD 特征）"
+    action: "返回 error，不输出 parsed_jd"
+
+failure_modes:
+  - type: non_jd_input
+    trigger: "输入为新闻、小说、代码、聊天记录等非 JD 内容"
+    response: "返回 error，message 说明需要职位描述文本"
+  - type: empty_input
+    trigger: "jd_text 为空或长度低于最小值"
+    response: "返回 validation_error"
+  - type: salary_hallucination
+    trigger: "JD 中无薪资信息"
+    response: "salary_range 必须为 null，禁止推断或填写行业均值"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - parsed_jd.basic
+    - parsed_jd.requirements.explicit
+    - parsed_jd.requirements.implicit
+    - parsed_jd.risk_signals
+    - parsed_jd.responsibilities
+    - parsed_jd.benefits
+    - parsed_jd.company_context
+  metadata:
+    - confidence
+    - risk_count
+    - implicit_count
+
+dependencies:
+  shared_schemas:
+    - shared/evidence-schema/evidence.schema.json
+    - shared/output-schema/skill-output-base.schema.json
+  knowledge:
+    - knowledge/company-taxonomy/
+    - knowledge/market-vocabulary/
+  references:
+    - references/jd-risk-signals.md

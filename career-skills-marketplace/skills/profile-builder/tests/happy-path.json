@@ -1,0 +1,16 @@
+{
+  "description": "完整简历输入，期望输出高置信度完整画像",
+  "input": {
+    "resume_text": "张伟\n\n教育背景\n复旦大学 计算机科学与技术 本科 2016-2020\n\n工作经历\n\n字节跳动 2020.07 - 2023.06\n高级后端工程师\n- 负责抖音推荐系统服务端开发，使用 Go 构建高并发微服务，QPS 峰值 50w+\n- 主导 Redis 缓存层改造，接口 P99 延迟从 120ms 降低到 35ms\n- 带领 3 人小组完成春节大促保障，零故障\n\n美团 2023.07 - 至今\n技术专家\n- 负责外卖履约调度系统架构设计，服务覆盖全国 500+ 城市\n- 推动团队 Go 模块化改造，构建时间缩短 40%\n\n技术技能\nGo（熟练），Java（了解），Redis、MySQL、Kafka、Kubernetes\n\n英语：CET-6 580 分，日常读写无障碍\n\n期望：北京/上海，后端架构方向，薪资面谈"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "profile.basic.name", "operator": "eq", "value": "张伟" },
+    { "path": "profile.basic.education.school", "operator": "eq", "value": "复旦大学" },
+    { "path": "profile.basic.education.degree", "operator": "eq", "value": "本科" },
+    { "path": "profile.experience", "operator": "length_gte", "value": 2 },
+    { "path": "profile.skills.technical", "operator": "length_gte", "value": 3 },
+    { "path": "profile.constraints.location", "operator": "contains", "value": "北京" },
+    { "path": "evidence_count", "operator": "gte", "value": 8 }
+  ]
+}

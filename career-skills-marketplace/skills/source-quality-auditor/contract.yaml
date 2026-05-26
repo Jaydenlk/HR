@@ -1,0 +1,113 @@
+name: source-quality-auditor
+version: "1.0.0"
+
+when_to_use:
+  - 任何 skill 需要验证外部事实时（市场数据、薪资信息、公司信息、职位需求）
+  - 处理来自互联网的求职信息时（JD、面经、薪资帖子）
+  - 需要为最终建议确定置信度上限时
+  - 多个来源互相矛盾，需要冲突检测时
+
+when_not_to_use:
+  - 用户自己的简历、个人陈述（用户自述默认为 A 级，不需要外部审计）
+  - 纯主观判断（如"这个工作适合我吗"无外部事实可验证）
+
+inputs:
+  sources:
+    type: array
+    required: true
+    description: 需要审计的来源列表
+    items:
+      type: object
+      properties:
+        source_id:
+          type: string
+          required: true
+          description: 来源的唯一标识符（调用方分配，用于结果对应）
+        source_type:
+          type: string
+          required: true
+          enum: [url, verbal, screenshot, document, api_response]
+          description: "url=有链接的网页, verbal=口述/转述, screenshot=截图无链接, document=本地文档, api_response=程序调用结果"
+        source_url:
+          type: string
+          required: false
+          description: 来源 URL（source_type=url 时必填）
+        content:
+          type: string
+          required: true
+          description: 来源的实际内容或摘要
+        platform:
+          type: string
+          required: false
+          description: 平台名称（如 nowcoder、xhs、maimai、boss、zhihu、official_website）
+        date:
+          type: string
+          required: false
+          description: 内容发布日期（ISO 8601 格式，如 2024-03-15）
+        claim_type:
+          type: string
+          required: false
+          enum: [salary, job_demand, company_info, interview_experience, market_trend, other]
+          description: 该来源支撑的声明类型（影响时效性判断）
+
+outputs:
+  extends: base_skill_output
+  audit_results:
+    type: array
+    description: 每条来源的审计结果（与输入 sources 一一对应）
+    items:
+      type: object
+      properties:
+        source_id:
+          type: string
+          description: 对应输入的 source_id
+        grade:
+          type: string
+          enum: [A, B, C, D]
+          description: "A=权威可直接引用, B=有价值需交叉验证, C=仅供参考, D=丢弃"
+        freshness:
+          type: string
+          enum: [fresh, stale, unknown]
+          description: "fresh=在有效期内, stale=已过期, unknown=无法判断"
+        verification_status:
+          type: string
+          enum: [verified, unverifiable, unreachable, mismatch]
+          description: "verified=URL可访问且内容匹配, unverifiable=无URL, unreachable=URL不可达, mismatch=URL可访问但内容不符"
+        issues:
+          type: array
+          items:
+            type: string
+          description: 该来源存在的问题列表（如缺少日期、内容营销化、薪资缺要素等）
+        recommendation:
+          type: string
+          enum: [use, use_with_caution, discard]
+          description: "use=可直接使用, use_with_caution=谨慎使用需注明局限, discard=丢弃不引用"
+        conflict:
+          type: boolean
+          required: false
+          description: 该来源是否与其他来源存在冲突
+        conflict_detail:
+          type: string
+          required: false
+          description: 冲突详情描述（仅 conflict=true 时填写）
+  overall_confidence_ceiling:
+    type: string
+    enum: [high, medium, low]
+    description: 基于所有来源质量的整体置信度上限
+  conflict_detected:
+    type: boolean
+    description: 是否发现来源间的事实冲突
+  usable_source_count:
+    type: integer
+    description: 等级 B 及以上的可用来源数量
+  summary:
+    type: string
+    description: 整体审计的简短中文说明
+
+base_skill_output:
+  confidence:
+    type: string
+    enum: [high, medium, low]
+  evidence_chain:
+    type: array
+    description: 证据链，每条 audit_result 都是一个证据节点

@@ -1,0 +1,234 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "profile-builder/output",
+  "title": "profile-builder 输出",
+  "allOf": [
+    { "$ref": "../../shared/output-schema/skill-output-base.schema.json" }
+  ],
+  "properties": {
+    "skill": { "const": "profile-builder" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "画像整体置信度"
+    },
+    "evidence_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "找到的有效证据条数"
+    },
+    "missing_fields": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "未能从输入中提取的字段名列表"
+    },
+    "profile": {
+      "type": "object",
+      "required": ["basic", "skills", "experience", "constraints", "career_intent"],
+      "properties": {
+        "basic": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "null" }
+              ],
+              "description": "姓名"
+            },
+            "education": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "school": { "type": "string" },
+                    "major": { "type": "string" },
+                    "degree": {
+                      "type": "string",
+                      "enum": ["大专", "本科", "硕士", "博士", "其他"]
+                    },
+                    "evidence_source": { "type": "string" }
+                  }
+                },
+                { "type": "null" }
+              ]
+            },
+            "years_of_experience": {
+              "oneOf": [
+                { "type": "number", "minimum": 0 },
+                { "type": "null" }
+              ],
+              "description": "工作年限"
+            },
+            "current_role": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": { "type": "string" },
+                    "evidence_source": { "type": "string" }
+                  }
+                },
+                {
+                  "type": "object",
+                  "description": "来源冲突时的结构",
+                  "properties": {
+                    "source_a": {
+                      "type": "object",
+                      "properties": {
+                        "value": { "type": "string" },
+                        "evidence": { "type": "string" }
+                      }
+                    },
+                    "source_b": {
+                      "type": "object",
+                      "properties": {
+                        "value": { "type": "string" },
+                        "evidence": { "type": "string" }
+                      }
+                    },
+                    "conflict": { "const": true }
+                  }
+                },
+                { "type": "null" }
+              ]
+            }
+          }
+        },
+        "skills": {
+          "type": "object",
+          "properties": {
+            "technical": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "proficiency", "evidence_source"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "proficiency": {
+                    "type": "string",
+                    "enum": ["mentioned", "used_in_project", "expert_claim"]
+                  },
+                  "evidence_source": {
+                    "type": "string",
+                    "description": "原文中的对应文本片段"
+                  }
+                }
+              }
+            },
+            "soft": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "evidence_source"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "evidence_source": { "type": "string" }
+                }
+              }
+            },
+            "languages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["language", "level", "evidence_source"],
+                "properties": {
+                  "language": { "type": "string" },
+                  "level": { "type": "string" },
+                  "evidence_source": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "experience": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["company", "role", "duration"],
+            "properties": {
+              "company": { "type": "string" },
+              "role": { "type": "string" },
+              "duration": {
+                "type": "string",
+                "description": "原文时间段字符串，不做格式转换"
+              },
+              "achievements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["text", "evidence_source"],
+                  "properties": {
+                    "text": { "type": "string" },
+                    "evidence_source": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "strengths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["description", "evidence_source"],
+            "properties": {
+              "description": { "type": "string" },
+              "evidence_source": { "type": "string" }
+            }
+          }
+        },
+        "weaknesses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["description", "evidence_source"],
+            "properties": {
+              "description": { "type": "string" },
+              "evidence_source": { "type": "string" }
+            }
+          }
+        },
+        "constraints": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "oneOf": [
+                { "type": "array", "items": { "type": "string" } },
+                { "type": "null" }
+              ]
+            },
+            "salary_expectation": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "null" }
+              ]
+            },
+            "deal_breakers": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "career_intent": {
+          "type": "object",
+          "properties": {
+            "target_roles": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "industry_preference": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "urgency": {
+              "type": "string",
+              "enum": ["active", "passive", "unknown"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["skill", "confidence", "evidence_count", "missing_fields", "profile"]
+}

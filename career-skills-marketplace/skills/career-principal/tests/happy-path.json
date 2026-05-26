@@ -1,0 +1,51 @@
+{
+  "name": "happy-path: full input triggers all relevant skills",
+  "description": "用户提供完整的 JD 和简历，请求匹配度分析 + 简历优化，应触发完整 skill 链",
+  "input": {
+    "user_message": "帮我看看我的简历和这个产品经理 JD 的匹配度，顺便帮我优化一下简历",
+    "jd_text": "职位：高级产品经理，要求3年以上互联网产品经验，熟悉用户增长方法论，有AARRR漏斗实践经验，熟练使用SQL进行数据分析，良好的跨部门沟通能力，加分项：有DAU>100万产品经历，薪资30-45K，北京",
+    "resume_text": "张明，产品经理，4年经验。主导用户增长产品线，DAU从80万增长至150万，设计A/B测试体系年均200+实验，使用SQL+Python数据分析，协调技术运营市场三方推进百人规模项目。具有2年B端SaaS CRM产品经验，服务500+企业客户。北京大学信息管理本科。"
+  },
+  "expected_properties": {
+    "status": "success",
+    "intent_detected": "match_diagnosis",
+    "confidence": ["high", "medium"]
+  },
+  "assertions": [
+    {
+      "field": "skills_invoked",
+      "assertion": "must_include_all",
+      "value": ["jd-analyzer", "profile-builder", "match-diagnosis", "resume-tailor"]
+    },
+    {
+      "field": "skills_invoked[*].status",
+      "assertion": "all_not",
+      "value": "failed"
+    },
+    {
+      "field": "aggregated_result.key_findings",
+      "assertion": "length_gte",
+      "value": 2
+    },
+    {
+      "field": "aggregated_result.recommendations",
+      "assertion": "length_gte",
+      "value": 2
+    },
+    {
+      "field": "aggregated_result.evidence",
+      "assertion": "length_gte",
+      "value": 2
+    },
+    {
+      "field": "missing_information",
+      "assertion": "equals",
+      "value": []
+    },
+    {
+      "field": "follow_up_questions",
+      "assertion": "absent_or_empty",
+      "reason": "所有 required_inputs 已满足，不需要追问"
+    }
+  ]
+}

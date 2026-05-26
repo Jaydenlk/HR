@@ -1,0 +1,16 @@
+{
+  "description": "极少信息输入，期望输出低置信度画像，关键字段为 null",
+  "input": {
+    "user_background": "我做过一些项目，有几年经验，想换个工作"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "low" },
+    { "path": "profile.basic.name", "operator": "eq", "value": null },
+    { "path": "profile.basic.education", "operator": "eq", "value": null },
+    { "path": "profile.basic.years_of_experience", "operator": "eq", "value": null },
+    { "path": "profile.skills.technical", "operator": "length_eq", "value": 0 },
+    { "path": "profile.experience", "operator": "length_eq", "value": 0 },
+    { "path": "profile.career_intent.urgency", "operator": "eq", "value": "active" },
+    { "path": "missing_fields", "operator": "length_gte", "value": 5 }
+  ]
+}

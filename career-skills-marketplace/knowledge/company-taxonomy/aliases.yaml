@@ -1,0 +1,361 @@
+meta:
+  purpose: 公司别名映射，用于模糊匹配求职者输入
+  note: 每家公司列出中文官方名、英文名、常用昵称、子品牌、事业部简称
+
+aliases:
+  alibaba:
+    official_cn: 阿里巴巴集团
+    official_en: Alibaba Group
+    nicknames: ["阿里", "AT（阿腾）"]
+    sub_brands: ["淘宝", "天猫", "支付宝", "蚂蚁集团", "菜鸟网络", "钉钉", "阿里云", "饿了么", "盒马", "高德", "优酷", "闲鱼"]
+    biz_units: ["国际数字商业", "中国数字商业", "云智能", "本地生活", "菜鸟", "大文娱"]
+
+  tencent:
+    official_cn: 腾讯
+    official_en: Tencent
+    nicknames: ["鹅厂", "TX"]
+    sub_brands: ["微信", "QQ", "腾讯游戏", "腾讯云", "腾讯视频", "微视", "腾讯新闻", "腾讯地图"]
+    biz_units: ["WXG（微信事业群）", "IEG（互动娱乐）", "TEG（技术工程）", "PCG（平台与内容）", "CDG（企业发展）", "CSIG（云与智慧产业）"]
+
+  bytedance:
+    official_cn: 字节跳动
+    official_en: ByteDance
+    nicknames: ["字节", "BD"]
+    sub_brands: ["抖音", "今日头条", "飞书", "TikTok", "剪映", "懂车帝", "番茄小说", "西瓜视频", "Lark"]
+    biz_units: ["抖音事业群", "飞书", "火山引擎", "效果广告"]
+
+  meituan:
+    official_cn: 美团
+    official_en: Meituan
+    nicknames: ["MT", "袋鼠"]
+    sub_brands: ["美团外卖", "大众点评", "美团优选", "美团闪购", "摩拜（已更名）", "美团买药", "小象超市"]
+    biz_units: ["到家（外卖）", "到店（酒旅）", "快驴（B2B食材）", "优选"]
+
+  pinduoduo:
+    official_cn: 拼多多
+    official_en: Pinduoduo / PDD Holdings
+    nicknames: ["PDD", "拼爹爹"]
+    sub_brands: ["多多买菜", "TEMU", "多多视频"]
+    biz_units: ["主站电商", "多多买菜", "TEMU海外"]
+
+  jd:
+    official_cn: 京东
+    official_en: JD.com
+    nicknames: ["JD", "东哥家"]
+    sub_brands: ["京东零售", "京东物流", "京东健康", "京东科技", "京东工业", "京东云", "京东方（无关联）"]
+    biz_units: ["零售", "物流", "健康", "科技"]
+
+  baidu:
+    official_cn: 百度
+    official_en: Baidu
+    nicknames: ["度厂", "搜索"]
+    sub_brands: ["百度地图", "百度云", "文心一言", "爱奇艺（独立上市）", "百度智能驾驶", "百度翻译", "百家号"]
+    biz_units: ["搜索（IDG）", "AI（AIG）", "自驾（IDG-ASD）", "云（ACE）"]
+
+  kuaishou:
+    official_cn: 快手
+    official_en: Kuaishou
+    nicknames: ["老铁", "KS"]
+    sub_brands: ["磁力引擎（广告）", "快手小店", "快手直播", "快手极速版"]
+    biz_units: ["国内业务", "海外（Kwai）", "电商", "商业化"]
+
+  xiaohongshu:
+    official_cn: 小红书
+    official_en: Xiaohongshu / REDnote
+    nicknames: ["红书", "RED", "小红"]
+    sub_brands: []
+    biz_units: ["社区", "电商（买手电商）", "品牌广告"]
+
+  dewu:
+    official_cn: 得物
+    official_en: Dewu / POIZON
+    nicknames: ["毒", "毒App"]
+    sub_brands: ["POIZON（海外）"]
+    biz_units: ["潮流电商", "内容社区", "鉴定服务"]
+
+  bilibili:
+    official_cn: 哔哩哔哩
+    official_en: Bilibili
+    nicknames: ["B站", "小破站", "🅱️站"]
+    sub_brands: ["bilibili漫画", "bilibili游戏", "bilibili直播"]
+    biz_units: ["社区", "直播", "游戏", "电商", "广告"]
+
+  dji:
+    official_cn: 大疆创新
+    official_en: DJI Innovation
+    nicknames: ["大疆", "DJI"]
+    sub_brands: ["御Mavic系列", "精灵Phantom系列", "Mini系列", "Osmo系列", "RoboMaster"]
+    biz_units: ["消费级无人机", "行业无人机", "手持影像", "教育机器人"]
+
+  nio:
+    official_cn: 蔚来汽车
+    official_en: NIO
+    nicknames: ["蔚来", "牛"]
+    sub_brands: ["ET系列", "EC系列", "蔚来能源", "NIO Power", "ONVO（乐道）", "firefly（萤火虫）"]
+    biz_units: ["整车制造", "换电服务", "用户运营", "自动驾驶"]
+
+  mihoyo:
+    official_cn: 米哈游
+    official_en: miHoYo / HoYoverse
+    nicknames: ["米哈游", "MHY"]
+    sub_brands: ["原神（Genshin Impact）", "崩坏：星穹铁道", "绝区零", "崩坏3", "HoYoverse（海外发行）"]
+    biz_units: ["游戏研发", "海外发行（HoYoverse）", "动漫", "周边"]
+
+  netease:
+    official_cn: 网易
+    official_en: NetEase
+    nicknames: ["网易", "丁磊家"]
+    sub_brands: ["网易云音乐", "有道词典", "严选", "网易邮箱（163/126）", "梦幻西游", "阴阳师", "蛋仔派对"]
+    biz_units: ["游戏", "教育（有道）", "音乐（云音乐，独立上市）", "邮箱", "电商（严选）"]
+
+  ctrip:
+    official_cn: 携程旅行
+    official_en: Ctrip / Trip.com Group
+    nicknames: ["携程", "去哪儿（子品牌）"]
+    sub_brands: ["Trip.com", "去哪儿", "天巡（Skyscanner）", "携程商旅"]
+    biz_units: ["机票", "酒店", "度假", "商旅", "国际业务"]
+
+  honor:
+    official_cn: 荣耀终端
+    official_en: Honor
+    nicknames: ["荣耀", "HONOR"]
+    sub_brands: ["Magic系列", "荣耀X系列", "荣耀平板", "MagicBook"]
+    biz_units: ["手机", "PC/平板", "IoT", "海外业务"]
+
+  vivo:
+    official_cn: vivo
+    official_en: vivo
+    nicknames: ["vivo", "步步高系（泛称）"]
+    sub_brands: ["iQOO（游戏手机）", "OriginOS", "蓝图系列"]
+    biz_units: ["智能手机", "iQOO子品牌", "IoT"]
+
+  moonshot:
+    official_cn: 月之暗面
+    official_en: Moonshot AI
+    nicknames: ["Kimi", "月暗"]
+    sub_brands: ["Kimi智能助手", "Kimi API"]
+    biz_units: ["大模型研究", "消费产品（Kimi）", "企业API"]
+
+  zhipu:
+    official_cn: 智谱AI
+    official_en: ZhipuAI
+    nicknames: ["智谱", "GLM"]
+    sub_brands: ["ChatGLM", "清言", "MaaS平台"]
+    biz_units: ["模型研发", "企业服务", "开放平台"]
+
+  baichuan:
+    official_cn: 百川智能
+    official_en: Baichuan AI
+    nicknames: ["百川", "百川大模型"]
+    sub_brands: ["Baichuan系列模型", "百川医疗AI"]
+    biz_units: ["基础模型", "垂直应用（医疗）"]
+
+  ningde-times:
+    official_cn: 宁德时代
+    official_en: CATL
+    nicknames: ["宁王", "CATL", "宁德"]
+    sub_brands: ["麒麟电池", "刀片电池（与BYD独立）", "EVOGO换电", "时代新能源"]
+    biz_units: ["动力电池", "储能系统", "电池材料", "矿产资源"]
+
+  byd:
+    official_cn: 比亚迪股份
+    official_en: BYD
+    nicknames: ["BYD", "比亚迪"]
+    sub_brands: ["王朝系列（汉/唐/宋/秦）", "海洋系列（海豹/海豚）", "腾势", "仰望", "方程豹", "比亚迪电池"]
+    biz_units: ["整车（乘用车）", "整车（商用车）", "电池（弗迪电池）", "半导体", "云轨"]
+
+  huawei:
+    official_cn: 华为技术有限公司
+    official_en: Huawei
+    nicknames: ["华为", "HW"]
+    sub_brands: ["Mate系列", "P系列", "nova系列", "MateBook", "华为云", "昇腾", "鸿蒙OS", "海思麒麟"]
+    biz_units: ["运营商BG", "企业BG", "消费者BG（手机）", "云计算BU", "智能汽车BU"]
+
+  microsoft-cn:
+    official_cn: 微软（中国）
+    official_en: Microsoft China
+    nicknames: ["微软", "MS"]
+    sub_brands: ["Azure", "M365（Office）", "Teams", "Bing", "GitHub", "Copilot", "Xbox"]
+    biz_units: ["云+AI（Azure）", "商业（M365）", "设备（Surface/Xbox）"]
+
+  google-cn:
+    official_cn: 谷歌中国
+    official_en: Google China / Alphabet China
+    nicknames: ["谷歌", "G家"]
+    sub_brands: ["Android（生态）", "Chrome", "Workspace"]
+    biz_units: ["中国区（规模较小）", "研究院"]
+
+  amazon-cn:
+    official_cn: 亚马逊（中国）
+    official_en: Amazon China
+    nicknames: ["亚马逊", "AWSchina"]
+    sub_brands: ["AWS中国区", "卓越亚马逊（历史）"]
+    biz_units: ["AWS云计算（中国区由光环新网/国网运营）"]
+
+  apple-cn:
+    official_cn: 苹果（中国）
+    official_en: Apple China
+    nicknames: ["苹果", "库克家"]
+    sub_brands: ["Apple Store零售", "iPhone", "Mac", "iPad"]
+    biz_units: ["零售运营", "供应链（中国区）", "企业销售"]
+
+  sap-cn:
+    official_cn: SAP中国
+    official_en: SAP China
+    nicknames: ["SAP", "思爱普"]
+    sub_brands: ["SAP S/4HANA", "SAP HANA", "SAP SuccessFactors"]
+    biz_units: ["ERP实施", "云服务", "咨询服务"]
+
+  oracle-cn:
+    official_cn: 甲骨文（中国）
+    official_en: Oracle China
+    nicknames: ["甲骨文", "Oracle"]
+    sub_brands: ["Oracle Database", "OCI（Oracle Cloud Infrastructure）", "NetSuite"]
+    biz_units: ["数据库", "云服务", "企业应用"]
+
+  cicc:
+    official_cn: 中国国际金融股份有限公司
+    official_en: CICC
+    nicknames: ["中金", "中金公司"]
+    sub_brands: ["中金财富", "中金研究", "中金私募股权"]
+    biz_units: ["投资银行（IBD）", "股票（ECM）", "固收（DCM）", "研究所", "资产管理"]
+
+  citic-securities:
+    official_cn: 中信证券股份有限公司
+    official_en: CITIC Securities
+    nicknames: ["中信", "中信证券"]
+    sub_brands: ["中信产业基金", "华夏基金（中信子公司）"]
+    biz_units: ["投行", "经纪", "资管", "研究", "衍生品"]
+
+  cmb:
+    official_cn: 招商银行股份有限公司
+    official_en: China Merchants Bank
+    nicknames: ["招行", "CMB"]
+    sub_brands: ["招商银行信用卡", "掌上生活App", "招银理财"]
+    biz_units: ["零售银行", "公司银行", "投资银行", "金融科技"]
+
+  pingan:
+    official_cn: 中国平安保险（集团）股份有限公司
+    official_en: Ping An Insurance Group
+    nicknames: ["平安", "PA"]
+    sub_brands: ["平安人寿", "平安产险", "平安银行", "平安好医生（已更名）", "陆金所", "平安科技", "OneConnect"]
+    biz_units: ["保险", "银行", "金融科技", "医疗健康"]
+
+  china-mobile:
+    official_cn: 中国移动通信集团
+    official_en: China Mobile
+    nicknames: ["移动", "中移动"]
+    sub_brands: ["中移云（政务云）", "动感地带", "和家亲", "和教育"]
+    biz_units: ["个人市场", "政企客户", "云计算（中移云）", "国际业务"]
+
+  state-grid:
+    official_cn: 国家电网有限公司
+    official_en: State Grid Corporation
+    nicknames: ["国网", "国家电网"]
+    sub_brands: ["南方电网（另一家央企）", "国网信息通信", "国网电子商务（e京东）"]
+    biz_units: ["电力传输", "信息化", "智能电表"]
+
+  china-tobacco:
+    official_cn: 中国烟草总公司
+    official_en: China National Tobacco Corporation
+    nicknames: ["烟草", "中烟"]
+    sub_brands: ["中华（品牌）", "芙蓉王", "黄鹤楼", "利群"]
+    biz_units: ["工业（卷烟制造）", "商业（批发零售）", "国际（中烟国际）"]
+
+  china-railway:
+    official_cn: 中国国家铁路集团有限公司
+    official_en: China Railway Group / China National Railway Group
+    nicknames: ["铁总", "国铁集团", "12306"]
+    sub_brands: ["12306", "中国高铁", "复兴号", "中铁快运"]
+    biz_units: ["客运", "货运", "工程建设", "信息化（12306）"]
+
+  mckinsey-cn:
+    official_cn: 麦肯锡咨询（上海）
+    official_en: McKinsey & Company China
+    nicknames: ["麦肯锡", "MBB之M"]
+    sub_brands: ["QuantumBlack（数据AI）", "McKinsey Academy", "McKinsey Digital"]
+    biz_units: ["战略咨询", "组织咨询", "数字化（QuantumBlack）"]
+
+  pwc-cn:
+    official_cn: 普华永道中天会计师事务所
+    official_en: PricewaterhouseCoopers China
+    nicknames: ["PwC", "普华", "四大"]
+    sub_brands: ["普华永道咨询（Strategy&）"]
+    biz_units: ["审计与鉴证", "税务与法律服务", "咨询", "交易服务"]
+
+  pg-cn:
+    official_cn: 宝洁（中国）有限公司
+    official_en: Procter & Gamble China
+    nicknames: ["P&G", "宝洁"]
+    sub_brands: ["飘柔", "潘婷", "海飞丝", "沙宣", "玉兰油（OLAY）", "SK-II", "吉列", "汰渍", "碧浪", "帮宝适"]
+    biz_units: ["美容美发", "家庭护理", "婴幼儿护理", "健康护理"]
+
+  deloitte-cn:
+    official_cn: 德勤华永会计师事务所
+    official_en: Deloitte China
+    nicknames: ["德勤", "四大"]
+    sub_brands: ["德勤咨询", "德勤数字"]
+    biz_units: ["审计", "税务", "咨询", "财务顾问（FA）", "风险咨询"]
+
+  shein:
+    official_cn: 希音（SHEIN）
+    official_en: SHEIN
+    nicknames: ["希音", "快时尚出海第一股"]
+    sub_brands: ["SHEIN X（设计师合作）", "ROMWE", "Dresslily"]
+    biz_units: ["快时尚主站", "独立站矩阵", "供应链（广州番禺）"]
+
+  tiktok-global:
+    official_cn: TikTok（字节跳动海外）
+    official_en: TikTok
+    nicknames: ["TikTok", "海外抖音"]
+    sub_brands: ["TikTok Shop", "TikTok for Business（广告）", "CapCut（剪映海外）"]
+    biz_units: ["消费端（App）", "电商（TikTok Shop）", "商业化（广告）", "安全合规"]
+
+  temu:
+    official_cn: Temu（拼多多海外）
+    official_en: Temu
+    nicknames: ["多多出海", "Temu"]
+    sub_brands: []
+    biz_units: ["跨境电商（主站）", "广告投放", "供应链"]
+
+  lilith-games:
+    official_cn: 上海莉莉丝网络科技
+    official_en: Lilith Games
+    nicknames: ["莉莉丝", "Lilith"]
+    sub_brands: ["万国觉醒（Rise of Kingdoms）", "剑与远征", "AFK Arena"]
+    biz_units: ["游戏研发（SLG策略）", "海外发行"]
+
+  papergames:
+    official_cn: 上海叠纸网络科技
+    official_en: Papergames
+    nicknames: ["叠纸", "叠纸游戏"]
+    sub_brands: ["恋与制作人", "闪耀暖暖", "无限暖暖", "恋与深空"]
+    biz_units: ["女性向游戏研发", "IP运营", "海外发行"]
+
+  ele-me:
+    official_cn: 饿了么（阿里旗下）
+    official_en: Ele.me
+    nicknames: ["饿了么", "ELE"]
+    sub_brands: ["蜂鸟即配（配送）", "口碑（已合并）"]
+    biz_units: ["外卖", "即时零售（超市/药店）", "配送运力"]
+
+  sf-express:
+    official_cn: 顺丰速运
+    official_en: SF Express
+    nicknames: ["顺丰", "SF"]
+    sub_brands: ["丰巢（快递柜）", "顺丰科技", "顺丰国际", "嘿客（历史）"]
+    biz_units: ["快递（标快/特惠）", "冷链", "同城配送", "供应链"]
+
+  ningde-times:
+    official_cn: 宁德时代
+    official_en: CATL
+    nicknames: ["宁王", "CATL"]
+    sub_brands: ["麒麟电池", "神行电池", "EVOGO换电", "时代新能源"]
+    biz_units: ["动力电池", "储能系统", "电池材料", "矿产资源"]
+
+  xpeng:
+    official_cn: 小鹏汽车
+    official_en: XPENG Motors
+    nicknames: ["小鹏", "P7/G9（以车型称呼公司）"]
+    sub_brands: ["XNGP（辅助驾驶）", "小鹏MONA", "汇天（飞行汽车）"]
+    biz_units: ["整车", "自动驾驶（AI智驾）", "飞行汽车（汇天科技）"]

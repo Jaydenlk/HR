@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SourceQualityAuditorInput",
+  "type": "object",
+  "required": ["sources"],
+  "additionalProperties": false,
+  "properties": {
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "description": "需要审计的来源列表，至少提供一条",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "source_type", "content"],
+        "additionalProperties": false,
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "来源唯一标识符，由调用方分配"
+          },
+          "source_type": {
+            "type": "string",
+            "enum": ["url", "verbal", "screenshot", "document", "api_response"],
+            "description": "来源类型"
+          },
+          "source_url": {
+            "type": "string",
+            "description": "来源 URL，source_type=url 时应提供"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "description": "来源内容或摘要"
+          },
+          "platform": {
+            "type": "string",
+            "description": "平台名称，如 nowcoder、xhs、maimai、boss、zhihu、official_website"
+          },
+          "date": {
+            "type": "string",
+            "description": "内容发布日期，ISO 8601 格式"
+          },
+          "claim_type": {
+            "type": "string",
+            "enum": ["salary", "job_demand", "company_info", "interview_experience", "market_trend", "other"],
+            "description": "该来源支撑的声明类型"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,600 @@
+meta:
+  total: 50
+  freshness: 2026-Q2
+  last_verified: "2026-05-26"
+  note: 薪资数据仅供参考框架，以实际offer为准
+
+companies:
+  # ── 互联网大厂（8家）──────────────────────────────────────────
+
+  - id: alibaba
+    name: 阿里巴巴
+    aliases: ["阿里", "Alibaba", "淘宝", "天猫", "支付宝", "蚂蚁集团", "菜鸟", "钉钉", "阿里云"]
+    company_type: internet_big_tech
+    business_lines: ["电商（淘宝/天猫）", "云计算（阿里云）", "金融科技（蚂蚁）", "本地生活（饿了么）", "物流（菜鸟）", "企业协同（钉钉）"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-c", "product-manager-b", "data-analyst", "devops", "test-engineer", "user-operations", "hr"]
+    interview_style:
+      rounds: 4-6轮（含1轮HR面）
+      difficulty: 高
+      known_focus: ["系统设计（分布式/高并发）", "算法（LeetCode中等+）", "业务理解", "价值观（阿里六脉神剑）"]
+    salary_structure:
+      base_months: 15-16
+      bonus_range: "0-6个月（P级决定）"
+      rsu: "四年归属，每年25%"
+      note: P8及以上股票比例显著提升
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: tencent
+    name: 腾讯
+    aliases: ["腾讯", "Tencent", "鹅厂", "WXG", "IEG", "PCG", "TEG", "CDG", "微信", "QQ", "王者荣耀"]
+    company_type: internet_big_tech
+    business_lines: ["社交（微信/QQ）", "游戏（IEG）", "金融科技（WePay）", "云计算（腾讯云）", "内容（PCG）", "企业服务（腾讯会议/企业微信）"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-c", "game-client", "data-analyst", "devops", "test-engineer", "ui-designer"]
+    interview_style:
+      rounds: 4-5轮（技术3轮+业务1轮+HR1轮）
+      difficulty: 高
+      known_focus: ["C++/Go底层（游戏部门）", "系统设计", "项目深度拷问", "腾讯文化（用户为本）"]
+    salary_structure:
+      base_months: 16
+      bonus_range: "0-8个月"
+      rsu: "四年归属，年度授予"
+      note: 不同BG差异较大，IEG游戏部门bonus弹性最高
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: bytedance
+    name: 字节跳动
+    aliases: ["字节跳动", "ByteDance", "字节", "今日头条", "抖音", "TikTok", "飞书", "剪映", "懂车帝"]
+    company_type: internet_big_tech
+    business_lines: ["短视频（抖音/TikTok）", "资讯（今日头条）", "企业协同（飞书）", "游戏", "教育（已收缩）", "AI基础设施"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-c", "data-analyst", "devops", "test-engineer", "content-operations", "growth-operations"]
+    interview_style:
+      rounds: 4-5轮（技术3轮+HR1-2轮）
+      difficulty: 非常高
+      known_focus: ["算法（LeetCode困难级别）", "系统设计（推荐系统/信息流）", "增长思维", "Context-rich项目拷问"]
+    salary_structure:
+      base_months: 15
+      bonus_range: "0-6个月"
+      rsu: "四年归属，每年25%，半年一次解锁"
+      note: 字节RSU以港股/上市后价格结算，存在不确定性
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: meituan
+    name: 美团
+    aliases: ["美团", "Meituan", "美团优选", "大众点评", "美团买菜", "小象超市"]
+    company_type: internet_big_tech
+    business_lines: ["外卖", "到店餐饮", "酒店旅游", "优选（社区团购）", "闪购（即时零售）", "骑行（摩拜）"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-c", "user-operations", "data-analyst", "devops", "test-engineer", "supply-chain"]
+    interview_style:
+      rounds: 4-5轮
+      difficulty: 高
+      known_focus: ["LBS/地图算法", "供应链和物流理解", "数据驱动决策", "业务感（外卖/本地生活）"]
+    salary_structure:
+      base_months: 15
+      bonus_range: "0-5个月"
+      rsu: "四年归属"
+      note: 算法岗（配送/推荐）薪资竞争力强
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: pinduoduo
+    name: 拼多多
+    aliases: ["拼多多", "PDD", "Pinduoduo", "多多买菜", "TEMU（海外）", "拼多多集团"]
+    company_type: internet_big_tech
+    business_lines: ["社交电商", "农产品电商", "社区团购（多多买菜）", "跨境电商（TEMU）"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-c", "user-operations", "data-analyst", "supply-chain", "growth-operations"]
+    interview_style:
+      rounds: 3-4轮
+      difficulty: 高
+      known_focus: ["极致执行力考察", "电商/增长业务理解", "数据分析能力", "高压场景下的决策"]
+    salary_structure:
+      base_months: 16
+      bonus_range: "0-6个月"
+      rsu: "四年归属"
+      note: 薪资普遍高于行业均值，但加班文化极重
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: jd
+    name: 京东
+    aliases: ["京东", "JD.com", "JD", "京东零售", "京东物流", "京东科技", "京东健康"]
+    company_type: internet_big_tech
+    business_lines: ["3C/家电电商", "物流（京东物流）", "金融科技（京东科技）", "健康（京东健康）", "B2B工业品（工品汇）"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-b", "supply-chain", "data-analyst", "devops", "test-engineer", "sales"]
+    interview_style:
+      rounds: 4-5轮
+      difficulty: 中高
+      known_focus: ["供应链和物流技术", "Java技术栈深度", "B2B产品理解（零售）", "数据仓库/大数据"]
+    salary_structure:
+      base_months: 15
+      bonus_range: "0-4个月"
+      rsu: "四年归属"
+      note: 物流和零售业务薪资略低于纯互联网，科技部门对标互联网
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: baidu
+    name: 百度
+    aliases: ["百度", "Baidu", "阿波罗", "文心一言", "百度地图", "百度云", "百度智能驾驶", "IDG", "AIG"]
+    company_type: internet_big_tech
+    business_lines: ["搜索引擎", "AI（文心大模型）", "智能驾驶（Apollo）", "云计算", "地图", "信息流（百家号）"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-c", "data-analyst", "devops", "ai-engineer", "autonomous-driving"]
+    interview_style:
+      rounds: 4-5轮
+      difficulty: 高
+      known_focus: ["NLP/CV/推荐算法（AI部门）", "搜索系统设计", "大模型应用理解", "自动驾驶算法"]
+    salary_structure:
+      base_months: 15
+      bonus_range: "0-4个月（近年有所下降）"
+      rsu: "四年归属，股价波动较大"
+      note: AI相关岗位薪资近年有提升，传统业务部门相对低
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: kuaishou
+    name: 快手
+    aliases: ["快手", "Kuaishou", "磁力引擎", "快手电商", "快手直播", "老铁"]
+    company_type: internet_big_tech
+    business_lines: ["短视频", "直播", "电商（快手小店）", "广告（磁力引擎）", "游戏"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-c", "content-operations", "data-analyst", "growth-operations", "user-operations"]
+    interview_style:
+      rounds: 4-5轮
+      difficulty: 高
+      known_focus: ["推荐算法（信息流）", "直播技术", "电商增长策略", "内容运营思维"]
+    salary_structure:
+      base_months: 15
+      bonus_range: "0-5个月"
+      rsu: "四年归属"
+      note: 薪资对标抖音，有竞争力但整体略低
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 稳定中厂（10家）──────────────────────────────────────────
+
+  - id: xiaohongshu
+    name: 小红书
+    aliases: ["小红书", "RED", "REDnote", "Xiaohongshu", "小红书App"]
+    company_type: stable_mid_tech
+    business_lines: ["社区内容（图文/视频）", "电商（小红书买手）", "广告", "本地生活"]
+    common_roles: ["backend", "frontend", "product-manager-c", "content-operations", "data-analyst", "user-operations", "algorithm", "ui-designer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: dewu
+    name: 得物
+    aliases: ["得物", "Dewu", "毒App", "得物App", "球鞋鉴定"]
+    company_type: stable_mid_tech
+    business_lines: ["潮流电商", "二手交易", "球鞋/潮牌鉴定", "内容社区"]
+    common_roles: ["backend", "frontend", "product-manager-c", "user-operations", "data-analyst", "supply-chain", "content-operations"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: bilibili
+    name: 哔哩哔哩
+    aliases: ["哔哩哔哩", "B站", "Bilibili", "BiliBili", "小破站"]
+    company_type: stable_mid_tech
+    business_lines: ["视频社区（PUGC）", "直播", "游戏代理", "VIP会员", "电商", "广告"]
+    common_roles: ["backend", "frontend", "product-manager-c", "content-operations", "data-analyst", "algorithm", "user-operations", "ui-designer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: dji
+    name: 大疆创新
+    aliases: ["大疆", "DJI", "大疆创新", "DJI Innovation", "御系列", "Mini系列"]
+    company_type: stable_mid_tech
+    business_lines: ["消费无人机", "行业无人机（农业/安防）", "手持影像（Osmo）", "教育（RoboMaster）"]
+    common_roles: ["backend", "frontend", "algorithm", "hardware-engineer", "embedded-engineer", "product-manager-c", "test-engineer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: nio
+    name: 蔚来
+    aliases: ["蔚来", "NIO", "NIO汽车", "ET系列", "蔚来能源"]
+    company_type: stable_mid_tech
+    business_lines: ["新能源汽车制造", "换电网络", "车联网（NIO OS）", "自动驾驶"]
+    common_roles: ["backend", "frontend", "algorithm", "embedded-engineer", "product-manager-c", "data-analyst", "autonomous-driving", "sales"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: mihoyo
+    name: 米哈游
+    aliases: ["米哈游", "miHoYo", "HoYoverse", "原神", "崩坏：星穹铁道", "绝区零"]
+    company_type: stable_mid_tech
+    business_lines: ["手游开发（原神/星铁）", "海外发行（HoYoverse）", "游戏周边", "动画/影视"]
+    common_roles: ["backend", "frontend", "game-client", "ui-designer", "algorithm", "product-manager-c", "content-operations", "test-engineer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: netease
+    name: 网易
+    aliases: ["网易", "NetEase", "网易游戏", "163邮箱", "网易云音乐", "有道", "伏羲"]
+    company_type: stable_mid_tech
+    business_lines: ["手游/端游（梦幻西游/阴阳师）", "音乐（网易云音乐）", "教育（有道）", "邮箱", "电商（严选）"]
+    common_roles: ["backend", "frontend", "game-client", "algorithm", "product-manager-c", "data-analyst", "content-operations", "ui-designer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: ctrip
+    name: 携程
+    aliases: ["携程", "Ctrip", "Trip.com", "去哪儿", "天巡", "携程旅游"]
+    company_type: stable_mid_tech
+    business_lines: ["机票预订", "酒店预订", "旅游度假", "商务差旅", "国际业务（Trip.com）"]
+    common_roles: ["backend", "frontend", "product-manager-c", "data-analyst", "user-operations", "algorithm", "test-engineer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: honor
+    name: 荣耀
+    aliases: ["荣耀", "Honor", "Honor手机", "HONOR"]
+    company_type: stable_mid_tech
+    business_lines: ["智能手机", "平板电脑", "PC", "智能家居（IoT）", "荣耀Magic OS"]
+    common_roles: ["backend", "frontend", "algorithm", "embedded-engineer", "product-manager-c", "ui-designer", "test-engineer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: vivo
+    name: vivo
+    aliases: ["vivo", "VIVO", "vivo手机", "OriginOS", "IQOO", "iQOO"]
+    company_type: stable_mid_tech
+    business_lines: ["智能手机", "音频技术", "OriginOS", "IQOO游戏手机"]
+    common_roles: ["backend", "frontend", "algorithm", "embedded-engineer", "product-manager-c", "ui-designer", "test-engineer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── AI/硬科技（6家）──────────────────────────────────────────
+
+  - id: moonshot
+    name: 月之暗面
+    aliases: ["月之暗面", "Moonshot AI", "Kimi", "Kimi智能助手", "Moonshot"]
+    company_type: ai_startup
+    business_lines: ["大语言模型（Kimi）", "长上下文技术", "AI应用开发"]
+    common_roles: ["backend", "algorithm", "ai-engineer", "product-manager-c", "frontend", "data-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: zhipu
+    name: 智谱AI
+    aliases: ["智谱AI", "ZhipuAI", "Zhipu", "ChatGLM", "GLM", "清言"]
+    company_type: ai_startup
+    business_lines: ["大语言模型（GLM系列）", "多模态AI", "企业AI解决方案", "AI开发者平台"]
+    common_roles: ["backend", "algorithm", "ai-engineer", "product-manager-b", "data-analyst", "sales"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: baichuan
+    name: 百川智能
+    aliases: ["百川智能", "Baichuan AI", "Baichuan", "百川大模型"]
+    company_type: ai_startup
+    business_lines: ["大语言模型（Baichuan系列）", "医疗健康AI", "AI应用"]
+    common_roles: ["backend", "algorithm", "ai-engineer", "product-manager-c", "data-analyst"]
+    source_confidence: medium
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: ningde-times
+    name: 宁德时代
+    aliases: ["宁德时代", "CATL", "CATL电池", "宁德", "宁王"]
+    company_type: new_energy
+    business_lines: ["动力电池（汽车）", "储能电池", "电池回收", "矿产资源（锂矿）"]
+    common_roles: ["backend", "data-analyst", "hardware-engineer", "test-engineer", "product-manager-b", "sales", "hr", "finance-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: byd
+    name: 比亚迪
+    aliases: ["比亚迪", "BYD", "比亚迪汽车", "王朝系列", "海洋系列", "腾势", "仰望"]
+    company_type: new_energy
+    business_lines: ["新能源汽车（乘用车）", "商用车（客车/货车）", "动力电池（刀片电池）", "储能", "光伏"]
+    common_roles: ["backend", "algorithm", "embedded-engineer", "hardware-engineer", "product-manager-c", "data-analyst", "test-engineer", "sales"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: huawei
+    name: 华为
+    aliases: ["华为", "Huawei", "荣耀（历史）", "华为云", "鸿蒙", "昇腾", "麒麟", "光产品线"]
+    company_type: new_energy
+    business_lines: ["通信设备（运营商）", "智能手机（Mate/P系列）", "云计算（华为云）", "AI芯片（昇腾）", "鸿蒙OS", "企业网络"]
+    common_roles: ["backend", "frontend", "algorithm", "embedded-engineer", "hardware-engineer", "product-manager-b", "devops", "test-engineer", "sales"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 外企（6家）──────────────────────────────────────────
+
+  - id: microsoft-cn
+    name: 微软中国
+    aliases: ["微软", "Microsoft", "微软中国", "Microsoft China", "Azure", "Bing", "Office", "Teams"]
+    company_type: foreign_enterprise
+    business_lines: ["云服务（Azure）", "办公软件（M365）", "AI（Copilot）", "游戏（Xbox）", "搜索（Bing）"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-b", "data-analyst", "devops", "test-engineer", "ai-engineer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: google-cn
+    name: 谷歌中国
+    aliases: ["谷歌", "Google", "Google China", "Google中国", "Alphabet"]
+    company_type: foreign_enterprise
+    business_lines: ["搜索（在华受限）", "硬件研究（规模较小）", "招聘/合规办公室"]
+    common_roles: ["backend", "algorithm", "data-analyst", "product-manager-b", "ai-engineer"]
+    source_confidence: medium
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: amazon-cn
+    name: 亚马逊中国
+    aliases: ["亚马逊", "Amazon", "Amazon China", "AWS中国", "Amazon云计算"]
+    company_type: foreign_enterprise
+    business_lines: ["AWS云服务（中国区）", "跨境电商（小规模）"]
+    common_roles: ["backend", "devops", "product-manager-b", "sales", "data-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: apple-cn
+    name: 苹果中国
+    aliases: ["苹果", "Apple", "Apple China", "苹果中国", "Apple Store"]
+    company_type: foreign_enterprise
+    business_lines: ["零售（Apple Store）", "供应链管理", "运营/研发（部分）"]
+    common_roles: ["backend", "frontend", "product-manager-b", "supply-chain", "sales", "hr"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: sap-cn
+    name: SAP中国
+    aliases: ["SAP", "SAP中国", "SAP China", "思爱普"]
+    company_type: foreign_enterprise
+    business_lines: ["ERP软件", "云端企业应用（SAP S/4HANA）", "数据平台（SAP HANA）"]
+    common_roles: ["backend", "product-manager-b", "sales", "consulting-analyst", "data-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: oracle-cn
+    name: 甲骨文中国
+    aliases: ["甲骨文", "Oracle", "Oracle中国", "Oracle China"]
+    company_type: foreign_enterprise
+    business_lines: ["数据库软件（Oracle DB）", "云服务（OCI）", "ERP（NetSuite）"]
+    common_roles: ["backend", "product-manager-b", "sales", "data-analyst", "devops"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 金融（4家）──────────────────────────────────────────
+
+  - id: cicc
+    name: 中金公司
+    aliases: ["中金公司", "CICC", "中国国际金融股份有限公司", "中金投行"]
+    company_type: finance
+    business_lines: ["投资银行", "研究所", "资产管理", "财富管理", "私募股权"]
+    common_roles: ["finance-analyst", "backend", "data-analyst", "hr", "consulting-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: citic-securities
+    name: 中信证券
+    aliases: ["中信证券", "CITIC Securities", "中信", "中信投行"]
+    company_type: finance
+    business_lines: ["证券经纪", "投资银行", "资产管理", "衍生品", "研究"]
+    common_roles: ["finance-analyst", "backend", "data-analyst", "sales", "consulting-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: cmb
+    name: 招商银行
+    aliases: ["招商银行", "CMB", "招行", "招商银行信用卡"]
+    company_type: finance
+    business_lines: ["零售银行", "企业银行", "信用卡", "金融科技（CMB Tech）", "私人银行"]
+    common_roles: ["backend", "frontend", "data-analyst", "product-manager-b", "finance-analyst", "hr", "sales"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: pingan
+    name: 中国平安
+    aliases: ["平安", "中国平安", "Ping An", "平安科技", "平安银行", "平安好医生", "陆金所"]
+    company_type: finance
+    business_lines: ["保险（寿险/财险）", "银行（平安银行）", "投资", "金融科技", "医疗健康"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-b", "data-analyst", "finance-analyst", "hr", "sales"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 国企/央企（4家）──────────────────────────────────────────
+
+  - id: china-mobile
+    name: 中国移动
+    aliases: ["中国移动", "China Mobile", "移动", "动感地带", "中移云"]
+    company_type: state_owned
+    business_lines: ["移动通信", "宽带", "云计算（中移云）", "政务信息化", "物联网"]
+    common_roles: ["backend", "devops", "product-manager-b", "data-analyst", "hr", "finance-analyst", "test-engineer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: state-grid
+    name: 国家电网
+    aliases: ["国家电网", "State Grid", "国网", "国电", "南方电网"]
+    company_type: state_owned
+    business_lines: ["电力输配（超高压）", "智能电表", "新能源并网", "数字化转型"]
+    common_roles: ["backend", "data-analyst", "hardware-engineer", "product-manager-b", "hr", "finance-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: china-tobacco
+    name: 中国烟草
+    aliases: ["中国烟草", "China Tobacco", "烟草", "中烟", "中华烟草"]
+    company_type: state_owned
+    business_lines: ["卷烟生产", "烟草专卖管理", "新型烟草（加热不燃烧）"]
+    common_roles: ["finance-analyst", "hr", "data-analyst", "backend", "sales"]
+    source_confidence: medium
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: china-railway
+    name: 中国铁路
+    aliases: ["中国铁路", "China Railway", "铁总", "12306", "高铁", "中铁"]
+    company_type: state_owned
+    business_lines: ["铁路运营", "高铁建设", "票务系统（12306）", "物流"]
+    common_roles: ["backend", "data-analyst", "product-manager-b", "devops", "hr", "finance-analyst"]
+    source_confidence: medium
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 咨询/快消/四大（4家）──────────────────────────────────────────
+
+  - id: mckinsey-cn
+    name: 麦肯锡中国
+    aliases: ["麦肯锡", "McKinsey", "McKinsey China", "麦肯锡中国", "MBB"]
+    company_type: consulting_fmcg
+    business_lines: ["战略咨询", "数字化转型", "运营改进", "技术咨询（QuantumBlack）"]
+    common_roles: ["consulting-analyst", "data-analyst", "product-manager-b", "hr"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: pwc-cn
+    name: 普华永道中国
+    aliases: ["普华永道", "PwC", "PricewaterhouseCoopers", "四大", "PwC中国"]
+    company_type: consulting_fmcg
+    business_lines: ["审计", "税务咨询", "管理咨询", "财务顾问（Deal Advisory）"]
+    common_roles: ["finance-analyst", "consulting-analyst", "data-analyst", "hr"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: pg-cn
+    name: 宝洁中国
+    aliases: ["宝洁", "P&G", "宝洁中国", "Procter & Gamble", "飘柔", "海飞丝", "玉兰油"]
+    company_type: consulting_fmcg
+    business_lines: ["日化品（洗护/美妆）", "医疗健康", "品牌管理", "供应链"]
+    common_roles: ["product-manager-c", "marketing", "supply-chain", "data-analyst", "sales", "hr"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: deloitte-cn
+    name: 德勤中国
+    aliases: ["德勤", "Deloitte", "德勤中国", "Deloitte China", "四大"]
+    company_type: consulting_fmcg
+    business_lines: ["审计", "风险咨询", "技术咨询", "财务顾问", "税务"]
+    common_roles: ["finance-analyst", "consulting-analyst", "data-analyst", "backend", "hr"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 出海公司（3家）──────────────────────────────────────────
+
+  - id: shein
+    name: SHEIN
+    aliases: ["SHEIN", "希音", "Shein", "快时尚出海"]
+    company_type: overseas
+    business_lines: ["跨境快时尚电商", "供应链管理", "算法选款", "品牌（SHEIN品牌矩阵）"]
+    common_roles: ["backend", "algorithm", "product-manager-c", "data-analyst", "supply-chain", "content-operations", "growth-operations"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: tiktok-global
+    name: TikTok（海外）
+    aliases: ["TikTok", "ByteDance Global", "TikTok全球", "抖音海外", "TikTok Shop"]
+    company_type: overseas
+    business_lines: ["短视频（海外）", "直播带货（TikTok Shop）", "广告平台", "AI推荐"]
+    common_roles: ["backend", "frontend", "algorithm", "product-manager-c", "growth-operations", "content-operations", "data-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: temu
+    name: Temu
+    aliases: ["Temu", "多多海外", "Temu电商", "PDD海外"]
+    company_type: overseas
+    business_lines: ["跨境电商（低价策略）", "供应链", "广告投放"]
+    common_roles: ["backend", "algorithm", "product-manager-c", "data-analyst", "supply-chain", "growth-operations"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 游戏/内容/文娱（2家）──────────────────────────────────────────
+
+  - id: lilith-games
+    name: 莉莉丝游戏
+    aliases: ["莉莉丝", "Lilith Games", "莉莉丝游戏", "万国觉醒", "剑与远征"]
+    company_type: gaming_content
+    business_lines: ["手游研发（策略类）", "海外发行", "IP开发"]
+    common_roles: ["backend", "game-client", "product-manager-c", "ui-designer", "data-analyst", "content-operations"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: papergames
+    name: 叠纸游戏
+    aliases: ["叠纸", "叠纸游戏", "Papergames", "恋与制作人", "闪耀暖暖", "无限暖暖"]
+    company_type: gaming_content
+    business_lines: ["女性向手游", "时尚穿搭游戏", "IP衍生品"]
+    common_roles: ["backend", "game-client", "product-manager-c", "ui-designer", "content-operations", "data-analyst"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 电商/本地生活（2家）──────────────────────────────────────────
+
+  - id: ele-me
+    name: 饿了么
+    aliases: ["饿了么", "Ele.me", "口碑（历史）", "蜂鸟配送", "饿了么外卖"]
+    company_type: ecommerce_local
+    business_lines: ["外卖配送", "即时零售", "配送运力（蜂鸟）", "本地商业"]
+    common_roles: ["backend", "algorithm", "product-manager-c", "data-analyst", "user-operations", "growth-operations"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  - id: sf-express
+    name: 顺丰速运
+    aliases: ["顺丰", "SF Express", "顺丰速运", "顺丰科技", "丰巢"]
+    company_type: ecommerce_local
+    business_lines: ["快递物流", "冷链运输", "供应链解决方案", "智能柜（丰巢）"]
+    common_roles: ["backend", "data-analyst", "product-manager-b", "devops", "algorithm", "supply-chain", "hr"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"
+
+  # ── 新能源（1家）──────────────────────────────────────────
+
+  - id: xpeng
+    name: 小鹏汽车
+    aliases: ["小鹏", "XPENG", "小鹏汽车", "XPENG Motors", "小鹏MONA"]
+    company_type: new_energy
+    business_lines: ["新能源汽车（G/P/X系列）", "自动驾驶（XNGP）", "飞行汽车（汇天）", "AI驾驶技术"]
+    common_roles: ["backend", "algorithm", "autonomous-driving", "embedded-engineer", "product-manager-c", "data-analyst", "test-engineer"]
+    source_confidence: high
+    freshness: 2026-Q2
+    last_verified: "2026-05-26"

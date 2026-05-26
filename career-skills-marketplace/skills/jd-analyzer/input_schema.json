@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "jd-analyzer/input",
+  "title": "jd-analyzer 输入",
+  "type": "object",
+  "required": ["jd_text"],
+  "properties": {
+    "jd_text": {
+      "type": "string",
+      "minLength": 20,
+      "description": "职位描述原文，纯文本格式"
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "用户画像（来自 profile-builder 输出），用于个性化风险评估",
+      "additionalProperties": true
+    },
+    "market_context": {
+      "type": "object",
+      "description": "市场背景补充信息",
+      "properties": {
+        "industry": { "type": "string" },
+        "city": { "type": "string" },
+        "year": { "type": "integer" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

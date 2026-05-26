@@ -1,0 +1,91 @@
+# 来源分级策略 — 机器可读版本
+# 被 source-quality-auditor 及所有依赖外部事实的 skill 引用
+# 详细说明见 skills/source-quality-auditor/references/source-grading-policy.md
+
+version: "1.0.0"
+
+# 各平台默认等级
+platform_defaults:
+  official_website: A       # 企业官网（招聘页/公告/产品页）
+  gov_stats: A              # 国家统计局/人社部等官方数据
+  wechat_official: A        # 企业认证官方公众号
+  linkedin_jd: B            # 领英职位发布
+  boss_jd: B                # Boss直聘 JD 文本
+  boss_salary: B            # Boss直聘 JD 中的薪资区间（招聘方报价）
+  nowcoder_tech: B          # 牛客技术面经（算法/系统设计）
+  zhilian_jd: B             # 智联招聘 JD 文本
+  liepin_jd: B              # 猎聘 JD 文本
+  zhihu_verified: B         # 知乎认证专业人士高赞回答
+  wechat_media: B           # 行业媒体公众号
+  nowcoder_salary: C        # 牛客薪资 offer 帖子
+  nowcoder_nontech: C       # 牛客非技术岗信息
+  xhs: C                    # 小红书所有内容
+  maimai: C                 # 脉脉所有内容
+  zhilian_salary: C         # 智联薪资区间（更新滞后）
+  liepin_salary: C          # 猎聘薪资区间
+  zhihu_anonymous: C        # 知乎匿名/低赞回答
+  wechat_personal: C        # 个人公众号
+
+# 降级触发规则（按优先级排序，先命中先生效）
+demotion_triggers:
+  - id: url_unreachable
+    condition: "source_type=url AND url returns 404/timeout/dns_fail"
+    action: force_grade=D
+    verification_status: unreachable
+    priority: 1
+
+  - id: marketing_content
+    condition: "content is purely positive with no specific data and contains promotional language"
+    action: force_grade=D
+    priority: 2
+
+  - id: no_publish_date
+    condition: "date field is missing or unparseable"
+    action: max_grade=C
+    freshness: unknown
+    add_issue: "无发布日期，时效性无法判断"
+    priority: 3
+
+  - id: salary_missing_elements
+    condition: "claim_type=salary AND (year missing OR city missing OR role_type missing)"
+    action: demote_to=C
+    add_issue: "薪资数据缺少年份/城市/岗位要素，可信度受限"
+    priority: 4
+
+  - id: repost_no_original
+    condition: "content is repost and original source cannot be identified"
+    action: demote_by=1
+    add_issue: "转载内容，未找到原始来源"
+    priority: 5
+
+  - id: content_mismatch
+    condition: "url accessible but content does not match the stated claim"
+    action: demote_by=1
+    verification_status: mismatch
+    priority: 6
+
+# 特殊平台规则
+special_rules:
+  xhs:
+    rule: "小红书来源在 claim_type=salary 时永远不计为薪资事实，只计为用户声音"
+    applies_to: claim_type=salary
+    effect: "即使等级为 C，也不能作为薪资数据的依据"
+
+  nowcoder:
+    rule: "牛客只作为技术面试参考，非技术岗数据可信度低"
+    applies_to: "platform=nowcoder AND claim_type!=interview_experience"
+    effect: "非面经类内容降至 C"
+
+# 整体置信度上限规则
+confidence_ceiling_rules:
+  - condition: "usable_source_count (grade B+) < 2"
+    ceiling: medium
+
+  - condition: "conflict_detected = true"
+    ceiling: medium
+
+  - condition: "all sources grade C or below"
+    ceiling: low
+
+  - condition: "any source is D and it's the only source"
+    ceiling: low

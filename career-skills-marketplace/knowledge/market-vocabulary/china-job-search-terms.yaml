@@ -1,0 +1,131 @@
+meta:
+  total: 18
+  language: zh-CN
+  note: 中国求职市场特有术语，帮助求职者理解潜在风险和机会
+
+terms:
+  - id: pao_chi_zi
+    term: 泡池子
+    meaning: 求职者在招聘平台（如Boss直聘）大量投递简历、广泛建立连接，积累面试机会的策略行为。源于"把简历泡在候选人池子里"的比喻。
+    risk: none
+    when_it_matters: 求职初期广泛探索阶段，不确定目标岗位时
+    example: "秋招第一周先泡池子，把所有想去的公司都投一遍，看哪些给面试机会。"
+
+  - id: kai_jiang
+    term: 开奖
+    meaning: 收到offer或查看offer具体薪资数字的俗称。源自"抽奖开箱"的类比，表达对offer结果的期待与不确定性。
+    risk: none
+    when_it_matters: 面试结束等待offer阶段
+    example: "今天终于开奖了，base 30k，年包大约40W，比预期好一些。"
+
+  - id: hc
+    term: HC
+    meaning: Head Count，即招聘名额。企业每个部门有固定的HC预算，HC满了就意味着该岗位暂停招聘。HC受预算周期、业务变动影响，可能临时冻结。
+    risk: medium
+    when_it_matters: 深入面试流程前，可礼貌询问HR该岗位当前HC状态
+    example: "听说那家公司HC被冻结了，即使面试通过也可能发不了offer，小心白面。"
+
+  - id: base
+    term: base
+    meaning: 基础月薪，是薪资结构中相对固定的部分，不含奖金、股票、补贴。Base乘以月数（12-16个月）构成年底薪总包的基础部分。
+    risk: low
+    when_it_matters: 谈薪时必须搞清楚base与总包的关系，避免被总包数字迷惑
+    example: "他说年包60W，但base只有25K乘以12，剩下的全靠绩效奖金，风险很高。"
+
+  - id: bei_diao
+    term: 背调
+    meaning: 背景调查（Background Check）的简称。HR通过第三方机构或直接联系前雇主，核实候选人简历真实性。内容包括：任职时间、职位、离职原因、工作表现。严重造假（学历/工作经历）会导致offer撤回甚至法律风险。
+    risk: high
+    when_it_matters: offer下发后，入职前，必须确保简历内容与事实一致
+    example: "背调发现他在简历上写了P7但实际只是P6，offer被撤销了。"
+
+  - id: od
+    term: OD
+    meaning: Outsourcing Dispatch，外包派遣员工。员工与第三方外包公司签合同，实际在目标公司工作，但不属于目标公司正式员工。在阿里、字节等大厂中普遍存在，通常福利（五险一金/年终奖/内部晋升）明显不如正式员工。
+    risk: high
+    when_it_matters: 投递大厂时，务必确认岗位是否为外包（通常在JD末尾标注或面试时询问）
+    example: "我以为是字节的岗位，后来发现是OD外包，五险一金基数低很多，就拒了。"
+
+  - id: wai_bao
+    term: 外包
+    meaning: 与OD含义相近，泛指不直接与目标公司签订劳动合同的用工形式。包括劳务派遣、项目外包、驻场服务等。外包员工通常无法享有目标公司内部福利，且合同稳定性低于正式员工。
+    risk: high
+    when_it_matters: 任何看起来目标公司招聘但薪资或合同有异常的情况下
+    example: "注意辨别是否是外包，简历投递时看清楚是目标公司招聘还是人力公司代招。"
+
+  - id: shi_xi_zhuan_zheng
+    term: 实习转正
+    meaning: 从实习生身份通过考核后获得正式岗位offer的路径。大厂普遍存在"转正率"指标（通常30-60%），转正需通过导师考核和HR审批。这是应届生进入大厂最高性价比的路径之一。
+    risk: low
+    when_it_matters: 应届生大三/大四阶段通过长期实习（3个月以上）争取转正机会
+    example: "他提前批直接通过实习转正进了字节，避开了秋招激烈竞争。"
+
+  - id: ti_qian_pi
+    term: 提前批
+    meaning: 在秋招正式开始（通常9月）之前，企业向优质候选人发出offer的招聘批次。通常6-8月进行，竞争相对较小但要求也高。提前批offer通常有签约期限约束，需慎重决策。
+    risk: medium
+    when_it_matters: 大三下/大四上有明确目标公司时，主动关注提前批开放时间
+    example: "腾讯提前批7月就开了，我朋友提前锁定了offer，秋招都不用投了。"
+
+  - id: qiu_zhao
+    term: 秋招
+    meaning: 每年9-11月针对应届毕业生的大规模校园招聘季。是应届生求职最重要的窗口，绝大多数大厂在此期间集中招聘。错过秋招需等明年或走社招（社会招聘），竞争形势和HC量完全不同。
+    risk: none
+    when_it_matters: 大四学生/研三学生的核心求职周期，应提前3-6个月准备
+    example: "秋招是应届生的黄金期，一定要充分准备，过了这个村就没这个店了。"
+
+  - id: chun_zhao
+    term: 春招
+    meaning: 每年3-5月的招聘季，规模和HC数量远小于秋招。主要为秋招未完成招聘的补充，或接收明年毕业生的实习生。对于秋招失利的应届生是第二次机会，但岗位和数量有限。
+    risk: none
+    when_it_matters: 秋招未成功的应届生，或在校学生寻找暑期实习机会
+    example: "秋招没拿到满意offer，还可以等春招，但HC会少很多，要降低预期。"
+
+  - id: bi_shi
+    term: 笔试
+    meaning: 招聘流程中的在线测试环节，技术岗通常考算法/编程题，非技术岗考逻辑思维/行测。大厂笔试（如字节、华为）是重要筛选环节，通过率可低至20-30%。
+    risk: none
+    when_it_matters: 收到笔试邀约后，需提前刷题/训练，不可轻视
+    example: "华为笔试出了很多机试题，提前没有练习的人基本都挂了。"
+
+  - id: qun_mian
+    term: 群面
+    meaning: 无领导小组讨论面试，多名候选人（通常6-8人）就给定案例进行讨论，面试官观察团队协作、领导力、表达能力等。快消/咨询/管培生岗位常用，重在表现而非答对题目。
+    risk: none
+    when_it_matters: 投递快消/外企/咨询管培生岗位时，必须专门练习群面技巧
+    example: "宝洁群面很残酷，6人只取1-2人，一定要提前找人模拟练习。"
+
+  - id: ye_wu_mian
+    term: 业务面
+    meaning: 由直接主管或业务部门面试官进行的技术/专业面试。相对于HR面，业务面考察专业深度，是录用决策的核心环节。通常有2-3轮，且每轮会有不同层级的面试官。
+    risk: none
+    when_it_matters: 进入面试流程后，业务面决定是否发offer
+    example: "通过笔试后，我经历了3轮业务面，都是团队leader和总监来面，比HR面重要得多。"
+
+  - id: hr_mian
+    term: HR面
+    meaning: 人力资源部门进行的面试环节，通常是最后一轮，考察文化匹配度、薪资期望、离职原因、入职时间等。HR面通过率通常较高（>80%），但回答不当仍可能被淘汰。
+    risk: low
+    when_it_matters: 到达HR面阶段，需准备薪资谈判话术和离职原因的合理解释
+    example: "HR面问了我期望薪资，我说了一个区间而不是具体数字，留了谈判空间。"
+
+  - id: san_fang_xie_yi
+    term: 三方协议
+    meaning: 毕业生就业三方协议，由学校、用人单位、毕业生三方签订，用于保障应届生身份和学校就业数据统计。签了三方协议后违约需支付违约金（通常2000-10000元），且影响应届生身份使用。谨慎对待，不要轻易签署。
+    risk: high
+    when_it_matters: 收到offer需要签三方时，确认已确定不会继续观望其他offer
+    example: "他草率签了三方，后来收到更好的offer，违约金加上损失的应届生身份，代价很大。"
+
+  - id: bai_cai_jia
+    term: 白菜价
+    meaning: 指比市场价大幅偏低的offer薪资，通常出现在HC紧张但又不得不招人时，或公司刻意压低薪酬的情况。得到此类offer意味着公司对该候选人估值不高，或公司整体薪资体系偏低。
+    risk: medium
+    when_it_matters: 收到明显低于市场价的offer时，综合评估是否值得接受
+    example: "那家公司给了我白菜价，后端工程师才18k，我直接拒了，不值得。"
+
+  - id: sp_ssp
+    term: SP/SSP
+    meaning: Special Package/Super Special Package，指企业给顶尖候选人的超出标准的特殊offer。通常包括更高薪资、更多RSU或签字费，是公司争抢优质人才的工具。收到SP/SSP通常意味着竞争激烈，也可以作为其他公司的谈判筹码。
+    risk: none
+    when_it_matters: 拥有多个offer或竞争激烈时，可尝试争取SP或用SP offer进行比价谈判
+    example: "他同时收到字节和腾讯的offer，字节给了SSP，月薪直接高出标准包30%。"

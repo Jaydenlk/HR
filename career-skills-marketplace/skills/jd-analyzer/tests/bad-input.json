@@ -1,0 +1,12 @@
+{
+  "description": "非 JD 输入（科技新闻），期望返回 error，不输出 parsed_jd",
+  "input": {
+    "jd_text": "据报道，某大型科技公司今日宣布完成 C 轮融资，融资金额达 5 亿美元。本轮融资由多家知名风险投资机构领投，公司估值突破 30 亿美元。该公司成立于 2019 年，主要从事人工智能基础设施研发。业内人士分析，此次融资将加速其产品商业化进程。"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "non_jd_input" },
+    { "path": "parsed_jd", "operator": "not_exists" },
+    { "path": "risk_count", "operator": "eq", "value": 0 }
+  ]
+}

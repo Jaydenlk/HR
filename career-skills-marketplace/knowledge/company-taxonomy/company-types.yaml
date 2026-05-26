@@ -1,0 +1,203 @@
+company_types:
+  - id: internet_big_tech
+    name: 互联网大厂
+    description: 国内头部互联网平台企业，业务体量大、品牌知名度高、技术基础设施完善
+    characteristics:
+      - 技术驱动，工程师文化浓厚
+      - 竞争激烈，赛马机制普遍
+      - 福利完善（餐补、班车、健身房）
+      - OKR或KPI目标管理
+      - 晋升通道相对透明
+    salary_range:
+      junior: 20k-35k/月（应届）
+      mid: 35k-60k/月（3-5年）
+      senior: 60k-120k/月（5年以上）
+      note: 含base+bonus+RSU三包，RSU归属周期通常4年
+    stability: medium
+    typical_culture: 高压、快节奏、result-oriented
+
+  - id: stable_mid_tech
+    name: 稳定中厂
+    description: 在细分领域有较强竞争力的中型科技公司，规模适中、成长性好、工作压力相对可控
+    characteristics:
+      - 业务垂直，晋升空间充足
+      - 加班情况因部门差异较大
+      - 薪资竞争力次于大厂但稳定
+      - 平台知名度在行业内认可
+    salary_range:
+      junior: 15k-25k/月（应届）
+      mid: 25k-45k/月（3-5年）
+      senior: 45k-80k/月（5年以上）
+      note: 年终奖0.5-3个月不等
+    stability: high
+    typical_culture: 相对平衡，有一定归属感
+
+  - id: ai_startup
+    name: AI初创
+    description: 专注大模型、AIGC、具身智能等方向的初创或成长期公司，技术前沿但风险较高
+    characteristics:
+      - 股权激励占比高，期权占薪酬重要部分
+      - 团队小、人均产出要求极高
+      - 技术氛围浓，学习成长快
+      - 不确定性高，融资情况影响稳定性
+      - 顶级技术人才密度高
+    salary_range:
+      junior: 18k-30k/月（应届）
+      mid: 30k-60k/月（3-5年）
+      senior: 50k-150k/月（5年以上，含期权估值）
+      note: 期权兑现高度依赖公司上市/并购结果
+    stability: low
+    typical_culture: 极强执行力，founder影响力大
+
+  - id: foreign_enterprise
+    name: 外企
+    description: 在华运营的跨国企业，工作流程规范、英语要求高、但本地化发展通常有天花板
+    characteristics:
+      - 英语工作环境，国际化视野
+      - 流程规范，工作节奏相对舒适
+      - 晋升周期较长，本地化职位受限
+      - 福利好（商业保险完善）
+      - 受外部政策影响较大
+    salary_range:
+      junior: 12k-22k/月（应届）
+      mid: 22k-45k/月（3-5年）
+      senior: 40k-90k/月（5年以上）
+      note: bonus通常与全球/区域业绩挂钩，波动较大
+    stability: medium
+    typical_culture: 合规文化，层级分明但相对扁平
+
+  - id: state_owned
+    name: 国企/央企
+    description: 国有控股或中央直属企业，稳定性极强、福利完善，但薪资增长有限、晋升依赖年资
+    characteristics:
+      - 铁饭碗，裁员风险极低
+      - 五险一金缴纳比例高（通常按实际工资）
+      - 晋升看资历，党员身份有加成
+      - 薪资天花板明显，增长缓慢
+      - 政治敏感度高，需注意言行
+    salary_range:
+      junior: 8k-18k/月（应届，含补贴）
+      mid: 15k-30k/月（3-5年）
+      senior: 25k-50k/月（5年以上，含各类补贴）
+      note: 实物福利（住房补贴、餐补、通讯费）需折算，年终奖不透明
+    stability: very_high
+    typical_culture: 稳定优先，集体主义，官僚化程度因单位而异
+
+  - id: finance
+    name: 金融/券商/银行
+    description: 证券、银行、基金、保险等金融机构，薪资结构特殊、奖金弹性大
+    characteristics:
+      - 奖金占薪酬比例极高（可达base的2-10倍）
+      - 学历门槛高（985/211优先，金融名校加分）
+      - 合规要求严，持牌资格重要
+      - 工作强度高，尤其投行/研究所
+      - CPA/CFA/保荐代表人资格有溢价
+    salary_range:
+      junior: 15k-30k/月（应届，不含奖金）
+      mid: 30k-80k/月（3-5年，不含奖金）
+      senior: 60k-200k/月（5年以上，不含奖金）
+      note: 年终奖高度依赖个人业绩和市场行情，波动极大
+    stability: medium
+    typical_culture: 精英文化，高压，结果导向
+
+  - id: consulting_fmcg
+    name: 咨询/快消/四大
+    description: 管理咨询、快消品、会计师事务所等，品牌背书强、职业发展路径清晰
+    characteristics:
+      - 品牌背书价值高，跳槽溢价明显
+      - 出差频繁（咨询），项目制工作方式
+      - 结构化思维培养系统
+      - 四大审计为职业跳板而非终点
+      - 快消强调Market/Sales轮岗
+    salary_range:
+      junior: 10k-20k/月（应届）
+      mid: 20k-45k/月（3-5年）
+      senior: 40k-100k/月（5年以上）
+      note: 四大薪资普遍低于互联网，但职业发展路径换算综合价值可观
+    stability: medium
+    typical_culture: 职业化程度高，方法论体系完善
+
+  - id: overseas
+    name: 出海公司
+    description: 业务主要面向海外市场的中国企业，工作语言国际化、薪资竞争力强
+    characteristics:
+      - 英语/小语种工作环境
+      - 薪资对标大厂，竞争力强
+      - 出差/外派机会多
+      - 业务增长快但政策风险高（TikTok禁令等）
+      - 跨文化协作能力要求高
+    salary_range:
+      junior: 20k-35k/月（应届）
+      mid: 35k-65k/月（3-5年）
+      senior: 60k-120k/月（5年以上）
+      note: 外派津贴和驻外补贴可显著提升综合收入
+    stability: medium
+    typical_culture: 创业氛围，高执行力，跨文化
+
+  - id: gaming_content
+    name: 游戏/内容/文娱
+    description: 手游、端游、短视频、直播、影视等内容产业，创意与商业结合
+    characteristics:
+      - 用户体验和产品感知要求高
+      - 项目制，成功与失败波动大
+      - 游戏公司技术栈特殊（C++/Unreal/Unity）
+      - 版号政策影响稳定性
+      - 工作内容相对有趣，加班文化普遍
+    salary_range:
+      junior: 12k-25k/月（应届）
+      mid: 25k-50k/月（3-5年）
+      senior: 45k-90k/月（5年以上）
+      note: 爆款项目分红可大幅提升收入
+    stability: low
+    typical_culture: 创意与执行并重，产品氛围浓
+
+  - id: ecommerce_local
+    name: 电商/本地生活
+    description: 综合电商、垂直电商、外卖、到店等本地生活服务，运营密集型
+    characteristics:
+      - 数据驱动，AB测试文化
+      - 大促期（618/双十一）加班强度极高
+      - 供应链和物流理解要求高
+      - 细分运营岗位多，晋升路径清晰
+      - 业务创新快，迭代节奏快
+    salary_range:
+      junior: 10k-20k/月（应届）
+      mid: 20k-40k/月（3-5年）
+      senior: 38k-75k/月（5年以上）
+      note: 大促KPI与奖金直接挂钩
+    stability: medium
+    typical_culture: 运营文化，数据驱动，执行力强
+
+  - id: new_energy
+    name: 新能源/硬科技
+    description: 新能源汽车、动力电池、光伏、芯片等硬科技赛道，技术壁垒高、成长空间大
+    characteristics:
+      - 技术门槛高，专业背景要求严格
+      - 行业景气度影响薪资涨幅
+      - 部分岗位有保密协议限制跳槽
+      - 制造业背景与互联网思维融合
+      - 政策支持力度强，稳定性相对好
+    salary_range:
+      junior: 12k-22k/月（应届）
+      mid: 22k-45k/月（3-5年）
+      senior: 40k-90k/月（5年以上）
+      note: 部分一线公司（如比亚迪、宁德时代）薪资已接近互联网大厂
+    stability: medium_high
+    typical_culture: 工程师文化，精益求精，注重细节
+
+  - id: startup
+    name: 初创公司
+    description: A轮及以前的早期创业公司，高风险高潜力，适合有明确目标的求职者
+    characteristics:
+      - 股权期权是重要补偿组成
+      - 岗位边界模糊，一人多职
+      - 直接与创始团队协作
+      - 失败率高，但经历有价值
+      - 成长速度快，试错成本低
+    salary_range:
+      junior: 10k-20k/月（应届，可能含期权）
+      mid: 18k-40k/月（3-5年）
+      senior: 30k-80k/月（5年以上，期权价值高度不确定）
+      note: 天使/Pre-A轮期权价值高度不确定，建议折现保守估算
+    stability: very_low
+    typical_culture: 创始人文化，扁平，速度优先

@@ -1,0 +1,84 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: ResumeTailorOutput
+type: object
+required: [modifications, evidence_chain_summary, overall_assessment]
+
+properties:
+  modifications:
+    type: array
+    minItems: 1
+    description: 每处改写的详细记录，至少 1 处
+    items:
+      type: object
+      required: [section, original, modified, reason, source, fabrication_check]
+      properties:
+        section:
+          type: string
+          description: "改写所在的简历部分，如：工作经历、技能、项目经历、个人简介"
+          examples:
+            - "工作经历"
+            - "技能"
+            - "项目经历"
+            - "个人简介"
+        original:
+          type: string
+          minLength: 1
+          description: 改写前的原始文本，必须与输入材料完全对应
+        modified:
+          type: string
+          minLength: 1
+          description: 改写后的文本
+        reason:
+          type: string
+          minLength: 10
+          description: 改写理由，必须明确关联到 JD 的具体要求（或通用优化原则）
+        source:
+          type: string
+          minLength: 1
+          description: 原始材料中的具体证据位置（如：原文第2段、用户画像 skills.technical[0]）
+        fabrication_check:
+          type: string
+          enum: [PASS, NEED_USER_CONFIRM]
+          description: |
+            PASS: 改写内容完全来自原始材料
+            NEED_USER_CONFIRM: 包含合理推断，需用户确认
+
+  evidence_chain_summary:
+    type: array
+    description: 所有修改的证据链摘要，格式化为表格数据
+    items:
+      type: object
+      required: [modification_id, source_location, fabrication_check]
+      properties:
+        modification_id:
+          type: string
+          description: 对应 modifications 数组的编号（如 "修改1"、"修改2"）
+        source_location:
+          type: string
+          description: 原始证据的具体位置描述
+        fabrication_check:
+          type: string
+          enum: [PASS, NEED_USER_CONFIRM]
+
+  overall_assessment:
+    type: object
+    required: [match_improvement, items_needing_confirmation, honest_gaps]
+    properties:
+      match_improvement:
+        type: string
+        description: 改写后预计匹配度提升的定性描述（例：JD 关键词覆盖率从约30%提升至约70%）
+      items_needing_confirmation:
+        type: integer
+        minimum: 0
+        description: 标记为 NEED_USER_CONFIRM 的改写项数量
+      honest_gaps:
+        type: array
+        items:
+          type: string
+        description: |
+          无法通过改写弥补的真实差距（原材料中完全不存在相关内容）。
+          这些差距需要用户去补充真实经历，不是改写能解决的。
+
+  refusal_reason:
+    type: string
+    description: 若任务被拒绝执行，说明拒绝原因（正常执行时此字段不存在）

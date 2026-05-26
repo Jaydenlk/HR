@@ -1,0 +1,12 @@
+{
+  "description": "非简历输入（照片描述），期望返回 error，不输出 profile",
+  "input": {
+    "resume_text": "这是一张猫咪的照片，拍摄于北京朝阳公园，猫咪是橘色的，正在晒太阳，非常可爱。拍摄时间是 2024 年春天，相机型号 Sony A7C。"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "non_resume_input" },
+    { "path": "profile", "operator": "not_exists" },
+    { "path": "evidence_count", "operator": "eq", "value": 0 }
+  ]
+}

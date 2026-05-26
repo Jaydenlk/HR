@@ -1,0 +1,15 @@
+{
+  "description": "完整标准 JD，期望高置信度解析结果，含显性要求、风险信号、职责",
+  "input": {
+    "jd_text": "职位：后端工程师（Go 方向）\n公司：某电商平台（北京，已上市）\n地点：北京朝阳区\n薪资：25k-40k × 14 薪\n\n工作职责\n1. 负责电商核心交易链路的后端服务开发和维护\n2. 参与系统架构设计，推动服务拆分和性能优化\n3. 编写技术方案文档，参与 Code Review\n\n任职要求\n1. 本科及以上学历，计算机相关专业\n2. 3 年以上 Go 语言后端开发经验\n3. 熟悉 MySQL、Redis，了解 Kafka 优先\n4. 有高并发、大流量系统设计经验优先\n\n福利\n- 五险一金（公积金 12%）\n- 年终奖（视公司业绩，一般 1-3 个月）\n- 弹性工作时间"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "parsed_jd.basic.title", "operator": "contains_text", "value": "后端工程师" },
+    { "path": "parsed_jd.basic.salary_range", "operator": "contains_text", "value": "25k" },
+    { "path": "parsed_jd.requirements.explicit", "operator": "length_gte", "value": 3 },
+    { "path": "parsed_jd.responsibilities", "operator": "length_gte", "value": 2 },
+    { "path": "parsed_jd.risk_signals", "operator": "length_gte", "value": 1 },
+    { "path": "risk_count", "operator": "gte", "value": 1 }
+  ]
+}

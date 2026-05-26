@@ -1,0 +1,68 @@
+{
+  "name": "source-conflict: conflicting data triggers conflict markers",
+  "description": "JD 中的薪资信息与 knowledge 图谱数据冲突，应填写 conflict_markers，不自动解决冲突",
+  "input": {
+    "user_message": "帮我分析这个 JD 的薪资合不合理",
+    "jd_text": "职位：数据分析师，上海，2年以上经验，SQL必须，Python必须，用户行为分析（漏斗/留存/RFM），在线教育上市公司，薪资 8-12K，13薪"
+  },
+  "mock_knowledge_data": {
+    "knowledge/salary-data": {
+      "role": "数据分析师",
+      "city": "上海",
+      "years_of_experience": 2,
+      "salary_range_monthly": "18-30K",
+      "median": "22K",
+      "data_year": 2024
+    }
+  },
+  "expected_properties": {
+    "status": "success",
+    "intent_detected": "analyze_jd"
+  },
+  "assertions": [
+    {
+      "field": "aggregated_result.conflict_markers",
+      "assertion": "length_gte",
+      "value": 1,
+      "reason": "JD 薪资（8-12K）与 knowledge 数据（18-30K）存在明显冲突，必须标记"
+    },
+    {
+      "field": "aggregated_result.conflict_markers[0].field",
+      "assertion": "contains_any",
+      "value": ["薪资", "salary"],
+      "reason": "冲突字段必须标注为薪资相关"
+    },
+    {
+      "field": "aggregated_result.conflict_markers[0].source_a",
+      "assertion": "non_empty",
+      "reason": "必须标注第一个来源"
+    },
+    {
+      "field": "aggregated_result.conflict_markers[0].source_b",
+      "assertion": "non_empty",
+      "reason": "必须标注第二个来源"
+    },
+    {
+      "field": "aggregated_result.conflict_markers[0].value_a",
+      "assertion": "non_empty",
+      "reason": "必须标注第一个来源的数据值"
+    },
+    {
+      "field": "aggregated_result.conflict_markers[0].value_b",
+      "assertion": "non_empty",
+      "reason": "必须标注第二个来源的数据值"
+    },
+    {
+      "field": "cannot_determine",
+      "assertion": "length_gte",
+      "value": 1,
+      "reason": "冲突未解决时，薪资合理性无法确定，必须列入 cannot_determine"
+    },
+    {
+      "field": "aggregated_result.summary",
+      "assertion": "does_not_contain",
+      "value": ["合理", "正常", "偏低可以接受"],
+      "reason": "存在未解决冲突时，不能给出关于薪资合理性的确定性结论"
+    }
+  ]
+}

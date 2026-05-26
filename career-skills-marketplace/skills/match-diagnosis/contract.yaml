@@ -1,0 +1,177 @@
+name: match-diagnosis
+version: "1.0"
+
+inputs:
+  user_profile:
+    type: object
+    required: true
+    description: 用户结构化画像（必须）
+    properties:
+      basic_info:
+        type: object
+        properties:
+          target_role: { type: string }
+          years_of_experience: { type: number }
+          location: { type: string }
+          current_salary_range: { type: string }
+      work_experience:
+        type: array
+        description: 工作经历列表
+      education:
+        type: array
+        description: 教育经历列表
+      skills:
+        type: object
+        properties:
+          technical: { type: array, items: { type: string } }
+          soft: { type: array, items: { type: string } }
+          certifications: { type: array, items: { type: string } }
+      constraints:
+        type: object
+        description: 求职约束条件
+        properties:
+          preferred_locations:
+            type: array
+            items: { type: string }
+          work_type:
+            type: string
+            enum: [full_time, part_time, internship, contract, any]
+          earliest_start_date:
+            type: string
+
+  jd_analysis:
+    type: object
+    required: true
+    description: JD 结构化分析结果（必须）
+    properties:
+      job_title: { type: string }
+      company: { type: string }
+      required_skills:
+        type: array
+        items:
+          type: object
+          properties:
+            skill: { type: string }
+            level: { type: string, enum: [required, preferred, nice_to_have] }
+            years: { type: string }
+      qualifications:
+        type: object
+        properties:
+          education: { type: string }
+          experience_years: { type: string }
+          must_have: { type: array, items: { type: string } }
+      location: { type: string }
+      work_type: { type: string }
+      keywords: { type: array, items: { type: string } }
+
+  confidence_policy:
+    type: object
+    required: false
+    description: 置信度策略（可选）
+    properties:
+      min_confidence_to_score:
+        type: string
+        enum: [high, medium, low]
+        default: low
+        description: 低于此置信度时不产生评分，只产生数据不足说明
+
+outputs:
+  match_result:
+    type: object
+    required: true
+    properties:
+      overall_match_pct:
+        type: number
+        minimum: 0
+        maximum: 100
+        description: 总体匹配百分比（0-100 整数）
+      match_label:
+        type: string
+        enum: [perfect_fit, strong_match, moderate_match, weak_match, no_match]
+        description: 匹配标签
+      confidence:
+        type: string
+        enum: [high, medium, low, insufficient]
+        description: 评分置信度
+      dimension_scores:
+        type: array
+        items:
+          type: object
+          required: [dimension, score, max_score, analysis]
+          properties:
+            dimension:
+              type: string
+              enum: [skills, experience, education, role, constraints]
+            score:
+              type: number
+              minimum: 0
+            max_score:
+              type: number
+            analysis:
+              type: string
+              description: 该维度的具体分析，不能是泛泛而谈
+      strengths:
+        type: array
+        items: { type: string }
+        description: 用户超出或完美满足 JD 要求的优势点
+      weaknesses:
+        type: array
+        items: { type: string }
+        description: 差距描述列表
+      gap_classification:
+        type: array
+        items:
+          type: object
+          required: [gap_item, gap_type, description]
+          properties:
+            gap_item:
+              type: string
+              description: 差距的具体内容
+            gap_type:
+              type: string
+              enum: [quick_fix, needs_time, hard_mismatch, uncertain]
+            description:
+              type: string
+              description: 差距说明和影响程度
+      improvement_suggestions:
+        type: array
+        items:
+          type: object
+          required: [suggestion, priority, estimated_effort]
+          properties:
+            suggestion:
+              type: string
+              description: 具体改进建议
+            priority:
+              type: string
+              enum: [high, medium, low]
+            estimated_effort:
+              type: string
+              description: 预计所需时间或资源（如：1-2周自学、3个月实践、无法弥补）
+
+  insufficient_data_explanation:
+    type: string
+    description: 置信度为 insufficient 时，说明具体缺失的数据项（评分时此字段不存在）
+
+failure_modes:
+  - id: missing_user_profile
+    condition: user_profile 未提供
+    response: |
+      无法执行诊断，缺少用户画像数据。
+      请提供用户画像后重新请求。
+
+  - id: missing_jd_analysis
+    condition: jd_analysis 未提供
+    response: |
+      无法执行诊断，缺少 JD 分析数据。
+      请提供目标职位的 JD 后重新请求。
+
+  - id: both_data_insufficient
+    condition: 两份数据均严重不足（无法产生有意义的评分）
+    response: |
+      数据不足，置信度为 insufficient。
+      说明具体缺失的数据项，引导用户补充。
+
+  - id: score_calibration_violation
+    condition: 内部校验：评分违反区间规则（如 required 项缺失但总分 > 50）
+    response: 自动修正评分至符合校准规则的区间，不对用户展示此错误
