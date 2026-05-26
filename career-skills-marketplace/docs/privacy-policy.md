@@ -46,17 +46,12 @@ Career Skills Marketplace 是一个在你本地 Claude Code 环境中运行的�
 
 ## 如何清除本地数据
 
-如需清除所有本地数据：
+如需清除本地证据数据，请手动确认目录路径后删除：
 
-```bash
-# 删除证据文件目录（macOS / Linux）
-rm -rf ~/.claude/skills/career-skills-marketplace/.evidence/
-```
+1. 确认目录存在：`ls ~/.claude/skills/_career-skills-shared/.evidence/`
+2. 确认路径无误后，手动删除该目录
 
-```powershell
-# Windows
-Remove-Item -Recurse -Force "$env:USERPROFILE\.claude\skills\career-skills-marketplace\.evidence"
-```
+不要盲目复制粘贴删除命令。请先确认路径指向的确实是你要删除的内容。
 
 如需完全卸载（含知识图谱和 skill 文件），参见 [docs/installation.md](installation.md) 的卸载章节。
 
