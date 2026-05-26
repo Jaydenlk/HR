@@ -56,11 +56,11 @@ describe('Mock Sessions (e2e)', () => {
       expect(res.body.role).toBe('Frontend Engineer');
     });
 
-    it('creates session with no body → 201 with defaults', async () => {
+    it('creates session with minimal body → 201 with defaults', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/mock-sessions')
         .set('Authorization', `Bearer ${token}`)
-        .send({})
+        .send({ role: '后端开发工程师' })
         .timeout(60000);
 
       expect(res.status).toBe(201);

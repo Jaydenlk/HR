@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NewspaperService } from '../src/feed/newspaper.service';
+import { CompanyRegistryService } from '../src/feed/company-registry.service';
 import { EvidenceService } from '../src/intelligence/evidence.service';
 import { IntelligenceModule } from '../src/intelligence/intelligence.module';
 
@@ -88,7 +89,7 @@ describe('NewspaperService personalization (standalone)', () => {
         ]),
         IntelligenceModule,
       ],
-      providers: [NewspaperService],
+      providers: [NewspaperService, CompanyRegistryService],
     }).compile();
 
     newspaperService = moduleRef.get(NewspaperService);
@@ -102,12 +103,18 @@ describe('NewspaperService personalization (standalone)', () => {
     await moduleRef.close();
   });
 
-  // Helper: create a feed item dated within the last 7 days so it passes the time filter
+  // Helper: create a feed item that passes getNewspaper filters:
+  // - published_at within current quarter
+  // - date_confidence 'high' or 'medium'
+  // - content >= 200 chars (isUsable requirement)
+  // - quality_score normalizes to >= 50 (isUsable requirement)
+  const LONG_CONTENT = '这是一段足够长的面试经验内容，用于满足isUsable要求的200字符最小长度。包含详细的面试流程描述、技术问题解析、以及面试官的反馈和建议。希望这段内容对后续准备面试的同学有所帮助，建议大家多多练习算法题和系统设计题，同时注意沟通表达能力的提升。面试前一定要对目标公司和岗位有充分的了解和准备。此外还有一些关于简历优化的建议和项目经验的总结，希望能帮助大家更好地准备面试，提高通过率。最后祝大家面试顺利，拿到心仪的offer。加油！这段文字必须超过两百个字符才能满足测试需求。';
+
   async function createFeedItem(
-    overrides: Partial<FeedItem> & { title: string; content: string; source_url: string },
+    overrides: Partial<FeedItem> & { title: string; source_url: string } & { content?: string },
   ): Promise<FeedItem> {
     const recentDate = new Date();
-    recentDate.setDate(recentDate.getDate() - 1); // yesterday — always within 7-day window
+    recentDate.setDate(recentDate.getDate() - 1); // yesterday — within current quarter
 
     return feedRepo.save(
       feedRepo.create({
@@ -115,9 +122,12 @@ describe('NewspaperService personalization (standalone)', () => {
         source_kind: 'xhs',
         category: 'interview_exp',
         confidence: 'high',
-        quality_score: 50,
+        quality_score: 8,
         question_types: [],
         created_at: recentDate,
+        published_at: recentDate,
+        date_confidence: 'high',
+        content: LONG_CONTENT,
         ...overrides,
       } as unknown as FeedItem),
     );
@@ -174,20 +184,18 @@ describe('NewspaperService personalization (standalone)', () => {
     // Create two xhs items with different quality scores (no company match possible)
     await createFeedItem({
       title: '高质量面经',
-      content: '详细面经内容',
       source_url: 'https://xhs.com/item-high',
       source_kind: 'xhs',
       company: '阿里巴巴',
-      quality_score: 90,
+      quality_score: 9,
     });
 
     await createFeedItem({
       title: '低质量面经',
-      content: '简短面经',
       source_url: 'https://xhs.com/item-low',
       source_kind: 'xhs',
       company: '阿里巴巴',
-      quality_score: 10,
+      quality_score: 6,
     });
 
     const result = await newspaperService.getNewspaper(user.id);
@@ -227,21 +235,19 @@ describe('NewspaperService personalization (standalone)', () => {
     // 字节跳动 item with lower quality score
     const bytedanceItem = await createFeedItem({
       title: '字节跳动后端面经',
-      content: '字节跳动面试题目合集',
       source_url: 'https://xhs.com/byte-item',
       source_kind: 'xhs',
       company: '字节跳动',
-      quality_score: 30,
+      quality_score: 6,
     });
 
     // 腾讯 item with higher quality score
     await createFeedItem({
       title: '腾讯高分面经',
-      content: '腾讯面试详细记录',
       source_url: 'https://xhs.com/tencent-item',
       source_kind: 'xhs',
       company: '腾讯',
-      quality_score: 80,
+      quality_score: 9,
     });
 
     const result = await newspaperService.getNewspaper(user.id);
@@ -274,34 +280,31 @@ describe('NewspaperService personalization (standalone)', () => {
     // Low confidence xhs item
     const lowConfItem = await createFeedItem({
       title: '低置信度面经',
-      content: '不确定的内容',
       source_url: 'https://xhs.com/low-conf',
       source_kind: 'xhs',
       company: '华为',
       confidence: 'low',
-      quality_score: 70,
+      quality_score: 8,
     });
 
     // Low confidence nowcoder item
     const lowConfNowcoder = await createFeedItem({
       title: '低置信度帖子',
-      content: '不确定的内容2',
       source_url: 'https://nowcoder.com/low-conf',
       source_kind: 'nowcoder',
       company: '百度',
       confidence: 'low',
-      quality_score: 70,
+      quality_score: 8,
     });
 
     // High confidence item to confirm non-low items still appear
     await createFeedItem({
       title: '高置信度面经',
-      content: '确定的面经内容',
       source_url: 'https://xhs.com/high-conf',
       source_kind: 'xhs',
       company: '美团',
       confidence: 'high',
-      quality_score: 40,
+      quality_score: 8,
     });
 
     const result = await newspaperService.getNewspaper(user.id);
@@ -359,16 +362,18 @@ describe('NewspaperService personalization (standalone)', () => {
     // 11 high-score non-字节 xhs items
     for (let i = 0; i < 11; i++) {
       await feedRepo.save(feedRepo.create({
-        title: `腾讯面经${i}`, content: `内容${i}`, source_kind: 'xhs',
+        title: `腾讯面经${i}`, content: LONG_CONTENT, source_kind: 'xhs',
         source_url: `https://xhs.com/tencent${i}`, confidence: 'high',
-        quality_score: 90 - i, company: '腾讯', created_at: yesterday,
+        quality_score: 9, company: '腾讯', created_at: yesterday,
+        published_at: yesterday, date_confidence: 'high',
       }));
     }
-    // 1 low-score 字节 xhs item
+    // 1 low-score 字节 xhs item (quality_score 6 normalizes to 60, still >= 50 threshold)
     await feedRepo.save(feedRepo.create({
-      title: '字节后端一面', content: '算法题', source_kind: 'xhs',
+      title: '字节后端一面', content: LONG_CONTENT, source_kind: 'xhs',
       source_url: 'https://xhs.com/bytedance1', confidence: 'high',
-      quality_score: 1, company: '字节跳动', created_at: yesterday,
+      quality_score: 6, company: '字节跳动', created_at: yesterday,
+      published_at: yesterday, date_confidence: 'high',
     }));
 
     const edition = await newspaperService.getNewspaper(user.id);
@@ -387,15 +392,18 @@ describe('NewspaperService personalization (standalone)', () => {
 
     for (let i = 0; i < 11; i++) {
       await feedRepo.save(feedRepo.create({
-        title: `阿里算法题${i}`, content: `内容${i}`, source_kind: 'nowcoder',
+        title: `阿里算法题${i}`, content: LONG_CONTENT, source_kind: 'nowcoder',
         source_url: `https://nowcoder.com/ali${i}`, confidence: 'high',
-        quality_score: 90 - i, company: '阿里巴巴', created_at: yesterday,
+        quality_score: 9, company: '阿里巴巴', created_at: yesterday,
+        published_at: yesterday, date_confidence: 'high',
       }));
     }
+    // quality_score 6 normalizes to 60, still >= 50 threshold
     await feedRepo.save(feedRepo.create({
-      title: '美团外卖算法面', content: '推荐系统', source_kind: 'nowcoder',
+      title: '美团外卖算法面', content: LONG_CONTENT, source_kind: 'nowcoder',
       source_url: 'https://nowcoder.com/meituan1', confidence: 'high',
-      quality_score: 1, company: '美团', created_at: yesterday,
+      quality_score: 6, company: '美团', created_at: yesterday,
+      published_at: yesterday, date_confidence: 'high',
     }));
 
     const edition = await newspaperService.getNewspaper(user.id);
@@ -423,16 +431,18 @@ describe('NewspaperService personalization (standalone)', () => {
     // 11 high-score non-腾讯 items
     for (let i = 0; i < 11; i++) {
       await feedRepo.save(feedRepo.create({
-        title: `阿里面经${i}`, content: `内容${i}`, source_kind: 'xhs',
+        title: `阿里面经${i}`, content: LONG_CONTENT, source_kind: 'xhs',
         source_url: `https://xhs.com/ali-e7-${i}`, confidence: 'high',
-        quality_score: 90 - i, company: '阿里巴巴', created_at: yesterday,
+        quality_score: 9, company: '阿里巴巴', created_at: yesterday,
+        published_at: yesterday, date_confidence: 'high',
       }));
     }
-    // 1 low-score 腾讯 item
+    // 1 low-score 腾讯 item (quality_score 6 normalizes to 60, still >= 50 threshold)
     await feedRepo.save(feedRepo.create({
-      title: '腾讯后端一面复盘', content: '系统设计题', source_kind: 'xhs',
+      title: '腾讯后端一面复盘', content: LONG_CONTENT, source_kind: 'xhs',
       source_url: 'https://xhs.com/tencent-e7', confidence: 'high',
-      quality_score: 1, company: '腾讯', created_at: yesterday,
+      quality_score: 6, company: '腾讯', created_at: yesterday,
+      published_at: yesterday, date_confidence: 'high',
     }));
 
     const edition = await newspaperService.getNewspaper(user.id);

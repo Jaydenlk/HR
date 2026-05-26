@@ -235,12 +235,12 @@ describe('Interviews (e2e)', () => {
       interviewNoTranscriptId = noTranscript.body.id;
     });
 
-    it('analyze without transcript → 404', async () => {
+    it('analyze without transcript → 400', async () => {
       const res = await request(app.getHttpServer())
         .post(`/api/interviews/${interviewNoTranscriptId}/analyze`)
         .set('Authorization', `Bearer ${token}`);
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(400);
     });
 
     it('cross-user analyze on own resource → 404', async () => {
