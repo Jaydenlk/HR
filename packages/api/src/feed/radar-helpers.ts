@@ -75,6 +75,47 @@ export function deriveQuarterFromPublishedAt(
   return `${date.getFullYear()}Q${q}`;
 }
 
+export function isValidCompany(c: string | null): c is string {
+  if (!c) return false;
+  const trimmed = c.trim();
+  return (
+    trimmed !== '' &&
+    trimmed.toLowerCase() !== 'null' &&
+    trimmed !== '(未分类)' &&
+    trimmed !== '(???)'
+  );
+}
+
+export interface GroupStats {
+  usableCount: number;
+  candidateCount: number;
+  rejectedCount: number;
+  xhsCount: number;
+  nowcoderCount: number;
+  wechatCount: number;
+}
+
+export function computeGroupStats(items: UsableCheckFields[]): GroupStats {
+  let usableCount = 0;
+  let candidateCount = 0;
+  let rejectedCount = 0;
+  let xhsCount = 0;
+  let nowcoderCount = 0;
+  let wechatCount = 0;
+
+  for (const item of items) {
+    if (isRejected(item)) rejectedCount++;
+    else if (isUsable(item)) usableCount++;
+    else candidateCount++;
+
+    const sk = (item as { source_kind?: string }).source_kind;
+    if (sk === 'xhs') xhsCount++;
+    else if (sk === 'nowcoder') nowcoderCount++;
+    else if (sk === 'wechat') wechatCount++;
+  }
+  return { usableCount, candidateCount, rejectedCount, xhsCount, nowcoderCount, wechatCount };
+}
+
 const KNOWN_ROLE_KEYS = new Set([
   'backend', 'frontend', 'algorithm', 'embedded', 'product',
   'operations', 'hr', 'design', 'data', 'finance', 'consulting', 'marketing',

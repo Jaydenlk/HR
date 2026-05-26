@@ -7,13 +7,14 @@ import { CompanyRegistryService } from './company-registry.service';
 import {
   normalizeQualityScore,
   isUsable,
-  isCandidate,
-  isRejected,
   buildDominantSignal,
   normalizeRoleCategory,
   normalizeQuarter,
   getCurrentQuarter,
+  isValidCompany,
+  computeGroupStats,
 } from './radar-helpers';
+import { EXTERNAL_SOURCE_KINDS } from './types/feed.types';
 
 // --- Response interfaces ---
 
@@ -430,19 +431,11 @@ export class NewspaperService {
   async getRadarCompanies(): Promise<CompanyRadarResponse> {
     const items = await this.feedRepo.find({
       where: {
-        source_kind: In(['xhs', 'nowcoder', 'wechat']),
+        source_kind: In(EXTERNAL_SOURCE_KINDS),
       },
     });
 
-    // Filter to items with non-null, non-empty company (exclude literal "null" and placeholder values)
-    const companyItems = items.filter(
-      (i) =>
-        i.company !== null &&
-        i.company.trim() !== '' &&
-        i.company.trim().toLowerCase() !== 'null' &&
-        i.company.trim() !== '(未分类)' &&
-        i.company.trim() !== '(???)',
-    );
+    const companyItems = items.filter((i) => isValidCompany(i.company));
 
     // Group by company
     const byCompany = new Map<string, FeedItem[]>();
@@ -463,13 +456,7 @@ export class NewspaperService {
     const companies: CompanyRadarItem[] = [];
 
     for (const [company, group] of byCompany) {
-      const usableCount = group.filter((i) => isUsable(i)).length;
-      const candidateCount = group.filter((i) => isCandidate(i)).length;
-      const rejectedCount = group.filter((i) => isRejected(i)).length;
-
-      const xhsCount = group.filter((i) => i.source_kind === 'xhs').length;
-      const nowcoderCount = group.filter((i) => i.source_kind === 'nowcoder').length;
-      const wechatCount = group.filter((i) => i.source_kind === 'wechat').length;
+      const stats = computeGroupStats(group);
 
       const lowConfCount = group.filter((i) => i.confidence === 'low').length;
       const highConfCount = group.filter((i) => i.confidence === 'high').length;
@@ -505,10 +492,10 @@ export class NewspaperService {
       const dominantSignal = buildDominantSignal({
         roleCounts,
         totalCount: group.length,
-        xhsCount,
-        nowcoderCount,
+        xhsCount: stats.xhsCount,
+        nowcoderCount: stats.nowcoderCount,
         hasRecentItems,
-        usableCount,
+        usableCount: stats.usableCount,
       });
 
       // Enrich from registry
@@ -521,13 +508,13 @@ export class NewspaperService {
         priority: registered?.priority ?? null,
         sector: registered?.sector ?? null,
         total_count: group.length,
-        usable_count: usableCount,
+        usable_count: stats.usableCount,
         low_confidence_count: lowConfCount,
-        candidate_count: candidateCount,
-        rejected_count: rejectedCount,
-        xhs_count: xhsCount,
-        nowcoder_count: nowcoderCount,
-        wechat_count: wechatCount,
+        candidate_count: stats.candidateCount,
+        rejected_count: stats.rejectedCount,
+        xhs_count: stats.xhsCount,
+        nowcoder_count: stats.nowcoderCount,
+        wechat_count: stats.wechatCount,
         top_roles: topRoles,
         high_confidence_count: highConfCount,
         quality_score_avg: qualityAvg,
@@ -554,7 +541,7 @@ export class NewspaperService {
   async getRadarRoles(): Promise<RoleRadarResponse> {
     const items = await this.feedRepo.find({
       where: {
-        source_kind: In(['xhs', 'nowcoder', 'wechat']),
+        source_kind: In(EXTERNAL_SOURCE_KINDS),
       },
     });
 
@@ -576,13 +563,7 @@ export class NewspaperService {
     const roles: RoleRadarItem[] = [];
 
     for (const [roleKey, group] of byRole) {
-      const usableCount = group.filter((i) => isUsable(i)).length;
-      const candidateCount = group.filter((i) => isCandidate(i)).length;
-      const rejectedCount = group.filter((i) => isRejected(i)).length;
-
-      const xhsCount = group.filter((i) => i.source_kind === 'xhs').length;
-      const nowcoderCount = group.filter((i) => i.source_kind === 'nowcoder').length;
-      const wechatCount = group.filter((i) => i.source_kind === 'wechat').length;
+      const stats = computeGroupStats(group);
 
       // Top companies
       const companyCounts = new Map<string, number>();
@@ -622,12 +603,12 @@ export class NewspaperService {
         role_category: roleKey,
         label,
         total_count: group.length,
-        usable_count: usableCount,
-        candidate_count: candidateCount,
-        rejected_count: rejectedCount,
-        xhs_count: xhsCount,
-        nowcoder_count: nowcoderCount,
-        wechat_count: wechatCount,
+        usable_count: stats.usableCount,
+        candidate_count: stats.candidateCount,
+        rejected_count: stats.rejectedCount,
+        xhs_count: stats.xhsCount,
+        nowcoder_count: stats.nowcoderCount,
+        wechat_count: stats.wechatCount,
         top_companies: topCompanies,
         companies_covered: companiesCovered,
         common_question_keywords: commonQuestionKeywords,
@@ -662,7 +643,7 @@ export class NewspaperService {
     const allItems = await this.feedRepo
       .createQueryBuilder('item')
       .where('item.source_kind IN (:...externalSources)', {
-        externalSources: ['xhs', 'nowcoder', 'wechat'],
+        externalSources: EXTERNAL_SOURCE_KINDS,
       })
       .andWhere("item.date_confidence IN ('high', 'medium')")
       .getMany();
@@ -674,9 +655,6 @@ export class NewspaperService {
     const previousItems = allItems.filter(
       (i) => i.published_at && i.published_at >= previousStart && i.published_at < previousEnd,
     );
-
-    const isValidCompany = (c: string | null): c is string =>
-      !!c && c.trim() !== '' && c.trim().toLowerCase() !== 'null' && c.trim() !== '(未分类)' && c.trim() !== '(???)';
 
     const currentCompanies = new Set(currentItems.map((i) => i.company).filter(isValidCompany));
     const previousCompanies = new Set(previousItems.map((i) => i.company).filter(isValidCompany));
@@ -813,7 +791,7 @@ export class NewspaperService {
     query: RadarQuery,
   ): void {
     qb.andWhere('item.source_kind IN (:...externalSources)', {
-      externalSources: ['xhs', 'nowcoder', 'wechat'],
+      externalSources: EXTERNAL_SOURCE_KINDS,
     });
     qb.andWhere('item.source_url IS NOT NULL');
     qb.andWhere("item.source_url != ''");

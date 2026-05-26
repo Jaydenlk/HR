@@ -1,6 +1,8 @@
 export const FEED_SOURCE_KINDS = ['xhs', 'nowcoder', 'wechat', 'blog', 'ugc', 'coach'] as const;
 export type FeedSourceKind = (typeof FEED_SOURCE_KINDS)[number];
 
+export const EXTERNAL_SOURCE_KINDS: FeedSourceKind[] = ['xhs', 'nowcoder', 'wechat'];
+
 export const FEED_CATEGORIES = [
   'interview_exp',
   'market_insight',
