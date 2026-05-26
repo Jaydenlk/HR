@@ -18,6 +18,11 @@ export class NewspaperController {
     return this.newspaper.getRadarCompanies();
   }
 
+  @Get('radar/roles')
+  getRadarRoles() {
+    return this.newspaper.getRadarRoles();
+  }
+
   @Get('radar')
   getRadar(
     @Query('company') company?: string,

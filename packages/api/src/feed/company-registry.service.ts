@@ -71,6 +71,10 @@ export class CompanyRegistryService implements OnModuleInit {
     return this.companyRepo.find({ order: { priority: 'ASC', name: 'ASC' } });
   }
 
+  findAllRoleCategories(): Promise<RoleCategory[]> {
+    return this.roleCategoryRepo.find({ order: { role_key: 'ASC' } });
+  }
+
   findByPriority(priority: 'A' | 'B' | 'C'): Promise<Company[]> {
     return this.companyRepo.find({
       where: { priority },

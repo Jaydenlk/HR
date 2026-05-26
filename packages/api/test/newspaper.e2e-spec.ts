@@ -523,6 +523,73 @@ describe('Newspaper (e2e)', () => {
   });
 
   /* ================================================================ */
+  /*  GET /newspaper/radar/roles                                       */
+  /* ================================================================ */
+
+  describe('GET /api/newspaper/radar/roles', () => {
+    it('returns RoleRadarResponse with roles array, total_roles, generated_at', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/roles')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.roles)).toBe(true);
+      expect(typeof res.body.total_roles).toBe('number');
+      expect(typeof res.body.generated_at).toBe('string');
+    });
+
+    it('role_category is normalized — no null or empty values', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/roles')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const role of res.body.roles) {
+        expect(role.role_category).toBeDefined();
+        expect(role.role_category).not.toBe('null');
+        expect(role.role_category).not.toBe('');
+      }
+    });
+
+    it('representative_posts have source_url', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/roles')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const role of res.body.roles) {
+        for (const post of role.representative_posts) {
+          expect(typeof post.source_url).toBe('string');
+          expect(post.source_url.length).toBeGreaterThan(0);
+        }
+      }
+    });
+
+    it('common_question_keywords is array', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/roles')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const role of res.body.roles) {
+        expect(Array.isArray(role.common_question_keywords)).toBe(true);
+      }
+    });
+
+    it('source counts sum to total_count for each role', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/roles')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const role of res.body.roles) {
+        expect(role.xhs_count + role.nowcoder_count + role.wechat_count).toBe(role.total_count);
+      }
+    });
+
+    it('returns 401 without auth token', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/roles');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  /* ================================================================ */
   /*  User personalization — coach_actions react to user state        */
   /* ================================================================ */
 

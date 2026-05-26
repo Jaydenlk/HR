@@ -10,6 +10,7 @@ import {
   isCandidate,
   isRejected,
   buildDominantSignal,
+  normalizeRoleCategory,
 } from './radar-helpers';
 
 // --- Response interfaces ---
@@ -95,6 +96,33 @@ export interface CompanyRadarItem {
 export interface CompanyRadarResponse {
   companies: CompanyRadarItem[];
   total_companies: number;
+  generated_at: string;
+}
+
+export interface RoleRadarItem {
+  role_category: string;
+  label: string;
+  total_count: number;
+  usable_count: number;
+  candidate_count: number;
+  rejected_count: number;
+  xhs_count: number;
+  nowcoder_count: number;
+  wechat_count: number;
+  top_companies: string[];
+  companies_covered: number;
+  common_question_keywords: string[];
+  representative_posts: Array<{
+    title: string;
+    company: string | null;
+    source_url: string;
+    source_kind: string;
+  }>;
+}
+
+export interface RoleRadarResponse {
+  roles: RoleRadarItem[];
+  total_roles: number;
   generated_at: string;
 }
 
@@ -487,6 +515,102 @@ export class NewspaperService {
     return {
       companies,
       total_companies: companies.length,
+      generated_at: new Date().toISOString(),
+    };
+  }
+
+  // --- Radar Roles ---
+
+  async getRadarRoles(): Promise<RoleRadarResponse> {
+    const items = await this.feedRepo.find({
+      where: {
+        source_kind: In(['xhs', 'nowcoder', 'wechat']),
+      },
+    });
+
+    // Group by normalized role_category
+    const byRole = new Map<string, FeedItem[]>();
+    for (const item of items) {
+      const key = normalizeRoleCategory(item.role_category);
+      const list = byRole.get(key) || [];
+      list.push(item);
+      byRole.set(key, list);
+    }
+
+    // Load role categories from seed for question_taxonomy
+    const allRoleCategories = await this.companyRegistry.findAllRoleCategories();
+    const taxonomyMap = new Map(
+      allRoleCategories.map((rc) => [rc.role_key, rc]),
+    );
+
+    const roles: RoleRadarItem[] = [];
+
+    for (const [roleKey, group] of byRole) {
+      const usableCount = group.filter((i) => isUsable(i)).length;
+      const candidateCount = group.filter((i) => isCandidate(i)).length;
+      const rejectedCount = group.filter((i) => isRejected(i)).length;
+
+      const xhsCount = group.filter((i) => i.source_kind === 'xhs').length;
+      const nowcoderCount = group.filter((i) => i.source_kind === 'nowcoder').length;
+      const wechatCount = group.filter((i) => i.source_kind === 'wechat').length;
+
+      // Top companies
+      const companyCounts = new Map<string, number>();
+      for (const item of group) {
+        if (item.company && item.company.trim() !== '') {
+          companyCounts.set(item.company, (companyCounts.get(item.company) ?? 0) + 1);
+        }
+      }
+      const topCompanies = [...companyCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([company]) => company);
+
+      const companiesCovered = companyCounts.size;
+
+      // Common question keywords from seed taxonomy
+      const rcSeed = taxonomyMap.get(roleKey);
+      const commonQuestionKeywords = rcSeed?.question_taxonomy ?? [];
+
+      // Representative posts: top 3 usable items by normalized quality_score
+      const usableItems = group
+        .filter((i) => isUsable(i))
+        .sort((a, b) => normalizeQualityScore(b.quality_score) - normalizeQualityScore(a.quality_score))
+        .slice(0, 3);
+
+      const representativePosts = usableItems.map((i) => ({
+        title: i.title,
+        company: i.company,
+        source_url: i.source_url as string,
+        source_kind: i.source_kind,
+      }));
+
+      // Label from seed or fallback to role_key
+      const label = rcSeed?.label ?? roleKey;
+
+      roles.push({
+        role_category: roleKey,
+        label,
+        total_count: group.length,
+        usable_count: usableCount,
+        candidate_count: candidateCount,
+        rejected_count: rejectedCount,
+        xhs_count: xhsCount,
+        nowcoder_count: nowcoderCount,
+        wechat_count: wechatCount,
+        top_companies: topCompanies,
+        companies_covered: companiesCovered,
+        common_question_keywords: commonQuestionKeywords,
+        representative_posts: representativePosts,
+      });
+    }
+
+    // Sort by total_count DESC
+    roles.sort((a, b) => b.total_count - a.total_count);
+
+    return {
+      roles,
+      total_roles: roles.length,
       generated_at: new Date().toISOString(),
     };
   }
