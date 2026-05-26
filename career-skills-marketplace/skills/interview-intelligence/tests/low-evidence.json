@@ -1,0 +1,14 @@
+{
+  "description": "小型创业公司，市场上无面经，期望 confidence: low，cannot_determine 非空",
+  "input": {
+    "company_name": "锐思数据科技",
+    "job_title": "产品经理"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 2,
+      "description": "低证据场景必须明确列出无法确认的信息" },
+    { "path": "interview_flow", "operator": "length_gte", "value": 1,
+      "description": "即使低证据也应基于通用规律输出流程" }
+  ]
+}

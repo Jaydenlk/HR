@@ -1,0 +1,18 @@
+{
+  "description": "Phase 1：完整输入（岗位+情报），期望输出5道以上面试题，含题型和评分重点",
+  "input": {
+    "phase": "generate_questions",
+    "job_title": "产品经理",
+    "interview_intelligence": {
+      "company_name": "腾讯",
+      "common_questions": [{ "question": "设计微信红包核心功能", "category": "case" }]
+    }
+  },
+  "assertions": [
+    { "path": "phase", "operator": "eq", "value": "generate_questions" },
+    { "path": "questions", "operator": "length_gte", "value": 3 },
+    { "path": "questions[0].evaluation_focus", "operator": "not_null" },
+    { "path": "questions[0].type", "operator": "in",
+      "value": ["behavioral", "technical", "case", "cultural_fit", "motivation"] }
+  ]
+}

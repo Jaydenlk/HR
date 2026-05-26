@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "case-interview-coach/input",
+  "title": "case-interview-coach 输入",
+  "type": "object",
+  "required": ["interview_type"],
+  "properties": {
+    "interview_type": {
+      "type": "string",
+      "enum": ["product_design", "market_estimation", "case_consulting", "group_discussion", "business_analysis"],
+      "description": "Case 面试类型"
+    },
+    "target_company": {
+      "type": "string",
+      "description": "目标公司或行业（用于定制练习案例背景）"
+    },
+    "experience_level": {
+      "type": "string",
+      "enum": ["fresh_grad", "1-3yr", "3-5yr", "5yr_plus"],
+      "description": "候选人经验水平"
+    },
+    "focus_area": {
+      "type": "string",
+      "description": "重点练习方向（如「B端产品设计」「咨询盈利型Case」）"
+    }
+  },
+  "additionalProperties": false
+}

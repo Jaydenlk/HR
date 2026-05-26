@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "question-bank-builder 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "question_bank", "coverage", "gaps"
+  ],
+  "properties": {
+    "skill_name": { "const": "question-bank-builder" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "题库构建概述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "question_bank": {
+      "type": "array",
+      "description": "结构化面试题库",
+      "items": {
+        "type": "object",
+        "required": ["id", "question", "category", "difficulty", "frequency", "source"],
+        "properties": {
+          "id": { "type": "string" },
+          "question": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["behavioral", "technical_cs", "technical_domain", "case_product", "case_business", "motivation", "cultural_fit", "system_design"]
+          },
+          "subcategory": { "type": "string", "description": "细分方向" },
+          "difficulty": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"]
+          },
+          "frequency": {
+            "type": "string",
+            "enum": ["very_high", "high", "medium", "low"]
+          },
+          "source": { "type": "string", "description": "来源描述" },
+          "answer_hint": { "type": "string", "description": "回答要点提示" },
+          "time_estimate": { "type": "integer", "description": "预计回答时长（分钟）" }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["total_questions", "by_category", "estimated_coverage_percentage"],
+      "properties": {
+        "total_questions": { "type": "integer", "minimum": 0 },
+        "by_category": {
+          "type": "object",
+          "description": "各类别题目数量",
+          "additionalProperties": { "type": "integer" }
+        },
+        "estimated_coverage_percentage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "估算覆盖率"
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "description": "题库中的空白区域",
+      "items": {
+        "type": "object",
+        "required": ["area", "reason"],
+        "properties": {
+          "area": { "type": "string" },
+          "reason": { "type": "string" },
+          "workaround": { "type": "string" }
+        }
+      }
+    }
+  }
+}

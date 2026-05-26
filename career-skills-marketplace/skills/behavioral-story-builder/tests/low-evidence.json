@@ -1,0 +1,15 @@
+{
+  "description": "简略经历描述，期望 skeleton 级别故事，result 标注「待补充」",
+  "input": {
+    "user_profile": {
+      "work_experience": [
+        { "company": "某公司", "title": "产品经理", "duration": "2年", "highlights": ["负责用户增长"] }
+      ]
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "medium"] },
+    { "path": "story_bank[0].polish_level", "operator": "eq", "value": "skeleton" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 2 }
+  ]
+}

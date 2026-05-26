@@ -1,0 +1,12 @@
+{
+  "description": "company_name 为空，返回验证错误",
+  "input": {
+    "company_name": "",
+    "job_title": "产品经理"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "validation_error" },
+    { "path": "interview_process", "operator": "length_eq", "value": 0 }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "description": "回答极简（3句话，无数据），禁止评分 >= 8，禁止 strengths 添加用户未说的优点",
+  "input": {
+    "phase": "evaluate_answer",
+    "job_title": "产品经理",
+    "questions": [
+      {
+        "id": "q1",
+        "question": "描述你主导的最复杂产品需求",
+        "type": "behavioral"
+      }
+    ],
+    "answers": [
+      {
+        "question_id": "q1",
+        "answer_text": "我做过很多产品项目，都很成功，用户很满意。"
+      }
+    ]
+  },
+  "assertions": [
+    {
+      "path": "answer_evaluations[0].score",
+      "operator": "lte",
+      "value": 5,
+      "description": "空洞回答不得超过5分"
+    },
+    {
+      "path": "answer_evaluations[0].weaknesses",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "缺失 STAR 结构必须在 weaknesses 中列出"
+    }
+  ]
+}

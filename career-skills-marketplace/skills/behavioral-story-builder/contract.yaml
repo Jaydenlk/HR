@@ -1,0 +1,80 @@
+name: behavioral-story-builder
+version: "1.0.0"
+purpose: "从用户工作经历提炼 STAR 结构故事，按能力维度分类，识别覆盖空白"
+role: worker
+layer: interview
+
+when_to_use:
+  - 用户需要系统整理面试故事库
+  - 用户想了解自己的经历能覆盖哪些能力维度
+  - 用户需要识别面试准备的故事空白
+  - 面试后复盘中发现新的可沉淀故事素材（来自 interview-debrief）
+
+when_not_to_use:
+  - 用户没有提供任何工作经历
+  - 用户需要模拟面试（走 mock-interviewer）
+  - 用户需要面试情报（走 interview-intelligence）
+
+inputs_required:
+  - name: user_profile
+    type: object
+    description: "用户画像（来自 profile-builder），包含工作经历"
+
+optional_context:
+  - name: target_competencies
+    type: array
+    items:
+      type: string
+    description: "用户希望重点覆盖的能力维度列表"
+  - name: interview_debrief_stories
+    type: array
+    description: "来自 interview-debrief 的 stories_to_save，直接纳入故事库"
+  - name: target_job_type
+    type: string
+    description: "目标岗位类型（tech/product/ops/sales），用于判断维度重要性"
+
+depends_on:
+  - profile-builder
+  - interview-debrief
+
+tools_allowed:
+  - Read
+  - Grep
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "user_profile 包含3+份工作经历，且每份有详细项目描述"
+  medium:
+    condition: "user_profile 包含1-2份工作经历，或描述较简略"
+  low:
+    condition: "仅有简短的工作经历描述，无项目细节"
+  insufficient:
+    condition: "user_profile 缺失，无任何工作经历可供分析"
+
+failure_modes:
+  - type: missing_profile
+    trigger: "user_profile 为空或无工作经历字段"
+    response: "返回 insufficient，message 说明需要提供工作经历"
+  - type: result_fabrication
+    trigger: "story_bank 中 result 包含用户未提及的量化数字"
+    response: "禁止；无数据的 result 必须标注「待补充」"
+  - type: fact_distortion
+    trigger: "action 中修改了用户实际经历的事实"
+    response: "禁止；只能结构化重组，不能修改事实"
+
+china_market_specificity: medium
+
+live_research_required: false
+
+degradation_behavior:
+  sparse_profile: "基于已有描述构建 skeleton 级别故事，polish_level: skeleton，结果字段标注「待补充」"
+  missing_quantitative_data: "result 字段仅描述定性结果，明确标注「待补充：量化数据」"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json

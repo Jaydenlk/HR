@@ -1,0 +1,96 @@
+name: mock-interviewer
+version: "1.0.0"
+purpose: "模拟面试：三阶段流程（出题→评分→综合评估），基于目标岗位和用户背景生成定向面试题并客观评估"
+role: worker
+layer: interview
+
+when_to_use:
+  - 用户要求模拟面试或练习面试
+  - 用户想检验自己的面试准备程度
+  - 用户有具体回答需要评分
+  - 作为面试准备流程的执行环节
+
+when_not_to_use:
+  - 用户只是询问面试技巧（不需要实际模拟）
+  - 用户只想获取面试题库（走 question-bank-builder）
+  - 用户想做面试后复盘（走 interview-debrief）
+
+inputs_required:
+  - name: phase
+    type: string
+    enum: ["generate_questions", "evaluate_answer", "final_report"]
+    description: "当前所处阶段"
+  - name: job_title
+    type: string
+    description: "目标岗位名称"
+
+optional_context:
+  - name: user_profile
+    type: object
+    description: "用户画像（来自 profile-builder），用于定制题目难度和方向"
+  - name: jd_analysis
+    type: object
+    description: "JD 解析结果（来自 jd-analyzer），用于对齐岗位要求"
+  - name: interview_intelligence
+    type: object
+    description: "面试情报（来自 interview-intelligence），用于生成定向高频题"
+  - name: questions
+    type: array
+    description: "Phase 1 生成的题目列表（evaluate_answer 阶段传入）"
+  - name: answers
+    type: array
+    description: "用户的回答列表（evaluate_answer 和 final_report 阶段传入）"
+  - name: answer_evaluations
+    type: array
+    description: "Phase 2 的评分结果（final_report 阶段传入）"
+
+depends_on:
+  - profile-builder
+  - jd-analyzer
+  - interview-intelligence
+
+tools_allowed:
+  - Read
+  - Grep
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "user_profile + jd_analysis + interview_intelligence 三维数据齐全"
+  medium:
+    condition: "缺少 interview_intelligence，基于通用岗位知识出题"
+  low:
+    condition: "仅有 job_title，无 profile 和 JD 数据"
+  insufficient:
+    condition: "phase 字段无效，或 evaluate_answer/final_report 阶段缺少必要上下文"
+
+failure_modes:
+  - type: score_inflation
+    trigger: "用户回答明显有缺陷但评分 >= 8"
+    response: "禁止；评分必须与回答质量一致，缺失 STAR 要素必须反映在分数中"
+  - type: fabricated_strengths
+    trigger: "strengths 中引用用户未说出的内容"
+    response: "禁止；strengths 只能引用用户实际回答的内容"
+  - type: phase_skip
+    trigger: "跳过 Phase 2 直接输出 Phase 3 报告"
+    response: "禁止；final_report 必须基于 answer_evaluations"
+  - type: missing_phase
+    trigger: "phase 字段为空或无效"
+    response: "返回 validation_error，说明有效的 phase 值"
+
+china_market_specificity: high
+
+live_research_required: false
+
+degradation_behavior:
+  missing_interview_intelligence: "基于通用岗位面试知识出题，题目定向性降低，confidence: medium"
+  missing_user_profile: "使用通用难度设置，无法个性化题目方向，confidence: medium"
+  only_job_title: "输出通用岗位面试题，confidence: low"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json

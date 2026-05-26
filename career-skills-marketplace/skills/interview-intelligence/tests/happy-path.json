@@ -1,0 +1,14 @@
+{
+  "description": "知名大厂+明确岗位，期望高置信度情报，含完整面试流程和高频考题",
+  "input": {
+    "company_name": "字节跳动",
+    "job_title": "后端开发工程师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "interview_flow", "operator": "length_gte", "value": 3 },
+    { "path": "common_questions", "operator": "length_gte", "value": 3 },
+    { "path": "preparation_priorities", "operator": "length_gte", "value": 2 },
+    { "path": "cannot_determine", "operator": "length_eq", "value": 0 }
+  ]
+}

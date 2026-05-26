@@ -1,0 +1,11 @@
+{
+  "description": "仅有岗位名，company_specific_focus 应为空数组，cannot_determine 非空",
+  "input": { "job_title": "数据工程师" },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "low" },
+    { "path": "company_specific_focus", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 },
+    { "path": "preparation_plan", "operator": "length_gte", "value": 1,
+      "description": "即使低证据也应输出通用备考计划" }
+  ]
+}

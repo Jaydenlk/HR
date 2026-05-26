@@ -1,0 +1,18 @@
+{
+  "description": "用户回答与简历不符，期望标注矛盾并在 risks 中说明",
+  "input": {
+    "phase": "evaluate_answer",
+    "job_title": "工程团队负责人",
+    "user_profile": {
+      "work_experience": [{ "title": "高级前端工程师", "is_management": false }]
+    },
+    "questions": [{ "id": "q1", "question": "描述你带领团队的经历", "type": "behavioral" }],
+    "answers": [{ "question_id": "q1", "answer_text": "我带领30人团队完成了架构升级" }]
+  },
+  "assertions": [
+    { "path": "answer_evaluations[0].score", "operator": "lte", "value": 6,
+      "description": "内容与简历矛盾时不得高分" },
+    { "path": "risks", "operator": "length_gte", "value": 1,
+      "description": "矛盾情况必须出现在 risks 中" }
+  ]
+}

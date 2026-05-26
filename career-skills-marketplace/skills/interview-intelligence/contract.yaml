@@ -1,0 +1,82 @@
+name: interview-intelligence
+version: "1.0.0"
+purpose: "为特定公司+岗位聚合结构化面试情报：流程、题型、考察重点、备考优先项"
+role: worker
+layer: interview
+
+when_to_use:
+  - 用户准备面试，询问该公司面试流程
+  - 用户想了解某岗位的高频考题
+  - 用户收到面试邀请，需要快速制定备考计划
+  - 作为 mock-interviewer / question-bank-builder 的情报输入
+
+when_not_to_use:
+  - 用户只想做简历优化（走 resume-tailor）
+  - 用户已有完整面经，只需要点评
+  - 无公司名和岗位名，无法聚合定向情报
+
+inputs_required:
+  - name: company_name
+    type: string
+    description: "目标公司名称"
+  - name: job_title
+    type: string
+    description: "目标岗位名称"
+
+optional_context:
+  - name: user_profile
+    type: object
+    description: "用户画像（来自 profile-builder），用于个性化备考建议"
+  - name: jd_analysis
+    type: object
+    description: "JD 解析结果（来自 jd-analyzer），补充岗位技术栈"
+  - name: interview_date
+    type: string
+    description: "面试日期（ISO 8601），用于时间紧迫度评估"
+
+depends_on:
+  - source-quality-auditor
+
+tools_allowed:
+  - Read
+  - Grep
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "近6个月内有该公司+岗位的真实面经数据"
+  medium:
+    condition: "面经时间超过1年，或岗位仅相近而非精确匹配"
+  low:
+    condition: "仅有公司维度数据，无精确岗位面经"
+  insufficient:
+    condition: "无任何相关面经，降级到知识图谱通用信息"
+    action: "输出 confidence: low，cannot_determine 列明具体缺失项，禁止编造"
+
+failure_modes:
+  - type: data_fabrication
+    trigger: "无实时数据但仍输出具体轮次数字或具体题目"
+    response: "禁止；必须降级并在 cannot_determine 中说明"
+  - type: stale_data
+    trigger: "面经超过2年仍以高置信度输出"
+    response: "禁止；time_gap 超过2年时 confidence 不得超过 low"
+  - type: missing_company
+    trigger: "company_name 为空"
+    response: "返回 validation_error，说明需要公司名称"
+
+china_market_specificity: very_high
+
+live_research_required: true
+
+degradation_behavior:
+  no_live_data: "降级到知识图谱通用信息，confidence: low，cannot_determine 说明缺失的实时数据，禁止编造具体题目或流程轮数"
+  partial_data: "有公司无岗位数据时，基于同类岗位通用规律输出，confidence: medium，标注数据来源为类比推断"
+  stale_data: "面经超过18个月时，confidence 降至 low，并在 summary 中注明数据时效风险"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json

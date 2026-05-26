@@ -1,0 +1,13 @@
+{
+  "description": "无面经的小公司，禁止 frequency: very_high，source 必须标注通用",
+  "input": {
+    "company_name": "慧谷信息技术",
+    "job_title": "前端工程师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "question_bank", "operator": "length_gte", "value": 1,
+      "description": "即使低证据也应输出通用题目" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

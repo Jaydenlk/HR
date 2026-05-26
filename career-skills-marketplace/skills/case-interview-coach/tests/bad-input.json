@@ -1,0 +1,11 @@
+{
+  "description": "interview_type 无效，返回验证错误",
+  "input": {
+    "interview_type": "behavioral"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "validation_error" },
+    { "path": "framework_library", "operator": "length_eq", "value": 0 }
+  ]
+}

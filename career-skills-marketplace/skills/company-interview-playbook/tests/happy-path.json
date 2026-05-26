@@ -1,0 +1,14 @@
+{
+  "description": "知名上市公司，期望 confidence: high，完整五模块攻略",
+  "input": {
+    "company_name": "腾讯",
+    "job_title": "产品经理"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "company_profile.culture_keywords", "operator": "length_gte", "value": 2 },
+    { "path": "interview_process", "operator": "length_gte", "value": 2 },
+    { "path": "culture_fit_tips", "operator": "length_gte", "value": 2 },
+    { "path": "common_pitfalls", "operator": "length_gte", "value": 1 }
+  ]
+}

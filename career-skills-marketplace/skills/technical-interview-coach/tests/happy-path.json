@@ -1,0 +1,14 @@
+{
+  "description": "有公司+岗位+备考时间，期望 confidence: high，company_specific_focus 非空",
+  "input": {
+    "job_title": "后端开发工程师",
+    "company_name": "字节跳动",
+    "available_weeks": 4
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "preparation_plan", "operator": "length_gte", "value": 3 },
+    { "path": "practice_questions", "operator": "length_gte", "value": 3 },
+    { "path": "common_patterns", "operator": "length_gte", "value": 2 }
+  ]
+}

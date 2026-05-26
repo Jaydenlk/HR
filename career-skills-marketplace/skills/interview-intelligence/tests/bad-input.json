@@ -1,0 +1,13 @@
+{
+  "description": "company_name 为空，期望验证错误，不输出任何情报",
+  "input": {
+    "company_name": "",
+    "job_title": "Java开发工程师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "validation_error" },
+    { "path": "interview_flow", "operator": "length_eq", "value": 0 },
+    { "path": "common_questions", "operator": "length_eq", "value": 0 }
+  ]
+}

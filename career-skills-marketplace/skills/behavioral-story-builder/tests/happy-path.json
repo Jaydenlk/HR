@@ -1,0 +1,25 @@
+{
+  "description": "详细工作经历，期望提炼3+个故事，覆盖度分析完整",
+  "input": {
+    "user_profile": {
+      "work_experience": [
+        {
+          "company": "某电商平台",
+          "title": "高级后端工程师",
+          "duration": "3年",
+          "highlights": [
+            "主导交易系统性能优化，QPS从5000提升到25000",
+            "带领3人小组完成订单服务微服务化拆分"
+          ]
+        }
+      ]
+    },
+    "target_job_type": "tech"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "story_bank", "operator": "length_gte", "value": 2 },
+    { "path": "coverage_map.missing_dimensions", "operator": "not_null" },
+    { "path": "gaps", "operator": "length_gte", "value": 1 }
+  ]
+}

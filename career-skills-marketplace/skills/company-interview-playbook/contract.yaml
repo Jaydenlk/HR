@@ -1,0 +1,78 @@
+name: company-interview-playbook
+version: "1.0.0"
+purpose: "为特定公司生成综合面试攻略手册：公司画像+流程全图+文化心法+踩坑预警+薪资谈判"
+role: worker
+layer: interview
+
+when_to_use:
+  - 用户需要一份系统化的公司面试全攻略
+  - 用户首次面试某家公司，需要全局了解
+  - 用户想了解某公司的文化和面试风格
+  - 为长期求职目标准备深度资料
+
+when_not_to_use:
+  - 用户只需要题库（走 question-bank-builder）
+  - 用户只需要流程信息（走 interview-intelligence）
+  - 用户已有完整面经，只需要点评（走 interview-debrief）
+
+inputs_required:
+  - name: company_name
+    type: string
+    description: "目标公司名称"
+
+optional_context:
+  - name: job_title
+    type: string
+    description: "目标岗位（提供后攻略更定向）"
+  - name: interview_intelligence
+    type: object
+    description: "面试情报（来自 interview-intelligence），用于填充流程全图"
+  - name: user_profile
+    type: object
+    description: "用户画像（来自 profile-builder），用于个性化文化契合建议"
+
+depends_on:
+  - interview-intelligence
+
+tools_allowed:
+  - Read
+  - Grep
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "有近1年该公司的多维度口碑数据（看准/脉脉/牛客面经），公司信息可公开核实"
+  medium:
+    condition: "仅有部分维度数据，或公司部分信息较老"
+  low:
+    condition: "主要依赖知识图谱通用信息，缺乏公司特定数据"
+  insufficient:
+    condition: "company_name 为空，无法生成攻略"
+
+failure_modes:
+  - type: missing_company
+    trigger: "company_name 为空"
+    response: "返回 validation_error"
+  - type: salary_fabrication
+    trigger: "无薪资数据来源但仍输出具体薪资数字"
+    response: "禁止；salary_range_estimate 无来源时必须为 null，说明原因"
+  - type: culture_fabrication
+    trigger: "无该公司文化面经但仍输出高置信度文化分析"
+    response: "禁止；culture_fit_tips 必须标注数据来源或置信度"
+
+china_market_specificity: very_high
+
+live_research_required: true
+
+degradation_behavior:
+  no_live_data: "company_profile 基于知识图谱通用画像，salary_range_estimate 为 null，interview_process 来自类似规模公司规律，所有字段标注 confidence: low"
+  partial_data: "已有数据字段正常输出，无数据字段标注 cannot_determine 并给出通用建议"
+  stale_data: "数据超过2年时，在 risks 中注明时效性风险，动态信息（如裁员状态）不可信"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json

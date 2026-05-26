@@ -1,0 +1,13 @@
+{
+  "description": "面经对某题目有矛盾描述，期望 confidence 不为 high，矛盾题目 frequency 降级",
+  "input": {
+    "company_name": "美团",
+    "job_title": "后端工程师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "not_eq", "value": "high",
+      "description": "来源存在矛盾时不应给出 high 置信度" },
+    { "path": "gaps", "operator": "length_gte", "value": 1,
+      "description": "矛盾区域应在 gaps 中说明" }
+  ]
+}

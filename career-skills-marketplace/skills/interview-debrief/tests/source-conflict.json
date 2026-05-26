@@ -1,0 +1,17 @@
+{
+  "description": "回答声称有海外经历，但简历无相关记录，期望在 risks 中标注矛盾",
+  "input": {
+    "interview_transcript": "面试官：有跨文化协作经验吗？\n我：有，我在新加坡工作了2年。",
+    "user_profile": {
+      "work_experience": [
+        { "company": "北京公司A", "location": "北京" }
+      ]
+    }
+  },
+  "assertions": [
+    { "path": "risks", "operator": "length_gte", "value": 1,
+      "description": "回答与简历矛盾必须出现在 risks 中" },
+    { "path": "question_analysis[0].gap", "operator": "contains_text", "value": "矛盾",
+      "description": "逐题分析中必须指出矛盾" }
+  ]
+}

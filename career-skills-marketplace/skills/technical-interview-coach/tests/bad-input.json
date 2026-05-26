@@ -1,0 +1,9 @@
+{
+  "description": "job_title 为空，返回验证错误",
+  "input": { "job_title": "", "company_name": "百度" },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "validation_error" },
+    { "path": "preparation_plan", "operator": "length_eq", "value": 0 }
+  ]
+}

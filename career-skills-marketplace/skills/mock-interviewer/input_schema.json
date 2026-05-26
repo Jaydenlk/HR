@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mock-interviewer/input",
+  "title": "mock-interviewer 输入",
+  "type": "object",
+  "required": ["phase", "job_title"],
+  "properties": {
+    "phase": {
+      "type": "string",
+      "enum": ["generate_questions", "evaluate_answer", "final_report"],
+      "description": "当前面试阶段"
+    },
+    "job_title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目标岗位名称"
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "用户画像（来自 profile-builder）",
+      "additionalProperties": true
+    },
+    "jd_analysis": {
+      "type": "object",
+      "description": "JD 解析结果（来自 jd-analyzer）",
+      "additionalProperties": true
+    },
+    "interview_intelligence": {
+      "type": "object",
+      "description": "面试情报（来自 interview-intelligence）",
+      "additionalProperties": true
+    },
+    "questions": {
+      "type": "array",
+      "description": "Phase 1 生成的题目（evaluate_answer 阶段使用）",
+      "items": { "type": "object" }
+    },
+    "answers": {
+      "type": "array",
+      "description": "用户的回答列表",
+      "items": {
+        "type": "object",
+        "required": ["question_id", "answer_text"],
+        "properties": {
+          "question_id": { "type": "string" },
+          "answer_text": { "type": "string" }
+        }
+      }
+    },
+    "answer_evaluations": {
+      "type": "array",
+      "description": "Phase 2 评分结果（final_report 阶段使用）",
+      "items": { "type": "object" }
+    }
+  },
+  "additionalProperties": false
+}

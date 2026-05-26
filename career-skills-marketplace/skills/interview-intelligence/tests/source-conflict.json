@@ -1,0 +1,15 @@
+{
+  "description": "面经来源对流程描述存在矛盾，期望标注冲突并降低置信度",
+  "input": {
+    "company_name": "滴滴出行",
+    "job_title": "数据分析师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "not_eq", "value": "high",
+      "description": "来源矛盾时不应输出 high 置信度" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1,
+      "description": "矛盾项应在 cannot_determine 中说明" },
+    { "path": "common_questions", "operator": "length_gte", "value": 1,
+      "description": "即使有矛盾，明确的考点仍应输出" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "description": "市场估算题，多框架可选，期望框架库包含多种方法并说明选择标准",
+  "input": {
+    "interview_type": "market_estimation"
+  },
+  "assertions": [
+    { "path": "framework_library", "operator": "length_gte", "value": 2,
+      "description": "市场估算应至少提供需求侧和供给侧两种框架" },
+    { "path": "confidence", "operator": "eq", "value": "high",
+      "description": "基于知识图谱，无实时数据依赖" }
+  ]
+}
