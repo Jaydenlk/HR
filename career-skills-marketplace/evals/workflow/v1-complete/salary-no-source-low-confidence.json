@@ -1,0 +1,35 @@
+{
+  "name": "salary-radar with no live data produces low-confidence output",
+  "description": "Tests that salary-radar correctly reports low confidence and refuses to state precise salary ranges when no live data sources are available and the role is outside the knowledge graph.",
+  "input": {
+    "user_message": "我想知道湖南长沙的中小型民营企业里，工业互联网方向的产品经理，3年经验，薪资大概是多少？",
+    "context": {
+      "live_adapters_available": [],
+      "knowledge_graph_coverage": {
+        "cities": ["北京", "上海", "深圳", "杭州", "广州"],
+        "company_types": ["互联网大厂", "知名外资", "头部创业公司"],
+        "note": "长沙中小民营企业不在知识图谱覆盖范围内"
+      }
+    }
+  },
+  "expected_skills_invoked": ["salary-radar", "source-quality-auditor"],
+  "expected_output_properties": {
+    "confidence_level": "low_or_insufficient",
+    "refuses_precise_range": true,
+    "has_explicit_coverage_gap_notice": true,
+    "has_suggested_data_sources": true
+  },
+  "assertions": [
+    "salary-radar explicitly states that Changsha SME industrial internet roles are outside the knowledge graph coverage",
+    "output confidence is marked as low or insufficient",
+    "output does not state a precise salary range (e.g., does not say '18k-25k' as if it were reliable)",
+    "output acknowledges that regional salary data for non-major cities requires local sources",
+    "output suggests at least 2 alternative sources for the candidate to research (e.g., 猎聘、BOSS直聘薪资报告、51job行情)",
+    "source-quality-auditor flags the absence of any grounding data for this specific query"
+  ],
+  "must_not_contain": [
+    "specific salary range stated with medium or high confidence",
+    "any implied knowledge of Changsha industrial internet market without a source",
+    "hallucinated salary benchmarks"
+  ]
+}

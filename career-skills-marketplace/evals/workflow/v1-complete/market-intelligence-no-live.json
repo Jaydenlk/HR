@@ -1,0 +1,32 @@
+{
+  "name": "market-radar degradation with no live adapters",
+  "description": "Tests that market-radar correctly degrades to an insufficient confidence state when no live data adapters are available, rather than fabricating market data.",
+  "input": {
+    "user_message": "现在互联网大厂后端工程师的招聘热度怎么样？哪些公司还在扩招？",
+    "context": {
+      "live_adapters_available": [],
+      "knowledge_graph_last_updated": "2024-Q1"
+    }
+  },
+  "expected_skills_invoked": ["market-radar", "source-quality-auditor"],
+  "expected_output_properties": {
+    "confidence_level": "low_or_insufficient",
+    "has_explicit_data_limitation_notice": true,
+    "has_fallback_guidance": true,
+    "refuses_to_state_current_headcount": true
+  },
+  "assertions": [
+    "market-radar explicitly states that no live data sources are available",
+    "output confidence is marked as low or insufficient, not medium or high",
+    "system does not fabricate current hiring numbers or company-specific HC status",
+    "output provides fallback guidance: suggests where user can find current data (e.g., 牛客、脉脉、Boss直聘)",
+    "source-quality-auditor flags the knowledge graph staleness given the 2024-Q1 update date",
+    "any historical trends from knowledge graph are clearly labeled as historical, not current"
+  ],
+  "must_not_contain": [
+    "specific company hiring numbers presented as current",
+    "claims that any particular company 'is expanding' without a dated, cited source",
+    "confidence level of medium or high",
+    "fabricated recruiter activity data"
+  ]
+}

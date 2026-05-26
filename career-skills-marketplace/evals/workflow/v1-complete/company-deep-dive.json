@@ -1,0 +1,37 @@
+{
+  "name": "company-risk-auditor + company-interview-playbook chain",
+  "description": "Tests that company-risk-auditor provides a risk profile for a company and company-interview-playbook leverages it along with interview intelligence to produce a complete preparation playbook.",
+  "input": {
+    "user_message": "我收到了快手的面试邀请，是电商业务线后端岗位，终面下周。帮我了解一下这家公司现在的状况，以及他们的面试套路。",
+    "context": {
+      "company": "快手",
+      "business_unit": "电商业务线",
+      "role": "后端工程师",
+      "interview_stage": "终面",
+      "live_data_available": true,
+      "profile_summary": "4年Go后端，有直播和电商平台经验"
+    }
+  },
+  "expected_skills_invoked": ["company-risk-auditor", "company-interview-playbook"],
+  "expected_output_properties": {
+    "has_company_risk_assessment": true,
+    "has_financial_health_signal": true,
+    "has_employer_brand_signal": true,
+    "has_interview_process_overview": true,
+    "has_common_question_types": true,
+    "has_preparation_recommendations": true
+  },
+  "assertions": [
+    "company-risk-auditor produces a structured risk assessment covering financial health, layoff history, and employer brand signals",
+    "risk assessment distinguishes between verified signals and uncertain areas, with confidence levels per dimension",
+    "company-interview-playbook provides the typical interview process stages at Kuaishou for backend engineers",
+    "playbook includes at least 3 preparation recommendations specific to the e-commerce business unit context",
+    "output acknowledges that interview formats can vary by team and that this is based on available data"
+  ],
+  "must_not_contain": [
+    "definitive claims about company financial health without citing a source or date",
+    "invented internal culture details presented as fact",
+    "prediction of interview outcome",
+    "advice to withdraw from the process based on risk signals without candidate input"
+  ]
+}

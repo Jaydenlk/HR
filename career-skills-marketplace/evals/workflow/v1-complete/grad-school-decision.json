@@ -1,0 +1,44 @@
+{
+  "name": "graduate-school-vs-job-advisor full analysis",
+  "description": "Tests that graduate-school-vs-job-advisor conducts a multi-dimensional analysis covering financial, career, personal, and opportunity-cost factors, and resists giving a simple yes/no answer.",
+  "input": {
+    "user_message": "我是985高校CS大四，保研到了本校读研，同时拿到了腾讯IEG测试开发offer（base 22k）。家里希望我读研，我自己纠结。帮我分析一下怎么选。",
+    "context": {
+      "profile_summary": {
+        "education": "985高校CS本科大四",
+        "postgrad_offer": "本校保研，直博或硕士待选",
+        "job_offer": {
+          "company": "腾讯IEG",
+          "role": "测试开发工程师",
+          "base": 22000,
+          "location": "深圳"
+        },
+        "family_preference": "读研",
+        "personal_goal": "未明确，纠结中",
+        "financial_situation": "家庭负担中等，读研期间有补贴约2000/月"
+      }
+    }
+  },
+  "expected_skills_invoked": ["graduate-school-vs-job-advisor", "career-path-planner"],
+  "expected_output_properties": {
+    "has_financial_opportunity_cost_analysis": true,
+    "has_career_trajectory_analysis_both_paths": true,
+    "has_personal_factor_discussion": true,
+    "avoids_single_definitive_recommendation": true,
+    "surfaces_clarifying_questions": true
+  },
+  "assertions": [
+    "output calculates the financial opportunity cost of 2-3 years of graduate school vs. immediate employment",
+    "career-path-planner produces trajectories for both: postgrad → senior researcher/PhD path vs. direct employment → senior engineer path",
+    "output discusses the specific role context: testing at Tencent IEG may have different long-term ceiling than dev roles",
+    "output surfaces at least 2 clarifying questions the candidate should answer before deciding (e.g., PhD vs. master's, career goal clarity)",
+    "output does not simply validate family preference or dismiss it",
+    "output presents both paths' advantages and disadvantages without pushing a single answer"
+  ],
+  "must_not_contain": [
+    "a simple 'you should work' or 'you should study' recommendation without conditions",
+    "invented salary projections for either path stated as reliable",
+    "dismissal of the candidate's emotional/family context",
+    "advice that ignores the testing vs. development role distinction"
+  ]
+}

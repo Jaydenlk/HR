@@ -1,0 +1,42 @@
+{
+  "name": "daily-plan-generator with upcoming interviews",
+  "description": "Tests that daily-plan-generator integrates application tracker state and upcoming interview schedule to produce a realistic, prioritized daily action plan.",
+  "input": {
+    "user_message": "帮我规划今天和明天的求职任务。",
+    "context": {
+      "current_date": "2025-03-10",
+      "application_tracker_state": [
+        { "company": "美团", "role": "产品经理", "status": "等待HR面结果", "last_action_date": "2025-03-07" },
+        { "company": "京东", "role": "产品经理", "status": "技术面已过，等终面通知", "last_action_date": "2025-03-08" },
+        { "company": "滴滴", "role": "产品经理", "status": "简历投递", "last_action_date": "2025-03-05" }
+      ],
+      "upcoming_interviews": [
+        { "company": "京东", "round": "终面（VP轮）", "datetime": "2025-03-12 14:00", "format": "线下" },
+        { "company": "腾讯", "round": "一面", "datetime": "2025-03-11 10:00", "format": "视频" }
+      ],
+      "candidate_available_hours_today": 6,
+      "candidate_available_hours_tomorrow": 8
+    }
+  },
+  "expected_skills_invoked": ["daily-plan-generator", "application-tracker"],
+  "expected_output_properties": {
+    "has_today_plan": true,
+    "has_tomorrow_plan": true,
+    "plans_prioritize_imminent_interviews": true,
+    "plans_fit_within_available_hours": true,
+    "has_follow_up_actions_for_pending_applications": true
+  },
+  "assertions": [
+    "today's plan prioritizes Tencent interview preparation (tomorrow 10:00)",
+    "tomorrow's plan allocates significant time to JD final interview preparation (March 12 14:00)",
+    "plan includes a follow-up action for Meituan which has been waiting since March 7",
+    "total planned hours do not exceed 6 hours today and 8 hours tomorrow",
+    "tasks are specific and actionable, not generic (e.g., 'review JD for Tencent PM role' not just 'prepare')",
+    "plan acknowledges Didi application has had no response for 5+ days and suggests follow-up or deprioritization"
+  ],
+  "must_not_contain": [
+    "tasks scheduled for times that conflict with the interview slots",
+    "more hours of tasks than available hours",
+    "generic advice not tied to the specific companies and stages in the tracker"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "opportunity-intelligence → application-strategist chain",
+  "description": "Tests that opportunity-intelligence feeds structured opportunity data into application-strategist, which produces a prioritized application plan with timeline and rationale.",
+  "input": {
+    "user_message": "我收集了三个岗位：字节飞书后端P6、美团基础架构P6、拼多多后端P7。帮我分析这些机会并制定投递顺序和策略。",
+    "context": {
+      "profile_summary": "5年Go/Java后端经验，分布式系统背景，现就职于B轮创业公司",
+      "target_roles": [
+        { "company": "字节跳动", "role": "飞书后端工程师P6", "jd_snippet": "负责飞书消息系统高并发架构设计，要求5年以上分布式系统经验" },
+        { "company": "美团", "role": "基础架构工程师P6", "jd_snippet": "负责内部基础平台建设，要求熟悉K8s和微服务治理" },
+        { "company": "拼多多", "role": "后端工程师P7", "jd_snippet": "电商交易链路核心开发，要求高并发高可用设计经验" }
+      ]
+    }
+  },
+  "expected_skills_invoked": ["opportunity-intelligence", "application-strategist"],
+  "expected_output_properties": {
+    "has_opportunity_scores": true,
+    "has_application_priority_ranking": true,
+    "has_timeline": true,
+    "has_rationale_per_opportunity": true,
+    "confidence_level": "medium_or_high"
+  },
+  "assertions": [
+    "opportunity-intelligence produces a structured score or assessment for each of the three companies",
+    "application-strategist receives the opportunity assessment as input and produces a ranked application order",
+    "output includes specific timing recommendations (e.g., which to apply first and why)",
+    "output references profile alignment for at least one company",
+    "confidence level is stated for each opportunity assessment"
+  ],
+  "must_not_contain": [
+    "invented salary figures not grounded in salary-radar data",
+    "definitive claims about company headcount or hiring quota without source",
+    "recommendation without stated rationale"
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "name": "referral-strategy + networking-message-writer chain",
+  "description": "Tests that referral-strategy identifies the optimal referral path and contact approach, and networking-message-writer produces a personalized, non-generic cold outreach message.",
+  "input": {
+    "user_message": "我想内推进字节跳动数据平台部门的数据工程师岗位。我在领英上找到了两个人：一个是字节的数据工程师（和我同校，但不认识），一个是数据平台部门的组长（我们有共同前同事）。帮我制定策略并写消息。",
+    "context": {
+      "candidate_profile": {
+        "background": "3年数据工程经验，Spark/Flink方向，现在一家B2B SaaS公司",
+        "school": "浙江大学",
+        "mutual_connections": {
+          "contact_b": "前同事王某在该组长团队工作过"
+        }
+      },
+      "target_company": "字节跳动",
+      "target_department": "数据平台部门",
+      "target_role": "数据工程师",
+      "contacts": [
+        {
+          "id": "contact_a",
+          "role": "数据工程师",
+          "company": "字节跳动",
+          "connection": "同校校友，无直接联系",
+          "channel": "领英"
+        },
+        {
+          "id": "contact_b",
+          "role": "数据平台组长",
+          "company": "字节跳动",
+          "connection": "共同前同事（王某）",
+          "channel": "领英"
+        }
+      ]
+    }
+  },
+  "expected_skills_invoked": ["referral-strategy", "networking-message-writer"],
+  "expected_output_properties": {
+    "has_contact_priority_recommendation": true,
+    "has_approach_rationale_per_contact": true,
+    "has_message_for_each_contact": true,
+    "messages_are_personalized": true,
+    "messages_are_concise": true
+  },
+  "assertions": [
+    "referral-strategy recommends contact_b (team lead with mutual connection) as the higher-priority target",
+    "strategy includes the tactic of mentioning the mutual former colleague Wang in the message to contact_b",
+    "networking-message-writer produces two distinct messages tailored to each contact's relationship type",
+    "message to contact_a leverages the alumni connection without being presumptuous",
+    "message to contact_b references the mutual connection by name as the opening hook",
+    "both messages are under 200 characters for the opening line (WeChat/LinkedIn norm)",
+    "messages do not make demands — they ask for a brief conversation or referral consideration"
+  ],
+  "must_not_contain": [
+    "a single generic message sent to both contacts",
+    "messages that immediately ask for a referral in the first sentence without context",
+    "invented details about the candidate's relationship with the contacts",
+    "messages longer than what is appropriate for a cold LinkedIn/WeChat reach-out"
+  ]
+}

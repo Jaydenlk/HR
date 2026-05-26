@@ -1,0 +1,45 @@
+{
+  "name": "role-transition-advisor + skill-gap-planner + learning-roadmap-builder chain",
+  "description": "Tests the full career transition analysis chain: feasibility assessment, gap quantification, and actionable learning roadmap generation.",
+  "input": {
+    "user_message": "我目前是传统制造业的供应链管理岗（3年），想转到互联网大厂做产品经理，可行吗？需要补哪些技能？怎么学？",
+    "context": {
+      "profile_summary": {
+        "current_role": "供应链管理专员",
+        "industry": "传统制造业",
+        "years_of_experience": 3,
+        "education": "985高校工业工程本科",
+        "skills": ["供应链优化", "ERP系统操作", "数据分析（Excel）", "跨部门协作"],
+        "achievements": "主导了一个降低库存积压20%的项目",
+        "available_time_per_week": "10小时"
+      },
+      "target_role": {
+        "type": "产品经理",
+        "industry": "互联网大厂",
+        "level": "初级（0-2年产品经验要求）"
+      }
+    }
+  },
+  "expected_skills_invoked": ["role-transition-advisor", "skill-gap-planner", "learning-roadmap-builder"],
+  "expected_output_properties": {
+    "has_feasibility_assessment": true,
+    "has_transferable_skills_identified": true,
+    "has_gap_list_with_priority": true,
+    "has_learning_roadmap_with_timeline": true,
+    "roadmap_respects_time_constraint": true
+  },
+  "assertions": [
+    "role-transition-advisor identifies supply chain experience as partially transferable to operations/growth product roles",
+    "skill-gap-planner produces a prioritized list of missing skills with estimated acquisition difficulty",
+    "learning-roadmap-builder generates a phased plan that fits within 10 hours per week constraint",
+    "roadmap includes specific resource types (courses, projects, community) not vague categories",
+    "output acknowledges the realistic timeline for the transition (likely 6-18 months) without false encouragement",
+    "output distinguishes between skills that can be learned vs. those requiring real project experience"
+  ],
+  "must_not_contain": [
+    "guarantee of successful transition if roadmap is followed",
+    "invented salary numbers for target role without source",
+    "roadmap that exceeds stated available time without flagging the constraint violation",
+    "dismissal of the transition as impossible without evidence"
+  ]
+}

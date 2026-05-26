@@ -1,0 +1,40 @@
+{
+  "name": "salary-radar + offer-comparator multi-offer analysis",
+  "description": "Tests that salary-radar provides market benchmarks and offer-comparator synthesizes them with non-salary factors into a structured decision framework.",
+  "input": {
+    "user_message": "我拿到了三个offer，请帮我做全面对比并给出建议：\n1. 腾讯微信事业部后端P7，base 45k，期权按2%算约30万，16薪，上海\n2. 字节跳动商业化后端7-1，base 42k，期权约20万，15薪，北京\n3. 某A轮AI创业公司CTO，base 35k，期权5%，深圳\n我目前base 32k，5年经验，家在上海，未婚。",
+    "context": {
+      "candidate_profile": {
+        "current_base": 32000,
+        "years_of_experience": 5,
+        "location_preference": "上海",
+        "marital_status": "未婚",
+        "career_priority": "技术成长和财务安全并重"
+      },
+      "live_data_available": true,
+      "salary_data_sources": ["levels.fyi_cn", "maimai_salary_reports"]
+    }
+  },
+  "expected_skills_invoked": ["salary-radar", "offer-comparator"],
+  "expected_output_properties": {
+    "has_market_benchmark_per_role": true,
+    "has_total_compensation_calculation": true,
+    "has_risk_assessment_per_offer": true,
+    "has_city_cost_of_living_adjustment": true,
+    "has_final_recommendation_with_rationale": true,
+    "recommendation_is_conditional": true
+  },
+  "assertions": [
+    "salary-radar provides market benchmarks for P7-level backend engineers in Shanghai, Beijing, and Shenzhen",
+    "offer-comparator calculates estimated total annual compensation for each offer including equity",
+    "output applies city cost-of-living adjustment when comparing Shanghai vs Beijing vs Shenzhen offers",
+    "startup offer risk is assessed with reference to company stage (Series A) and equity dilution risk",
+    "final recommendation is framed as conditional on candidate's stated priorities, not absolute",
+    "output states data confidence level for salary benchmarks"
+  ],
+  "must_not_contain": [
+    "equity valuation stated as definite without discounting for startup risk",
+    "recommendation that ignores the candidate's Shanghai location preference",
+    "fabricated data about company financial health without source"
+  ]
+}

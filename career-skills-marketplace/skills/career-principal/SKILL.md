@@ -36,19 +36,56 @@ allowed-tools:
 4. 若不满足，执行**追问策略**（见第4节）
 5. 若满足，按 `primary_skill` + `secondary_skills` 顺序调度
 
-**支持的12种意图**：
+**支持的39种意图**（完整路由规则见 `references/intent-router.yaml`）：
+
+*核心求职（6种）*
 - `analyze_jd` — 分析职位描述
 - `tailor_resume` — 针对 JD 优化简历
 - `match_diagnosis` — 诊断匹配度
 - `career_direction` — 职业方向规划
-- `interview_prep` — 面试准备
+- `write_message` — 撰写求职沟通消息
+- `daily_planning` — 求职日程规划
+
+*Pack A — 求职流程管理（7种）*
+- `evaluate_opportunity` — 评估职位机会
+- `plan_application_strategy` — 制定投递策略
+- `track_applications` — 追踪投递进度
+- `plan_today` — 规划今日求职任务
+- `write_networking_message` — 撰写人脉开拓消息
+- `find_referral_path` — 寻找内推路径
+- `write_follow_up` — 撰写跟进消息
+
+*Pack B — 面试准备深度工具（8种，含原有3种）*
+- `interview_prep` — 面试准备（综合入口）
 - `interview_debrief` — 面试复盘
-- `offer_evaluation` — offer 评估
+- `mock_interview` — 模拟面试练习
+- `build_question_bank` — 构建面试题库
+- `get_company_playbook` — 获取目标公司面试攻略
+- `build_stories` — 构建行为面试故事库
+- `prepare_technical` — 准备技术面试
+- `prepare_case` — 准备案例面试
+
+*Pack C — 市场情报（8种，含原有3种）*
+- `offer_evaluation` — offer 评估（综合入口）
 - `company_check` — 公司背景调查
 - `salary_check` — 薪资合理性判断
 - `find_interview_experience` — 寻找面经
-- `write_message` — 撰写求职沟通消息
-- `daily_planning` — 求职日程规划
+- `check_market` — 查询市场行情
+- `find_xhs_interview` — 搜索小红书面经
+- `find_nowcoder_interview` — 搜索牛客面经
+- `compare_offers` — 多 offer 横向对比
+- `audit_company_risk` — 评估公司风险
+- `analyze_industry` — 分析行业趋势
+
+*Pack D — 职业战略规划（8种）*
+- `plan_career` — 规划职业发展路径
+- `evaluate_transition` — 评估职业转型可行性
+- `identify_skill_gaps` — 识别技能差距
+- `build_learning_roadmap` — 制定学习路线图
+- `build_personal_brand` — 打造个人品牌
+- `suggest_portfolio` — 建议作品集项目
+- `grad_school_vs_job` — 读研还是工作
+- `find_city_industry_fit` — 城市与行业适配建议
 
 当消息同时匹配多个意图时，选择最具体的意图为主意图，其余作为次要意图在同一次调度中处理。
 
@@ -88,6 +125,51 @@ jd-analyzer      ──► resume-tailor
 - 任何关于行业趋势的陈述
 - 任何关于公司规模/融资/业务的陈述
 - 任何关于岗位需求量的陈述
+- Pack C 所有 skill 输出市场声明前必须调用（见 `references/orchestration-rules.md` 第9节）
+
+### 可调用 sub-skills（37种，按层分类）
+
+**基础分析层（6种）**
+- `profile-builder` — 从简历文本提取结构化用户档案
+- `jd-analyzer` — 解析 JD，提取要求、隐含条件、红旗信号
+- `resume-tailor` — 基于 JD 分析结果重写/优化简历
+- `match-diagnosis` — 计算用户档案与 JD 要求的多维匹配度
+- `source-quality-auditor` — 验证市场事实类声明的来源可靠性
+
+**Pack A — 求职流程管理（7种）**
+- `opportunity-intelligence` — 综合评估一个职位机会的投资回报
+- `application-strategist` — 制定多公司投递策略和优先级排序
+- `application-tracker` — 追踪和管理所有在途投递进度
+- `daily-plan-generator` — 基于当前进展生成今日求职任务清单
+- `networking-message-writer` — 撰写自然有效的人脉拓展消息
+- `referral-strategy` — 规划获取内推的路径和策略
+- `follow-up-message-writer` — 撰写面试后跟进、催进度等后续消息
+
+**Pack B — 面试准备深度工具（7种）**
+- `mock-interviewer` — 模拟真实面试场景，提供即时反馈
+- `question-bank-builder` — 按岗位/公司生成结构化面试题库
+- `company-interview-playbook` — 整合公司特定的面试风格和高频考点
+- `behavioral-story-builder` — 用 STAR 法则将经历提炼为面试故事
+- `technical-interview-coach` — 技术面试的知识点和算法专项辅导
+- `case-interview-coach` — 案例面试的框架和练习辅导
+
+**Pack C — 市场情报（6种）**
+- `market-radar` — 实时市场行情查询和薪资基准
+- `xhs-interview-miner` — 从小红书提取面经和求职真实反馈
+- `nowcoder-tech-miner` — 从牛客提取技术面经和真题
+- `offer-comparator` — 多维度横向对比多个 offer
+- `company-risk-auditor` — 评估目标公司的经营风险和稳定性
+- `industry-trend-analyst` — 分析特定行业的发展趋势和就业前景
+
+**Pack D — 职业战略规划（7种）**
+- `career-path-planner` — 制定中长期职业发展路径规划
+- `role-transition-advisor` — 评估职业转型可行性和路径设计
+- `skill-gap-planner` — 识别能力差距并制定补强优先级
+- `learning-roadmap-builder` — 制定可落地的技能学习计划
+- `personal-brand-builder` — 设计和建立职场个人品牌策略
+- `portfolio-project-advisor` — 推荐能提升竞争力的作品集项目
+- `graduate-school-vs-job-advisor` — 系统比较深造与就业的利弊
+- `city-industry-fit-advisor` — 匹配目标城市与行业生态适配度
 
 ---
 
