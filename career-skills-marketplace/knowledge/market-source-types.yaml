@@ -1,0 +1,292 @@
+meta:
+  name: 市场数据来源类型目录
+  version: "1.0"
+  confidence: medium
+  source_policy: "基于平台公开信息及行业使用经验汇编"
+  last_reviewed_at: "2026-05-26"
+  limitations:
+    - "各平台数据质量因使用方式不同差异较大"
+    - "平台政策和内容质量随时间变化"
+    - "信息时效性需结合发布时间判断"
+
+grade_definition:
+  A: "官方或经核实的权威数据，可直接引用"
+  B: "来源可靠，多数情况下准确，建议交叉验证"
+  C: "用户自述数据，仅供参考，不能直接作为事实引用"
+  D: "匿名信息或传言，高度不确定，需谨慎对待"
+
+source_types:
+  - id: boss_zhipin
+    name: Boss直聘
+    platform_type: job_posting_platform
+    default_grade: B
+    typical_freshness: "实时更新，职位通常在3个月内"
+    best_for:
+      - "了解当前市场招聘需求和岗位描述"
+      - "获取招聘公司的薪资范围标注（注意：为区间非精确值）"
+      - "直接与招聘方沟通，获取一手信息"
+      - "了解特定岗位的技能要求趋势"
+    not_suitable_for:
+      - "精确薪资数据（标注范围往往偏宽）"
+      - "企业文化深度了解"
+    china_specific_notes:
+      - "Boss直聘薪资标注为招聘方单方面声明，实际offer可能不同"
+      - "部分HR标注薪资偏高以吸引求职者，需结合面试确认"
+      - "可通过与BOSS直接聊天获取更多未公开信息"
+    confidence: medium
+    source_policy: "基于平台公开信息"
+
+  - id: lagou
+    name: 拉勾网
+    platform_type: job_posting_platform
+    default_grade: B
+    typical_freshness: "实时更新，以互联网岗位为主"
+    best_for:
+      - "互联网行业岗位信息，覆盖较为全面"
+      - "了解互联网公司的技术栈要求"
+      - "中小型互联网公司招聘信息"
+    not_suitable_for:
+      - "传统行业或非互联网岗位"
+      - "精确薪资数据"
+    china_specific_notes:
+      - "定位互联网行业，适合技术和产品岗位研究"
+    confidence: medium
+    source_policy: "基于平台公开信息"
+
+  - id: liepin
+    name: 猎聘
+    platform_type: job_posting_platform
+    default_grade: B
+    typical_freshness: "实时更新，侧重中高端岗位"
+    best_for:
+      - "中高端管理和专业岗位信息"
+      - "了解猎头市场的高薪岗位分布"
+      - "总监及以上级别岗位的薪资参考"
+    not_suitable_for:
+      - "基层岗位或应届生市场"
+      - "大量岗位的横向对比"
+    china_specific_notes:
+      - "猎聘以猎头合作为主，岗位质量相对较高"
+      - "发布猎头职位的薪资区间通常更接近真实水平"
+    confidence: medium
+    source_policy: "基于平台公开信息"
+
+  - id: zhilian
+    name: 智联招聘
+    platform_type: job_posting_platform
+    default_grade: B
+    typical_freshness: "实时更新，覆盖全行业"
+    best_for:
+      - "传统行业和非互联网岗位信息"
+      - "了解二三线城市的招聘市场"
+      - "大量岗位数量的行业趋势分析"
+    not_suitable_for:
+      - "精确薪资数据"
+      - "互联网高端岗位（覆盖度不如Boss直聘）"
+    china_specific_notes:
+      - "传统行业覆盖全面，国企和外企岗位较多"
+    confidence: medium
+    source_policy: "基于平台公开信息"
+
+  - id: nowcoder
+    name: 牛客网
+    platform_type: interview_sharing
+    default_grade: C
+    typical_freshness: "面经持续更新，时效性较好"
+    content_type: "求职者自述面试经历，含题目、流程和结果"
+    best_for:
+      - "了解具体公司和岗位的面试流程和题型"
+      - "获取算法题和技术题的练习资源"
+      - "了解笔试题目风格（大量历史真题）"
+      - "校招市场信息和时间节点"
+    not_suitable_for:
+      - "精确薪资数据（求职者倾向于不公开或夸大）"
+      - "面经可能过时，题目会随时间变化"
+    china_specific_notes:
+      - "牛客是国内最大的技术求职社区，面经覆盖度高"
+      - "算法题练习平台，互联网大厂必备"
+      - "校招信息发布及时，应届生必看"
+    confidence: medium
+    source_policy: "基于平台公开信息"
+
+  - id: xiaohongshu
+    name: 小红书
+    platform_type: interview_sharing
+    default_grade: C
+    typical_freshness: "内容持续更新，时效性较好"
+    content_type: "图文形式的求职经验分享，偏向叙事性内容"
+    best_for:
+      - "了解求职者的真实体验和情感反馈"
+      - "获取面试准备技巧和经验总结"
+      - "了解公司文化和工作环境的非官方描述"
+      - "女性求职者视角的职场内容"
+    not_suitable_for:
+      - "精确数据或量化信息"
+      - "需要系统性结构化信息的场景"
+    china_specific_notes:
+      - "内容偏感性和个人化，适合获取定性感受"
+      - "近年求职相关内容快速增加，覆盖度提升"
+    confidence: low
+    source_policy: "基于平台公开信息，内容为用户生成"
+
+  - id: maimai
+    name: 脉脉
+    platform_type: anonymous_discussion
+    default_grade: C
+    typical_freshness: "实时动态，话题性内容较多"
+    content_type: "职场匿名社区，含爆料、吐槽和经验分享"
+    best_for:
+      - "了解公司内部文化和员工真实感受"
+      - "获取行业动态和公司变化的非正式信息"
+      - "了解裁员、降薪等负面事件的内部视角"
+      - "建立职场人脉（实名功能）"
+    not_suitable_for:
+      - "需要准确数据的分析"
+      - "了解公司正面信息（负面内容偏多）"
+    reliability_notes:
+      - "匿名内容真实性难以核实，存在夸大或不实信息"
+      - "爆料性内容可能带有主观偏见"
+      - "用于把握方向性感受，不作为事实依据"
+    china_specific_notes:
+      - "脉脉在互联网职场中影响力大，公司危机事件常在此首发"
+      - "部分内容已被证实为虚假信息，需批判性阅读"
+    confidence: low
+    source_policy: "基于平台公开信息，匿名内容真实性存疑"
+
+  - id: wechat_official_accounts
+    name: 微信公众号
+    platform_type: professional_content
+    default_grade: B
+    typical_freshness: "通常每周更新，深度内容"
+    content_type: "专业文章、行业分析、职场干货"
+    best_for:
+      - "深度行业分析和趋势洞察"
+      - "职业发展建议和方法论内容"
+      - "细分领域专业知识积累"
+    not_suitable_for:
+      - "实时信息获取"
+      - "精确数据（除非作者注明数据来源）"
+    use_case: "建立认知框架，了解行业发展趋势"
+    china_specific_notes:
+      - "关注头部行业公众号，内容质量差异大"
+      - "需关注文章发布时间，避免引用过时信息"
+    confidence: medium
+    source_policy: "质量取决于账号，需识别来源可靠性"
+
+  - id: zhihu
+    name: 知乎
+    platform_type: professional_content
+    default_grade: C
+    typical_freshness: "内容持续更新，优质内容有持久性"
+    content_type: "问答形式的专业知识和经验分享"
+    best_for:
+      - "了解职业路径的多角度观点"
+      - "获取行业前辈的经验性建议"
+      - "深度讨论和辩证思考的内容"
+    not_suitable_for:
+      - "需要精确数据的场景"
+      - "最新动态（内容更新较慢）"
+    use_case: "建立认知，了解复杂问题的多维度视角"
+    china_specific_notes:
+      - "知乎职场内容质量参差不齐，优质回答者需长期筛选"
+      - "部分内容存在夸大或营销成分"
+    confidence: medium
+    source_policy: "用户生成内容，质量因作者不同差异大"
+
+  - id: company_official
+    name: 企业官网
+    platform_type: official_data
+    default_grade: A
+    typical_freshness: "按公司更新周期，通常季度或年度"
+    content_type: "公司官方信息、招聘JD、年报、ESG报告"
+    best_for:
+      - "获取公司官方立场和战略描述"
+      - "了解公司业务范围和组织结构"
+      - "校招流程和时间节点的官方声明"
+    not_suitable_for:
+      - "了解真实工作环境（官方描述有美化倾向）"
+      - "薪资数据（通常不公开）"
+    china_specific_notes:
+      - "上市公司年报含员工薪酬披露，可参考整体薪资水平"
+      - "部分公司官网招聘页面及时性差，以招聘平台为准"
+    confidence: high
+    source_policy: "官方来源，内容真实但可能不完整"
+
+  - id: government_labor
+    name: 人力资源和社会保障部
+    platform_type: official_data
+    default_grade: A
+    typical_freshness: "按发布周期，通常年度或季度"
+    content_type: "就业统计、薪资调查、政策法规"
+    best_for:
+      - "宏观就业市场趋势数据"
+      - "各地区行业平均薪资参考（注意样本和口径）"
+      - "劳动法规政策查询"
+    not_suitable_for:
+      - "互联网行业的精确薪资数据（统计样本有限）"
+      - "实时就业市场动态"
+    china_specific_notes:
+      - "人社部薪资数据为统计均值，与互联网行业实际差距大"
+      - "适合了解法定标准，不适合互联网求职薪资参考"
+    confidence: high
+    source_policy: "政府官方来源，数据权威但覆盖面有限"
+
+  - id: nowcoder_offer_reveal
+    name: 牛客开奖
+    platform_type: salary_reference
+    default_grade: C
+    typical_freshness: "校招季更新频繁（秋招9-11月，春招3-5月）"
+    content_type: "应届生主动分享的offer细节，含薪资、城市、岗位"
+    best_for:
+      - "了解应届生市场的薪资分布（尤其是大厂校招）"
+      - "了解不同公司同一岗位的薪资对比"
+      - "校招时间节点和流程信息"
+    not_suitable_for:
+      - "社招市场薪资参考（数据主要来自应届生）"
+      - "精确薪资数据（存在选择性偏差，高offer更易被分享）"
+    freshness_note: "非校招季数据稀少，且历史数据随通胀可能低估当前水平"
+    china_specific_notes:
+      - "牛客开奖是国内最系统的应届生offer数据库"
+      - "数据存在向上偏差：收到好offer的人更愿意分享"
+      - "部分信息未核实，需横向对比多个数据点"
+    confidence: medium
+    source_policy: "用户自述数据，存在选择性偏差"
+
+  - id: offershow
+    name: OfferShow
+    platform_type: salary_reference
+    default_grade: C
+    typical_freshness: "持续更新，数据量增长中"
+    content_type: "薪资和offer信息的匿名聚合展示"
+    best_for:
+      - "了解特定公司特定岗位的薪资分布"
+      - "横向对比多家公司的薪资水平"
+      - "互联网行业技术岗位薪资参考"
+    not_suitable_for:
+      - "精确薪资数据（匿名用户提交，无法核实）"
+      - "非互联网行业数据（覆盖有限）"
+    china_specific_notes:
+      - "参考美国levels.fyi模式，适应中国市场"
+      - "数据量少于levels.fyi，统计意义相对有限"
+      - "适合作为参考点，需结合其他来源交叉验证"
+    confidence: low
+    source_policy: "用户匿名提交，无法核实准确性"
+
+  - id: levels_fyi
+    name: levels.fyi
+    platform_type: salary_reference
+    default_grade: B
+    typical_freshness: "持续更新，数据量大"
+    content_type: "科技公司薪资数据的全球聚合平台"
+    best_for:
+      - "了解外资科技公司（Google、Apple、Meta等）的薪资结构"
+      - "了解外企在华研发中心的薪资参考"
+      - "对比不同级别、不同公司的total compensation"
+    not_suitable_for:
+      - "国内纯本土公司薪资数据（覆盖有限）"
+      - "非科技行业数据"
+    china_specific_notes:
+      - "对于有意加入外企的求职者参考价值较高"
+      - "外企在华薪资与海外数据不可直接对比"
+    confidence: medium
+    source_policy: "用户提交数据，覆盖外资科技公司较好，国内公司较弱"

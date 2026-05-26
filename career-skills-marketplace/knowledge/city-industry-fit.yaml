@@ -1,0 +1,311 @@
+meta:
+  name: 城市与行业适配分析
+  version: "1.0"
+  confidence: medium
+  source_policy: "基于公开信息汇编"
+  last_reviewed_at: "2026-05-26"
+  limitations:
+    - "数据为概括性描述，具体情况因人而异"
+    - "城市发展动态，数据存在时效性"
+    - "薪资水平因岗位和行业差异显著"
+
+cities:
+  - id: beijing
+    name: 北京
+    dominant_industries:
+      - industry: 互联网/科技
+        strength: high
+        key_players: [字节跳动, 百度, 京东, 美团, 小米]
+      - industry: 金融/金融科技
+        strength: high
+        key_players: [工商银行, 中国平安, 蚂蚁集团北京研发]
+      - industry: 政府/国企
+        strength: high
+        notes: "央企总部密集，政策资源丰富"
+      - industry: 教育/教育科技
+        strength: high
+        key_players: [好未来, 猿辅导]
+      - industry: 媒体/内容
+        strength: medium
+        key_players: [爱奇艺, 芒果TV北京, 各大媒体集团]
+      - industry: 汽车/新能源
+        strength: medium
+        key_players: [理想汽车, 小鹏北京研发]
+    typical_salary_level:
+      relative: high
+      note: "互联网和金融岗位薪资全国最高，国企相对较低"
+    cost_of_living:
+      relative: high
+      note: "房价居全国前列，生活成本高，但公共服务完善"
+    tech_hub_strength: high
+    quality_of_life:
+      pros:
+        - "文化资源极其丰富，博物馆、演出等"
+        - "医疗教育资源全国最优"
+        - "职场网络效应强，人脉资源密集"
+        - "政策信息获取优势"
+      cons:
+        - "雾霾和空气质量问题（近年有改善）"
+        - "交通拥堵严重，通勤时间长"
+        - "房价高，安家成本大"
+        - "户籍限制较多"
+    hukou_difficulty: high
+    notes: "全国政治和文化中心，互联网大厂和国企双轨并行"
+
+  - id: shanghai
+    name: 上海
+    dominant_industries:
+      - industry: 金融/投资银行
+        strength: high
+        key_players: [各大外资投行, 证券公司, 保险集团]
+      - industry: 跨国企业/外企
+        strength: high
+        notes: "外企亚太区总部密集"
+      - industry: 互联网/科技
+        strength: high
+        key_players: [拼多多, 携程, 哔哩哔哩, 华为上海研发]
+      - industry: 制造业/高端制造
+        strength: medium
+        key_players: [特斯拉上海工厂, 半导体企业]
+      - industry: 汽车/新能源
+        strength: high
+        key_players: [特斯拉, 上汽集团, 蔚来]
+      - industry: 生物医药
+        strength: high
+        key_players: [张江高科技园区众多药企]
+    typical_salary_level:
+      relative: high
+      note: "金融和外企薪资高，整体薪资水平与北京相当"
+    cost_of_living:
+      relative: high
+      note: "房价高，生活成本接近北京，但城市环境和服务品质更优"
+    tech_hub_strength: high
+    quality_of_life:
+      pros:
+        - "国际化程度高，外语工作机会多"
+        - "城市规划完善，宜居性强"
+        - "餐饮、娱乐、购物选择丰富"
+        - "地铁网络发达，通勤较便利"
+      cons:
+        - "房价居全国前列"
+        - "部分岗位英语要求高，对语言能力有要求"
+        - "生活节奏快，竞争激烈"
+    hukou_difficulty: high
+    notes: "全国金融中心，外企和互联网双核心"
+
+  - id: shenzhen
+    name: 深圳
+    dominant_industries:
+      - industry: 硬件/消费电子
+        strength: high
+        key_players: [华为, 腾讯, 大疆, 比亚迪]
+      - industry: 互联网/科技
+        strength: high
+        key_players: [腾讯, 平安科技, 汇丰科技]
+      - industry: 金融科技
+        strength: high
+        key_players: [平安集团, 招商银行]
+      - industry: 新能源/电动车
+        strength: high
+        key_players: [比亚迪, 宁德时代深圳研发]
+      - industry: 半导体
+        strength: medium
+        key_players: [中芯国际深圳, 汇顶科技]
+    typical_salary_level:
+      relative: high
+      note: "硬件和科技岗位薪资高，整体与北上相当"
+    cost_of_living:
+      relative: high
+      note: "房价高，但相比北京上海略低，生活便利"
+    tech_hub_strength: high
+    quality_of_life:
+      pros:
+        - "气候宜人，冬天温暖"
+        - "城市年轻化，活力足"
+        - "创业氛围浓，创新文化强"
+        - "紧邻香港，国际视野开阔"
+      cons:
+        - "本地文化积淀相对薄弱"
+        - "房价压力大"
+        - "部分职业发展路径相对单一"
+    hukou_difficulty: medium
+    notes: "硬件和创新高地，华为腾讯双巨头带动生态"
+
+  - id: hangzhou
+    name: 杭州
+    dominant_industries:
+      - industry: 电商/新零售
+        strength: high
+        key_players: [阿里巴巴, 网易, 菜鸟网络]
+      - industry: 数字经济
+        strength: high
+        notes: "数字经济一号工程城市"
+      - industry: 金融科技
+        strength: high
+        key_players: [蚂蚁集团, 网商银行]
+      - industry: 直播/电商内容
+        strength: high
+        key_players: [淘宝直播生态, MCN公司]
+      - industry: 旅游/文旅
+        strength: medium
+    typical_salary_level:
+      relative: medium
+      note: "阿里系岗位薪资高，整体略低于北上深"
+    cost_of_living:
+      relative: medium
+      note: "房价低于北上深，生活成本适中，性价比较高"
+    tech_hub_strength: high
+    quality_of_life:
+      pros:
+        - "宜居性强，自然环境美"
+        - "生活成本相对合理"
+        - "互联网创业生态活跃"
+        - "政府数字化程度高"
+      cons:
+        - "产业结构相对集中，阿里依赖度高"
+        - "非阿里体系的机会相对较少"
+    hukou_difficulty: medium
+    notes: "阿里经济体核心城市，数字经济标杆"
+
+  - id: chengdu
+    name: 成都
+    dominant_industries:
+      - industry: 游戏/互联网
+        strength: high
+        key_players: [腾讯成都, 网易成都, 完美世界]
+      - industry: 大数据/云计算
+        strength: medium
+        key_players: [阿里云西南总部, 华为西南研发]
+      - industry: 金融服务
+        strength: medium
+      - industry: 新能源汽车
+        strength: medium
+        key_players: [比亚迪成都, 沃尔沃亚太]
+      - industry: 文创/内容
+        strength: medium
+        notes: "短视频、直播内容产业发展迅速"
+    typical_salary_level:
+      relative: medium
+      note: "薪资低于一线城市，但生活成本也低，实际购买力尚可"
+    cost_of_living:
+      relative: low
+      note: "房价和生活成本明显低于一线城市，性价比高"
+    tech_hub_strength: medium
+    quality_of_life:
+      pros:
+        - "生活节奏轻松，休闲文化发达"
+        - "美食天堂，生活品质高"
+        - "房价相对实惠"
+        - "西南区域辐射机会多"
+      cons:
+        - "高薪岗位绝对数量少于一线"
+        - "职业晋升天花板相对低"
+        - "部分前沿技术领域人才稀缺"
+    hukou_difficulty: low
+    notes: "西南互联网中心，游戏行业重镇"
+
+  - id: guangzhou
+    name: 广州
+    dominant_industries:
+      - industry: 制造业/传统制造
+        strength: high
+        notes: "华南制造业中心"
+      - industry: 贸易/进出口
+        strength: high
+        notes: "广交会所在地，外贸中心"
+      - industry: 互联网/科技
+        strength: medium
+        key_players: [网易广州, 唯品会, 广汽集团]
+      - industry: 新能源汽车
+        strength: medium
+        key_players: [广汽埃安, 小鹏汽车]
+      - industry: 金融服务
+        strength: medium
+    typical_salary_level:
+      relative: medium
+      note: "略低于深圳，互联网岗位有竞争力"
+    cost_of_living:
+      relative: medium
+      note: "生活成本低于北上深，性价比较高"
+    tech_hub_strength: medium
+    quality_of_life:
+      pros:
+        - "饮食文化丰富，生活舒适"
+        - "气候温暖，自然环境好"
+        - "贸易机会多，国际化"
+        - "房价相对合理"
+      cons:
+        - "互联网高薪机会少于深圳"
+        - "城市规划相对分散"
+    hukou_difficulty: medium
+    notes: "华南传统商贸中心，制造业转型升级中"
+
+  - id: nanjing
+    name: 南京
+    dominant_industries:
+      - industry: 软件服务/IT外包
+        strength: high
+        notes: "中国软件名城"
+      - industry: 高校/科研
+        strength: high
+        notes: "顶级高校密集，科研人才汇聚"
+      - industry: 汽车制造
+        strength: medium
+        key_players: [上汽大众南京, 奇瑞等品牌研发]
+      - industry: 生物医药
+        strength: medium
+      - industry: 政府/国企
+        strength: medium
+    typical_salary_level:
+      relative: medium
+      note: "薪资适中，软件行业有竞争力"
+    cost_of_living:
+      relative: low
+      note: "房价低于一线，生活成本适中"
+    tech_hub_strength: medium
+    quality_of_life:
+      pros:
+        - "历史文化底蕴深厚"
+        - "高校资源丰富，学术氛围好"
+        - "生活节奏适中，宜居"
+      cons:
+        - "高薪机会少于北上深杭"
+        - "一些前沿行业覆盖有限"
+    hukou_difficulty: low
+    notes: "软件外包和科研基地，长三角重要节点"
+
+  - id: wuhan
+    name: 武汉
+    dominant_industries:
+      - industry: 光电子/半导体
+        strength: high
+        key_players: [烽火通信, 长飞光纤, 华中科技大学产业链]
+      - industry: 汽车制造
+        strength: high
+        key_players: [东风汽车, 神龙汽车]
+      - industry: 高校/科研
+        strength: high
+        notes: "在校大学生数量全国前列"
+      - industry: 互联网/科技
+        strength: medium
+        key_players: [斗鱼, 卷皮网, 各大厂武汉研发中心]
+      - industry: 金融服务
+        strength: medium
+    typical_salary_level:
+      relative: medium
+      note: "薪资低于一线，但增长较快"
+    cost_of_living:
+      relative: low
+      note: "房价和生活成本较低，性价比高"
+    tech_hub_strength: medium
+    quality_of_life:
+      pros:
+        - "大学城氛围浓，知识型人才多"
+        - "生活成本低，购买力强"
+        - "光谷科技园发展迅速"
+        - "九省通衢，交通便利"
+      cons:
+        - "夏天酷热，冬天湿冷，气候较极端"
+        - "顶级互联网机会相对少"
+    hukou_difficulty: low
+    notes: "中部科教中心，光电子和汽车工业基地"

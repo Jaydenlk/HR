@@ -1,0 +1,261 @@
+meta:
+  name: 面试题目分类体系
+  version: "1.0"
+  confidence: medium
+  source_policy: "基于公开招聘信息、牛客网面经及行业经验汇编"
+  last_reviewed_at: "2026-05-26"
+  limitations:
+    - "频率数据为概括性描述，不同批次面试可能差异较大"
+    - "具体题目因面试官和岗位不同而变化"
+
+categories:
+  - id: behavioral
+    name: 行为面试题
+    description: 基于过去经历考察候选人行为模式和软技能
+    sub_categories:
+      - id: leadership
+        name: 领导力
+        example_patterns:
+          - "描述一次你带领团队克服困难的经历"
+          - "你如何在没有正式权力的情况下影响他人？"
+          - "举一个你主动承担额外责任的例子"
+        frequency_by_company_type:
+          big_tech: high
+          startup: medium
+          state_owned: low
+          foreign: high
+
+      - id: teamwork
+        name: 团队协作
+        example_patterns:
+          - "描述一次与不同背景同事合作的经历"
+          - "你如何处理团队成员意见不一致的情况？"
+          - "举一个你为团队牺牲个人利益的例子"
+        frequency_by_company_type:
+          big_tech: high
+          startup: high
+          state_owned: medium
+          foreign: high
+
+      - id: conflict
+        name: 冲突处理
+        example_patterns:
+          - "描述一次你与同事或上级产生分歧的经历"
+          - "你如何处理与业务方需求不合理的情况？"
+          - "遇到跨部门合作阻力时你怎么做？"
+        frequency_by_company_type:
+          big_tech: high
+          startup: medium
+          state_owned: low
+          foreign: high
+
+      - id: failure
+        name: 失败与复盘
+        example_patterns:
+          - "描述一次你失败的项目以及从中学到了什么"
+          - "你犯过最大的错误是什么？如何弥补？"
+          - "有没有你后悔做出的技术决策？"
+        frequency_by_company_type:
+          big_tech: high
+          startup: high
+          state_owned: low
+          foreign: high
+
+      - id: achievement
+        name: 成就与亮点
+        example_patterns:
+          - "描述你最自豪的一个项目成果"
+          - "你主导过的最复杂的系统或产品是什么？"
+          - "你如何量化自己的工作贡献？"
+        frequency_by_company_type:
+          big_tech: high
+          startup: high
+          state_owned: medium
+          foreign: high
+
+      - id: motivation
+        name: 动机与职业目标
+        example_patterns:
+          - "你为什么想加入我们公司？"
+          - "你的五年职业规划是什么？"
+          - "是什么让你离开上一家公司？"
+        frequency_by_company_type:
+          big_tech: high
+          startup: high
+          state_owned: high
+          foreign: high
+
+  - id: technical
+    name: 技术面试题
+    description: 考察候选人技术知识、编程能力和系统设计能力
+    sub_categories:
+      - id: algorithms
+        name: 算法题
+        example_patterns:
+          - "实现快速排序并分析复杂度"
+          - "设计一个LRU缓存"
+          - "找出数组中出现次数超过一半的元素"
+          - "判断二叉树是否为平衡二叉树"
+        topics:
+          - sorting: [快速排序, 归并排序, 堆排序, 计数排序]
+          - searching: [二分查找, 广度优先, 深度优先]
+          - dynamic_programming: [背包问题, 最长公共子序列, 股票买卖]
+          - graphs: [拓扑排序, 最短路径, 联通分量]
+        frequency_by_company_type:
+          big_tech: high
+          startup: medium
+          state_owned: low
+          foreign: high
+        china_specific:
+          note: 大厂(字节、美团等)偏重算法，笔试通常有3道LeetCode风格题目
+
+      - id: system_design
+        name: 系统设计
+        example_patterns:
+          - "设计一个支持千万用户的消息推送系统"
+          - "如何设计一个高并发的秒杀系统？"
+          - "设计微博的信息流架构"
+          - "如何保证分布式系统的数据一致性？"
+        topics:
+          - scalability: [水平扩展, 分库分表, 微服务]
+          - database: [MySQL调优, Redis使用场景, 索引设计]
+          - caching: [缓存穿透, 缓存击穿, 缓存雪崩]
+          - load_balancing: [Nginx配置, 流量分发策略]
+        frequency_by_company_type:
+          big_tech: high
+          startup: medium
+          state_owned: low
+          foreign: high
+
+      - id: coding
+        name: 现场编码
+        example_patterns:
+          - "手写一个单例模式"
+          - "实现一个线程安全的队列"
+          - "找出代码中的bug并修复"
+          - "对现有代码进行重构优化"
+        types:
+          - live_coding: "当场写代码，面试官实时观看"
+          - debugging: "给出有bug的代码，找出并修复"
+          - code_review: "审查代码并提出改进建议"
+        frequency_by_company_type:
+          big_tech: high
+          startup: high
+          state_owned: low
+          foreign: medium
+        china_specific:
+          note: 手撕代码在大厂面试中必考，中厂更偏重项目经验和代码风格
+
+  - id: case_study
+    name: 案例分析题
+    description: 考察候选人分析问题、结构化思维和商业判断能力
+    sub_categories:
+      - id: product_design
+        name: 产品设计
+        example_patterns:
+          - "设计一个外卖平台的评价系统"
+          - "微信如何设计一个面向老年人的版本？"
+          - "如何提升某App的日活跃用户数？"
+          - "在有限资源下如何进行功能优先级排序？"
+        frameworks:
+          - "用户群体→使用场景→核心需求→功能设计→度量指标"
+          - "HEART框架：Happiness, Engagement, Adoption, Retention, Task Success"
+        frequency_by_company_type:
+          big_tech: high
+          startup: medium
+          state_owned: low
+          foreign: high
+        china_specific:
+          common_topics:
+            - "设计一个XX产品：面试官给一个领域，候选人从0开始设计"
+            - "如何平衡用户体验与商业变现"
+            - "以某款国内产品为例进行竞品分析"
+
+      - id: business_analysis
+        name: 商业分析
+        example_patterns:
+          - "估算北京市场某外卖品类的市场规模"
+          - "分析某竞品的战略意图"
+          - "如果你是CEO，你会如何进入一个新市场？"
+        frameworks:
+          - "市场规模：TAM/SAM/SOM"
+          - "竞争分析：波特五力模型"
+          - "战略选择：SWOT分析"
+        frequency_by_company_type:
+          big_tech: medium
+          startup: medium
+          state_owned: low
+          foreign: high
+
+      - id: estimation
+        name: 估算题
+        example_patterns:
+          - "估算中国每天消耗多少双筷子"
+          - "估算上海地铁每天的运客量"
+          - "估算某App每天新增用户数"
+        approach: "费米估算：分解问题→合理假设→逐步推导→得出量级结论"
+        frequency_by_company_type:
+          big_tech: medium
+          startup: low
+          state_owned: low
+          foreign: high
+
+  - id: culture_fit
+    name: 文化契合度
+    description: 考察候选人价值观是否与公司文化匹配
+    sub_categories:
+      - id: values
+        name: 价值观
+        example_patterns:
+          - "你如何理解我们公司的使命？"
+          - "你认为好的工作文化是什么样的？"
+          - "如果和公司价值观产生冲突你会怎么做？"
+        frequency_by_company_type:
+          big_tech: high
+          startup: high
+          state_owned: medium
+          foreign: high
+
+      - id: work_style
+        name: 工作风格
+        example_patterns:
+          - "你更喜欢独立工作还是团队协作？"
+          - "面对模糊需求你如何处理？"
+          - "如何在高压下保持工作质量？"
+        frequency_by_company_type:
+          big_tech: medium
+          startup: high
+          state_owned: low
+          foreign: high
+
+      - id: career_goals
+        name: 职业目标
+        example_patterns:
+          - "你希望三年后在哪个方向发展？"
+          - "你认为这个岗位对你职业发展有什么帮助？"
+          - "你对技术路线和管理路线有什么想法？"
+        frequency_by_company_type:
+          big_tech: high
+          startup: high
+          state_owned: medium
+          foreign: high
+
+china_specific_formats:
+  - id: group_interview
+    name: 群面（无领导小组讨论）
+    description: 多名候选人一起讨论一个议题，考察领导力、表达和团队配合
+    typical_topics:
+      - "如果公司资金有限，以下项目你们小组如何选择优先级？（给出若干选项）"
+      - "讨论某个社会热点话题并给出政策建议"
+      - "如果你们是公司管理层，如何应对以下危机？"
+    common_companies: [腾讯, 华为, 宝洁, 联合利华, 咨询公司]
+    key_behaviors_observed: [主导讨论能力, 倾听他人, 时间管理, 总结归纳]
+
+  - id: stress_interview
+    name: 压力面试
+    description: 面试官刻意制造压力或质疑，考察候选人情绪稳定性
+    common_patterns:
+      - "直接质疑简历上的成就：'这个数据是不是有水分？'"
+      - "提出与候选人观点相悖的意见并追问"
+      - "快速切换话题，不给候选人准备时间"
+    common_companies: [投资银行, 咨询公司, 部分外企]

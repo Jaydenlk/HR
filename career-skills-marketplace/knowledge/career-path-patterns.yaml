@@ -1,0 +1,243 @@
+meta:
+  name: 职业转型路径模式
+  version: "1.0"
+  confidence: medium
+  source_policy: "基于公开职业案例、招聘实践及行业经验汇编"
+  last_reviewed_at: "2026-05-26"
+  limitations:
+    - "转型成功率因人而异，数据为行业观察结论"
+    - "所需年限为典型区间，个人能力和机遇影响较大"
+    - "市场环境变化可能影响路径可行性"
+
+paths:
+  - id: backend_to_architect
+    from_role: 后端工程师
+    to_role: 技术架构师
+    difficulty: moderate
+    typical_duration: "3-5年"
+    description: 从执行层工程师成长为负责系统整体设计的架构角色
+    required_skills:
+      technical:
+        - "深入掌握分布式系统设计原理（CAP定理、一致性协议等）"
+        - "熟悉多种数据库选型和调优（RDBMS、NoSQL、NewSQL）"
+        - "理解高可用、高并发架构设计模式"
+        - "具备性能调优和容量规划能力"
+        - "熟悉云原生技术栈（Kubernetes、微服务）"
+      soft_skills:
+        - "技术方案的书面表达和演讲能力"
+        - "跨团队技术决策的推动和协调能力"
+        - "对业务的理解能力，能将业务需求转化为技术方案"
+    common_blockers:
+      - "长期只做局部功能，缺乏系统全局视角"
+      - "仅有技术深度，缺乏跨服务/跨系统的设计经验"
+      - "沟通表达能力弱，无法说服业务方和管理层"
+      - "没有机会主导大型项目的架构设计"
+    success_factors:
+      - "主动承担系统重构或技术专项工作"
+      - "参与并主导架构评审，积累技术判断经验"
+      - "建立跨团队影响力，而非只做局部优化"
+      - "输出技术文章或分享，建立技术品牌"
+    china_specific_notes:
+      - "大厂T系列晋升路径：T5→T6需要展示系统设计影响力"
+      - "P序列（阿里）：P7以上通常要求具备架构能力"
+    confidence: medium
+    source_policy: "基于行业观察及公开分享汇编"
+
+  - id: backend_to_product
+    from_role: 后端工程师
+    to_role: 产品经理
+    difficulty: hard
+    typical_duration: "1-2年"
+    description: 从技术实现角色转型为负责产品定义和用户体验的产品角色
+    required_skills:
+      technical:
+        - "保留对技术实现可行性的判断力（作为优势而非主业）"
+        - "数据分析能力（SQL查询、数据可视化）"
+      product_specific:
+        - "用户研究和需求发现方法"
+        - "产品需求文档（PRD）撰写规范"
+        - "竞品分析框架和市场研究方法"
+        - "项目管理和跨职能协作能力"
+        - "数据驱动的决策能力（A/B测试、漏斗分析）"
+    common_blockers:
+      - "思维惯性：以技术实现而非用户价值为中心"
+      - "缺乏用户同理心，习惯从系统视角思考问题"
+      - "简历无产品经验，初期难以获得面试机会"
+      - "PM岗位竞争激烈，转型门槛高"
+    success_factors:
+      - "在现岗内承担需求分析或产品规划工作，积累案例"
+      - "参与用户研究，建立用户思维"
+      - "报考产品相关培训或通过Side Project积累作品集"
+      - "利用技术背景，优先定位技术产品经理（TPM）岗位作为跳板"
+    transition_tips:
+      - "优先考虑技术产品经理（TPM）作为转型过渡岗位"
+      - "目标to-B产品或开发者工具类产品，技术背景是差异化优势"
+    confidence: medium
+    source_policy: "基于行业转型案例及招聘实践汇编"
+
+  - id: operations_to_product
+    from_role: 运营/业务运营
+    to_role: 产品经理
+    difficulty: moderate
+    typical_duration: "1-3年"
+    description: 从运营岗位转型为产品岗位，利用对用户和业务的深入理解
+    required_skills:
+      transferable:
+        - "用户行为分析和数据运营经验（直接可迁移）"
+        - "对业务流程的深入理解"
+        - "跨部门协作和需求沟通经验"
+      to_develop:
+        - "产品设计思维和原型制作（Figma/Axure）"
+        - "技术可行性评估基础能力"
+        - "需求文档规范化撰写"
+    common_blockers:
+      - "缺乏技术理解，与研发沟通存在障碍"
+      - "习惯执行层视角，缺乏产品全局设计能力"
+      - "无正式产品作品集，难以证明产品能力"
+    success_factors:
+      - "深挖当前运营数据，主动提出产品优化方案并推动落地"
+      - "参与需求评审会议，积累产品沟通经验"
+      - "选择运营和产品边界模糊的公司作为转型跳板"
+    confidence: medium
+    source_policy: "基于行业转型案例汇编"
+
+  - id: liberal_arts_to_product
+    from_role: 文科/非技术背景
+    to_role: 产品经理
+    difficulty: hard
+    typical_duration: "1-2年"
+    description: 非技术、非运营背景人员进入产品岗位
+    required_skills:
+      to_develop:
+        - "互联网产品基础知识（用户路径、转化漏斗）"
+        - "数据分析能力（Excel/SQL基础）"
+        - "技术术语和开发流程基础理解"
+        - "产品设计工具使用（Figma、Axure等）"
+        - "用户研究方法（访谈、问卷、可用性测试）"
+      transferable_by_background:
+        humanities: ["逻辑分析能力", "文字表达能力", "用户同理心"]
+        social_science: ["定量研究能力", "用户研究方法"]
+        design: ["视觉审美", "用户体验理解"]
+    common_blockers:
+      - "起点劣势明显，竞争对手大多有更强的相关背景"
+      - "缺乏实际产品案例，求职时证明能力困难"
+      - "技术沟通障碍，难以有效与研发协作"
+    success_factors:
+      - "通过独立产品项目建立作品集（App设计、网站等）"
+      - "考取相关认证（NPDP等，参考价值有限但可展示热情）"
+      - "优先目标to-C消费类产品，人文背景更能发挥用户洞察优势"
+      - "选择产品需求较小的公司，接受基层产品助理岗位积累"
+    confidence: medium
+    source_policy: "基于行业转型案例汇编"
+
+  - id: tech_to_management
+    from_role: 技术专家（工程师/架构师）
+    to_role: 技术管理者（TL/Engineering Manager）
+    difficulty: moderate
+    typical_duration: "2-4年"
+    description: 从个人贡献者（IC）转型为管理者，负责团队和人员发展
+    required_skills:
+      to_develop:
+        - "人员招聘和面试能力"
+        - "绩效管理和员工辅导技巧"
+        - "向上管理和跨部门协调"
+        - "团队文化建设和激励机制设计"
+        - "项目资源规划和风险管理"
+      retain:
+        - "保持技术判断力，避免脱离一线过早"
+    common_blockers:
+      - "从技术成就感转向管理价值感的心态适应难"
+      - "习惯自己做，难以放权和培养下属"
+      - "技术深度可能逐渐退化，引发自我怀疑"
+      - "缺乏被管理他人的系统培训"
+    success_factors:
+      - "从带实习生或应届生开始，积累管理经验"
+      - "在现岗内主动承担项目Lead角色"
+      - "寻求管理类课程或书籍系统学习"
+      - "建立清晰的1on1机制和团队运作规范"
+    china_specific_notes:
+      - "大厂中EM路径和IC路径薪资差异在高级别逐渐缩小"
+      - "部分公司TL是技术专家而非管理者，避免混淆两种路径"
+    confidence: medium
+    source_policy: "基于行业观察及管理实践汇编"
+
+  - id: big_tech_to_startup
+    from_role: 大厂员工（互联网大企业）
+    to_role: 初创公司员工
+    difficulty: low
+    typical_duration: "直接转型，适应期3-6个月"
+    description: 从成熟大厂跳槽至创业公司，追求更高的成长空间和股权收益
+    required_skills:
+      attitude_shift:
+        - "接受不确定性和资源匮乏的工作环境"
+        - "从专业化到全栈化，能一人多用"
+        - "结果导向，减少流程依赖"
+      bring_from_big_tech:
+        - "系统化的工作方法论和最佳实践"
+        - "技术或产品的深度专业能力"
+        - "优质的人脉资源网络"
+    common_blockers:
+      - "习惯大厂资源和品牌背书，创业公司缺乏这些支撑"
+      - "大厂工作方式标准化，初创公司更需要灵活性"
+      - "股权价值不确定，可能最终归零"
+    success_factors:
+      - "选择与自身经验高度匹配的赛道"
+      - "关注创始人背景和融资轮次，优先选B轮之前但已验证方向"
+      - "谈判好基本薪资保障，不要过度依赖期权"
+    confidence: medium
+    source_policy: "基于行业转型案例汇编"
+
+  - id: big_tech_to_foreign
+    from_role: 国内大厂员工
+    to_role: 外资跨国企业员工
+    difficulty: moderate
+    typical_duration: "直接转型，适应期6-12个月"
+    description: 从国内互联网大厂转入外资跨国企业，追求国际化经验或工作生活平衡
+    required_skills:
+      to_develop:
+        - "英语工作能力（书面和口语）"
+        - "跨文化沟通和协作能力"
+        - "更结构化的文档和汇报文化适应"
+      bring:
+        - "在中国市场的深度本地化经验"
+        - "高强度工作下积累的效率方法"
+    common_blockers:
+      - "英语工作能力不足，尤其是全英文会议和文档"
+      - "工作节奏和文化差异适应（外企通常节奏较慢）"
+      - "薪资package可能低于大厂（base高但总包可能下降）"
+    success_factors:
+      - "目标需要中国市场经验的岗位，差异化竞争"
+      - "提前强化英文简历和面试准备"
+      - "利用猎头渠道，外企招聘更多依赖猎头"
+    confidence: medium
+    source_policy: "基于行业转型案例汇编"
+
+  - id: big_tech_to_state_owned
+    from_role: 互联网大厂员工
+    to_role: 国有企业员工
+    difficulty: low
+    typical_duration: "直接转型，文化适应期6-18个月"
+    description: 从互联网大厂转入国有企业，通常以稳定性和福利为优先考量
+    required_skills:
+      to_develop:
+        - "适应科层制组织结构和决策流程"
+        - "政治敏感性和组织人际关系处理"
+        - "文件撰写和行政汇报规范"
+      bring:
+        - "互联网思维和数字化能力（通常是核心差异化优势）"
+        - "效率工具和敏捷工作方法"
+    common_blockers:
+      - "工作文化差异极大，容易产生不适应感"
+      - "晋升通道更重资历，成果导向难以快速进步"
+      - "部分国企内部政治复杂，需较长时间适应"
+    success_factors:
+      - "目标国企数字化转型相关岗位，互联网背景是稀缺资源"
+      - "降低对晋升速度的预期，以稳定性和生活质量换取职业发展"
+      - "选择市场化程度较高的国企（如国企互联网子公司）"
+    notes: "薪资通常低于大厂，但稳定性显著提升，福利和工作强度更优"
+    china_specific_notes:
+      - "部分央企提供北上等城市户口指标，是重要隐性收益"
+      - "国企工作强度低，有助于需要更多个人时间的人群"
+      - "选择国企互联网子公司（如招商银行科技、国家电网数字化部门）作为过渡"
+    confidence: medium
+    source_policy: "基于行业转型案例及公开讨论汇编"
