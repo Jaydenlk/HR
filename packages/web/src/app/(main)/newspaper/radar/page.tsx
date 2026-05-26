@@ -51,18 +51,21 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const ROLE_CATEGORY_LABELS: Record<string, string> = {
-  backend: '后端',
-  frontend: '前端',
-  algorithm: '算法',
-  embedded: '嵌入式',
-  product: '产品',
+  backend: '后端开发',
+  frontend: '前端开发',
+  algorithm: '算法工程师',
+  product: '产品经理',
   operations: '运营',
-  hr: 'HR',
+  hr: '人力资源',
   design: '设计',
-  data: '数据',
-  finance: '金融',
+  data: '数据分析',
+  finance: '金融/财务',
   consulting: '咨询',
-  marketing: '市场',
+  marketing: '市场营销',
+  management_trainee: '管培生',
+  embedded: '嵌入式开发',
+  testing: '测试开发',
+  client: '客户端开发',
   general: '综合',
 };
 
