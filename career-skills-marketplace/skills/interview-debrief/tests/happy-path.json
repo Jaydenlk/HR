@@ -1,0 +1,15 @@
+{
+  "description": "完整面试记录，5题以上，期望 confidence: high，完整六维度评分和逐题分析",
+  "input": {
+    "interview_transcript": "面试官：请介绍推荐系统项目。\n我：主导冷启动重构，CTR从3%提升到7.2%，通过协同过滤+内容融合，A/B验证后全量。\n面试官：为什么选协同过滤？\n我：有足够用户行为数据，泛化能力优于纯内容推荐。\n面试官：讲讲深度学习在推荐的实践。\n我：用DIN做序列建模，离线训练+在线蒸馏，平衡效果和延迟。\n面试官：如何处理冷启动数据稀疏？\n我：结合注册标签和前5次行为联合建模。\n面试官：职业规划？\n我：3年内聚焦推荐算法深度，积累工业界经验后考虑技术方向管理。",
+    "company_name": "某内容平台",
+    "job_title": "推荐算法工程师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "dimension_scores", "operator": "length_eq", "value": 6 },
+    { "path": "question_analysis", "operator": "length_gte", "value": 3 },
+    { "path": "prediction.pass_likelihood", "operator": "not_null" },
+    { "path": "overall_grade", "operator": "not_null" }
+  ]
+}

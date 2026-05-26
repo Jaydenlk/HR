@@ -1,0 +1,24 @@
+{
+  "description": "完整画像 + 技能差距 → 多个有 evidence_basis 的项目推荐 + anti_patterns",
+  "input": {
+    "profile": {
+      "basic": { "name": "张伟", "years_of_experience": 5, "current_role": { "value": "技术专家" } },
+      "skills": {
+        "technical": [
+          { "name": "Go", "proficiency": "used_in_project", "evidence_source": "项目" },
+          { "name": "Redis", "proficiency": "used_in_project", "evidence_source": "项目" }
+        ]
+      },
+      "experience": [{ "company": "美团", "role": "技术专家", "duration": "2023-至今" }]
+    },
+    "skill_gaps": [{ "skill_name": "Kubernetes", "gap_severity": "critical" }],
+    "target_role": "高级后端架构师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "project_ideas", "operator": "length_gte", "value": 1 },
+    { "path": "project_ideas[0].evidence_basis", "operator": "not_empty", "value": true },
+    { "path": "project_ideas[0].interview_talking_points", "operator": "length_gte", "value": 1 },
+    { "path": "anti_patterns", "operator": "length_gte", "value": 1 }
+  ]
+}

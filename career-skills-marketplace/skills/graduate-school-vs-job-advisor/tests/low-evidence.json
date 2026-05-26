@@ -1,0 +1,14 @@
+{
+  "description": "profile.basic.education 为 null → error",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "education": null, "years_of_experience": 0 },
+      "skills": { "technical": [] },
+      "career_intent": { "target_roles": [] }
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["insufficient", "low"] },
+    { "path": "analysis", "operator": "length_eq", "value": 0 }
+  ]
+}

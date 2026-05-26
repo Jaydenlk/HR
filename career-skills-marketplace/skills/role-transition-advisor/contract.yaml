@@ -1,0 +1,85 @@
+name: role-transition-advisor
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户明确说明想从当前角色转向另一个角色
+  - 用户询问跨职能转型的可行性（如：开发转产品、运营转数据）
+  - 用户不确定转型是否值得尝试，需要客观评估
+  - 求职主理人判断用户目标职位与背景有较大差距时
+
+when_not_to_use:
+  - 用户只是在同一职能方向晋升（使用 career-path-planner）
+  - 用户没有明确的目标角色（需先确认意向）
+  - 用户画像 confidence 为 insufficient（先补充画像）
+
+inputs:
+  primary:
+    - name: profile
+      type: object
+      required: true
+      description: "来自 profile-builder 的用户画像"
+    - name: target_role
+      type: string
+      required: true
+      description: "目标职位名称，如：产品经理、研发经理"
+  optional:
+    - name: target_company_type
+      type: string
+      required: false
+      enum: ["internet", "state_owned", "foreign", "startup", "any"]
+      description: "目标公司类型（影响转型策略）"
+    - name: timeline_months
+      type: integer
+      required: false
+      minimum: 1
+      maximum: 60
+      description: "期望完成转型的时间（月）"
+
+confidence_policy:
+  high:
+    condition: "profile.confidence 为 high，且 target_role 在知识库中有对应数据"
+    threshold: "evidence_count >= 6"
+  medium:
+    condition: "profile.confidence 为 medium，或 target_role 为非标准职位名称"
+    threshold: "evidence_count 3-5"
+  low:
+    condition: "profile.confidence 为 low，只有基本信息"
+    threshold: "evidence_count < 3"
+  insufficient:
+    condition: "profile 缺失或 target_role 为空"
+    action: "返回 error"
+
+failure_modes:
+  - type: missing_inputs
+    trigger: "profile 或 target_role 缺失"
+    response: "返回 error，说明需要这两个字段"
+  - type: same_role
+    trigger: "target_role 与 profile.basic.current_role.value 相同"
+    response: "返回 error，说明当前角色与目标角色相同，建议使用 career-path-planner"
+  - type: extreme_gap
+    trigger: "技能差距过大（如：无技术背景转高级架构师）"
+    response: "返回 not_feasible，明确列出不可逾越的障碍"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - feasibility
+    - skill_gap[]
+    - typical_transition_path[]
+    - success_factors[]
+    - first_step
+  metadata:
+    - confidence
+    - evidence_count
+    - cannot_determine[]
+
+dependencies:
+  depends_on:
+    - profile-builder
+  shared_schemas:
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  knowledge:
+    - _career-skills-shared/knowledge/role-taxonomy/
+    - _career-skills-shared/knowledge/company-taxonomy/

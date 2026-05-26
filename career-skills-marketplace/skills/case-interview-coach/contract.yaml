@@ -1,0 +1,75 @@
+name: case-interview-coach
+version: "1.0.0"
+purpose: "Case 面试/产品设计题备考：结构化框架库+练习案例+常见错误+评估标准，适用于产品/咨询/商业分析岗"
+role: worker
+layer: interview
+
+when_to_use:
+  - 用户准备产品设计题（产品经理岗）
+  - 用户准备咨询 Case 面试
+  - 用户准备无领导小组讨论（群面）
+  - 用户需要商业分析/市场估算题框架
+  - 用户想了解 Case 面试的评分标准
+
+when_not_to_use:
+  - 用户准备的是技术/算法面试（走 technical-interview-coach）
+  - 用户需要行为题准备（走 behavioral-story-builder）
+  - 用户需要面试情报而非方法论（走 interview-intelligence）
+
+inputs_required:
+  - name: interview_type
+    type: string
+    enum: ["product_design", "market_estimation", "case_consulting", "group_discussion", "business_analysis"]
+    description: "Case 面试类型"
+
+optional_context:
+  - name: target_company
+    type: string
+    description: "目标公司或行业（用于定制练习案例背景）"
+  - name: experience_level
+    type: string
+    enum: ["fresh_grad", "1-3yr", "3-5yr", "5yr_plus"]
+    description: "候选人经验水平（影响练习难度）"
+  - name: focus_area
+    type: string
+    description: "重点练习方向（如「B端产品设计」「咨询盈利型Case」）"
+
+depends_on: []
+
+tools_allowed:
+  - Read
+  - Grep
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "interview_type 有效，框架和案例来自已验证的行业方法论"
+  medium:
+    condition: "interview_type 有效但 focus_area 偏小众，覆盖度有限"
+  low:
+    condition: "interview_type 边界模糊，不确定用哪种框架最合适"
+  insufficient:
+    condition: "interview_type 无效或为空"
+
+failure_modes:
+  - type: invalid_type
+    trigger: "interview_type 不在有效枚举中"
+    response: "返回 validation_error，列出有效的 interview_type 值"
+  - type: overconfidence
+    trigger: "对咨询 Case 面试保证「用这个框架一定通过」"
+    response: "禁止；Case 面试高度个性化，框架是工具，不保证结果"
+
+china_market_specificity: high
+
+live_research_required: false
+
+degradation_behavior:
+  no_live_data: "本 skill 基于知识图谱通用方法论，无实时数据依赖，无降级行为"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json

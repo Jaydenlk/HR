@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "referral-strategy 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "referral_paths", "cold_outreach_targets", "network_gaps"
+  ],
+  "properties": {
+    "skill_name": { "const": "referral-strategy" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "内推路径分析概述（中文）" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "content"],
+        "properties": {
+          "source": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "referral_paths": {
+      "type": "array",
+      "description": "可执行的内推路径列表（基于已知人脉）",
+      "items": {
+        "type": "object",
+        "required": ["target_company", "contact_description", "path_type", "estimated_success_rate", "priority", "suggested_action"],
+        "properties": {
+          "target_company": { "type": "string" },
+          "contact_description": {
+            "type": "string",
+            "description": "联系人描述（不暴露真实姓名若用户匿名处理）"
+          },
+          "path_type": {
+            "type": "string",
+            "enum": ["direct", "indirect", "cold_contact"]
+          },
+          "estimated_success_rate": {
+            "type": "string",
+            "description": "估计转化率范围（如「30-50%」）"
+          },
+          "priority": { "type": "integer", "minimum": 1 },
+          "relationship_strength": {
+            "type": "string",
+            "enum": ["strong", "moderate", "weak"]
+          },
+          "suggested_action": {
+            "type": "string",
+            "description": "建议的联系方式和时机"
+          }
+        }
+      }
+    },
+    "cold_outreach_targets": {
+      "type": "array",
+      "description": "冷接触目标建议（当已知人脉不足时）",
+      "items": {
+        "type": "object",
+        "required": ["target_company", "target_profile_type", "platform", "approach"],
+        "properties": {
+          "target_company": { "type": "string" },
+          "target_profile_type": {
+            "type": "string",
+            "description": "目标联系人类型（如「公司内同校校友」「相关业务线工程师」）"
+          },
+          "platform": { "type": "string", "description": "建议接触平台（脉脉/LinkedIn/校友会）" },
+          "approach": { "type": "string", "description": "接触策略" }
+        }
+      }
+    },
+    "network_gaps": {
+      "type": "array",
+      "description": "人脉网络空缺（目标公司无直接人脉）",
+      "items": {
+        "type": "object",
+        "required": ["target_company", "gap_description", "fill_strategy"],
+        "properties": {
+          "target_company": { "type": "string" },
+          "gap_description": { "type": "string" },
+          "fill_strategy": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "interview-debrief 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "overall_grade", "dimension_scores", "question_analysis", "prediction", "stories_to_save"
+  ],
+  "properties": {
+    "skill_name": { "const": "interview-debrief" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "面试整体表现综述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "overall_grade": {
+      "type": "string",
+      "enum": ["A+", "A", "B+", "B", "C", "D"],
+      "description": "面试整体评级"
+    },
+    "dimension_scores": {
+      "type": "array",
+      "description": "六维度评分",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["dimension", "score", "comment"],
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "enum": ["专业能力", "表达清晰", "逻辑结构", "STAR完整度", "文化契合", "综合印象"]
+          },
+          "score": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "comment": { "type": "string" }
+        }
+      }
+    },
+    "question_analysis": {
+      "type": "array",
+      "description": "逐题分析",
+      "items": {
+        "type": "object",
+        "required": ["question", "score", "strength", "gap", "ideal_elements"],
+        "properties": {
+          "question": { "type": "string" },
+          "user_answer_summary": { "type": "string" },
+          "score": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "strength": { "type": "string", "description": "回答亮点，必须引用原话" },
+          "gap": { "type": "string", "description": "关键缺口，具体说明缺失内容" },
+          "ideal_elements": { "type": "array", "items": { "type": "string" } },
+          "improvement_script": { "type": "string", "description": "改进版示例（简短示意）" }
+        }
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "required": ["pass_likelihood", "pass_percentage", "rationale", "swing_factors"],
+      "properties": {
+        "pass_likelihood": {
+          "type": "string",
+          "enum": ["strong_yes", "yes", "maybe", "no", "strong_no"]
+        },
+        "pass_percentage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "粗略估算通过率（非精确值）"
+        },
+        "rationale": { "type": "string", "description": "预测依据，引用面试关键信号" },
+        "swing_factors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "影响最终结果的不确定因素"
+        }
+      }
+    },
+    "stories_to_save": {
+      "type": "array",
+      "description": "可提炼为 STAR 故事的面试素材",
+      "items": {
+        "type": "object",
+        "required": ["title", "competency", "star_summary", "polish_needed"],
+        "properties": {
+          "title": { "type": "string" },
+          "competency": { "type": "string", "description": "对应能力维度" },
+          "star_summary": { "type": "string", "description": "STAR 四要素简写" },
+          "polish_needed": { "type": "string", "description": "需要打磨的部分" }
+        }
+      }
+    }
+  }
+}

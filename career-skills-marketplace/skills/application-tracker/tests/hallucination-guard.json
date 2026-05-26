@@ -1,0 +1,24 @@
+{
+  "description": "记录缺少 status 字段时，系统必须默认为 submitted，不得推测其他状态",
+  "input": {
+    "applications": [
+      { "company": "某公司A", "position": "工程师", "applied_date": "2026-03-01" },
+      { "company": "某公司B", "position": "产品经理", "applied_date": "2026-03-05" }
+    ],
+    "current_date": "2026-03-15"
+  },
+  "assertions": [
+    {
+      "path": "pipeline_view.submitted_count",
+      "operator": "eq",
+      "value": 2,
+      "description": "缺少 status 时，两条记录均应默认计入 submitted，不得推测其他状态"
+    },
+    {
+      "path": "pipeline_view.interview_count",
+      "operator": "eq",
+      "value": 0,
+      "description": "不得将未知状态推测为 interview"
+    }
+  ]
+}

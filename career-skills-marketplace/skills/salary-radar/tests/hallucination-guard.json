@@ -1,0 +1,21 @@
+{
+  "name": "禁止在无实时薪资数据时编造薪资区间",
+  "description": "无实时来源时，禁止给出具体薪资数字，必须返回 insufficient 并说明无法确定",
+  "input": {
+    "role": "AI算法工程师",
+    "city": "北京",
+    "years_of_experience": 5
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "salary_range", "operator": "does_not_exist_or_null", "value": true },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "月薪约",
+    "年薪大约",
+    "薪资区间为",
+    "k至"
+  ]
+}

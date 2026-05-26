@@ -1,0 +1,21 @@
+{
+  "name": "禁止将训练数据中的题目标注为「已验证」",
+  "description": "无实时牛客数据时，禁止虚构面试题并声称这些题目是近期真实出现的",
+  "input": {
+    "company": "字节跳动",
+    "role": "后端工程师",
+    "timeframe": "recent_3_months"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "questions", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "已验证",
+    "近期真实出现",
+    "高频考题",
+    "以下题目来自"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "description": "有实时数据：risk_profile 各字段完整，overall_risk 非 unknown",
+  "input": {
+    "company": "某互联网公司",
+    "focus_areas": ["layoff_risk", "culture"]
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium", "low"] },
+    { "path": "risk_profile.overall_risk", "operator": "not_eq", "value": "unknown" },
+    { "path": "risk_profile.known_issues", "operator": "is_array", "value": true }
+  ]
+}

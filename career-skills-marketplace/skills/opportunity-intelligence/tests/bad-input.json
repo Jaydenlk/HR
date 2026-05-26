@@ -1,0 +1,11 @@
+{
+  "description": "输入内容为非 JD 文本（新闻），期望 confidence=insufficient，不输出有效评分",
+  "input": {
+    "jd_text": "今日科技股整体下跌，纳斯达克指数收跌2.3%，科技巨头普遍承压。"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "opportunity_score", "operator": "eq", "value": null },
+    { "path": "recommendation", "operator": "eq", "value": "need_more_info" }
+  ]
+}

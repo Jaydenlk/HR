@@ -1,0 +1,10 @@
+{
+  "description": "无实时数据：overall_risk=unknown，data_age_warning 必填，confidence=low",
+  "input": { "company": "不知名小公司" },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "risk_profile.overall_risk", "operator": "in", "value": ["unknown"] },
+    { "path": "risk_profile.data_age_warning", "operator": "exists", "value": true }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "完整输入（校友关系+画像+平台），期望生成非空消息草稿，what_not_to_say 非空",
+  "input": {
+    "target_company": "字节跳动",
+    "target_position": "后端工程师",
+    "platform": "maimai",
+    "user_profile": {
+      "years_of_experience": 3,
+      "skills": ["Java", "分布式系统"],
+      "education": "985院校，计算机，2021届"
+    },
+    "contact_info": {
+      "name": "李明",
+      "relationship": "alumni"
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "message_draft", "operator": "not_empty" },
+    { "path": "what_not_to_say", "operator": "length_gte", "value": 1 },
+    { "path": "follow_up_timing.follow_up_after_days", "operator": "gte", "value": 3 }
+  ]
+}

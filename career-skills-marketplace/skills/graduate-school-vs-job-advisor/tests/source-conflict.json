@@ -1,0 +1,22 @@
+{
+  "description": "目标算法岗 + 有保研资格 → critical_factors 倾向 supports_grad_school",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "林晓",
+        "education": { "school": "某985本科", "major": "计算机科学", "degree": "本科" },
+        "years_of_experience": 0
+      },
+      "skills": { "technical": [{ "name": "Python", "proficiency": "used_in_project", "evidence_source": "ML项目" }] },
+      "career_intent": { "target_roles": ["算法工程师"] }
+    },
+    "gpa": 3.8,
+    "gpa_percentile": 8,
+    "economic_pressure": "none"
+  },
+  "assertions": [
+    { "path": "critical_factors", "operator": "has_item_with", "field": "impact", "value": "supports_grad_school" },
+    { "path": "recommendation", "operator": "not_empty", "value": true },
+    { "path": "analysis", "operator": "length_gte", "value": 1 }
+  ]
+}

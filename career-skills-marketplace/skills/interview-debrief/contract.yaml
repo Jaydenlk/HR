@@ -1,0 +1,83 @@
+name: interview-debrief
+version: "1.0.0"
+purpose: "面试后复盘：分析对话记录，逐题点评评分，预测通过概率，提炼可复用 STAR 故事"
+role: worker
+layer: interview
+
+when_to_use:
+  - 用户刚完成面试，提供面试问答记录
+  - 用户想了解自己面试表现的优劣势
+  - 用户想预测面试结果
+  - 用户想沉淀可复用的面试故事
+
+when_not_to_use:
+  - 用户未进行过面试，只是想练习（走 mock-interviewer）
+  - 用户提供的不是面试记录（如日记、工作总结）
+  - 用户只想获取面试准备建议（走 interview-intelligence）
+
+inputs_required:
+  - name: interview_transcript
+    type: string
+    description: "面试对话记录（问题+回答，纯文本或结构化）"
+    min_length: 50
+
+optional_context:
+  - name: user_profile
+    type: object
+    description: "用户画像（来自 profile-builder），用于对比简历与实际陈述"
+  - name: company_name
+    type: string
+    description: "面试公司名称，用于判断文化契合维度"
+  - name: job_title
+    type: string
+    description: "目标岗位名称，用于判断专业能力评分基准"
+
+depends_on:
+  - profile-builder
+
+tools_allowed:
+  - Read
+  - Grep
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "面试记录完整（5题以上），含完整问答对话"
+  medium:
+    condition: "面试记录不完整，或仅有用户自述（3-4题）"
+  low:
+    condition: "记录极简（1-2题），无法全面判断"
+  insufficient:
+    condition: "输入不包含可分析的面试内容"
+    action: "返回 insufficient，不输出 question_analysis"
+
+failure_modes:
+  - type: non_interview_input
+    trigger: "输入不是面试记录（如新闻、代码片段）"
+    response: "返回 insufficient，message 说明需要面试问答记录"
+  - type: certainty_claim
+    trigger: "prediction.pass_likelihood 输出 certain 或明确承诺通过"
+    response: "禁止；预测必须使用枚举值，不得给出确定性保证"
+  - type: fabricated_strength
+    trigger: "strength 中引用用户未说出的内容"
+    response: "禁止；strength 只能基于面试记录中的实际陈述"
+  - type: empty_transcript
+    trigger: "interview_transcript 长度低于 50 字"
+    response: "返回 validation_error"
+
+china_market_specificity: medium
+
+live_research_required: false
+
+degradation_behavior:
+  missing_user_profile: "无法对比简历与陈述，文化契合维度基于面试记录本身推断"
+  missing_company_job: "专业能力评分基准使用通用标准，无法对齐目标岗位要求"
+  very_short_transcript: "confidence: low，question_analysis 和 stories_to_save 可能较少"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json

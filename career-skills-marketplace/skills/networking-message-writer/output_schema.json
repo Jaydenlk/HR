@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "networking-message-writer 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "message_draft", "tone", "key_points", "what_not_to_say", "follow_up_timing"
+  ],
+  "properties": {
+    "skill_name": { "const": "networking-message-writer" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "消息生成说明（中文）" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "content"],
+        "properties": {
+          "source": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "message_draft": {
+      "type": "string",
+      "description": "生成的消息正文（中文，可直接使用）"
+    },
+    "tone": {
+      "type": "string",
+      "enum": ["formal", "semi_formal", "casual"],
+      "description": "实际采用的语气"
+    },
+    "key_points": {
+      "type": "array",
+      "description": "消息中需要涵盖的关键点说明",
+      "items": { "type": "string" }
+    },
+    "what_not_to_say": {
+      "type": "array",
+      "description": "在此场景下应该避免的表达",
+      "items": { "type": "string" }
+    },
+    "follow_up_timing": {
+      "type": "object",
+      "description": "发送时机和后续跟进建议",
+      "required": ["best_send_time", "follow_up_after_days"],
+      "properties": {
+        "best_send_time": {
+          "type": "string",
+          "description": "最佳发送时间（如「工作日18:00-20:00」）"
+        },
+        "follow_up_after_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "若无回复，多少天后可以跟进一次"
+        },
+        "follow_up_note": {
+          "type": "string",
+          "description": "跟进时的注意事项"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "behavioral-story-builder 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "story_bank", "coverage_map", "gaps"
+  ],
+  "properties": {
+    "skill_name": { "const": "behavioral-story-builder" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "故事库构建综述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "story_bank": {
+      "type": "array",
+      "description": "STAR 故事库",
+      "items": {
+        "type": "object",
+        "required": ["title", "competency", "situation", "task", "action", "result", "polish_level"],
+        "properties": {
+          "title": { "type": "string" },
+          "competency": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["问题解决", "领导力", "协作影响", "主动创新", "逆境应对", "数据驱动", "客户中心", "自我学习"]
+            }
+          },
+          "situation": { "type": "string" },
+          "task": { "type": "string" },
+          "action": { "type": "string" },
+          "result": { "type": "string", "description": "无量化数据时标注「待补充」" },
+          "polish_level": {
+            "type": "string",
+            "enum": ["ready", "needs_polish", "skeleton"]
+          },
+          "applicable_questions": { "type": "array", "items": { "type": "string" } },
+          "time_estimate": { "type": "integer", "description": "口头讲述预计时长（分钟）" }
+        }
+      }
+    },
+    "coverage_map": {
+      "type": "object",
+      "required": ["strong_dimensions", "weak_dimensions", "missing_dimensions"],
+      "properties": {
+        "by_dimension": {
+          "type": "object",
+          "description": "各维度的故事数量",
+          "additionalProperties": { "type": "integer" }
+        },
+        "strong_dimensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "有2+故事的维度"
+        },
+        "weak_dimensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "仅有1个故事的维度"
+        },
+        "missing_dimensions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "无故事覆盖的维度"
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "description": "能力维度空白",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "severity"],
+        "properties": {
+          "dimension": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "moderate", "minor"]
+          },
+          "experience_hint": {
+            "type": "string",
+            "description": "用户经历中可能可以挖掘的素材提示"
+          }
+        }
+      }
+    }
+  }
+}

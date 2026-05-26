@@ -1,0 +1,14 @@
+{
+  "description": "有实时数据：growth_signals 非空，hiring_outlook 非 unknown",
+  "input": {
+    "industry": "新能源汽车",
+    "region": "中国",
+    "timeframe": "mid_term"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "growth_signals", "operator": "length_gte", "value": 1 },
+    { "path": "hiring_outlook", "operator": "not_eq", "value": "unknown" },
+    { "path": "recommended_entry_roles", "operator": "length_gte", "value": 1 }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "description": "仅 C 级来源：salary_range.grade=C，confidence=low",
+  "input": {
+    "role": "游戏策划",
+    "city": "成都"
+  },
+  "simulate": "low_grade_sources_only",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "salary_range.grade", "operator": "in", "value": ["C", "D"] }
+  ]
+}

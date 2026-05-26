@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "application-tracker 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "pipeline_view", "stats", "stale_alerts", "ghost_detection"
+  ],
+  "properties": {
+    "skill_name": { "const": "application-tracker" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "当前求职漏斗状态概述（中文）" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "content"],
+        "properties": {
+          "source": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "pipeline_view": {
+      "type": "object",
+      "description": "投递漏斗各阶段数量",
+      "required": ["submitted_count", "interview_count", "offer_count", "rejected_count"],
+      "properties": {
+        "submitted_count": { "type": "integer", "minimum": 0 },
+        "interview_count": { "type": "integer", "minimum": 0 },
+        "offer_count": { "type": "integer", "minimum": 0 },
+        "rejected_count": { "type": "integer", "minimum": 0 },
+        "withdrawn_count": { "type": "integer", "minimum": 0 },
+        "ghost_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "description": "求职统计数据",
+      "required": ["total_applications", "active_applications", "interview_rate", "offer_rate"],
+      "properties": {
+        "total_applications": { "type": "integer", "minimum": 0 },
+        "active_applications": { "type": "integer", "minimum": 0 },
+        "interview_rate": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 1 },
+            { "type": "null" }
+          ],
+          "description": "面试转化率（面试数/投递数），数据不足时为 null"
+        },
+        "offer_rate": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 1 },
+            { "type": "null" }
+          ],
+          "description": "offer率（offer数/面试数），数据不足时为 null"
+        },
+        "avg_response_days": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "type": "null" }
+          ],
+          "description": "平均回复天数，缺少日期时为 null"
+        }
+      }
+    },
+    "stale_alerts": {
+      "type": "array",
+      "description": "过期跟进提醒（需要行动的投递）",
+      "items": {
+        "type": "object",
+        "required": ["company", "position", "days_since_update", "recommended_action", "priority"],
+        "properties": {
+          "company": { "type": "string" },
+          "position": { "type": "string" },
+          "days_since_update": { "type": "integer", "minimum": 0 },
+          "current_status": { "type": "string" },
+          "recommended_action": { "type": "string" },
+          "priority": { "type": "string", "enum": ["high", "medium", "low"] }
+        }
+      }
+    },
+    "ghost_detection": {
+      "type": "array",
+      "description": "疑似幽灵岗或长期无回音投递",
+      "items": {
+        "type": "object",
+        "required": ["company", "position", "days_silent", "ghost_probability"],
+        "properties": {
+          "company": { "type": "string" },
+          "position": { "type": "string" },
+          "days_silent": { "type": "integer", "minimum": 0 },
+          "ghost_probability": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "suggestion": { "type": "string" }
+        }
+      }
+    }
+  }
+}

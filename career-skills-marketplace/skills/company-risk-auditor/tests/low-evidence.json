@@ -1,0 +1,21 @@
+{
+  "name": "新成立公司公开信息不足",
+  "description": "公司成立不足1年，无公开财务或裁员数据 → confidence=low，overall_risk=unknown",
+  "input": {
+    "company": "某初创公司（成立1年以内）",
+    "focus_areas": ["financial_health", "layoff_risk"]
+  },
+  "simulate": "no_public_data",
+  "expected_properties": {
+    "confidence": "low",
+    "risk_profile.overall_risk": "unknown"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "risk_profile.overall_risk", "operator": "in", "value": ["unknown", "insufficient"] },
+    { "path": "evidence_used", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 },
+    { "path": "next_actions", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": ["fabricated_risk_rating", "invented_financial_data"]
+}

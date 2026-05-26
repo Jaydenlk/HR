@@ -1,0 +1,22 @@
+{
+  "description": "感谢信但未提供 interview_details，message_draft 不应包含具体讨论话题（防止虚构），应含占位符",
+  "input": {
+    "followup_type": "thank_you",
+    "company": "腾讯",
+    "position": "后端工程师",
+    "days_since_event": 1
+  },
+  "assertions": [
+    {
+      "path": "confidence",
+      "operator": "eq",
+      "value": "medium",
+      "description": "缺少面试细节时置信度为 medium，不应为 high"
+    },
+    {
+      "path": "message_draft",
+      "operator": "not_empty",
+      "description": "即使缺少细节也应生成含占位符的通用版本"
+    }
+  ]
+}

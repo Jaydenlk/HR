@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "daily-plan-generator/input",
+  "title": "daily-plan-generator 输入",
+  "type": "object",
+  "required": ["current_date"],
+  "properties": {
+    "current_date": {
+      "type": "string",
+      "format": "date",
+      "description": "当前日期（YYYY-MM-DD），用于判断今日面试和 deadline"
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "profile-builder 输出的用户画像",
+      "properties": {
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "target_industries": { "type": "array", "items": { "type": "string" } },
+        "employment_status": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "pipeline_state": {
+      "type": "object",
+      "description": "application-tracker 的漏斗状态输出",
+      "properties": {
+        "pipeline_view": { "type": "object" },
+        "stale_alerts": { "type": "array" },
+        "ghost_detection": { "type": "array" }
+      },
+      "additionalProperties": true
+    },
+    "today_interviews": {
+      "type": "array",
+      "description": "今日面试列表",
+      "items": {
+        "type": "object",
+        "required": ["company", "position"],
+        "properties": {
+          "company": { "type": "string" },
+          "position": { "type": "string" },
+          "time": { "type": "string", "description": "面试时间（如 14:00）" },
+          "round": { "type": "string", "description": "面试轮次（如「一面」「技术面」）" },
+          "format": { "type": "string", "enum": ["online", "onsite", "phone"], "description": "面试形式" }
+        }
+      }
+    },
+    "pending_actions": {
+      "type": "array",
+      "description": "待办事项（需要今日处理的紧急事务）",
+      "items": {
+        "type": "object",
+        "required": ["action", "urgency"],
+        "properties": {
+          "action": { "type": "string" },
+          "urgency": { "type": "string", "enum": ["high", "medium", "low"] },
+          "deadline": { "type": "string", "format": "date" }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

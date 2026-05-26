@@ -1,0 +1,12 @@
+{
+  "description": "company_name 为空，期望验证错误，question_bank 为空",
+  "input": {
+    "company_name": "",
+    "job_title": "数据分析师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "validation_error" },
+    { "path": "question_bank", "operator": "length_eq", "value": 0 }
+  ]
+}

@@ -1,0 +1,84 @@
+name: salary-radar
+version: "1.0.0"
+role: worker
+
+live_research_required: true
+degradation_behavior: >
+  无法获取实时薪资数据时：降级到知识图谱历史数据，
+  freshness 标注为 stale，confidence 降为 low，
+  并在输出中明确标注"数据来自历史知识库，非实时数据，仅供参考"。
+  若连知识图谱数据也无法支撑，则 confidence 设为 insufficient。
+
+when_to_use:
+  - 用户询问某岗位/公司/城市的薪资行情
+  - 评估 offer 薪资是否合理
+  - 用作 offer-comparator 的数据源
+
+when_not_to_use:
+  - 用户已有多个 offer 需要比较（改用 offer-comparator）
+  - 用户询问公司其他风险（改用 company-risk-auditor）
+
+salary_grade_rule:
+  condition: "薪资数据缺少 year、city、role、source 中任一字段"
+  result: "grade 必须为 C，禁止升级"
+
+inputs:
+  primary:
+    - name: role
+      type: string
+      required: true
+      description: "岗位名称（如 后端工程师、产品经理）"
+  optional:
+    - name: company
+      type: string
+      description: "公司名称（指定公司时结果更精确）"
+    - name: city
+      type: string
+      description: "城市（如 北京、上海、深圳）"
+    - name: years_of_experience
+      type: integer
+      minimum: 0
+      description: "工作年限"
+    - name: industry
+      type: string
+      description: "行业"
+
+confidence_policy:
+  high:
+    condition: "3+ 个 A/B 级实时来源，包含 year+city+role+source 四要素"
+  medium:
+    condition: "1-2 个 B 级来源，或来源时间在 6 个月内"
+  low:
+    condition: "仅知识图谱历史数据，freshness: stale"
+  insufficient:
+    condition: "无任何可用数据，连知识图谱也无法支撑"
+
+failure_modes:
+  - type: no_live_data
+    trigger: "无实时来源"
+    response: "降级到知识图谱，confidence: low，freshness: stale"
+  - type: incomplete_salary_data
+    trigger: "薪资数据缺少 year/city/role/source 中任一"
+    response: "grade 强制为 C"
+  - type: hallucination
+    trigger: "无来源但尝试给出精确薪资数字"
+    response: "禁止，salary_range 来源不足时字段值为 null 或 insufficient"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - salary_range
+    - breakdown
+    - data_sources
+    - comparison
+  metadata:
+    - confidence
+    - data_freshness
+
+dependencies:
+  skills:
+    - source-quality-auditor
+  shared_schemas:
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  references:
+    - references/salary-data-sources.md

@@ -1,0 +1,87 @@
+name: graduate-school-vs-job-advisor
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户询问是否应该考研或直接工作
+  - 用户纠结于保研/出国/工作的选择
+  - 应届生在多个路径之间犹豫，需要客观分析
+  - 用户已有 offer 但考虑是否要先读研
+
+when_not_to_use:
+  - 用户已经开始工作多年（读研时机分析不适用）
+  - 用户只询问具体院校推荐（需要专业升学咨询）
+  - 用户画像中无教育背景信息
+
+inputs:
+  primary:
+    - name: profile
+      type: object
+      required: true
+      description: "来自 profile-builder 的用户画像"
+  optional:
+    - name: gpa
+      type: number
+      required: false
+      minimum: 0
+      maximum: 4.0
+      description: "当前 GPA（0-4分制）"
+    - name: gpa_percentile
+      type: integer
+      required: false
+      minimum: 1
+      maximum: 100
+      description: "GPA 年级排名百分位（1=最高）"
+    - name: target_school_tier
+      type: string
+      required: false
+      enum: ["985", "211", "双非", "any"]
+      description: "目标读研院校层次"
+    - name: economic_pressure
+      type: string
+      required: false
+      enum: ["none", "moderate", "high"]
+      description: "经济压力（high=家庭负担重，读研成本是重要考量）"
+    - name: has_internship
+      type: boolean
+      required: false
+      description: "是否有相关实习经历"
+
+confidence_policy:
+  high:
+    condition: "profile 包含教育背景，且提供了 gpa 或 gpa_percentile"
+    threshold: "evidence_count >= 5"
+  medium:
+    condition: "profile 有基本信息，但缺少 GPA 或具体意向"
+    threshold: "evidence_count 3-4"
+  low:
+    condition: "信息极少，无法给出有依据的建议"
+    threshold: "evidence_count < 3"
+  insufficient:
+    condition: "profile 缺失或无教育背景信息"
+    action: "返回 error，说明需要至少提供学历和目标职业方向"
+
+failure_modes:
+  - type: missing_education
+    trigger: "profile.basic.education 为 null"
+    response: "返回 error，说明无教育背景信息，无法分析"
+  - type: already_working
+    trigger: "profile.basic.years_of_experience >= 3"
+    response: "说明用户已有工作经验，读研分析视角不同（在职读研 vs 脱产读研），调整分析框架"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - analysis[]
+    - recommendation
+    - critical_factors[]
+  metadata:
+    - confidence
+    - evidence_count
+
+dependencies:
+  depends_on:
+    - profile-builder
+  shared_schemas:
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json

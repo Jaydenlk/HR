@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "xhs-interview-miner 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "mined_posts", "quality_report"
+  ],
+  "properties": {
+    "skill_name": { "const": "xhs-interview-miner" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": {
+      "type": "string",
+      "description": "面经挖掘结果概述（无数据时说明降级原因）"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "小红书来源上限为 C 级，整体置信度最高为 low；无实时数据时为 insufficient"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "使用的小红书帖子来源（无实时数据时为空）"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "mined_posts": {
+      "type": "array",
+      "description": "从小红书提取的面经帖子（无实时数据时为空数组）",
+      "items": {
+        "type": "object",
+        "required": ["post_id", "title", "interview_rounds", "credibility_grade", "is_promotional"],
+        "properties": {
+          "post_id": { "type": "string", "description": "帖子标识（URL 或平台 ID）" },
+          "title": { "type": "string" },
+          "date": { "type": "string", "description": "发布日期（ISO 8601）" },
+          "interview_rounds": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "面试轮次描述"
+          },
+          "key_questions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "提到的面试题目（仅来自原文，不推断）"
+          },
+          "result": {
+            "type": "string",
+            "enum": ["offer", "rejected", "pending", "unknown"]
+          },
+          "credibility_grade": {
+            "type": "string",
+            "enum": ["A", "B", "C", "D"],
+            "description": "可信度等级，小红书来源上限为 C"
+          },
+          "is_promotional": {
+            "type": "boolean",
+            "description": "是否疑似推广笔记"
+          }
+        }
+      }
+    },
+    "quality_report": {
+      "type": "object",
+      "required": ["total_found", "usable_count", "promotional_count", "average_grade"],
+      "properties": {
+        "total_found": { "type": "integer", "minimum": 0 },
+        "usable_count": { "type": "integer", "minimum": 0 },
+        "promotional_count": { "type": "integer", "minimum": 0 },
+        "average_grade": {
+          "type": "string",
+          "enum": ["A", "B", "C", "D", "N/A"],
+          "description": "可用帖子平均可信度等级"
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "credibility_ceiling": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D"],
+      "description": "本 skill 输出的可信度上限（固定为 C）"
+    }
+  }
+}

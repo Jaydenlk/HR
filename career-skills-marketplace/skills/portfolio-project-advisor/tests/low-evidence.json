@@ -1,0 +1,10 @@
+{
+  "description": "缺少 profile → error",
+  "input": {
+    "target_role": "产品经理"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "project_ideas", "operator": "length_eq", "value": 0 }
+  ]
+}

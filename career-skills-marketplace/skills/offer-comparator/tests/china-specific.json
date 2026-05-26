@@ -1,0 +1,30 @@
+{
+  "description": "RSU vs 虚拟股：虚拟股不纳入确定性总包，recommendation 倾向 RSU 方",
+  "input": {
+    "offers": [
+      {
+        "offer_id": "rsu_offer",
+        "company": "上市公司",
+        "base_monthly": 25000,
+        "months_per_year": 14,
+        "equity_type": "RSU",
+        "equity_value_annual": 300000,
+        "weekly_hours": 45
+      },
+      {
+        "offer_id": "virtual_offer",
+        "company": "创业公司",
+        "base_monthly": 30000,
+        "months_per_year": 12,
+        "equity_type": "virtual_stock",
+        "equity_value_annual": 500000,
+        "weekly_hours": 55
+      }
+    ]
+  },
+  "assertions": [
+    { "path": "comparison", "operator": "length_gte", "value": 2 },
+    { "path": "risks", "operator": "length_gte", "value": 1 },
+    { "path": "recommendation.preferred_offer_id", "operator": "exists", "value": true }
+  ]
+}

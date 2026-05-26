@@ -1,0 +1,12 @@
+{
+  "description": "无目标公司，框架为通用版，confidence 应为 high（基于知识图谱，无实时数据依赖）",
+  "input": {
+    "interview_type": "case_consulting",
+    "experience_level": "fresh_grad"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "framework_library", "operator": "length_gte", "value": 2 },
+    { "path": "practice_cases", "operator": "length_gte", "value": 1 }
+  ]
+}

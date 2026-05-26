@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "referral-strategy/input",
+  "title": "referral-strategy 输入",
+  "type": "object",
+  "required": ["target_companies", "user_profile"],
+  "properties": {
+    "target_companies": {
+      "type": "array",
+      "description": "目标公司列表",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "profile-builder 输出的用户画像",
+      "properties": {
+        "years_of_experience": { "type": "number" },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "education": { "type": "string" },
+        "previous_companies": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "network_contacts": {
+      "type": "array",
+      "description": "已知人脉列表",
+      "items": {
+        "type": "object",
+        "required": ["company"],
+        "properties": {
+          "name": { "type": "string", "description": "联系人姓名（可匿名为「A同学」）" },
+          "company": { "type": "string" },
+          "title": { "type": "string", "description": "职位" },
+          "relationship": {
+            "type": "string",
+            "enum": ["direct_friend", "alumni", "ex_colleague", "friend_of_friend", "acquaintance"],
+            "description": "与用户的关系类型"
+          },
+          "last_contact_days": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "距上次联系的天数（用于评估关系活跃度）"
+          },
+          "is_hiring_relevant": {
+            "type": "boolean",
+            "description": "联系人所在团队是否与目标职位相关"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "target_positions": {
+      "type": "array",
+      "description": "目标职位列表",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

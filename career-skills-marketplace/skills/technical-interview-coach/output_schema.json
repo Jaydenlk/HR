@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "technical-interview-coach 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "preparation_plan", "practice_questions", "common_patterns", "company_specific_focus"
+  ],
+  "properties": {
+    "skill_name": { "const": "technical-interview-coach" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "备考计划综述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "preparation_plan": {
+      "type": "array",
+      "description": "按优先级排序的备考计划",
+      "items": {
+        "type": "object",
+        "required": ["priority", "area", "estimated_hours"],
+        "properties": {
+          "priority": {
+            "type": "string",
+            "enum": ["critical", "high", "medium"]
+          },
+          "area": { "type": "string" },
+          "estimated_hours": { "type": "number", "minimum": 0 },
+          "target_week": { "type": "integer", "description": "建议在第几周完成" },
+          "resources_hint": { "type": "string", "description": "学习资源类型提示" }
+        }
+      }
+    },
+    "practice_questions": {
+      "type": "array",
+      "description": "练习题推荐（类型题，非真题）",
+      "items": {
+        "type": "object",
+        "required": ["title", "type", "difficulty", "key_concepts"],
+        "properties": {
+          "title": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["algorithm", "system_design", "coding", "cs_fundamentals"]
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"]
+          },
+          "target_company_relevance": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "key_concepts": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "common_patterns": {
+      "type": "array",
+      "description": "通用解题/设计模式",
+      "items": {
+        "type": "object",
+        "required": ["pattern_name", "applicable_types", "description"],
+        "properties": {
+          "pattern_name": { "type": "string" },
+          "applicable_types": { "type": "array", "items": { "type": "string" } },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "company_specific_focus": {
+      "type": "array",
+      "description": "目标公司特有技术考察偏好（无数据时为空数组）",
+      "items": {
+        "type": "object",
+        "required": ["focus_area", "rationale", "evidence_source"],
+        "properties": {
+          "focus_area": { "type": "string" },
+          "rationale": { "type": "string" },
+          "evidence_source": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "application-tracker/input",
+  "title": "application-tracker 输入",
+  "type": "object",
+  "required": ["applications", "current_date"],
+  "properties": {
+    "applications": {
+      "type": "array",
+      "description": "投递记录列表",
+      "items": {
+        "type": "object",
+        "required": ["company", "position"],
+        "properties": {
+          "id": { "type": "string", "description": "投递记录唯一ID（可选）" },
+          "company": { "type": "string", "description": "公司名称" },
+          "position": { "type": "string", "description": "职位名称" },
+          "applied_date": { "type": "string", "format": "date", "description": "投递日期" },
+          "status": {
+            "type": "string",
+            "enum": ["submitted", "in_review", "interview_scheduled", "interviewing", "offer", "rejected", "withdrawn", "ghost"],
+            "default": "submitted"
+          },
+          "last_updated": { "type": "string", "format": "date", "description": "状态最后更新日期" },
+          "notes": { "type": "string", "description": "备注（如面试轮次、HR联系信息）" },
+          "interview_date": { "type": "string", "format": "date", "description": "面试日期（已约面试时填写）" },
+          "channel": { "type": "string", "description": "投递渠道（BOSS直聘/猎聘/内推等）" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "current_date": {
+      "type": "string",
+      "format": "date",
+      "description": "当前日期，用于计算过期天数"
+    },
+    "follow_up_threshold_days": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60,
+      "default": 14,
+      "description": "幽灵检测阈值（天），默认14天"
+    },
+    "user_preferences": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

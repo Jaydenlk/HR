@@ -1,0 +1,22 @@
+{
+  "description": "recommendation 字段必须引用 fit_matrix 中最高评分的城市-行业组合",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "years_of_experience": 5 },
+      "skills": {
+        "technical": [
+          { "name": "Java", "proficiency": "used_in_project", "evidence_source": "项目" }
+        ]
+      },
+      "experience": [{ "company": "某公司", "role": "工程师", "duration": "2021-至今" }],
+      "constraints": { "location": ["上海", "杭州"] }
+    },
+    "candidate_cities": ["上海", "杭州"],
+    "candidate_industries": ["金融科技", "互联网"]
+  },
+  "assertions": [
+    { "path": "fit_matrix", "operator": "length_gte", "value": 2 },
+    { "path": "recommendation", "operator": "not_empty", "value": true },
+    { "path": "industry_hub_analysis", "operator": "length_gte", "value": 1 }
+  ]
+}

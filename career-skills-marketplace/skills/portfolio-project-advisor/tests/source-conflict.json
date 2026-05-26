@@ -1,0 +1,19 @@
+{
+  "description": "profile 中仅 mentioned 的技能不应被推荐为项目主技术栈",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "years_of_experience": 3 },
+      "skills": {
+        "technical": [
+          { "name": "Kafka", "proficiency": "mentioned", "evidence_source": "学习了解" },
+          { "name": "Go", "proficiency": "used_in_project", "evidence_source": "工作项目" }
+        ]
+      },
+      "experience": [{ "company": "某公司", "role": "工程师", "duration": "2023-至今" }]
+    }
+  },
+  "assertions": [
+    { "path": "anti_patterns", "operator": "length_gte", "value": 1 },
+    { "path": "project_ideas[0].skills_demonstrated", "operator": "does_not_contain", "value": "Kafka" }
+  ]
+}

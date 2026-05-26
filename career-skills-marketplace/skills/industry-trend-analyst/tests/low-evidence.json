@@ -1,0 +1,12 @@
+{
+  "description": "仅 C 级来源：confidence=low，hiring_outlook 可为 contracting/declining",
+  "input": {
+    "industry": "Web3",
+    "region": "中国"
+  },
+  "simulate": "low_grade_sources_only",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "trend_summary", "operator": "exists", "value": true }
+  ]
+}

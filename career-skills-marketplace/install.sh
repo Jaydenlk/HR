@@ -2,7 +2,14 @@
 set -e
 
 MARKETPLACE_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILLS=("career-principal" "profile-builder" "jd-analyzer" "resume-tailor" "match-diagnosis" "source-quality-auditor")
+# Discover all skills dynamically from skills/ directory
+SKILLS=()
+for dir in "$MARKETPLACE_DIR/skills"/*/; do
+  skill="$(basename "$dir")"
+  if [ -f "$dir/SKILL.md" ]; then
+    SKILLS+=("$skill")
+  fi
+done
 
 # Default: Claude Code
 SKILLS_ROOT="${HOME}/.claude/skills"

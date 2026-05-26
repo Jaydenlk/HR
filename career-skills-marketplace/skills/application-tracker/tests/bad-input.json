@@ -1,0 +1,13 @@
+{
+  "description": "空投递列表，期望 confidence=insufficient，所有计数为0",
+  "input": {
+    "applications": [],
+    "current_date": "2026-03-15"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "stats.total_applications", "operator": "eq", "value": 0 },
+    { "path": "pipeline_view.submitted_count", "operator": "eq", "value": 0 },
+    { "path": "ghost_detection", "operator": "length_eq", "value": 0 }
+  ]
+}

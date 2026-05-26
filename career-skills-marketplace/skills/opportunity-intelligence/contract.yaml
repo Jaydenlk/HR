@@ -1,0 +1,90 @@
+name: opportunity-intelligence
+version: "1.0.0"
+purpose: "综合评估求职机会的整体价值：候选人匹配度、市场定位、潜在风险，输出 0-100 评分和明确投递建议"
+role: worker
+layer: execution
+
+when_to_use:
+  - 用户询问某个职位是否值得投递
+  - 用户收到 offer 需要评估是否接受
+  - 用户想了解自己与目标岗位的匹配程度
+  - 进行批量机会筛选和优先级排序
+
+when_not_to_use:
+  - 输入不包含任何 JD 信息
+  - 用户已明确决定投递，只需要执行层辅助
+  - 用户问的是简历如何优化（走 resume-tailor）
+
+inputs_required:
+  - name: jd_analysis
+    type: object
+    description: "jd-analyzer 的输出结果（含 parsed_jd 结构）"
+    note: "jd_analysis 或 jd_text 至少提供一项"
+  - name: jd_text
+    type: string
+    description: "职位描述原文（若无 jd_analysis 时直接传入）"
+
+optional_context:
+  - name: user_profile
+    type: object
+    description: "profile-builder 输出的用户画像，用于计算匹配维度分"
+  - name: match_diagnosis
+    type: object
+    description: "match-diagnosis 的诊断结果，若已有则直接使用"
+  - name: source_quality
+    type: object
+    description: "source-quality-auditor 的来源质量评审结果"
+
+evidence_required:
+  - "jd_analysis 或 jd_text（必须）"
+  - "user_profile（缺失时匹配维度标注 cannot_determine）"
+  - "source_quality（缺失时来源可信度置 unknown）"
+
+tools_allowed:
+  - Read
+  - Grep
+
+depends_on:
+  - jd-analyzer
+  - match-diagnosis
+  - source-quality-auditor
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "jd_analysis + user_profile + source_quality 三维数据齐全"
+  medium:
+    condition: "缺少 user_profile 或 source_quality 之一"
+  low:
+    condition: "仅有 jd_text，无 profile 和来源质量数据"
+  insufficient:
+    condition: "无有效 JD 数据（jd_analysis 和 jd_text 均未提供）"
+    action: "返回 insufficient，不输出 opportunity_score"
+
+failure_modes:
+  - type: missing_jd_data
+    trigger: "jd_analysis 和 jd_text 均为空"
+    response: "返回 insufficient，message 说明需要 JD 数据"
+  - type: score_fabrication
+    trigger: "user_profile 缺失时仍输出完整 40% 匹配分"
+    response: "禁止；匹配维度标注 cannot_determine，评分仅包含市场+风险两维"
+  - type: ignoring_red_source
+    trigger: "source_quality 显示 red 信号但 risk_flags 未包含"
+    response: "禁止；来源 red 信号必须进入 risk_flags"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json
+
+china_market_specificity: high
+
+live_research_required: false
+
+degradation_behavior:
+  missing_user_profile: "匹配维度降级，opportunity_score 基于市场+风险两维，confidence 降至 medium 或 low"
+  missing_source_quality: "来源可信度置 unknown，风险维度保守估算"
+  only_jd_text: "先内部执行 jd-analyzer 逻辑，再基于结果评分，confidence 为 low"

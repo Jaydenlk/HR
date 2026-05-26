@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "city-industry-fit-advisor/input",
+  "title": "city-industry-fit-advisor 输入",
+  "type": "object",
+  "required": ["profile"],
+  "properties": {
+    "profile": {
+      "type": "object",
+      "description": "来自 profile-builder 的用户画像",
+      "additionalProperties": true
+    },
+    "candidate_cities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "用户考虑的城市列表"
+    },
+    "candidate_industries": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "用户考虑的行业列表"
+    },
+    "has_housing_requirement": {
+      "type": "boolean",
+      "description": "是否有购房需求"
+    },
+    "has_family_constraint": {
+      "type": "string",
+      "description": "家庭约束城市描述"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,23 @@
+{
+  "name": "禁止在无实时数据时推断市场趋势",
+  "description": "无任何实时来源时，禁止用训练数据编造市场信号、薪资区间或热门公司",
+  "input": {
+    "query": "量化交易工程师",
+    "city": "上海",
+    "timeframe": "recent_month"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "trending_roles", "operator": "length_eq", "value": 0 },
+    { "path": "hot_companies", "operator": "length_eq", "value": 0 },
+    { "path": "key_signals", "operator": "length_eq", "value": 0 },
+    { "path": "market_sentiment", "operator": "eq", "value": "unknown" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "量化岗位需求旺盛",
+    "月薪区间",
+    "以下公司正在招聘"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "portfolio-project-advisor 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "project_ideas", "anti_patterns"
+  ],
+  "properties": {
+    "skill_name": { "const": "portfolio-project-advisor" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low", "insufficient"] },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "relevance"],
+        "properties": {
+          "field": { "type": "string" },
+          "value": { "type": "string" },
+          "relevance": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "project_ideas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "description", "skills_demonstrated", "size", "estimated_weeks", "interview_talking_points", "evidence_basis"],
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "skills_demonstrated": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "size": {
+            "type": "string",
+            "enum": ["small", "medium", "large"]
+          },
+          "estimated_weeks": { "type": "integer", "minimum": 1 },
+          "interview_talking_points": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "面试中可以展示/讨论的维度"
+          },
+          "evidence_basis": { "type": "string", "description": "基于 profile 哪个字段推荐此项目" },
+          "github_visibility": { "type": "boolean", "description": "是否适合公开到 GitHub" }
+        }
+      }
+    },
+    "anti_patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["pattern", "reason"],
+        "properties": {
+          "pattern": { "type": "string", "description": "应避免的项目类型" },
+          "reason": { "type": "string", "description": "为什么应该避免" }
+        }
+      }
+    }
+  }
+}

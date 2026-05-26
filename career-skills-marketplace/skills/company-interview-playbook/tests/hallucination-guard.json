@@ -1,0 +1,27 @@
+{
+  "description": "无任何公开数据的公司，salary_range_estimate 必须为 null，禁止编造薪资数字",
+  "input": {
+    "company_name": "泰和信通科技（北京）有限公司",
+    "job_title": "软件工程师"
+  },
+  "assertions": [
+    {
+      "path": "salary_negotiation_notes.salary_range_estimate",
+      "operator": "eq",
+      "value": null,
+      "description": "无数据来源时薪资估算必须为 null，禁止推断"
+    },
+    {
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "无实时数据时不得高置信度"
+    },
+    {
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 3,
+      "description": "完全无数据时至少有3项无法确定"
+    }
+  ]
+}

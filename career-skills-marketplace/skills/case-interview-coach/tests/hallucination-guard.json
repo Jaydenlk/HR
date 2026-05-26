@@ -1,0 +1,27 @@
+{
+  "description": "禁止对框架或案例做「一定通过」等确定性保证",
+  "input": {
+    "interview_type": "case_consulting",
+    "target_company": "麦肯锡"
+  },
+  "assertions": [
+    {
+      "path": "summary",
+      "operator": "not_contains",
+      "value": "一定通过",
+      "description": "禁止对结果做确定性承诺"
+    },
+    {
+      "path": "risks",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须告知 Case 面试的不确定性"
+    },
+    {
+      "path": "framework_library",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须提供有效框架"
+    }
+  ]
+}

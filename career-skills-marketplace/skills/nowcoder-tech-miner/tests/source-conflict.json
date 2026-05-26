@@ -1,0 +1,14 @@
+{
+  "description": "无实时数据：mined_posts 和 technical_questions 均为空",
+  "input": {
+    "company": "百度",
+    "role": "算法工程师"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "mined_posts", "operator": "length_eq", "value": 0 },
+    { "path": "technical_questions", "operator": "length_eq", "value": 0 },
+    { "path": "credibility_ceiling", "operator": "eq", "value": "B" }
+  ]
+}

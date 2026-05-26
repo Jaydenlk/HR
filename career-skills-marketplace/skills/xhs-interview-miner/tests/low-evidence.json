@@ -1,0 +1,13 @@
+{
+  "description": "全推广内容：usable_count=0，mined_posts 为空，confidence=insufficient",
+  "input": {
+    "company": "某培训机构",
+    "role": "产品经理"
+  },
+  "simulate": "all_promotional",
+  "assertions": [
+    { "path": "mined_posts", "operator": "length_eq", "value": 0 },
+    { "path": "quality_report.usable_count", "operator": "eq", "value": 0 },
+    { "path": "confidence", "operator": "eq", "value": "insufficient" }
+  ]
+}

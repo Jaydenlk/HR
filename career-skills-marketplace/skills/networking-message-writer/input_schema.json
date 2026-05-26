@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "networking-message-writer/input",
+  "title": "networking-message-writer 输入",
+  "type": "object",
+  "required": ["target_company", "target_position", "platform"],
+  "properties": {
+    "target_company": {
+      "type": "string",
+      "description": "目标公司名称"
+    },
+    "target_position": {
+      "type": "string",
+      "description": "目标职位名称"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["wechat", "maimai", "linkedin", "email"],
+      "description": "发送平台：wechat=微信，maimai=脉脉，linkedin=LinkedIn，email=邮件"
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "profile-builder 输出的用户画像",
+      "properties": {
+        "years_of_experience": { "type": "number" },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "education": { "type": "string" },
+        "highlights": { "type": "array", "items": { "type": "string" }, "description": "个人亮点（用于消息内容）" }
+      },
+      "additionalProperties": true
+    },
+    "contact_info": {
+      "type": "object",
+      "description": "联系人信息",
+      "properties": {
+        "name": { "type": "string", "description": "联系人姓名或称谓" },
+        "title": { "type": "string", "description": "联系人职位" },
+        "relationship": {
+          "type": "string",
+          "enum": ["direct_friend", "alumni", "ex_colleague", "friend_of_friend", "stranger"],
+          "description": "与用户的关系类型"
+        }
+      },
+      "additionalProperties": true
+    },
+    "tone": {
+      "type": "string",
+      "enum": ["formal", "semi_formal", "casual"],
+      "default": "semi_formal",
+      "description": "语气偏好"
+    },
+    "mutual_connection": {
+      "type": "string",
+      "description": "共同联系人姓名（朋友介绍时填写）"
+    },
+    "additional_context": {
+      "type": "string",
+      "description": "其他背景信息（如特定项目经历、共同话题）"
+    }
+  },
+  "additionalProperties": false
+}

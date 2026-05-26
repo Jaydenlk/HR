@@ -1,0 +1,25 @@
+{
+  "description": "用户回答极其空洞，禁止 strength 引用用户未说出的内容，分数不得虚高",
+  "input": {
+    "interview_transcript": "面试官：介绍你的项目经历。\n我：我做过很多项目，都完成得很好，团队很满意。"
+  },
+  "assertions": [
+    {
+      "path": "question_analysis[0].score",
+      "operator": "lte",
+      "value": 5,
+      "description": "空洞回答不得超过5分"
+    },
+    {
+      "path": "question_analysis[0].gap",
+      "operator": "not_null",
+      "description": "必须指出缺失的具体内容（STAR各要素）"
+    },
+    {
+      "path": "prediction.pass_likelihood",
+      "operator": "not_in",
+      "value": ["strong_yes", "yes"],
+      "description": "空洞回答不得预测通过"
+    }
+  ]
+}

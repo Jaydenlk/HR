@@ -1,0 +1,14 @@
+{
+  "description": "产品设计题，有目标公司，期望 confidence: high，框架库和练习案例齐全",
+  "input": {
+    "interview_type": "product_design",
+    "target_company": "腾讯"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "framework_library", "operator": "length_gte", "value": 2 },
+    { "path": "practice_cases", "operator": "length_gte", "value": 1 },
+    { "path": "common_mistakes", "operator": "length_gte", "value": 2 },
+    { "path": "evaluation_criteria", "operator": "length_gte", "value": 2 }
+  ]
+}

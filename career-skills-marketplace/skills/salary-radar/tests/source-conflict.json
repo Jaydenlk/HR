@@ -1,0 +1,14 @@
+{
+  "description": "无实时数据：降级到历史知识库，freshness=stale，confidence=low，grade=C",
+  "input": {
+    "role": "量化研究员",
+    "city": "上海"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "data_freshness", "operator": "in", "value": ["stale", "unavailable"] },
+    { "path": "salary_range.grade", "operator": "in", "value": ["C", "D"] },
+    { "path": "risks", "operator": "length_gte", "value": 1 }
+  ]
+}

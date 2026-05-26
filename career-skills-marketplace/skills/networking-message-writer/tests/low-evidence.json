@@ -1,0 +1,13 @@
+{
+  "description": "缺少用户画像，期望生成含占位符的通用版本，confidence=medium",
+  "input": {
+    "target_company": "字节跳动",
+    "target_position": "产品经理",
+    "platform": "maimai"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "medium" },
+    { "path": "message_draft", "operator": "not_empty" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "description": "无技术背景转高级架构师 → not_feasible",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "赵磊",
+        "education": { "school": "某本科", "major": "英语", "degree": "本科" },
+        "years_of_experience": 2,
+        "current_role": { "value": "商务助理" }
+      },
+      "skills": { "technical": [], "soft": [{ "name": "沟通", "evidence_source": "工作描述" }] },
+      "experience": [{ "company": "贸易公司", "role": "商务助理", "duration": "2024.01-至今" }],
+      "career_intent": { "target_roles": ["高级架构师"], "urgency": "active" }
+    },
+    "target_role": "高级架构师"
+  },
+  "assertions": [
+    { "path": "feasibility", "operator": "eq", "value": "not_feasible" },
+    { "path": "skill_gap", "operator": "length_gte", "value": 2 },
+    { "path": "feasibility_rationale", "operator": "not_empty", "value": true },
+    { "path": "confidence", "operator": "not_eq", "value": "insufficient" }
+  ]
+}

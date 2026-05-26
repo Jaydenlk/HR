@@ -1,0 +1,79 @@
+name: skill-gap-planner
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户想了解自己距离目标职位还差什么技能
+  - 求职主理人在 match-diagnosis 发现匹配度低，需要给出补强方向
+  - 用户已有目标 JD，需要定制化学习计划
+  - 用户收到面试反馈说某技能不足，需要补强计划
+
+when_not_to_use:
+  - 用户没有目标职位或行业（无法确定"目标要求"维度）
+  - 用户只想了解职业发展方向（使用 career-path-planner）
+  - 用户画像 confidence 为 insufficient
+
+inputs:
+  primary:
+    - name: profile
+      type: object
+      required: true
+      description: "来自 profile-builder 的用户画像"
+  optional:
+    - name: jd_analysis
+      type: object
+      required: false
+      description: "来自 jd-analyzer 的职位分析结果"
+    - name: match_result
+      type: object
+      required: false
+      description: "来自 match-diagnosis 的匹配诊断结果"
+    - name: target_role
+      type: string
+      required: false
+      description: "目标职位名称（当无 JD 数据时使用）"
+
+confidence_policy:
+  high:
+    condition: "profile.confidence 为 high 且提供了 jd_analysis 或 match_result"
+    threshold: "evidence_count >= 6"
+  medium:
+    condition: "profile.confidence 为 high 但无 JD 数据，或 profile 为 medium"
+    threshold: "evidence_count 3-5"
+  low:
+    condition: "profile.confidence 为 low，或仅有目标角色名称无 JD 数据"
+    threshold: "evidence_count < 3"
+  insufficient:
+    condition: "profile 缺失，或既无 jd_analysis 也无 target_role"
+    action: "返回 error"
+
+failure_modes:
+  - type: no_target
+    trigger: "既无 jd_analysis，也无 match_result，也无 target_role"
+    response: "返回 error，说明至少需要提供目标职位信息"
+  - type: no_gap
+    trigger: "profile 技能完全覆盖目标职位所有要求"
+    response: "返回空 gap_analysis，recommendations 说明无明显差距，建议关注其他维度"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - gap_analysis[]
+    - learning_plan[]
+    - quick_wins[]
+    - long_term_investments[]
+  metadata:
+    - confidence
+    - evidence_count
+    - cannot_determine[]
+
+dependencies:
+  depends_on:
+    - profile-builder
+    - jd-analyzer
+    - match-diagnosis
+  shared_schemas:
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  knowledge:
+    - _career-skills-shared/knowledge/role-taxonomy/

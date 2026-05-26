@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "wechat-insight-reader/input",
+  "title": "wechat-insight-reader 输入",
+  "type": "object",
+  "required": ["topic"],
+  "properties": {
+    "topic": {
+      "type": "string",
+      "minLength": 2,
+      "description": "查询主题（如 产品经理职业规划、互联网中台方法论）"
+    },
+    "industry": {
+      "type": "string",
+      "description": "行业过滤"
+    },
+    "max_insights": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 10
+    }
+  },
+  "additionalProperties": false
+}

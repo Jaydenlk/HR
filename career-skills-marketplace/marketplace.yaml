@@ -1,5 +1,5 @@
 name: career-skills-marketplace
-version: "1.0.0"
+version: "1.1.0"
 description: "求职主理人 + 可调用 skill 的半自动求职操作系统"
 author: "Career Skills Community"
 license: "MIT (code) / CC BY 4.0 (knowledge)"
@@ -14,23 +14,263 @@ skills:
   - name: profile-builder
     path: skills/profile-builder
     role: worker
+    layer: core_reasoning
     description: "用户画像构建：从简历/对话中提取结构化能力画像"
+    depends_on: []
+    live_research_required: false
   - name: jd-analyzer
     path: skills/jd-analyzer
     role: worker
+    layer: core_reasoning
     description: "JD 分析：解析职位描述为结构化字段 + 风险信号"
+    depends_on: []
+    live_research_required: false
   - name: resume-tailor
     path: skills/resume-tailor
     role: worker
+    layer: core_reasoning
     description: "简历改写：基于 JD 重组简历表达，不编造经历"
+    depends_on: [profile-builder, jd-analyzer]
+    live_research_required: false
   - name: match-diagnosis
     path: skills/match-diagnosis
     role: worker
+    layer: core_reasoning
     description: "匹配诊断：对比画像和 JD，输出多维匹配度"
+    depends_on: [profile-builder, jd-analyzer]
+    live_research_required: false
   - name: source-quality-auditor
     path: skills/source-quality-auditor
     role: worker
+    layer: core_reasoning
     description: "来源质量审计：评估信息来源的可信度和时效性"
+    depends_on: []
+    live_research_required: false
+
+  # Layer 2: Career Execution
+  - name: opportunity-intelligence
+    path: skills/opportunity-intelligence
+    role: worker
+    layer: execution
+    description: "机会情报：分析岗位吸引力、公司健康度与时机窗口"
+    depends_on: [jd-analyzer]
+    live_research_required: true
+  - name: application-strategist
+    path: skills/application-strategist
+    role: worker
+    layer: execution
+    description: "投递策略：制定岗位优先级、时间节点与投递路径"
+    depends_on: [opportunity-intelligence, match-diagnosis]
+    live_research_required: false
+  - name: application-tracker
+    path: skills/application-tracker
+    role: worker
+    layer: execution
+    description: "投递追踪：记录和管理多岗位投递状态与跟进提醒"
+    depends_on: []
+    live_research_required: false
+  - name: daily-plan-generator
+    path: skills/daily-plan-generator
+    role: worker
+    layer: execution
+    description: "日计划生成：基于求职阶段和面试安排生成每日行动计划"
+    depends_on: [application-tracker]
+    live_research_required: false
+  - name: networking-message-writer
+    path: skills/networking-message-writer
+    role: worker
+    layer: execution
+    description: "人脉触达文案：生成向内推人或行业联系人发送的开场消息"
+    depends_on: [profile-builder]
+    live_research_required: false
+  - name: referral-strategy
+    path: skills/referral-strategy
+    role: worker
+    layer: execution
+    description: "内推策略：识别内推路径、优先级与接触时机"
+    depends_on: [opportunity-intelligence]
+    live_research_required: false
+  - name: follow-up-message-writer
+    path: skills/follow-up-message-writer
+    role: worker
+    layer: execution
+    description: "跟进消息写作：面试后或投递后的礼貌跟进文案生成"
+    depends_on: []
+    live_research_required: false
+
+  # Layer 3: Interview
+  - name: interview-intelligence
+    path: skills/interview-intelligence
+    role: worker
+    layer: interview
+    description: "面试情报：汇总目标公司面试流程、高频题型与评委风格"
+    depends_on: [jd-analyzer]
+    live_research_required: true
+  - name: mock-interviewer
+    path: skills/mock-interviewer
+    role: worker
+    layer: interview
+    description: "模拟面试官：基于岗位和公司风格进行互动式模拟面试"
+    depends_on: [interview-intelligence, profile-builder]
+    live_research_required: false
+  - name: interview-debrief
+    path: skills/interview-debrief
+    role: worker
+    layer: interview
+    description: "面试复盘：分析面试表现，提炼改进点与下一步准备重点"
+    depends_on: []
+    live_research_required: false
+  - name: question-bank-builder
+    path: skills/question-bank-builder
+    role: worker
+    layer: interview
+    description: "题库构建：为目标岗位和公司生成定制化面试题库"
+    depends_on: [jd-analyzer, interview-intelligence]
+    live_research_required: false
+  - name: company-interview-playbook
+    path: skills/company-interview-playbook
+    role: worker
+    layer: interview
+    description: "公司面试手册：提供特定公司的面试攻略、考察维度与通关建议"
+    depends_on: [interview-intelligence]
+    live_research_required: false
+  - name: behavioral-story-builder
+    path: skills/behavioral-story-builder
+    role: worker
+    layer: interview
+    description: "行为故事构建：将个人经历结构化为 STAR 格式的行为面试素材"
+    depends_on: [profile-builder]
+    live_research_required: false
+  - name: technical-interview-coach
+    path: skills/technical-interview-coach
+    role: worker
+    layer: interview
+    description: "技术面试辅导：针对技术岗位的编程、系统设计题目讲解与练习"
+    depends_on: [jd-analyzer]
+    live_research_required: false
+  - name: case-interview-coach
+    path: skills/case-interview-coach
+    role: worker
+    layer: interview
+    description: "Case 面试辅导：咨询类 Case 题解题框架训练与反馈"
+    depends_on: []
+    live_research_required: false
+
+  # Layer 4: Market Intelligence
+  - name: market-radar
+    path: skills/market-radar
+    role: worker
+    layer: market_intelligence
+    description: "市场雷达：扫描目标行业和岗位的招聘热度与趋势变化"
+    depends_on: [source-quality-auditor]
+    live_research_required: true
+  - name: xhs-interview-miner
+    path: skills/xhs-interview-miner
+    role: worker
+    layer: market_intelligence
+    description: "小红书面经挖掘：从小红书提取近期真实面经和招聘信号"
+    depends_on: [source-quality-auditor]
+    live_research_required: true
+  - name: nowcoder-tech-miner
+    path: skills/nowcoder-tech-miner
+    role: worker
+    layer: market_intelligence
+    description: "牛客技术帖挖掘：从牛客网提取技术岗面经与招聘行情"
+    depends_on: [source-quality-auditor]
+    live_research_required: true
+  - name: wechat-insight-reader
+    path: skills/wechat-insight-reader
+    role: worker
+    layer: market_intelligence
+    description: "微信生态洞察：解析公众号文章和行业报告中的求职相关信号"
+    depends_on: [source-quality-auditor]
+    live_research_required: true
+  - name: salary-radar
+    path: skills/salary-radar
+    role: worker
+    layer: market_intelligence
+    description: "薪资雷达：基于岗位、城市、经验层级的薪资区间分析"
+    depends_on: [source-quality-auditor]
+    live_research_required: true
+  - name: offer-comparator
+    path: skills/offer-comparator
+    role: worker
+    layer: market_intelligence
+    description: "Offer 对比器：多维度对比多个 Offer 的薪资、成长、风险"
+    depends_on: [salary-radar]
+    live_research_required: false
+  - name: company-risk-auditor
+    path: skills/company-risk-auditor
+    role: worker
+    layer: market_intelligence
+    description: "公司风险审计：评估目标公司的财务健康、舆情与雇主风险信号"
+    depends_on: [source-quality-auditor]
+    live_research_required: true
+  - name: industry-trend-analyst
+    path: skills/industry-trend-analyst
+    role: worker
+    layer: market_intelligence
+    description: "行业趋势分析：解读行业增长周期、政策影响与人才需求变化"
+    depends_on: [source-quality-auditor]
+    live_research_required: true
+
+  # Layer 5: Career Strategy
+  - name: career-path-planner
+    path: skills/career-path-planner
+    role: worker
+    layer: career_strategy
+    description: "职业路径规划：基于能力画像和目标输出 3-5 年职业发展路径"
+    depends_on: [profile-builder]
+    live_research_required: false
+  - name: role-transition-advisor
+    path: skills/role-transition-advisor
+    role: worker
+    layer: career_strategy
+    description: "转岗顾问：评估跨赛道转型的可行性、风险和最优路径"
+    depends_on: [profile-builder, match-diagnosis]
+    live_research_required: false
+  - name: skill-gap-planner
+    path: skills/skill-gap-planner
+    role: worker
+    layer: career_strategy
+    description: "技能差距规划：识别当前能力与目标岗位的差距并量化优先级"
+    depends_on: [match-diagnosis]
+    live_research_required: false
+  - name: learning-roadmap-builder
+    path: skills/learning-roadmap-builder
+    role: worker
+    layer: career_strategy
+    description: "学习路线图构建：生成针对目标岗位的分阶段技能提升计划"
+    depends_on: [skill-gap-planner]
+    live_research_required: false
+  - name: personal-brand-builder
+    path: skills/personal-brand-builder
+    role: worker
+    layer: career_strategy
+    description: "个人品牌构建：提炼差异化定位并指导领英/GitHub/简历的一致性表达"
+    depends_on: [profile-builder]
+    live_research_required: false
+  - name: portfolio-project-advisor
+    path: skills/portfolio-project-advisor
+    role: worker
+    layer: career_strategy
+    description: "作品集项目顾问：建议适合目标岗位的实战项目选题与包装策略"
+    depends_on: [skill-gap-planner, jd-analyzer]
+    live_research_required: false
+  - name: graduate-school-vs-job-advisor
+    path: skills/graduate-school-vs-job-advisor
+    role: worker
+    layer: career_strategy
+    description: "读研 vs 就业决策顾问：多维度分析继续深造与直接就业的利弊"
+    depends_on: [profile-builder, career-path-planner]
+    live_research_required: false
+  - name: city-industry-fit-advisor
+    path: skills/city-industry-fit-advisor
+    role: worker
+    layer: career_strategy
+    description: "城市与行业适配顾问：基于目标行业分布和个人约束推荐最优就业城市"
+    depends_on: [industry-trend-analyst]
+    live_research_required: false
 
 shared:
   evidence_schema: shared/evidence-schema/evidence.schema.json
@@ -44,9 +284,19 @@ knowledge:
   role_taxonomy: knowledge/role-taxonomy/
   market_vocabulary: knowledge/market-vocabulary/
   rubrics: knowledge/rubrics/
+  interview_taxonomy: knowledge/interview-taxonomy/
+  offer_factors: knowledge/offer-factors/
+  city_industry_fit: knowledge/city-industry-fit/
+  career_paths: knowledge/career-paths/
+  market_sources: knowledge/market-sources/
 
 knowledge_stats:
   companies: 50
   company_stage: "A (seed)"
   role_categories: 12
   market_terms: 18
+  interview_question_types: 8
+  offer_comparison_factors: 15
+  city_industry_mappings: 20
+  career_path_templates: 10
+  market_data_sources: 12

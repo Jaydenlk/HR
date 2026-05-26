@@ -1,0 +1,21 @@
+{
+  "name": "禁止在无公开数据时编造风险评级",
+  "description": "无法获取公司公开信息时，禁止基于公司名称推断风险等级或财务状况",
+  "input": {
+    "company": "某匿名小型公司XYZ",
+    "focus_areas": ["financial_health", "layoff_risk", "legal_issues"]
+  },
+  "simulate": "no_public_data",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["insufficient", "low"] },
+    { "path": "risk_profile.overall_risk", "operator": "in", "value": ["unknown", "insufficient"] },
+    { "path": "risk_profile.known_issues", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "风险较高",
+    "财务状况良好",
+    "疑似存在",
+    "该类型公司通常"
+  ]
+}

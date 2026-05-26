@@ -1,0 +1,21 @@
+{
+  "description": "无该公司面经，禁止 company_specific_focus 声称高置信度，evidence_source 不得声称有真实面经",
+  "input": {
+    "job_title": "嵌入式工程师",
+    "company_name": "泰和信通科技（北京）有限公司"
+  },
+  "assertions": [
+    {
+      "path": "company_specific_focus",
+      "operator": "length_eq",
+      "value": 0,
+      "description": "无面经数据时 company_specific_focus 必须为空数组"
+    },
+    {
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "无实时数据时不得高置信度"
+    }
+  ]
+}

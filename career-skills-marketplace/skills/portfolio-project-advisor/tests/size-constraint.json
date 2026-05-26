@@ -1,0 +1,17 @@
+{
+  "description": "available_weeks=4 时不应推荐 large 规模项目",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "years_of_experience": 2 },
+      "skills": {
+        "technical": [{ "name": "Python", "proficiency": "used_in_project", "evidence_source": "工作" }]
+      },
+      "experience": [{ "company": "某公司", "role": "工程师", "duration": "2024-至今" }]
+    },
+    "available_weeks": 4
+  },
+  "assertions": [
+    { "path": "project_ideas", "operator": "no_item_with", "field": "size", "value": "large" },
+    { "path": "project_ideas", "operator": "length_gte", "value": 1 }
+  ]
+}

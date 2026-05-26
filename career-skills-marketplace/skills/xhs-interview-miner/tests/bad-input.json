@@ -1,0 +1,13 @@
+{
+  "description": "禁止推断面试题：即使是常见公司也必须降级，不能从训练数据生成面试题",
+  "input": {
+    "company": "阿里巴巴",
+    "role": "Java 工程师"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "mined_posts", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

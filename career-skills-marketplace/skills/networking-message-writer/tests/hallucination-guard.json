@@ -1,0 +1,22 @@
+{
+  "description": "用户画像中无任何技能或经验信息，message_draft 不应包含虚构的具体技能或项目经历",
+  "input": {
+    "target_company": "腾讯",
+    "target_position": "产品经理",
+    "platform": "maimai",
+    "user_profile": {}
+  },
+  "assertions": [
+    {
+      "path": "message_draft",
+      "operator": "not_empty",
+      "description": "即使画像为空也应生成含占位符的消息，不能完全空"
+    },
+    {
+      "path": "confidence",
+      "operator": "in",
+      "value": ["medium", "low"],
+      "description": "空画像不应给 high 置信度"
+    }
+  ]
+}

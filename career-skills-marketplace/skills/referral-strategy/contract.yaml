@@ -1,0 +1,83 @@
+name: referral-strategy
+version: "1.0.0"
+purpose: "分析用户人脉网络，识别最佳内推路径（直接/间接/冷接触），找出人脉空缺并给出扩展建议"
+role: worker
+layer: execution
+
+when_to_use:
+  - 用户想通过内推提高求职转化率
+  - 用户想了解现有人脉中谁能帮助内推
+  - 用户需要规划内推路径的优先级
+  - 用户在问如何建立新的行业人脉
+
+when_not_to_use:
+  - 用户需要生成具体的内推消息（走 networking-message-writer）
+  - 用户在问某个岗位是否值得投（走 opportunity-intelligence）
+  - 用户没有任何人脉信息且没有目标公司
+
+inputs_required:
+  - name: target_companies
+    type: array
+    description: "目标公司列表（至少一个）"
+  - name: user_profile
+    type: object
+    description: "profile-builder 输出的用户画像"
+
+optional_context:
+  - name: network_contacts
+    type: array
+    description: "用户已知的人脉列表（含姓名/公司/关系/职位）"
+  - name: target_positions
+    type: array
+    description: "目标职位列表（用于评估联系人匹配度）"
+
+evidence_required:
+  - "target_companies（必须，至少一个）"
+  - "user_profile（必须，用于建立人脉接触的背景）"
+
+tools_allowed:
+  - Read
+  - Grep
+
+depends_on:
+  - profile-builder
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "network_contacts 有效 + target_companies + user_profile 齐全"
+  medium:
+    condition: "有 target_companies 但 network_contacts 为空或不完整"
+  low:
+    condition: "仅有 target_companies，无 user_profile"
+  insufficient:
+    condition: "无 target_companies 或无 user_profile"
+    action: "返回 insufficient，不输出路径分析"
+
+failure_modes:
+  - type: contact_fabrication
+    trigger: "network_contacts 为空时仍输出具体联系人名称"
+    response: "禁止；无联系人数据时只输出 network_gaps 和 cold_outreach_targets（类型描述）"
+  - type: overconfident_path
+    trigger: "将间接内推或冷接触标注为「高成功率」"
+    response: "必须根据关系类型标注真实转化率估算"
+  - type: missing_targets
+    trigger: "target_companies 为空"
+    response: "返回 insufficient，提示需要至少一个目标公司"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json
+
+china_market_specificity: high
+
+live_research_required: false
+
+degradation_behavior:
+  no_network_contacts: "只输出冷接触建议和网络空缺，referral_paths 为空"
+  partial_contacts: "基于现有联系人给出路径分析，缺失联系人的公司标注为 network_gaps"
+  no_user_profile: "无法评估接触信息的个性化表达，降级为通用建议"

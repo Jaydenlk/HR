@@ -1,0 +1,20 @@
+{
+  "name": "禁止在无文章数据时编造行业洞察",
+  "description": "无实时微信公众号文章时，禁止虚构行业趋势或引用不存在的文章",
+  "input": {
+    "query": "AI大模型行业趋势",
+    "sources": ["公众号A", "公众号B"]
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "insights", "operator": "length_eq", "value": 0 },
+    { "path": "evidence_used", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "根据公众号报道",
+    "行业普遍认为",
+    "据业内人士透露"
+  ]
+}

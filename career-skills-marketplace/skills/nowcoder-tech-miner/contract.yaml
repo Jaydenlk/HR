@@ -1,0 +1,82 @@
+name: nowcoder-tech-miner
+version: "1.0.0"
+role: worker
+
+live_research_required: true
+degradation_behavior: >
+  无法访问牛客网实时内容时：返回空的 mined_posts 和 technical_questions，
+  confidence 设为 insufficient，提示用户手动搜索牛客网获取面经。
+  禁止从训练数据推断技术题目或面试流程。
+
+credibility_ceiling:
+  grade: B
+  reason: >
+    牛客网为技术社区，面经质量显著高于小红书，用户有一定技术背景，
+    但仍无法验证身份真实性，故上限为 B 级（有价值需交叉验证）。
+
+when_to_use:
+  - 用户需要了解某公司技术岗位的笔试/面试题
+  - 为面试备考提供技术题素材
+  - 用户询问"牛客上这个公司面试怎么样"
+
+when_not_to_use:
+  - 用户需要公司文化/氛围信息（改用 xhs-interview-miner）
+  - 用户需要市场薪资数据（改用 salary-radar）
+  - 无法提供实时访问时（降级返回而非编造）
+
+inputs:
+  primary:
+    - name: company
+      type: string
+      required: true
+      min_length: 1
+      description: "目标公司名称"
+  optional:
+    - name: role
+      type: string
+      description: "岗位方向（如 后端工程师、算法工程师）"
+    - name: focus
+      type: string
+      enum: [interview, online_test, both]
+      default: both
+      description: "关注面经还是笔试题"
+    - name: max_posts
+      type: integer
+      minimum: 1
+      maximum: 20
+      default: 10
+
+confidence_policy:
+  insufficient:
+    condition: "无法获取实时牛客网内容"
+    action: "返回空结果+手动搜索提示"
+  low:
+    condition: "获取到内容，来源可信度 C 级"
+  medium:
+    condition: "获取到 B 级来源，时间在 90 天内"
+    note: "牛客网来源上限 B，整体置信度最高为 medium"
+
+failure_modes:
+  - type: no_live_data
+    trigger: "无法访问牛客网实时内容"
+    response: "返回空结果，confidence: insufficient，提示手动搜索"
+  - type: hallucination
+    trigger: "尝试从训练数据推断笔试题"
+    response: "禁止，必须拒绝并返回 insufficient"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - mined_posts
+    - technical_questions
+  metadata:
+    - confidence
+    - credibility_ceiling
+
+dependencies:
+  skills:
+    - source-quality-auditor
+  shared_schemas:
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  references:
+    - references/nowcoder-content-taxonomy.md

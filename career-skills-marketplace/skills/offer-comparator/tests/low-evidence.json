@@ -1,0 +1,26 @@
+{
+  "name": "单个 offer 且关键字段缺失",
+  "description": "仅1个 offer 且缺少 months_per_year/equity → confidence=low，ranking 为空",
+  "input": {
+    "offers": [
+      {
+        "offer_id": "offer_a",
+        "company": "某创业公司",
+        "role": "产品经理",
+        "base_monthly": 25000
+      }
+    ],
+    "user_priorities": ["薪资最大化"]
+  },
+  "expected_properties": {
+    "confidence": "low",
+    "offers_analyzed": 1
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "offers_analyzed", "operator": "lte", "value": 1 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 },
+    { "path": "next_actions", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": ["fabricated_total_comp", "invented_equity_value"]
+}

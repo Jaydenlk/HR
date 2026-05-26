@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "behavioral-story-builder/input",
+  "title": "behavioral-story-builder 输入",
+  "type": "object",
+  "required": ["user_profile"],
+  "properties": {
+    "user_profile": {
+      "type": "object",
+      "description": "用户画像（来自 profile-builder），需包含工作经历",
+      "additionalProperties": true
+    },
+    "target_competencies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["问题解决", "领导力", "协作影响", "主动创新", "逆境应对", "数据驱动", "客户中心", "自我学习"]
+      },
+      "description": "用户希望重点覆盖的能力维度"
+    },
+    "interview_debrief_stories": {
+      "type": "array",
+      "description": "来自 interview-debrief 的 stories_to_save，直接纳入故事库",
+      "items": { "type": "object" }
+    },
+    "target_job_type": {
+      "type": "string",
+      "enum": ["tech", "product", "ops", "sales", "general"],
+      "description": "目标岗位类型，用于判断各维度的重要性权重"
+    }
+  },
+  "additionalProperties": false
+}

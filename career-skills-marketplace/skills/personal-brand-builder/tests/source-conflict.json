@@ -1,0 +1,22 @@
+{
+  "description": "技术型用户 → platform_actions 应覆盖中国主要平台（掘金/思否/GitHub）",
+  "input": {
+    "profile": {
+      "basic": { "name": "前端工程师", "years_of_experience": 5, "current_role": { "value": "高级前端工程师" } },
+      "skills": {
+        "technical": [
+          { "name": "React", "proficiency": "used_in_project", "evidence_source": "项目" },
+          { "name": "TypeScript", "proficiency": "used_in_project", "evidence_source": "项目" }
+        ]
+      },
+      "experience": [
+        { "company": "某互联网公司", "role": "高级前端工程师", "duration": "2021-至今",
+          "achievements": [{ "text": "主导前端性能优化，LCP 从 4s 降到 1.2s", "evidence_source": "工作描述" }] }
+      ]
+    }
+  },
+  "assertions": [
+    { "path": "platform_actions", "operator": "length_gte", "value": 2 },
+    { "path": "platform_actions", "operator": "has_item_with", "field": "platform", "contains_any": ["掘金", "GitHub", "思否"] }
+  ]
+}

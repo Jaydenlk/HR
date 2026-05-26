@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "interview-debrief/input",
+  "title": "interview-debrief 输入",
+  "type": "object",
+  "required": ["interview_transcript"],
+  "properties": {
+    "interview_transcript": {
+      "type": "string",
+      "minLength": 50,
+      "description": "面试对话记录，纯文本，包含面试官问题和用户回答"
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "用户画像（来自 profile-builder），用于对比简历与实际陈述",
+      "additionalProperties": true
+    },
+    "company_name": {
+      "type": "string",
+      "description": "面试公司名称"
+    },
+    "job_title": {
+      "type": "string",
+      "description": "目标岗位名称，用于校准专业能力评分基准"
+    }
+  },
+  "additionalProperties": false
+}

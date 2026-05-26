@@ -1,0 +1,76 @@
+name: industry-trend-analyst
+version: "1.0.0"
+role: worker
+
+live_research_required: true
+degradation_behavior: >
+  无法获取实时数据时：confidence 设为 insufficient，
+  trend_summary 说明降级原因，growth_signals / risk_signals /
+  recommended_entry_roles 均为空，hiring_outlook 为 unknown。
+  禁止使用训练数据推断当前行业趋势并以 high/medium confidence 输出。
+
+when_to_use:
+  - 用户询问某行业/赛道的发展趋势
+  - 用户在决策是否进入某个行业前需要参考意见
+  - 为 career 规划提供行业背景数据
+
+when_not_to_use:
+  - 用户需要具体公司信息（改用 company-risk-auditor）
+  - 用户需要薪资数据（改用 salary-radar）
+  - 无法提供实时搜索结果时（降级返回而非编造）
+
+inputs:
+  primary:
+    - name: industry
+      type: string
+      required: true
+      min_length: 2
+      description: "行业或赛道名称（如 新能源汽车、大模型、医疗健康）"
+  optional:
+    - name: region
+      type: string
+      description: "地区（如 中国、全球、长三角）"
+    - name: timeframe
+      type: string
+      enum: [near_term, mid_term, long_term]
+      default: mid_term
+      description: "分析时间维度（近期1年/中期3年/长期5年+）"
+
+confidence_policy:
+  high:
+    condition: "3+ 个 A/B 级实时来源，时间在 30 天内"
+  medium:
+    condition: "1-2 个 B 级来源，或来源时间在 90 天内"
+  low:
+    condition: "仅 C 级来源或来源超过 90 天"
+  insufficient:
+    condition: "无实时数据，禁止推断行业趋势"
+    action: "返回空结果+降级提示"
+
+failure_modes:
+  - type: no_live_data
+    trigger: "无法获取实时来源"
+    response: "confidence: insufficient，所有信号数组为空，hiring_outlook: unknown"
+  - type: hallucination
+    trigger: "无实时来源但尝试推断行业趋势"
+    response: "禁止，必须拒绝并返回 insufficient"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - trend_summary
+    - growth_signals
+    - risk_signals
+    - hiring_outlook
+    - recommended_entry_roles
+  metadata:
+    - confidence
+
+dependencies:
+  skills:
+    - market-radar
+    - source-quality-auditor
+  shared_schemas:
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  references:
+    - references/industry-trend-indicators.md

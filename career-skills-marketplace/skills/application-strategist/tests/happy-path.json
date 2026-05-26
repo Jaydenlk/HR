@@ -1,0 +1,26 @@
+{
+  "description": "完整画像 + 明确时间线，期望 confidence=high，三层公司分层非空，application_sequence 按周规划",
+  "input": {
+    "user_profile": {
+      "years_of_experience": 4,
+      "skills": ["Java", "Spring Boot", "MySQL", "Redis"],
+      "education": "本科，软件工程，211院校",
+      "target_industries": ["互联网", "金融科技"],
+      "target_locations": ["上海"],
+      "target_salary_min": 30000,
+      "employment_status": "employed"
+    },
+    "application_timeline": {
+      "current_date": "2026-03-01",
+      "target_start_date": "2026-05-01",
+      "urgency": "normal"
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "target_company_tiers", "operator": "length_gte", "value": 2 },
+    { "path": "application_sequence", "operator": "length_gte", "value": 2 },
+    { "path": "daily_action_plan", "operator": "length_gte", "value": 1 },
+    { "path": "risk_assessment.main_risks", "operator": "length_gte", "value": 1 }
+  ]
+}

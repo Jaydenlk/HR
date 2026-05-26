@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "mock-interviewer 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "phase", "questions", "answer_evaluations", "overall_score", "overall_grade", "dimension_scores"
+  ],
+  "properties": {
+    "skill_name": { "const": "mock-interviewer" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "本次模拟面试综述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "phase": {
+      "type": "string",
+      "enum": ["generate_questions", "evaluate_answer", "final_report"],
+      "description": "当前输出所处阶段"
+    },
+    "questions": {
+      "type": "array",
+      "description": "生成的面试题（Phase 1 输出，其他阶段为空数组或原样返回）",
+      "items": {
+        "type": "object",
+        "required": ["id", "question", "type", "difficulty", "evaluation_focus"],
+        "properties": {
+          "id": { "type": "string" },
+          "question": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["behavioral", "technical", "case", "cultural_fit", "motivation"]
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"]
+          },
+          "time_limit": { "type": "integer", "description": "建议回答时长（分钟）" },
+          "evaluation_focus": { "type": "string", "description": "本题考察重点" }
+        }
+      }
+    },
+    "answer_evaluations": {
+      "type": "array",
+      "description": "逐题评分（Phase 2 输出）",
+      "items": {
+        "type": "object",
+        "required": ["question_id", "score", "strengths", "weaknesses", "suggestion"],
+        "properties": {
+          "question_id": { "type": "string" },
+          "user_answer": { "type": "string", "description": "用户回答引用" },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10,
+            "description": "0-10分"
+          },
+          "strengths": { "type": "array", "items": { "type": "string" } },
+          "weaknesses": { "type": "array", "items": { "type": "string" } },
+          "suggestion": { "type": "string" },
+          "model_answer_hint": { "type": "string", "description": "优秀回答的关键要素" }
+        }
+      }
+    },
+    "overall_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "综合得分（Phase 3 输出）"
+    },
+    "overall_grade": {
+      "type": "string",
+      "enum": ["A+", "A", "B+", "B", "C", "D"],
+      "description": "综合等级（Phase 3 输出）"
+    },
+    "dimension_scores": {
+      "type": "array",
+      "description": "各维度得分（Phase 3 输出）",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "score", "comment"],
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "enum": ["专业能力", "表达清晰", "逻辑结构", "STAR完整度", "文化契合", "综合印象"]
+          },
+          "score": { "type": "integer", "minimum": 0, "maximum": 10 },
+          "comment": { "type": "string" }
+        }
+      }
+    },
+    "hire_likelihood": {
+      "type": "string",
+      "enum": ["strong_yes", "yes", "maybe", "no", "strong_no"],
+      "description": "录用概率判断（Phase 3 输出）"
+    }
+  }
+}

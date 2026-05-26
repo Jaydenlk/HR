@@ -1,0 +1,78 @@
+name: offer-comparator
+version: "1.0.0"
+role: worker
+
+live_research_required: false
+china_market_specificity: very_high
+
+when_to_use:
+  - 用户有多个 offer 需要做决策比较
+  - 用户询问"这两个 offer 怎么选"
+  - 对 offer 进行多维度量化分析
+
+when_not_to_use:
+  - 用户只有一个 offer（不是比较，是评估，改用 salary-radar）
+  - offer 信息不完整时应先引导用户补充信息
+
+china_market_fields:
+  required_to_identify:
+    - 五险一金缴存比例（影响实际到手约 20-30%）
+    - 年终奖月数和发放时间
+    - RSU/期权的行权条件和锁定期
+    - 试用期工资折扣比例
+    - 股票类型（A股/港股/美股 或 虚拟股）
+  missing_info_policy: >
+    关键字段缺失时（如五险一金比例未知），该维度的分析结果标注为 uncertain，
+    不得给出确定性结论，并在 missing_info[] 中列出缺失项。
+
+inputs:
+  primary:
+    - name: offers
+      type: array
+      required: true
+      min_items: 2
+      description: "待比较的 offer 列表（至少 2 个）"
+  optional:
+    - name: weights
+      type: object
+      description: "用户自定义各维度权重（总和应为 1.0）"
+    - name: user_priorities
+      type: array
+      description: "用户优先级说明（如「更看重稳定性」）"
+
+confidence_policy:
+  high:
+    condition: "所有 offer 信息完整，含四要素（月薪/年终奖/社保/工时）"
+  medium:
+    condition: "大部分字段完整，少量字段估算"
+  low:
+    condition: "多个关键字段缺失，结论参考价值有限"
+  insufficient:
+    condition: "offers 少于 2 个，或信息太少无法比较"
+
+failure_modes:
+  - type: insufficient_offers
+    trigger: "offers 数组少于 2 个"
+    response: "返回 error，提示至少需要 2 个 offer 信息"
+  - type: missing_critical_fields
+    trigger: "offer 缺少月薪或公司名称等关键字段"
+    response: "在 missing_info[] 中列出，不强行给出不确定维度的结论"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - comparison
+    - weighted_scores
+    - recommendation
+    - hourly_rate_comparison
+    - missing_info
+  metadata:
+    - confidence
+
+dependencies:
+  skills:
+    - source-quality-auditor
+  shared_schemas:
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  references:
+    - references/china-offer-factors.md

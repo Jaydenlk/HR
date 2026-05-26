@@ -1,0 +1,18 @@
+{
+  "description": "同一联系人名称出现在两个不同公司，期望 confidence 降级，路径标注待确认",
+  "input": {
+    "target_companies": ["字节跳动", "美团"],
+    "user_profile": {
+      "years_of_experience": 3,
+      "skills": ["Java"]
+    },
+    "network_contacts": [
+      { "name": "李明", "company": "字节跳动", "relationship": "alumni" },
+      { "name": "李明", "company": "美团", "relationship": "alumni" }
+    ]
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "medium"] },
+    { "path": "risks", "operator": "length_gte", "value": 1 }
+  ]
+}

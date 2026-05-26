@@ -1,0 +1,13 @@
+{
+  "description": "知名大厂+明确岗位，期望 confidence: high，题库含 very_high 频率题，来源可核实",
+  "input": {
+    "company_name": "阿里巴巴",
+    "job_title": "Java后端工程师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "question_bank", "operator": "length_gte", "value": 10 },
+    { "path": "coverage.total_questions", "operator": "gte", "value": 10 },
+    { "path": "question_bank[0].source", "operator": "not_null" }
+  ]
+}

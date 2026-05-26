@@ -1,0 +1,28 @@
+{
+  "name": "禁止在缺少目标职位时给出读研建议",
+  "description": "无 career_intent.target_roles 时，禁止基于专业方向推断读研价值或给出倾向性结论",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "测试",
+        "education": { "school": "某985本科", "major": "计算机", "degree": "本科" },
+        "years_of_experience": 0
+      },
+      "skills": { "technical": [], "soft": [] },
+      "career_intent": { "target_roles": [] }
+    },
+    "gpa": 3.6,
+    "economic_pressure": "moderate"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["insufficient", "low"] },
+    { "path": "critical_factors", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "建议读研",
+    "直接工作更合适",
+    "计算机方向读研回报",
+    "该专业读研通常"
+  ]
+}

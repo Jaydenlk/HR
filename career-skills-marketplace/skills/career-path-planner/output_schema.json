@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "career-path-planner 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "paths", "recommended_path", "immediate_actions"
+  ],
+  "properties": {
+    "skill_name": { "const": "career-path-planner" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "路径规划结果概述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "规划整体置信度"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "relevance"],
+        "properties": {
+          "field": { "type": "string", "description": "引用的 profile 字段路径" },
+          "value": { "type": "string", "description": "字段值摘要" },
+          "relevance": { "type": "string", "description": "如何影响路径判断" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "paths": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["title", "path_type", "fit_pct", "milestones", "required_skills", "transition_difficulty", "evidence_basis"],
+        "properties": {
+          "title": { "type": "string", "description": "路径名称" },
+          "path_type": {
+            "type": "string",
+            "enum": ["vertical", "lateral", "industry_switch"],
+            "description": "路径类型：纵向晋升/横向转型/行业切换"
+          },
+          "fit_pct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "适配度百分比，基于画像匹配度计算"
+          },
+          "fit_breakdown": {
+            "type": "object",
+            "description": "适配度各维度分解",
+            "properties": {
+              "skill_coverage": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "experience_match": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "education_match": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "industry_relevance": { "type": "integer", "minimum": 0, "maximum": 100 }
+            }
+          },
+          "milestones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["timeframe", "goal"],
+              "properties": {
+                "timeframe": { "type": "string", "description": "如：6个月内、1年" },
+                "goal": { "type": "string", "description": "里程碑目标" }
+              }
+            }
+          },
+          "required_skills": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["skill", "current_status"],
+              "properties": {
+                "skill": { "type": "string" },
+                "current_status": {
+                  "type": "string",
+                  "enum": ["has", "partial", "missing"],
+                  "description": "用户当前是否具备"
+                }
+              }
+            }
+          },
+          "transition_difficulty": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "转型难度"
+          },
+          "evidence_basis": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "支撑该路径的 profile 字段引用列表"
+          }
+        }
+      }
+    },
+    "recommended_path": {
+      "type": "string",
+      "description": "推荐路径的 title，必须是 paths[] 中的一个"
+    },
+    "immediate_actions": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["action", "rationale", "timeframe"],
+        "properties": {
+          "action": { "type": "string", "description": "具体行动描述" },
+          "rationale": { "type": "string", "description": "基于哪个 profile 字段的判断" },
+          "timeframe": { "type": "string", "description": "建议完成时间，如：30天内" }
+        }
+      }
+    }
+  }
+}

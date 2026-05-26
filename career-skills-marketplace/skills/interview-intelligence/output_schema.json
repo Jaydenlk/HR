@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "interview-intelligence 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "interview_flow", "common_questions", "preparation_priorities", "red_flags_to_watch"
+  ],
+  "properties": {
+    "skill_name": { "const": "interview-intelligence" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "面试情报综述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "情报整体置信度"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "使用的数据来源列表"
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "无法确定的信息项，尤其是无实时数据时"
+    },
+    "interview_flow": {
+      "type": "array",
+      "description": "面试流程各阶段",
+      "items": {
+        "type": "object",
+        "required": ["stage", "description", "format", "confidence"],
+        "properties": {
+          "stage": { "type": "string", "description": "阶段名称" },
+          "description": { "type": "string", "description": "本轮考察重点" },
+          "typical_duration": { "type": "string", "description": "典型时长" },
+          "format": {
+            "type": "string",
+            "enum": ["online", "offline", "phone", "group", "written_test"]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          }
+        }
+      }
+    },
+    "common_questions": {
+      "type": "array",
+      "description": "高频面试题列表",
+      "items": {
+        "type": "object",
+        "required": ["question", "category", "frequency"],
+        "properties": {
+          "question": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["behavioral", "technical", "case", "cultural_fit", "motivation"]
+          },
+          "frequency": {
+            "type": "string",
+            "enum": ["very_high", "high", "medium"]
+          },
+          "source_hint": { "type": "string" }
+        }
+      }
+    },
+    "preparation_priorities": {
+      "type": "array",
+      "description": "按优先级排序的备考建议",
+      "items": {
+        "type": "object",
+        "required": ["priority", "area", "rationale"],
+        "properties": {
+          "priority": {
+            "type": "string",
+            "enum": ["critical", "high", "medium"]
+          },
+          "area": { "type": "string" },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "red_flags_to_watch": {
+      "type": "array",
+      "description": "面试中需警惕的红线信号",
+      "items": {
+        "type": "object",
+        "required": ["signal", "interpretation", "severity"],
+        "properties": {
+          "signal": { "type": "string" },
+          "interpretation": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["red", "yellow"]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,199 @@
+# 职业规划策略量纲 (Career Strategy Rubric)
+# Career Skills Marketplace — career-advisor skill 使用
+# 版本: 1.0.0
+
+rubric_version: "1.0.0"
+description: "职业路径推荐方案的评估标准，评估可行性、市场匹配度、技能迁移性、时间线和风险"
+
+# ============================================================
+# 评估维度
+# ============================================================
+dimensions:
+
+  feasibility:
+    label: "可行性"
+    description: "候选人从当前状态转型到目标路径的实际可执行程度"
+    factors:
+      skill_gap_size:
+        label: "技能差距大小"
+        scoring:
+          high:
+            criteria: "目标路径所需核心技能与当前技能重叠度 >= 60%，差距可在 6 个月内弥补"
+            feasibility_level: "高"
+          medium:
+            criteria: "重叠度 30-60%，需系统学习，合理过渡期 6-18 个月"
+            feasibility_level: "中"
+          low:
+            criteria: "重叠度 < 30%，需从头学习核心技能，过渡期 18 个月以上"
+            feasibility_level: "低"
+      market_precedent:
+        label: "转型先例"
+        description: "市场上是否有同类转型成功案例"
+        levels:
+          proven: "该转型路径有明确且普遍的先例（如前端工程师→产品经理）"
+          emerging: "少数成功案例，路径可行但需更多自证"
+          rare: "极少先例，难度极高，通常需要特殊背景支撑"
+      resource_availability:
+        label: "学习资源可及性"
+        criteria:
+          - "目标技能是否有系统性学习路径（课程、认证、社区）"
+          - "所需认证/学历补充的时间和成本是否在候选人承受范围内"
+          - "是否需要全职转型或可兼职过渡"
+    output_rule: "可行性评估必须基于候选人提供的实际背景，禁止假设'只要努力就能做到'"
+
+  market_alignment:
+    label: "市场匹配"
+    description: "目标岗位在当前市场的需求趋势和供需关系"
+    factors:
+      industry_growth:
+        label: "行业增长性"
+        levels:
+          expanding:
+            description: "行业整体增长，招聘需求持续上升"
+            examples: ["AI/大模型应用", "新能源", "高端制造", "出海业务"]
+          stable:
+            description: "行业成熟，需求稳定但无显著增长"
+            examples: ["传统互联网产品", "企业级 SaaS（特定赛道）"]
+          contracting:
+            description: "行业收缩或饱和，竞争激烈，就业机会减少"
+            examples: ["教培（政策影响）", "房地产相关", "部分传统广告"]
+      role_demand_trend:
+        label: "岗位需求趋势"
+        description: "目标岗位类型在近 12 个月的招聘量变化"
+        data_sources:
+          - "BOSS直聘/拉勾职位数量趋势（需注明数据日期）"
+          - "猎头朋友圈/行业招聘群活跃度"
+          - "目标公司近期 JD 发布频率"
+        scoring:
+          high_demand:   "目标岗位在多个主流平台招聘量持续增加，薪资带上行"
+          stable_demand: "招聘量平稳，薪资带无明显变化"
+          low_demand:    "招聘量减少，平均 JD 收到简历数量上升，竞争加剧"
+      compensation_benchmark:
+        label: "目标岗位薪资区间"
+        description: "与候选人当前薪资的对比，评估转型的经济代价"
+        note: "若转型导致短期降薪，需明确标注并说明长期溢价预期"
+
+  skill_transferability:
+    label: "技能迁移性"
+    description: "候选人当前技能有多少比例可以直接或间接应用于目标路径"
+    categories:
+      direct_transfer:
+        label: "直接可用技能"
+        description: "无需培训即可应用于目标岗位的技能"
+        scoring_weight: 1.0
+        examples:
+          - "技术工程师转技术产品经理：系统设计、API 理解、工程评估"
+          - "数据分析师转产品经理：数据分析、用户行为理解、A/B 测试"
+      partial_transfer:
+        label: "部分可迁移技能"
+        description: "需调整或补充背景知识后可用于目标岗位的技能"
+        scoring_weight: 0.5
+        examples:
+          - "软件工程师转算法工程师：编程能力可用，需补充数学/ML 知识"
+          - "业务 BD 转产品经理：用户沟通、需求理解可用，需补充产品方法论"
+      non_transferable:
+        label: "不可迁移技能"
+        description: "与目标岗位无关或在新岗位中无价值的技能"
+        scoring_weight: 0.0
+    overall_transferability_score:
+      formula: "迁移性得分 = Σ(技能价值 × 权重) / 全部技能总值"
+      thresholds:
+        high:   { min: 0.6, max: 1.0, label: "高迁移性，转型阻力小" }
+        medium: { min: 0.3, max: 0.6, label: "中迁移性，需有针对性补充" }
+        low:    { min: 0.0, max: 0.3, label: "低迁移性，实质上接近重新起步" }
+
+  timeline_realism:
+    label: "时间线现实性"
+    description: "候选人制定的转型时间线是否与实际所需时间匹配"
+    assessment_criteria:
+      learning_time:
+        label: "学习时间评估"
+        benchmarks:
+          - "单个新技能（入门可用）：1-3 个月（每天 2-3 小时）"
+          - "系统性转型（全新领域）：12-24 个月"
+          - "学历提升（在职研究生）：2-3 年"
+        adjustment_factors:
+          - "候选人有无全职时间（在职 vs 裸辞转型）"
+          - "候选人过往学习效率（自评 + 历史证明）"
+          - "目标岗位对新人的接受程度（是否可从初级做起）"
+      job_search_time:
+        label: "求职时间评估"
+        benchmarks:
+          - "转型初级岗位（跨行业非核心岗）：2-4 个月"
+          - "转型同级岗位（相关领域）：1-3 个月"
+          - "转型高级岗位（跨行业核心岗）：3-6 个月"
+      reality_check:
+        label: "时间线可行性判断"
+        levels:
+          realistic:     "候选人时间线比基准宽松 20% 以上，有缓冲空间"
+          tight_but_ok:  "接近基准，在自律和资源充足的前提下可实现"
+          optimistic:    "比基准快 30% 以上，存在明显高估风险"
+          unrealistic:   "完全脱离实际，需要重新规划"
+    output_rule: "若候选人时间线判断为 optimistic 或 unrealistic，必须给出修正建议而非直接认同"
+
+  risk_assessment:
+    label: "风险评估"
+    description: "转型过程中的主要风险点及其应对策略"
+    risk_categories:
+      financial_risk:
+        label: "财务风险"
+        factors:
+          - "是否需要裸辞（无收入期长度）"
+          - "学习/认证成本估算"
+          - "家庭财务压力（房贷、子女教育等）"
+        mitigation:
+          - "在职完成核心技能学习后再转"
+          - "兼职/副业积累新领域作品集"
+          - "评估个人储备可支撑多久（建议至少 6 个月生活费）"
+      market_risk:
+        label: "市场风险"
+        factors:
+          - "目标岗位供需是否可能在转型周期内发生变化"
+          - "行业是否受政策风险影响（如教培、互联网平台整治）"
+        mitigation:
+          - "转型到需求多元化的通用技能领域"
+          - "保留退路岗位的竞争力（不完全放弃原有技能）"
+      execution_risk:
+        label: "执行风险"
+        factors:
+          - "候选人历史完成长期计划的成功率"
+          - "是否有外部督促机制（课程结构、导师、学习社群）"
+          - "家庭/工作环境是否支持转型计划"
+        mitigation:
+          - "设定 3 个月里程碑，而非只看最终目标"
+          - "找同类转型前辈作为参照和支持"
+    fallback_options:
+      label: "退路方案"
+      description: "若主要转型路径受阻，候选人的可选退路"
+      criteria:
+        - "退路岗位是否保留了候选人现有竞争力"
+        - "退路岗位是否是向目标方向的部分迁移（迂回路径）"
+        - "退路方案的经济可行性"
+      output_rule: "每个转型建议必须配套至少一个退路方案，禁止只提主路径"
+
+# ============================================================
+# 综合评估规则
+# ============================================================
+assessment_rules:
+  overall_recommendation:
+    levels:
+      strongly_recommended:
+        criteria: "可行性高 + 市场匹配高 + 迁移性 >= 0.5 + 时间线现实 + 风险可控"
+        label: "强烈推荐，可立即执行规划"
+      recommended_with_preparation:
+        criteria: "部分条件达到，但有 1-2 项需先行准备（如先补技能或先积累经验）"
+        label: "推荐，建议先完成前置准备"
+      cautious:
+        criteria: "市场风险或执行风险较高，需候选人充分了解后自行决策"
+        label: "谨慎考虑，建议与职业导师深入讨论后决定"
+      not_recommended:
+        criteria: "可行性低 + 市场收缩 + 迁移性低 + 时间线不现实"
+        label: "不建议，建议重新评估目标或采用迂回路径"
+
+  cannot_fabricate_rule:
+    rule: "职业策略建议必须基于候选人提供的真实背景，禁止假设不存在的技能或经历"
+    rationale: "基于虚假假设的建议会让候选人在求职中暴露，损害信任"
+
+  china_market_rule:
+    rule: "市场数据必须来自中国大陆劳动力市场，禁止使用全球或欧美数据替代"
+    rationale: "中国职场有独特的学历门槛、平台效应和行业政策，全球数据无参考价值"

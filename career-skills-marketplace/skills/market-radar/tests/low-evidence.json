@@ -1,0 +1,12 @@
+{
+  "description": "数据超过 90 天：confidence=low，data_freshness=stale",
+  "input": {
+    "query": "前端工程师",
+    "city": "深圳"
+  },
+  "simulate": "stale_sources_only",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "data_freshness", "operator": "in", "value": ["stale", "unavailable"] }
+  ]
+}

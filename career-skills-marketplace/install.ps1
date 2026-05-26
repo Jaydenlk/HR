@@ -7,7 +7,13 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $MarketplaceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Skills = @('career-principal', 'profile-builder', 'jd-analyzer', 'resume-tailor', 'match-diagnosis', 'source-quality-auditor')
+# Discover all skills dynamically
+$Skills = @()
+foreach ($dir in (Get-ChildItem -Path (Join-Path $MarketplaceDir 'skills') -Directory)) {
+    if (Test-Path (Join-Path $dir.FullName 'SKILL.md')) {
+        $Skills += $dir.Name
+    }
+}
 
 switch ($Target) {
     'claude' {

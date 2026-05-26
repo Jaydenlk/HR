@@ -1,0 +1,13 @@
+{
+  "description": "仅有2题简短概括，期望 confidence: low，cannot_determine 列出无法评分的维度",
+  "input": {
+    "interview_transcript": "问了我为什么离职，我说寻求发展。问了职业规划，我说五年后做管理。",
+    "job_title": "销售经理"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "low" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 2 },
+    { "path": "dimension_scores", "operator": "length_eq", "value": 6,
+      "description": "即使低证据也应输出六个维度（部分可能为0分）" }
+  ]
+}

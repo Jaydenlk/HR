@@ -1,0 +1,12 @@
+{
+  "description": "phase 字段无效值，期望验证错误",
+  "input": {
+    "phase": "review",
+    "job_title": "数据工程师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "validation_error" },
+    { "path": "questions", "operator": "length_eq", "value": 0 }
+  ]
+}

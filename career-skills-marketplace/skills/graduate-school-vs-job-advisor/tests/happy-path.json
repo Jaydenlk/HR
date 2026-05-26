@@ -1,0 +1,25 @@
+{
+  "description": "双非CS，GPA 3.6，目标后端工程师 → 分析考研 vs 直接工作，有 critical_factors",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "刘洋",
+        "education": { "school": "某双非本科", "major": "计算机科学", "degree": "本科" },
+        "years_of_experience": 0
+      },
+      "skills": { "technical": [{ "name": "Java", "proficiency": "used_in_project", "evidence_source": "项目" }] },
+      "experience": [],
+      "career_intent": { "target_roles": ["后端开发工程师"] }
+    },
+    "gpa": 3.6,
+    "gpa_percentile": 15,
+    "economic_pressure": "moderate"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "not_eq", "value": "insufficient" },
+    { "path": "analysis", "operator": "length_gte", "value": 2 },
+    { "path": "recommendation", "operator": "not_empty", "value": true },
+    { "path": "critical_factors", "operator": "length_gte", "value": 2 },
+    { "path": "evidence_used", "operator": "length_gte", "value": 2 }
+  ]
+}

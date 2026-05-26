@@ -1,6 +1,6 @@
 # Career Skills Marketplace
 
-**求职主理人 + 6 个可调用 skill 的半自动求职操作系统**，专为中国求职市场设计，运行于 Claude Code 环境。
+**求职主理人 + 37 个可调用 skill 的半自动求职操作系统**，专为中国求职市场设计，运行于 Claude Code 环境。
 
 ---
 
@@ -24,6 +24,8 @@ Career Skills Marketplace 是一套以 Claude Code 为运行时的 skill 插件�
 
 ## 能做什么
 
+### Layer 1：核心推理（6 个）
+
 | Skill | 作用 |
 |-------|------|
 | `career-principal` | 求职主理人：识别意图，编排下游 skill，汇总输出 |
@@ -32,6 +34,57 @@ Career Skills Marketplace 是一套以 Claude Code 为运行时的 skill 插件�
 | `match-diagnosis` | 对比画像与 JD，输出多维匹配度评分 |
 | `resume-tailor` | 基于 JD 重组简历表达，不编造经历 |
 | `source-quality-auditor` | 评估信息来源的可信度和时效性 |
+
+### Layer 2：求职执行（7 个）
+
+| Skill | 作用 |
+|-------|------|
+| `opportunity-intelligence` | 分析岗位吸引力、公司健康度与时机窗口 |
+| `application-strategist` | 制定岗位优先级、时间节点与投递路径 |
+| `application-tracker` | 记录和管理多岗位投递状态与跟进提醒 |
+| `daily-plan-generator` | 基于求职阶段和面试安排生成每日行动计划 |
+| `networking-message-writer` | 生成向内推人或行业联系人发送的开场消息 |
+| `referral-strategy` | 识别内推路径、优先级与接触时机 |
+| `follow-up-message-writer` | 面试后或投递后的礼貌跟进文案生成 |
+
+### Layer 3：面试（8 个）
+
+| Skill | 作用 |
+|-------|------|
+| `interview-intelligence` | 汇总目标公司面试流程、高频题型与评委风格 |
+| `mock-interviewer` | 基于岗位和公司风格进行互动式模拟面试 |
+| `interview-debrief` | 分析面试表现，提炼改进点与下一步准备重点 |
+| `question-bank-builder` | 为目标岗位和公司生成定制化面试题库 |
+| `company-interview-playbook` | 提供特定公司的面试攻略、考察维度与通关建议 |
+| `behavioral-story-builder` | 将个人经历结构化为 STAR 格式的行为面试素材 |
+| `technical-interview-coach` | 针对技术岗位的编程、系统设计题目讲解与练习 |
+| `case-interview-coach` | 咨询类 Case 题解题框架训练与反馈 |
+
+### Layer 4：市场情报（8 个）
+
+| Skill | 作用 |
+|-------|------|
+| `market-radar` | 扫描目标行业和岗位的招聘热度与趋势变化 |
+| `xhs-interview-miner` | 从小红书提取近期真实面经和招聘信号 |
+| `nowcoder-tech-miner` | 从牛客网提取技术岗面经与招聘行情 |
+| `wechat-insight-reader` | 解析公众号文章和行业报告中的求职相关信号 |
+| `salary-radar` | 基于岗位、城市、经验层级的薪资区间分析 |
+| `offer-comparator` | 多维度对比多个 Offer 的薪资、成长、风险 |
+| `company-risk-auditor` | 评估目标公司的财务健康、舆情与雇主风险信号 |
+| `industry-trend-analyst` | 解读行业增长周期、政策影响与人才需求变化 |
+
+### Layer 5：职业战略（8 个）
+
+| Skill | 作用 |
+|-------|------|
+| `career-path-planner` | 基于能力画像和目标输出 3-5 年职业发展路径 |
+| `role-transition-advisor` | 评估跨赛道转型的可行性、风险和最优路径 |
+| `skill-gap-planner` | 识别当前能力与目标岗位的差距并量化优先级 |
+| `learning-roadmap-builder` | 生成针对目标岗位的分阶段技能提升计划 |
+| `personal-brand-builder` | 提炼差异化定位并指导领英/GitHub/简历的一致性表达 |
+| `portfolio-project-advisor` | 建议适合目标岗位的实战项目选题与包装策略 |
+| `graduate-school-vs-job-advisor` | 多维度分析继续深造与直接就业的利弊 |
+| `city-industry-fit-advisor` | 基于目标行业分布和个人约束推荐最优就业城市 |
 
 ---
 
@@ -102,6 +155,11 @@ cd career-skills-marketplace
 | 企业数据 | 50 家 | Seed（种子批次） |
 | 岗位类别 | 12 个 | — |
 | 求职黑话术语 | 18 个 | — |
+| 面试题型分类 | 8 类 | — |
+| Offer 对比因子 | 15 个 | — |
+| 城市行业适配映射 | 20 个 | — |
+| 职业路径模板 | 10 条 | — |
+| 市场数据来源 | 12 个 | — |
 
 **12 个岗位类别**：技术研发、产品管理、运营、市场营销、人力资源与行政、数据与分析、设计、财务与金融、咨询与策略、管培生、销售与商务、内容与媒体。
 
@@ -112,7 +170,7 @@ cd career-skills-marketplace
 ## 局限
 
 - **不是 Web App**：需要 Claude Code 环境，不提供网页界面。
-- **不联网**：不实时爬取招聘信息或面经，所有判断基于本地知识图谱和你提供的输入。
+- **不联网**：市场情报类 skill（Layer 4）需要适配器注入实时数据，无适配器时系统降级并明确告知置信度不足。
 - **知识图谱有限**：目前 50 家企业为种子批次，覆盖头部互联网和部分知名外资。冷门公司、地方性企业可能没有记录，系统会明确告知。
 - **不编造事实**：当输入信息不足或置信度过低时，系统拒绝输出高置信判断，而非猜测。这是硬性约束，不可关闭。
 

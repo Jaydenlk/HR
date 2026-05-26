@@ -1,0 +1,22 @@
+{
+  "description": "单项 critical 技能差距 → 多阶段路线图，有资源列表",
+  "input": {
+    "skill_gaps": [
+      {
+        "skill_name": "Kubernetes",
+        "gap_severity": "critical",
+        "user_current": "无K8s经验，有Docker基础",
+        "target_required": "能独立管理生产级K8s集群"
+      }
+    ],
+    "weekly_hours": 12
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "not_eq", "value": "insufficient" },
+    { "path": "roadmap", "operator": "length_gte", "value": 1 },
+    { "path": "roadmap[0].phases", "operator": "length_gte", "value": 2 },
+    { "path": "roadmap[0].phases[0].completion_criteria", "operator": "not_empty", "value": true },
+    { "path": "resource_list", "operator": "length_gte", "value": 1 },
+    { "path": "total_estimated_weeks", "operator": "gte", "value": 4 }
+  ]
+}

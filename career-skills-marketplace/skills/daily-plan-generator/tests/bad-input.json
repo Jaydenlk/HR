@@ -1,0 +1,10 @@
+{
+  "description": "缺少 current_date 必须字段，期望 confidence=insufficient，daily_tasks 为空",
+  "input": {
+    "user_profile": { "skills": ["Python"] }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "daily_tasks", "operator": "length_eq", "value": 0 }
+  ]
+}

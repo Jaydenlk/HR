@@ -1,0 +1,15 @@
+{
+  "description": "只有一个 offer（少于最低 2 个）：应返回 error 或 insufficient",
+  "input": {
+    "offers": [
+      {
+        "offer_id": "offer_a",
+        "company": "只有一个公司",
+        "base_monthly": 20000
+      }
+    ]
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" }
+  ]
+}

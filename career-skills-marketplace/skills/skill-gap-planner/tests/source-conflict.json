@@ -1,0 +1,22 @@
+{
+  "description": "差距中有快速见效项（已有基础）和长期项（从零开始），两者应分开",
+  "input": {
+    "profile": {
+      "basic": { "name": "陈静", "years_of_experience": 4, "current_role": { "value": "前端工程师" } },
+      "skills": {
+        "technical": [
+          { "name": "React", "proficiency": "used_in_project", "evidence_source": "项目" },
+          { "name": "TypeScript", "proficiency": "mentioned", "evidence_source": "技能列表" }
+        ]
+      },
+      "experience": [{ "company": "某公司", "role": "前端工程师", "duration": "2022-至今" }]
+    },
+    "target_role": "高级前端工程师"
+  },
+  "assertions": [
+    { "path": "quick_wins", "operator": "length_gte", "value": 1 },
+    { "path": "quick_wins[0].basis", "operator": "not_empty", "value": true },
+    { "path": "long_term_investments", "operator": "length_gte", "value": 0 },
+    { "path": "confidence", "operator": "eq", "value": "medium" }
+  ]
+}

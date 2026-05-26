@@ -1,6 +1,6 @@
 ---
 description: "sub-skill 调用的编排规则：依赖顺序、并行条件、输出聚合方式"
-version: "1.0.0"
+version: "2.0.0"
 ---
 
 # 编排规则
@@ -198,3 +198,292 @@ skills_invoked:
 2. 继续执行不依赖该 skill 的后续步骤
 3. 对依赖该 skill 的步骤：列入 `cannot_determine`
 4. 最终输出中说明"因 X skill 超时，以下分析未完成"
+
+---
+
+## 7. Pack A 编排链：求职流程管理
+
+### 机会 → 策略 → 追踪 完整链路
+
+```
+用户提供目标公司/岗位列表
+  阶段 1（并行）:
+    ├── jd-analyzer(jd_text)          [如有 JD]
+    └── profile-builder(resume_text)  [如有简历]
+
+  阶段 2:
+    └── opportunity-intelligence(jd-analyzer.output, profile-builder.output)
+
+  阶段 3（用户确认要投递）:
+    └── application-strategist(opportunity-intelligence.output, user_profile)
+
+  阶段 4（持续跟踪）:
+    └── application-tracker(application-strategist.output)
+```
+
+**规则**：
+- `opportunity-intelligence` 依赖 `jd-analyzer`；若无 JD，使用用户描述降级运行
+- `application-strategist` 需要机会评估结果；不可在 `opportunity-intelligence` 前调用
+- `application-tracker` 是独立状态存储，可在任意阶段读写，不依赖其他 skill 的实时输出
+
+### 人脉开拓链路
+
+```
+用户提出内推/人脉需求
+  阶段 1:
+    └── referral-strategy(user_message, user_profile)
+
+  阶段 2（生成具体消息）:
+    └── networking-message-writer(referral-strategy.targets)
+
+  阶段 3（跟进）:
+    └── follow-up-message-writer(context)
+```
+
+### 每日任务规划
+
+```
+阶段 1（并行读取现有状态）:
+  ├── application-tracker.read_state()
+  └── profile-builder(user_profile)  [如无已有 profile]
+
+阶段 2:
+  └── daily-plan-generator(tracker.output, profile.output)
+```
+
+---
+
+## 8. Pack B 编排链：面试准备深度工具
+
+### 面试情报 → 模拟 → 复盘 链路
+
+```
+阶段 1（并行，市场情报预检）:
+  ├── source-quality-auditor(company_context)   [必须先于其他 skill]
+  ├── xhs-interview-miner(company, role)
+  └── nowcoder-tech-miner(company, role)        [技术岗位时]
+
+阶段 2（等待情报完成）:
+  ├── company-interview-playbook(情报汇总)
+  └── question-bank-builder(情报汇总, jd_text)
+
+阶段 3（依赖题库和攻略）:
+  └── behavioral-story-builder(resume_text, question-bank-builder.themes)
+
+阶段 4（模拟练习）:
+  └── mock-interviewer(company-interview-playbook.style, question-bank-builder.questions)
+
+阶段 5（复盘后更新故事库）:
+  └── behavioral-story-builder.update(mock-interviewer.debrief_feedback)
+```
+
+**规则**：
+- `source-quality-auditor` 在 Pack B 中必须先于 `company-interview-playbook` 运行，用于核验公司面试风格信息的可靠性
+- `behavioral-story-builder` 可由两条路径触发：简历提炼（正向）或模拟复盘后更新（反向迭代）
+- 技术岗位必须额外调用 `technical-interview-coach`；案例类岗位调用 `case-interview-coach`
+
+### 技术面专项链路
+
+```
+阶段 1:
+  └── nowcoder-tech-miner(company, tech_stack)
+
+阶段 2（等待情报）:
+  ├── technical-interview-coach(tech_stack, nowcoder.output)
+  └── question-bank-builder(tech_focus)
+
+阶段 3（模拟）:
+  └── mock-interviewer(mode: technical, question-bank-builder.output)
+```
+
+### 案例面专项链路
+
+```
+阶段 1:
+  └── case-interview-coach(case_type)
+
+阶段 2:
+  ├── question-bank-builder(case_themes)
+  └── behavioral-story-builder(business_context)
+
+阶段 3:
+  └── mock-interviewer(mode: case, case-interview-coach.framework)
+```
+
+---
+
+## 9. Pack C 编排链：市场情报
+
+### 市场情报强制预检规则
+
+**所有 Pack C skill 在输出市场声明前，必须先通过 source-quality-auditor 检验**：
+
+```
+Pack C skill 产出含以下任一类型时，强制调用 source-quality-auditor：
+  - 薪资区间数字
+  - 行业趋势判断
+  - 公司竞争格局描述
+  - 岗位供需数据
+  - 城市行业聚集度描述
+```
+
+**降级规则（实时研究不可用时）**：
+
+```
+source-quality-auditor 返回 failed 或 skipped:
+  1. 删除所有含具体数字的市场声明
+  2. 将受影响字段改为定性描述（如"据行业观察，普遍认为..."）
+  3. 在输出中标注 data_freshness: "degraded"
+  4. confidence 自动降为 low
+  5. 明确告知用户："当前无法访问实时市场数据，以下为基于静态知识库的估算"
+```
+
+### 完整市场情报链路
+
+```
+用户提出市场查询
+  阶段 1（并行）:
+    ├── source-quality-auditor(query)  [必须先行，验证查询范围可信度]
+    ├── xhs-interview-miner(company_or_role)   [如涉及具体公司/岗位]
+    └── nowcoder-tech-miner(tech_role)         [如涉及技术岗位]
+
+  阶段 2（等待情报汇集）:
+    ├── market-radar(汇总情报)
+    └── industry-trend-analyst(汇总情报)   [如涉及行业趋势]
+
+  阶段 3（offer 决策场景）:
+    └── offer-comparator(market-radar.benchmarks, offer_details)
+    └── company-risk-auditor(company_name, market-radar.output)
+```
+
+### offer 决策链路
+
+```
+阶段 1（并行）:
+  ├── source-quality-auditor(company_names)
+  ├── market-radar(role, city)
+  └── company-risk-auditor(company_name)
+
+阶段 2（等待阶段 1）:
+  └── offer-comparator(所有阶段 1 输出)
+
+阶段 3（如用户需要行业视角）:
+  └── industry-trend-analyst(company.industry)
+```
+
+---
+
+## 10. Pack D 编排链：职业战略规划
+
+### profile-builder 前置规则
+
+**Pack D 所有职业战略 skill 都依赖用户档案，profile-builder 必须在其他 Pack D skill 之前完成**：
+
+```
+Pack D skill 调用前的必要条件：
+  - user_profile 已存在（来自历史对话或本次 profile-builder 输出）
+  OR
+  - resume_text 字符数 >= 100（profile-builder 可以实时提取）
+
+如两者均不满足：
+  - 先追问用户提供简历或描述背景
+  - 不可用空档案调用职业战略 skill（会产生无意义的通用建议）
+```
+
+### 完整职业规划链路
+
+```
+用户发起职业规划需求
+  阶段 1:
+    └── profile-builder(resume_text)  [强制先行]
+
+  阶段 2（并行）:
+    ├── match-diagnosis(profile.output, target_jd)   [如有目标岗位]
+    └── industry-trend-analyst(target_industry)       [如有目标行业]
+
+  阶段 3（等待阶段 2）:
+    ├── career-path-planner(profile.output, trend.output)
+    └── skill-gap-planner(profile.output, match-diagnosis.gaps)
+
+  阶段 4（如有学习需求）:
+    └── learning-roadmap-builder(skill-gap-planner.output)
+```
+
+### 转型评估链路
+
+```
+阶段 1:
+  └── profile-builder(resume_text)
+
+阶段 2（并行）:
+  ├── role-transition-advisor(profile.output, target_role)
+  └── skill-gap-planner(profile.output, target_role)
+
+阶段 3:
+  ├── career-path-planner(transition路径)
+  └── learning-roadmap-builder(skill-gap-planner.output)
+```
+
+### 读研 vs 工作决策链路
+
+```
+阶段 1:
+  └── profile-builder(resume_text 或 user_profile)
+
+阶段 2（并行）:
+  ├── industry-trend-analyst(target_industry)
+  └── market-radar(target_role, city)
+
+阶段 3:
+  └── graduate-school-vs-job-advisor(profile.output, market.benchmarks, trend.output)
+
+阶段 4（如需进一步规划）:
+  └── career-path-planner(graduate-school-vs-job-advisor.recommendation)
+```
+
+---
+
+## 11. 跨 Pack 编排链
+
+### "全局求职规划"（跨 Pack A + D）
+
+触发条件：用户问"我现在该怎么找工作"或"帮我整体规划求职"
+
+```
+阶段 1:
+  └── profile-builder(resume_text)  [Pack D 前置]
+
+阶段 2（并行）:
+  ├── match-diagnosis(profile.output, target_jds)    [Pack A 评估]
+  ├── career-path-planner(profile.output)            [Pack D 方向]
+  └── skill-gap-planner(profile.output)              [Pack D 差距]
+
+阶段 3:
+  ├── application-strategist(match-diagnosis.output)  [Pack A 投递策略]
+  └── learning-roadmap-builder(skill-gap-planner.output)  [Pack D 补强]
+
+阶段 4:
+  └── daily-plan-generator(所有阶段输出汇总)  [Pack A 今日行动]
+```
+
+### "面试机会评估"（跨 Pack A + B + C）
+
+触发条件：用户拿到面试邀请，要求全面准备
+
+```
+阶段 1（并行）:
+  ├── source-quality-auditor(company_name)       [Pack C 风控]
+  ├── jd-analyzer(jd_text)                       [Pack A 解析]
+  └── xhs-interview-miner(company, role)         [Pack C 情报]
+
+阶段 2（等待情报）:
+  ├── opportunity-intelligence(阶段1输出)        [Pack A 评估值不值]
+  └── company-interview-playbook(阶段1输出)      [Pack B 攻略]
+
+阶段 3（决定参加面试后）:
+  ├── question-bank-builder(playbook.output)     [Pack B 题库]
+  └── behavioral-story-builder(resume_text)     [Pack B 故事]
+
+阶段 4:
+  └── mock-interviewer(question-bank.output, playbook.style)  [Pack B 模拟]
+```

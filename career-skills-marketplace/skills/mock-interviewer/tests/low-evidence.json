@@ -1,0 +1,14 @@
+{
+  "description": "仅有岗位名，无 profile 和 JD，期望 confidence: low，仍输出通用题目",
+  "input": {
+    "phase": "generate_questions",
+    "job_title": "运营专员"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "low" },
+    { "path": "questions", "operator": "length_gte", "value": 2,
+      "description": "即使低证据也应输出题目" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1,
+      "description": "必须说明无法个性化的原因" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "description": "面经对算法难度描述矛盾，confidence 不为 high，cannot_determine 包含难度不确定",
+  "input": {
+    "job_title": "后端工程师",
+    "company_name": "某B轮公司",
+    "interview_intelligence": { "common_questions": [] }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "not_eq", "value": "high" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

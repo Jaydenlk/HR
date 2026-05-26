@@ -1,0 +1,12 @@
+{
+  "description": "未提供 profile 字段 → error + insufficient",
+  "input": {
+    "target_role": "产品经理"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "paths", "operator": "length_eq", "value": 0 },
+    { "path": "error.code", "operator": "eq", "value": "MISSING_PROFILE" },
+    { "path": "recommended_path", "operator": "eq", "value": "" }
+  ]
+}

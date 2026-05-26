@@ -1,0 +1,70 @@
+name: company-risk-auditor
+version: "1.0.0"
+role: worker
+
+live_research_required: true
+degradation_behavior: >
+  无法获取实时数据时：仅使用知识图谱历史信息，
+  confidence 设为 low，并明确标注"以下信息来自历史知识库，
+  可能不反映公司近期状况，建议自行查询最新资讯"。
+  无任何数据时 confidence 为 insufficient。
+
+when_to_use:
+  - 用户收到 offer 前需要了解公司风险
+  - 用户询问公司是否稳定、是否有裁员风险
+  - 用户想了解公司文化信号和已知问题
+
+when_not_to_use:
+  - 用户需要薪资信息（改用 salary-radar）
+  - 用户需要比较多个 offer（改用 offer-comparator）
+
+inputs:
+  primary:
+    - name: company
+      type: string
+      required: true
+      min_length: 1
+      description: "目标公司名称"
+  optional:
+    - name: role
+      type: string
+      description: "目标岗位（不同岗位风险可能不同）"
+    - name: focus_areas
+      type: array
+      items:
+        type: string
+        enum: [layoff_risk, culture, financial_health, legal_issues, work_hours]
+      description: "重点关注的风险维度"
+
+confidence_policy:
+  high:
+    condition: "3+ 个 A/B 级实时来源，时间在 90 天内"
+  medium:
+    condition: "1-2 个 B 级来源，或来源时间在 180 天内"
+  low:
+    condition: "仅知识图谱历史信息"
+  insufficient:
+    condition: "无任何可用数据"
+
+failure_modes:
+  - type: no_live_data
+    trigger: "无法获取实时来源"
+    response: "仅用知识图谱，confidence: low，明确标注历史数据限制"
+  - type: unknown_company
+    trigger: "公司太小或不知名，无任何数据"
+    response: "confidence: insufficient，列出建议查询渠道"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - risk_profile
+  metadata:
+    - confidence
+
+dependencies:
+  skills:
+    - source-quality-auditor
+  shared_schemas:
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  references:
+    - references/china-company-risk-signals.md

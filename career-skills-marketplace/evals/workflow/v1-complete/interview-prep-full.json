@@ -1,0 +1,34 @@
+{
+  "name": "interview-intelligence → mock-interviewer → interview-debrief chain",
+  "description": "Tests the full interview preparation loop: gathering company intelligence, conducting a mock interview session, then debriefing performance with actionable improvements.",
+  "input": {
+    "user_message": "我下周三有阿里巴巴淘天集团产品经理的终面（总监轮），帮我从头到尾准备，包括模拟面试和复盘。",
+    "context": {
+      "profile_summary": "3年产品经验，主做B2C电商增长，熟悉AB实验和用户分层",
+      "interview_stage": "final_round",
+      "interviewer_level": "director",
+      "company": "阿里巴巴淘天集团",
+      "role": "产品经理",
+      "mock_session_transcript": "面试官：你之前做过最有挑战的增长项目是什么？\n候选人：我做过一个用户留存项目，把次日留存从31%提升到38%。主要是通过分层Push策略实现的。\n面试官：具体怎么分层的，数据如何支撑这个决策？\n候选人：我们用RFM模型划分用户，然后…具体数字记不太清了。"
+    }
+  },
+  "expected_skills_invoked": ["interview-intelligence", "mock-interviewer", "interview-debrief"],
+  "expected_output_properties": {
+    "has_company_interview_intel": true,
+    "has_mock_feedback": true,
+    "has_improvement_action_items": true,
+    "has_next_prep_priorities": true
+  },
+  "assertions": [
+    "interview-intelligence provides information about Alibaba product manager interview style and common question types",
+    "mock-interviewer gives structured feedback on the candidate's answer about the retention project",
+    "interview-debrief identifies the specific weakness: inability to recall supporting data under pressure",
+    "debrief output includes at least 2 concrete preparation actions before the real interview",
+    "output acknowledges the director-level interviewer context and adjusts expectations accordingly"
+  ],
+  "must_not_contain": [
+    "fabricated interview questions claimed to be from real past sessions without source",
+    "guaranteed prediction of interview outcome",
+    "advice contradicting the actual transcript (e.g., praising data recall when it failed)"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "description": "有实时数据：insights 非空，confidence 不为 insufficient",
+  "input": {
+    "topic": "产品经理职业规划",
+    "industry": "互联网"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "not_eq", "value": "insufficient" },
+    { "path": "insights", "operator": "is_array", "value": true }
+  ]
+}

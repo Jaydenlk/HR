@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "city-industry-fit-advisor 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "fit_matrix", "cost_of_living_impact", "industry_hub_analysis", "recommendation"
+  ],
+  "properties": {
+    "skill_name": { "const": "city-industry-fit-advisor" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low", "insufficient"] },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "relevance"],
+        "properties": {
+          "field": { "type": "string" },
+          "value": { "type": "string" },
+          "relevance": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "fit_matrix": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["city", "industry", "fit_score", "fit_breakdown", "evidence_basis"],
+        "properties": {
+          "city": { "type": "string" },
+          "industry": { "type": "string" },
+          "fit_score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "综合适配度评分"
+          },
+          "fit_breakdown": {
+            "type": "object",
+            "properties": {
+              "skill_match": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "career_ceiling": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "cost_sustainability": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "constraint_satisfaction": { "type": "integer", "minimum": 0, "maximum": 100 }
+            }
+          },
+          "evidence_basis": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "支撑此评分的 profile 字段引用"
+          }
+        }
+      }
+    },
+    "cost_of_living_impact": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["city", "typical_salary_range", "housing_cost_note", "purchasing_power_note"],
+        "properties": {
+          "city": { "type": "string" },
+          "typical_salary_range": { "type": "string", "description": "该城市目标职位典型薪资范围" },
+          "housing_cost_note": { "type": "string", "description": "住房成本说明（含租金/房价参考）" },
+          "purchasing_power_note": { "type": "string", "description": "实际购买力分析" }
+        }
+      }
+    },
+    "industry_hub_analysis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["city", "key_companies", "cluster_effect", "career_ceiling"],
+        "properties": {
+          "city": { "type": "string" },
+          "key_companies": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "该城市目标行业的头部公司"
+          },
+          "cluster_effect": { "type": "string", "description": "行业集群对跳槽/学习的影响" },
+          "career_ceiling": { "type": "string", "description": "职业发展天花板描述" }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "string",
+      "description": "综合推荐的城市+行业组合，必须引用 fit_matrix 最高评分"
+    }
+  }
+}

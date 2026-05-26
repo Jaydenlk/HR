@@ -1,0 +1,222 @@
+meta:
+  name: Offer比较因素体系
+  version: "1.0"
+  confidence: medium
+  source_policy: "基于公开薪酬调研、招聘平台信息及行业经验汇编"
+  last_reviewed_at: "2026-05-26"
+  limitations:
+    - "薪酬数据随市场变化，仅供结构性参考"
+    - "具体福利政策以公司实际签订劳动合同为准"
+    - "股权估值具有较高不确定性"
+
+factors:
+  - id: base_salary
+    name: 月base薪资
+    description: 每月固定税前基本工资，不含奖金和股权
+    unit: "月薪（人民币元）"
+    how_to_compare:
+      - "优先看月base而非年包，因为年包计算口径各公司不同"
+      - "问清楚是否含社保公积金个人部分"
+      - "确认试用期是否全额发放"
+    china_specific_notes:
+      - "部分公司年包 = 月薪 × 12，另一些 = 月薪 × 13 或 14"
+      - "大厂常见 16薪、18薪 表述，需折算月base对比"
+      - "试用期薪资：互联网公司通常全额，部分传统企业打8折"
+    confidence: medium
+    source_policy: "基于公开招聘信息及候选人反馈汇编"
+
+  - id: annual_bonus
+    name: 年终奖
+    description: 年度绩效奖金，通常在次年年初发放
+    unit: "月薪倍数"
+    how_to_compare:
+      - "询问历史兑现情况，而非只看承诺"
+      - "了解绩效评定标准和分布比例"
+      - "确认发放时间和在职要求"
+    typical_range_by_company_type:
+      big_tech_internet: "2-6个月，视绩效等级"
+      startup: "0-3个月，与公司业绩强挂钩"
+      state_owned: "1-3个月，相对稳定"
+      foreign: "1-4个月，通常有明确的绩效评级体系"
+      consulting: "4-12个月，弹性大"
+    performance_link:
+      typical_levels: [超预期, 达预期, 待提升]
+      bonus_multiplier_example: "超预期1.5x，达预期1.0x，待提升0.5x或不发"
+    china_specific_notes:
+      - "部分大厂年终奖在春节前发放，跳槽时机影响奖金是否到手"
+      - "应届生通常第一年没有年终奖或按入职月份折算"
+    confidence: medium
+    source_policy: "基于公开薪酬调研及招聘信息汇编"
+
+  - id: stock_equity
+    name: 股权/期权
+    description: 公司授予的股权激励，包含RSU（限制性股票）和期权两种主要形式
+    unit: "美元或人民币市值"
+    types:
+      rsu:
+        name: RSU（限制性股票单位）
+        description: 上市公司常用，按归属计划分批兑现
+        vesting_schedule_examples:
+          - "4年归属，每年25%"
+          - "4年归属，第1年25%，之后每季度6.25%"
+          - "1年cliff，之后每月归属"
+        valuation_notes: "参考授予时股价，实际价值随股价波动"
+      stock_option:
+        name: 期权
+        description: 非上市公司常用，需公司上市或被收购才能变现
+        key_questions:
+          - "行权价格是多少？"
+          - "最近一轮估值是多少？"
+          - "有没有二级市场或回购计划？"
+        risk_note: "期权存在归零风险，未上市公司流动性差"
+    how_to_compare:
+      - "上市公司RSU可按当前股价折算年均价值"
+      - "未上市公司期权保守估值，高度关注行权价与估值比"
+      - "对比total compensation = base + bonus + equity年均值"
+    china_specific_notes:
+      - "A股上市公司限制性股票有锁定期，一般1-3年"
+      - "部分中概股RSU需考虑美股波动和外汇兑换"
+      - "早期初创公司期权兑现周期可能超过5年"
+    confidence: low
+    source_policy: "股权估值高度依赖公司具体情况，以下为结构性指引"
+
+  - id: social_insurance_fund
+    name: 五险一金
+    description: 法定社会保险和住房公积金，包括养老、医疗、失业、工伤、生育险及公积金
+    how_to_compare:
+      - "关注缴纳基数：按实际工资还是最低基数"
+      - "公积金缴纳比例：5%-12%不等，高比例等于隐形加薪"
+      - "部分外企按实际工资全额缴纳，价值可观"
+    components:
+      养老保险: { employee_rate: "8%", employer_rate: "约16%" }
+      医疗保险: { employee_rate: "约2%", employer_rate: "约10%" }
+      失业保险: { employee_rate: "约0.5%", employer_rate: "约0.5%" }
+      工伤保险: { employee_rate: "0%", employer_rate: "视行业" }
+      生育保险: { employee_rate: "0%", employer_rate: "约0.8%" }
+      住房公积金: { employee_rate: "5%-12%", employer_rate: "与员工同比例" }
+    china_specific_notes:
+      - "各城市缴纳比例有所不同，以当地政策为准"
+      - "部分公司以最低基数缴纳以降低成本，员工实际受益减少"
+      - "公积金可用于购房贷款，在一线城市有较高实用价值"
+    confidence: medium
+    source_policy: "基于国家法规及各地政策文件汇编"
+
+  - id: supplemental_benefits
+    name: 补充福利
+    description: 公司提供的超出法定要求的额外福利
+    components:
+      supplemental_medical:
+        name: 补充医疗保险
+        description: 覆盖法定医保之外的医疗费用
+        value_note: "互联网大厂通常提供，年保额可达20-50万"
+      meal_allowance:
+        name: 餐补
+        description: 工作日餐费补贴
+        typical_range: "15-30元/天，部分公司提供免费餐厅"
+      housing_allowance:
+        name: 房补
+        description: 住房补贴，多见于国企和部分外企
+        typical_range: "500-3000元/月，视级别和城市"
+      transport_allowance:
+        name: 交通补贴
+        description: 上下班交通费用补贴
+        typical_range: "200-1000元/月，或报销实际费用"
+      health_checkup:
+        name: 年度体检
+        description: 公司组织的年度健康检查
+        value_note: "高级别员工通常有更全面的体检套餐"
+      gym_fitness:
+        name: 健身补贴
+        description: 健身房会员或运动相关补贴
+        typical_range: "部分互联网公司提供，100-500元/月"
+    how_to_compare:
+      - "将可量化福利折算成月均金额进行对比"
+      - "关注补充医疗保险的覆盖范围和报销比例"
+    confidence: medium
+    source_policy: "基于公开招聘信息及企业官方福利说明汇编"
+
+  - id: work_hours
+    name: 工作时长与强度
+    description: 实际工作时间安排，影响生活质量和隐性成本
+    how_to_compare:
+      - "询问团队实际工作时间，而非制度规定"
+      - "了解是否有弹性工作或远程工作政策"
+      - "确认加班是否有调休或加班费"
+    estimate_by_company_type:
+      internet_big_tech:
+        typical: "早10-晚22（1022工作制），部分团队更长"
+        overtime_compensation: "通常无加班费，文化默认加班"
+      internet_mid_tier:
+        typical: "早10-晚20，视项目周期波动"
+        overtime_compensation: "部分有调休机制"
+      startup:
+        typical: "高度不确定，融资期可能996"
+        overtime_compensation: "通常以期权或期权补偿"
+      foreign:
+        typical: "相对规律，早9-晚6"
+        overtime_compensation: "通常有明确加班补偿机制"
+      state_owned:
+        typical: "朝九晚五，较为规律"
+        overtime_compensation: "通常有调休，加班较少"
+    china_specific_notes:
+      - "996、007等表述在互联网行业有特定含义"
+      - "法定加班应支付150%/200%/300%工资，实际执行存在差异"
+      - "调休在大厂中更为普遍，但时间安排灵活性因团队而异"
+    confidence: medium
+    source_policy: "基于公开调研和行业观察，具体情况因团队而异"
+
+  - id: special_benefits
+    name: 特殊一次性福利
+    description: 入职时或特定时期提供的一次性补贴
+    components:
+      signing_bonus:
+        name: 签字费
+        description: 入职时一次性发放的奖励，通常有服务期约定
+        typical_conditions: "服务满1-2年，否则需按比例返还"
+        typical_range_by_company_type:
+          big_tech: "1-6个月月薪，竞争激烈时可更高"
+          foreign: "1-3个月月薪"
+          startup: "少见，或以期权替代"
+        note: "离职时可能需要返还，注意合同条款"
+      relocation_allowance:
+        name: 安家费/搬迁补贴
+        description: 跨城市入职时提供的搬迁补助
+        typical_range: "5000-30000元，视距离和级别"
+      hukou_quota:
+        name: 户口指标
+        description: 北京、上海等限制性城市的落户名额
+        value_note: "在一线城市具有极高价值，难以直接货币化"
+        availability: "主要见于部分国企、外企和部分大厂应届生名额"
+        china_specific_notes:
+          - "北京上海户口极为稀缺，是很多候选人的重要考量"
+          - "落户名额通常有服务年限要求（3-5年）"
+    how_to_compare:
+      - "签字费需考虑服务期约束的机会成本"
+      - "户口价值因个人情况差异极大，需结合长期规划判断"
+    confidence: medium
+    source_policy: "基于公开招聘信息及候选人经验汇编"
+
+  - id: career_development
+    name: 职业发展资源
+    description: 影响长期职业价值的学习和发展机会
+    how_to_compare:
+      - "评估岗位的外部市场认可度和品牌背书价值"
+      - "了解晋升周期和晋升通道"
+      - "确认是否有导师制度或技术成长体系"
+    components:
+      brand_value:
+        name: 公司品牌价值
+        description: 简历上此公司经历的市场认可度
+        note: "头部大厂背书对未来求职有显著正向影响"
+      promotion_cycle:
+        name: 晋升周期
+        description: 从当前级别晋升到下一级别的典型时间
+        typical_by_company:
+          internet_big: "通常1-2年，竞争激烈"
+          foreign: "通常2-3年，较为透明"
+          state_owned: "通常3-5年，资历权重大"
+      learning_resources:
+        name: 学习资源
+        description: 培训预算、内部课程、会议参与机会等
+    confidence: medium
+    source_policy: "基于公开信息汇编，具体情况以入职后实际体验为准"

@@ -1,0 +1,19 @@
+{
+  "description": "profile 只有 mentioned 技能（无 used_in_project）→ 不建议发布深度技术内容",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "years_of_experience": 1, "current_role": { "value": "初级工程师" } },
+      "skills": {
+        "technical": [
+          { "name": "Docker", "proficiency": "mentioned", "evidence_source": "学习笔记" },
+          { "name": "Kubernetes", "proficiency": "mentioned", "evidence_source": "读过文章" }
+        ]
+      },
+      "experience": []
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "medium"] },
+    { "path": "risks", "operator": "length_gte", "value": 1 }
+  ]
+}

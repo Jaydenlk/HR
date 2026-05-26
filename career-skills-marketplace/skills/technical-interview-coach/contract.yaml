@@ -1,0 +1,81 @@
+name: technical-interview-coach
+version: "1.0.0"
+purpose: "技术面试备考教练：为算法/系统设计/编程实操制定个性化备考计划，结合目标公司考察重点"
+role: worker
+layer: interview
+
+when_to_use:
+  - 用户需要技术面试备考计划（算法/系统设计）
+  - 用户想了解某公司技术面的重点考察方向
+  - 用户需要练习题推荐和解题框架
+  - 用户需要量化备考时间和优先级
+
+when_not_to_use:
+  - 用户是非技术岗（产品/运营/销售）
+  - 用户需要行为题准备（走 behavioral-story-builder）
+  - 用户需要全面面试攻略（走 company-interview-playbook）
+
+inputs_required:
+  - name: job_title
+    type: string
+    description: "目标技术岗位（如「后端工程师」「算法工程师」）"
+
+optional_context:
+  - name: company_name
+    type: string
+    description: "目标公司（用于加载公司专项考察重点）"
+  - name: user_profile
+    type: object
+    description: "用户画像（来自 profile-builder），用于评估当前技术水平和方向"
+  - name: interview_intelligence
+    type: object
+    description: "面试情报（来自 interview-intelligence），用于精准对齐考察重点"
+  - name: available_weeks
+    type: integer
+    description: "可用备考时间（周）"
+
+depends_on:
+  - interview-intelligence
+
+tools_allowed:
+  - Read
+  - Grep
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "有目标公司+岗位的近期技术面经，且 interview_intelligence 数据齐全"
+  medium:
+    condition: "有公司名但无精确岗位面经，或 interview_intelligence 数据较老"
+  low:
+    condition: "仅有岗位名，无公司数据，基于通用技术面规律"
+  insufficient:
+    condition: "job_title 为空，无法制定备考计划"
+
+failure_modes:
+  - type: missing_job_title
+    trigger: "job_title 为空"
+    response: "返回 validation_error，说明需要岗位名称"
+  - type: non_tech_role
+    trigger: "job_title 明显不是技术岗位（如销售、运营）"
+    response: "返回提示，说明本 skill 适用于技术岗，推荐 behavioral-story-builder"
+  - type: company_data_fabrication
+    trigger: "无公司面经数据但 company_specific_focus 包含高置信度内容"
+    response: "禁止；无数据时 company_specific_focus 为空数组或标注 evidence_source: 推断"
+
+china_market_specificity: high
+
+live_research_required: true
+
+degradation_behavior:
+  no_company_data: "company_specific_focus 为空数组，practice_questions 基于通用规律，cannot_determine 说明缺失的公司特定信息"
+  no_interview_intelligence: "preparation_plan 基于该类型技术岗的通用面试规律，confidence: low"
+  limited_time: "若 available_weeks < 2，优先级只包含 critical 项，说明时间不足以全面覆盖"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json

@@ -1,0 +1,21 @@
+{
+  "description": "content_ideas 的 source_experience 必须引用 profile 字段，不能凭空创造",
+  "input": {
+    "profile": {
+      "basic": { "name": "王芳", "years_of_experience": 3, "current_role": { "value": "数据分析师" } },
+      "skills": {
+        "technical": [{ "name": "Python", "proficiency": "used_in_project", "evidence_source": "数据分析项目" },
+                       { "name": "SQL", "proficiency": "used_in_project", "evidence_source": "日常工作" }]
+      },
+      "experience": [
+        { "company": "某电商公司", "role": "数据分析师", "duration": "2023-至今",
+          "achievements": [{ "text": "构建用户留存分析模型，提升留存率8%", "evidence_source": "工作成果" }] }
+      ]
+    }
+  },
+  "assertions": [
+    { "path": "content_ideas", "operator": "length_gte", "value": 1 },
+    { "path": "content_ideas[0].source_experience", "operator": "not_empty", "value": true },
+    { "path": "brand_strategy.evidence_basis", "operator": "length_gte", "value": 1 }
+  ]
+}

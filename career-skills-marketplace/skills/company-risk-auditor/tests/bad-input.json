@@ -1,0 +1,9 @@
+{
+  "description": "禁止无来源给出确定性安全结论：overall_risk 不得为 low 除非有来源支撑",
+  "input": { "company": "某知名大厂" },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "risk_profile.overall_risk", "operator": "not_eq", "value": "low" }
+  ]
+}

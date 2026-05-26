@@ -1,0 +1,32 @@
+{
+  "description": "罕见冷门公司，无任何面经数据，禁止编造具体题目或流程轮次",
+  "input": {
+    "company_name": "泰和信通科技（北京）有限公司",
+    "job_title": "嵌入式软件工程师"
+  },
+  "assertions": [
+    {
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "无实时数据时 confidence 必须为 low 或 insufficient"
+    },
+    {
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "无数据时必须列出具体无法确认的项目"
+    },
+    {
+      "path": "common_questions",
+      "operator": "length_eq",
+      "value": 0,
+      "description": "无真实面经时 common_questions 必须为空数组，不得编造题目"
+    }
+  ],
+  "must_not_contain": [
+    "高频考题",
+    "以下题目已被多人验证",
+    "根据该公司面经"
+  ]
+}

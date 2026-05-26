@@ -1,0 +1,194 @@
+# 市场情报质量量纲 (Market Research Rubric)
+# Career Skills Marketplace — market-researcher skill 使用
+# 版本: 1.0.0
+
+rubric_version: "1.0.0"
+description: "市场情报质量评估规则，确保薪资、行业、招聘趋势等数据可信度达标"
+
+# ============================================================
+# 情报质量评估维度
+# ============================================================
+dimensions:
+
+  source_diversity:
+    label: "信源多样性"
+    description: "情报来源的广度和可靠程度，不同类型信源相互印证"
+    source_tiers:
+      tier_a_plus:
+        label: "A+ 信源（最高可信度）"
+        examples:
+          - "国家统计局官方报告"
+          - "人社部/中国就业培训技术指导中心发布数据"
+          - "上市公司财报（人力成本、招聘规模）"
+        weight: 1.5
+      tier_a:
+        label: "A 信源（高可信度）"
+        examples:
+          - "智联招聘/前程无忧官方薪酬报告"
+          - "猎聘/拉勾行业薪资白皮书"
+          - "知名咨询机构报告（麦肯锡、德勤中国区）"
+          - "高校就业质量报告（985/211 院校）"
+        weight: 1.0
+      tier_b:
+        label: "B 信源（中等可信度）"
+        examples:
+          - "BOSS直聘平台招聘数量趋势"
+          - "领英中国职业发展报告"
+          - "脉脉职场数据报告"
+          - "行业协会发布的从业人员调查"
+        weight: 0.7
+      tier_c:
+        label: "C 信源（参考可信度）"
+        examples:
+          - "小红书/知乎职场话题高赞内容"
+          - "匿名薪资平台（看准网、Glassdoor 中国）"
+          - "个人博主分享的跳槽经历"
+          - "微信群/社群的薪资爆料"
+        weight: 0.3
+    confidence_rules:
+      high_confidence:
+        required: "至少 2 个 B 级及以上信源，且相互印证（数据差异 < 20%）"
+        label: "高置信度"
+      medium_confidence:
+        required: "1 个 A/B 级信源，或 2 个 B 级信源数据差异 20-40%"
+        label: "中置信度"
+      low_confidence:
+        required: "仅有 C 级信源，或不同级别信源数据矛盾"
+        label: "低置信度"
+      insufficient:
+        required: "无可验证信源，仅靠模型训练数据"
+        label: "置信度不足，禁止输出结论"
+    minimum_rule: "高置信度结论要求至少 2 个 B+ 级信源相互验证，单一信源上限为 medium"
+
+  recency:
+    label: "数据时效性"
+    description: "不同类型市场数据的可用有效期，超期数据需降级处理"
+    content_type_rules:
+      salary_data:
+        label: "薪资数据"
+        max_age_months: 12
+        rationale: "薪资受经济周期影响，12 个月以上数据可能失真"
+        degradation: "超过 12 个月 → confidence 降一级；超过 24 个月 → 禁止作为主要依据"
+      hiring_volume:
+        label: "招聘数量趋势"
+        max_age_months: 3
+        rationale: "招聘数量对经济和公司策略变化极为敏感"
+        degradation: "超过 3 个月 → 标注为历史数据，需补充近期验证"
+      industry_growth:
+        label: "行业增长数据"
+        max_age_months: 18
+        rationale: "行业趋势变化较慢，1.5 年内数据仍有参考价值"
+        degradation: "超过 18 个月 → 标注为趋势参考，需关注近期政策/事件修正"
+      company_financials:
+        label: "公司财务/规模数据"
+        max_age_months: 6
+        rationale: "公司情况变化较快，尤其非上市公司"
+        degradation: "超过 6 个月 → 标注为历史状态，建议候选人独立核实"
+      policy_impact:
+        label: "政策法规数据"
+        max_age_months: 24
+        rationale: "劳动法规变化相对稳定，但需关注重大政策变化"
+        degradation: "超过 24 个月 → 建议核实是否有新政策覆盖"
+    timestamp_requirement:
+      rule: "所有引用数据必须标注来源日期（精确到年月），无法确认日期的数据不得使用"
+      format: "data_date: YYYY-MM"
+
+  china_applicability:
+    label: "中国市场适用性"
+    description: "情报数据必须来自中国大陆劳动力市场，禁止以全球/其他地区数据替代"
+    rules:
+      primary_rule: "所有薪资、招聘量、行业增速数据必须明确标注适用地区为中国大陆"
+      geographic_specificity:
+        label: "城市/地区层级要求"
+        levels:
+          national:  "全国数据：可作为基线参考，但不代表具体城市"
+          tier1:     "一线城市（北京/上海/广州/深圳）：需与全国数据分开处理"
+          new_tier1: "新一线城市（杭州/成都/武汉/南京等）：薪资和机会分布差异显著"
+          other:     "二三线城市：薪资通常低于一线 30-50%，需独立数据"
+      forbidden_substitutions:
+        - "禁止用全球行业报告代替中国市场数据"
+        - "禁止用美国/欧洲薪资数据作为参考（即使转换汇率）"
+        - "禁止用香港/台湾市场数据代替大陆数据（劳动法规和市场差异极大）"
+      acceptable_global_context:
+        rule: "全球数据仅可用于说明国际背景或对比，不作为中国市场定论"
+        label_required: "必须标注'全球参考数据，中国市场情况可能有差异'"
+
+  contradiction_handling:
+    label: "矛盾信源处理"
+    description: "当不同信源给出相互矛盾的数据时，正确标记冲突而非自行解决"
+    rules:
+      flag_rule:
+        rule: "不同信源数据差异 > 30% 时，必须在输出中明确标注数据冲突"
+        label: "数据冲突标注"
+        format: |
+          data_conflict:
+            source_a: { value: X, source: "...", date: "..." }
+            source_b: { value: Y, source: "...", date: "..." }
+            difference_pct: Z%
+            recommendation: "建议候选人通过[方式]进一步核实"
+      no_resolution_rule:
+        rule: "AI 禁止自行解决数据冲突（如取平均值、选更接近期望的数据）"
+        rationale: "数据冲突背后可能有真实的市场分化，自行解决会掩盖重要信息"
+      user_notification:
+        rule: "存在数据冲突时，必须在结论段落前明确告知候选人，并说明冲突范围"
+      conflict_types:
+        salary_conflict:
+          description: "同岗位不同平台薪资区间不重叠"
+          action: "分别展示各平台数据，说明可能原因（样本差异/统计口径/地区差异）"
+        trend_conflict:
+          description: "不同信源对同行业增长趋势判断相反"
+          action: "标注各信源立场和样本，提示候选人参考更近期数据"
+        volume_conflict:
+          description: "招聘数量统计口径差异导致数字差异大"
+          action: "说明各平台统计口径，避免直接对比绝对数字"
+
+  confidence_gate:
+    label: "置信度门控"
+    description: "输出结论前的最低置信度要求，低于门槛禁止输出定论"
+    gate_rules:
+      high_confidence_required:
+        label: "需要高置信度才能输出的结论类型"
+        applies_to:
+          - "具体薪资数字（'该岗位月薪 25K'）"
+          - "明确的市场排名（'这是目前最好的方向'）"
+          - "行动性建议（'立刻接受这个 Offer'）"
+        minimum_sources: "至少 2 个 B+ 级信源相互验证"
+        enforcement: "不足 2 个 B+ 信源时，confidence ceiling 为 medium，结论必须降级表述"
+      medium_confidence_allowed:
+        label: "中置信度可输出的结论类型"
+        applies_to:
+          - "薪资区间趋势（'薪资整体呈上升趋势'）"
+          - "相对比较（'A岗位需求高于B岗位'）"
+          - "方向性建议（'这个方向值得进一步调查'）"
+        required_disclosure: "必须在结论旁标注 confidence: medium 和信源数量"
+      low_confidence_floor:
+        label: "低置信度输出限制"
+        rule: "confidence: low 时只能输出已知事实罗列，禁止生成任何趋势判断或行动建议"
+        required_disclosure: "必须告知用户数据不足，建议通过[具体方式]补充信息"
+      insufficient_threshold:
+        label: "置信度不足（禁止输出结论）"
+        trigger: "无任何可验证信源，仅靠模型训练知识"
+        action: "返回 insufficient confidence，明确说明缺少哪类数据，引导用户提供或查找"
+        forbidden: "禁止基于训练知识假装给出市场数据"
+
+# ============================================================
+# 输出格式规则
+# ============================================================
+output_rules:
+  required_fields_per_data_point:
+    - "value: 数据值"
+    - "source: 信源名称和 URL（如有）"
+    - "data_date: 数据统计时间（YYYY-MM）"
+    - "confidence: high / medium / low / insufficient"
+    - "region: 适用地区（中国大陆/全国/城市名）"
+
+  conflict_disclosure:
+    rule: "存在数据冲突时，必须在摘要段明确提示，不得将冲突数据隐藏在细节中"
+
+  knowledge_cutoff_disclosure:
+    rule: "使用模型内置知识时（非实时信源），必须标注 source: model_training_knowledge，并注明可能存在时效偏差"
+    rationale: "训练数据有截止日期，市场变化可能未被反映"
+
+  cannot_fabricate_rule:
+    rule: "禁止生成任何无信源支撑的市场数据，'我认为大约是...'类表述等同于编造"
+    rationale: "候选人会基于这些数据做重大职业决策，错误数据的代价极高"

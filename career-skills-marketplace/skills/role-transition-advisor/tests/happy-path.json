@@ -1,0 +1,32 @@
+{
+  "description": "技术转产品，画像完整 → medium feasibility，有技能差距和路径",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "陈静",
+        "education": { "school": "同济大学", "major": "软件工程", "degree": "本科" },
+        "years_of_experience": 4,
+        "current_role": { "value": "前端开发工程师" }
+      },
+      "skills": {
+        "technical": [
+          { "name": "React", "proficiency": "used_in_project", "evidence_source": "项目经历" }
+        ],
+        "soft": [{ "name": "需求沟通", "evidence_source": "经常与PM对接" }]
+      },
+      "experience": [
+        { "company": "某互联网公司", "role": "前端开发工程师", "duration": "2022.03-至今" }
+      ],
+      "career_intent": { "target_roles": ["产品经理"], "urgency": "active" }
+    },
+    "target_role": "产品经理"
+  },
+  "assertions": [
+    { "path": "feasibility", "operator": "in", "value": ["medium", "high"] },
+    { "path": "skill_gap", "operator": "length_gte", "value": 1 },
+    { "path": "typical_transition_path", "operator": "length_gte", "value": 1 },
+    { "path": "success_factors", "operator": "length_gte", "value": 2 },
+    { "path": "first_step", "operator": "not_empty", "value": true },
+    { "path": "evidence_used", "operator": "length_gte", "value": 2 }
+  ]
+}

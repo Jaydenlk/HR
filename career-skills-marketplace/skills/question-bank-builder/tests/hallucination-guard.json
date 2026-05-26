@@ -1,0 +1,27 @@
+{
+  "description": "无面经数据，禁止将题目 frequency 标注为 very_high，source 不得声称来自真实面经",
+  "input": {
+    "company_name": "泰和信通科技（北京）有限公司",
+    "job_title": "嵌入式工程师"
+  },
+  "assertions": [
+    {
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "无实时面经时不得高置信度"
+    },
+    {
+      "path": "question_bank[0].frequency",
+      "operator": "not_in",
+      "value": ["very_high"],
+      "description": "无实时数据时 frequency 不得为 very_high"
+    },
+    {
+      "path": "question_bank[0].source",
+      "operator": "not_contains",
+      "value": "牛客面经",
+      "description": "无真实面经时不得声称来源为牛客面经"
+    }
+  ]
+}

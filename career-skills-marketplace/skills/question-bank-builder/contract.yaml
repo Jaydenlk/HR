@@ -1,0 +1,84 @@
+name: question-bank-builder
+version: "1.0.0"
+purpose: "为特定公司+岗位构建结构化面试题库，按维度分类，标注来源、频率和答题要点"
+role: worker
+layer: interview
+
+when_to_use:
+  - 用户需要系统整理某公司某岗位的面试题
+  - 用户想获取分类清晰的题库用于计划性备考
+  - 作为 mock-interviewer 出题阶段的题目来源
+  - 用户需要了解某岗位的出题范围
+
+when_not_to_use:
+  - 用户只需要面试流程信息（走 interview-intelligence）
+  - 用户需要实时模拟面试（走 mock-interviewer）
+  - 用户需要面试后复盘（走 interview-debrief）
+
+inputs_required:
+  - name: company_name
+    type: string
+    description: "目标公司名称"
+  - name: job_title
+    type: string
+    description: "目标岗位名称"
+
+optional_context:
+  - name: interview_intelligence
+    type: object
+    description: "面试情报（来自 interview-intelligence），用于优先高频题"
+  - name: focus_categories
+    type: array
+    items:
+      type: string
+    description: "用户指定重点类别，如 [\"technical_domain\", \"behavioral\"]"
+  - name: max_questions
+    type: integer
+    description: "最大题目数量限制（默认50）"
+
+depends_on:
+  - interview-intelligence
+  - source-quality-auditor
+
+tools_allowed:
+  - Read
+  - Grep
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "有近6个月真实面经，精确匹配公司+岗位，题目来源可核实"
+  medium:
+    condition: "有面经但超过1年，或岗位相近而非精确匹配"
+  low:
+    condition: "无实时面经，题目来自知识图谱通用推断"
+  insufficient:
+    condition: "公司名或岗位名为空，无法构建定向题库"
+
+failure_modes:
+  - type: fabricated_frequency
+    trigger: "无实时面经但将题目标注为 frequency: very_high"
+    response: "禁止；无实时数据的题目 frequency 必须为 medium 或 low，source 必须标注「知识图谱通用」"
+  - type: missing_inputs
+    trigger: "company_name 或 job_title 为空"
+    response: "返回 validation_error，说明缺失字段"
+  - type: answer_fabrication
+    trigger: "answer_hint 给出完整标准答案而非要点提示"
+    response: "允许；但 answer_hint 应为简短要点，不应替代用户自主学习"
+
+china_market_specificity: medium
+
+live_research_required: true
+
+degradation_behavior:
+  no_live_data: "基于知识图谱构建通用题库，所有题目 source 标注「岗位知识图谱通用」，frequency 不超过 medium，gaps 中说明无法确认的高频题"
+  partial_data: "混合真实面经题目（高频）和知识图谱补充题（中低频），来源分别标注"
+  stale_data: "面经超过18个月时，source 标注时间范围，frequency 降一级"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json

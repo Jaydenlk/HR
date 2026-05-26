@@ -1,0 +1,11 @@
+{
+  "description": "user_profile 无 work_experience，期望 insufficient 和错误类型",
+  "input": {
+    "user_profile": { "name": "张三" }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.type", "operator": "eq", "value": "missing_profile" },
+    { "path": "story_bank", "operator": "length_eq", "value": 0 }
+  ]
+}

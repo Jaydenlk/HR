@@ -1,0 +1,81 @@
+name: city-industry-fit-advisor
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户不确定去哪个城市发展
+  - 用户在多个城市 offer 之间比较
+  - 用户考虑是否值得离开家乡去一线城市
+  - 用户考虑换城市+换行业的双重变化
+
+when_not_to_use:
+  - 用户已经明确城市意向（不需要比较）
+  - 用户的地点约束非常明确（只有一个城市选项）
+
+inputs:
+  primary:
+    - name: profile
+      type: object
+      required: true
+      description: "来自 profile-builder 的用户画像"
+  optional:
+    - name: candidate_cities
+      type: array
+      required: false
+      description: "用户考虑的城市列表（如：[北京, 杭州, 成都]）"
+      items: { type: string }
+    - name: candidate_industries
+      type: array
+      required: false
+      description: "用户考虑的行业列表"
+      items: { type: string }
+    - name: has_housing_requirement
+      type: boolean
+      required: false
+      description: "是否考虑购房需求（影响城市房价权重）"
+    - name: has_family_constraint
+      type: string
+      required: false
+      description: "家庭约束城市描述（如：父母在成都）"
+
+confidence_policy:
+  high:
+    condition: "profile.confidence 为 high，且提供了 candidate_cities"
+    threshold: "evidence_count >= 5"
+  medium:
+    condition: "profile 部分完整，或未提供 candidate_cities"
+    threshold: "evidence_count 3-4"
+  low:
+    condition: "profile 稀疏，只有基本信息"
+    threshold: "evidence_count < 3"
+  insufficient:
+    condition: "profile 缺失"
+    action: "返回 error"
+
+failure_modes:
+  - type: missing_profile
+    trigger: "profile 字段缺失"
+    response: "返回 error"
+  - type: single_city_constraint
+    trigger: "profile.constraints.location 只有一个城市且 candidate_cities 也相同"
+    response: "返回提示，说明用户已有明确约束，城市比较价值有限"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - fit_matrix[]
+    - cost_of_living_impact[]
+    - industry_hub_analysis[]
+    - recommendation
+  metadata:
+    - confidence
+    - evidence_count
+
+dependencies:
+  depends_on:
+    - profile-builder
+  shared_schemas:
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  knowledge:
+    - _career-skills-shared/knowledge/company-taxonomy/

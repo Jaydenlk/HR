@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "xhs-interview-miner/input",
+  "title": "xhs-interview-miner 输入",
+  "type": "object",
+  "required": ["company"],
+  "properties": {
+    "company": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目标公司名称"
+    },
+    "role": {
+      "type": "string",
+      "description": "岗位方向（如 产品经理、后端工程师）"
+    },
+    "max_posts": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 10,
+      "description": "最多返回帖子数量"
+    }
+  },
+  "additionalProperties": false
+}

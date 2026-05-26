@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "company-interview-playbook 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "company_profile", "interview_process", "culture_fit_tips", "common_pitfalls", "salary_negotiation_notes"
+  ],
+  "properties": {
+    "skill_name": { "const": "company-interview-playbook" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "攻略手册综述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "company_profile": {
+      "type": "object",
+      "required": ["company_name", "stage", "culture_keywords", "reputation_summary"],
+      "properties": {
+        "company_name": { "type": "string" },
+        "stage": { "type": "string", "description": "发展阶段" },
+        "culture_keywords": { "type": "array", "items": { "type": "string" } },
+        "hiring_volume": { "type": "string", "description": "招聘体量" },
+        "reputation_summary": { "type": "string", "description": "中性客观口碑概述" },
+        "common_pain_points": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "interview_process": {
+      "type": "array",
+      "description": "面试流程各阶段",
+      "items": {
+        "type": "object",
+        "required": ["stage", "description", "key_assessment_angle"],
+        "properties": {
+          "stage": { "type": "string" },
+          "description": { "type": "string" },
+          "format": { "type": "string" },
+          "typical_duration": { "type": "string" },
+          "key_assessment_angle": { "type": "string", "description": "本轮重点考察维度" },
+          "pass_rate_estimate": { "type": "string", "description": "粗略通过率区间" }
+        }
+      }
+    },
+    "culture_fit_tips": {
+      "type": "array",
+      "description": "文化契合攻略",
+      "items": {
+        "type": "object",
+        "required": ["tip", "anti_pattern"],
+        "properties": {
+          "tip": { "type": "string" },
+          "example_answer_pattern": { "type": "string" },
+          "anti_pattern": { "type": "string", "description": "要避免的常见失误" }
+        }
+      }
+    },
+    "common_pitfalls": {
+      "type": "array",
+      "description": "常见踩坑预警",
+      "items": {
+        "type": "object",
+        "required": ["pitfall", "consequence", "avoidance_strategy"],
+        "properties": {
+          "pitfall": { "type": "string" },
+          "consequence": { "type": "string" },
+          "avoidance_strategy": { "type": "string" }
+        }
+      }
+    },
+    "salary_negotiation_notes": {
+      "type": "object",
+      "required": ["salary_range_estimate", "negotiation_timing"],
+      "properties": {
+        "salary_range_estimate": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ],
+          "description": "薪资范围估算（无数据时为 null）"
+        },
+        "negotiation_timing": { "type": "string", "description": "最佳谈判时机" },
+        "leverage_points": { "type": "array", "items": { "type": "string" } },
+        "taboos": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

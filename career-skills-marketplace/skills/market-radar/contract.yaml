@@ -1,0 +1,81 @@
+name: market-radar
+version: "1.0.0"
+role: worker
+
+live_research_required: true
+degradation_behavior: >
+  无法获取实时数据时：confidence 设为 insufficient，
+  返回空的 trending_roles / hot_companies / key_signals，
+  market_sentiment 设为 unknown，
+  并提示用户自行查阅招聘平台（BOSS直聘/脉脉/猎聘）获取最新市场信号。
+
+when_to_use:
+  - 用户询问当前市场热门岗位或行业动态
+  - 用户需要了解某行业的就业形势
+  - 作为其他 skill 的前置市场背景数据源
+  - 用户询问"现在什么方向好找工作"
+
+when_not_to_use:
+  - 用户询问特定公司的内部情况（改用 company-risk-auditor）
+  - 用户询问个人简历匹配度（改用 match-diagnosis）
+  - 无法提供实时搜索结果时（降级返回而非编造）
+
+inputs:
+  primary:
+    - name: query
+      type: string
+      required: true
+      min_length: 2
+      description: "市场查询关键词（行业名称、岗位类别、技术方向等）"
+  optional:
+    - name: city
+      type: string
+      description: "城市过滤（如 北京、上海、全国）"
+    - name: timeframe
+      type: string
+      enum: [recent_month, recent_quarter, recent_year]
+      description: "时间范围（默认 recent_quarter）"
+    - name: industry
+      type: string
+      description: "行业过滤（如 互联网、金融、新能源）"
+
+confidence_policy:
+  high:
+    condition: "获取到 3+ 个 A/B 级实时来源，来源时间在 30 天内"
+  medium:
+    condition: "获取到 1-2 个 B 级来源，或来源时间在 90 天内"
+  low:
+    condition: "仅有 C 级来源或来源超过 90 天"
+  insufficient:
+    condition: "无实时数据，禁止推断市场结论"
+    action: "返回空结果+降级提示，置信度设为 insufficient"
+
+failure_modes:
+  - type: no_live_data
+    trigger: "无法获取实时来源"
+    response: "confidence: insufficient，trending_roles/hot_companies/key_signals 均为空，提示手动查阅"
+  - type: stale_data_only
+    trigger: "所有来源超过 90 天"
+    response: "confidence: low，freshness: stale，标注数据时效风险"
+  - type: hallucination
+    trigger: "无实时来源但尝试推断市场趋势"
+    response: "禁止，必须拒绝并返回 insufficient"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - trending_roles
+    - hot_companies
+    - market_sentiment
+    - key_signals
+  metadata:
+    - confidence
+    - data_freshness
+
+dependencies:
+  skills:
+    - source-quality-auditor
+  shared_schemas:
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  references:
+    - references/market-signal-taxonomy.md

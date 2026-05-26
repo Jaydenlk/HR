@@ -1,0 +1,13 @@
+{
+  "description": "无公开数据的小公司，salary_range_estimate 必须为 null，cannot_determine 非空",
+  "input": {
+    "company_name": "诺展科技",
+    "job_title": "运营总监"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "salary_negotiation_notes.salary_range_estimate", "operator": "eq", "value": null,
+      "description": "无数据时薪资估算必须为 null" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 2 }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "description": "缺少 target_companies，期望 confidence=insufficient，所有路径字段为空",
+  "input": {
+    "user_profile": {
+      "years_of_experience": 3,
+      "skills": ["Java"]
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "referral_paths", "operator": "length_eq", "value": 0 },
+    { "path": "cold_outreach_targets", "operator": "length_eq", "value": 0 }
+  ]
+}

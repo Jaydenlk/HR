@@ -1,0 +1,95 @@
+name: networking-message-writer
+version: "1.0.0"
+purpose: "根据关系亲疏、平台特点和目标职位，生成得体的内推申请/职场社交/人脉联系消息"
+role: worker
+layer: execution
+
+when_to_use:
+  - 用户需要写内推申请消息（微信/脉脉）
+  - 用户需要在LinkedIn联系陌生人请求内推或了解职位
+  - 用户需要给HR发求职邮件
+  - 用户需要重新激活沉默的人脉关系
+
+when_not_to_use:
+  - 用户需要写面试感谢信（走 follow-up-message-writer）
+  - 用户需要分析内推路径（走 referral-strategy）
+  - 用户需要写正式求职信/cover letter
+
+inputs_required:
+  - name: target_company
+    type: string
+    description: "目标公司名称"
+  - name: target_position
+    type: string
+    description: "目标职位名称"
+  - name: platform
+    type: string
+    enum: ["wechat", "maimai", "linkedin", "email"]
+    description: "发送平台（微信/脉脉/LinkedIn/邮件）"
+
+optional_context:
+  - name: user_profile
+    type: object
+    description: "profile-builder 输出的用户画像（用于个性化消息内容）"
+  - name: contact_info
+    type: object
+    description: "联系人信息（姓名、职位、与用户的关系类型）"
+  - name: tone
+    type: string
+    enum: ["formal", "semi_formal", "casual"]
+    description: "语气偏好"
+  - name: mutual_connection
+    type: string
+    description: "共同联系人（若是朋友介绍则填写介绍人姓名）"
+
+evidence_required:
+  - "target_company（必须）"
+  - "target_position（必须）"
+  - "platform（必须）"
+
+tools_allowed:
+  - Read
+  - Grep
+
+depends_on:
+  - profile-builder
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "user_profile + target_company + target_position + platform + contact_info 齐全"
+  medium:
+    condition: "缺少 contact_info 或 user_profile，其余字段完整"
+  low:
+    condition: "仅有 target_company，缺少 profile 和联系人信息"
+  insufficient:
+    condition: "target_company 和 target_position 均未提供"
+    action: "返回 insufficient，不生成消息草稿"
+
+failure_modes:
+  - type: fake_relationship
+    trigger: "用户要求声称「我们很熟」但实际上完全陌生"
+    response: "拒绝虚假关系声明；建议改为真实关系描述，如「通过脉脉找到您」"
+  - type: fabricated_common_ground
+    trigger: "虚构共同同学/同事/项目经历"
+    response: "禁止；只能使用用户实际提供的共同背景信息"
+  - type: missing_context
+    trigger: "target_company 或 target_position 为空"
+    response: "返回 insufficient，提示需要目标公司和职位信息"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json
+
+china_market_specificity: high
+
+live_research_required: false
+
+degradation_behavior:
+  missing_user_profile: "生成通用消息框架，建议用户补充个人亮点"
+  missing_contact_info: "生成适合半陌生人的通用版本，提示用户根据实际关系调整"
+  unknown_platform: "默认使用脉脉风格（职场社交通用）"

@@ -1,0 +1,15 @@
+{
+  "description": "画像仅有职位类型，无经验年限等关键字段，期望 confidence=low，target_company_tiers 为空",
+  "input": {
+    "user_profile": {
+      "skills": ["前端开发"],
+      "employment_status": "unemployed"
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "medium"] },
+    { "path": "target_company_tiers", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 },
+    { "path": "follow_up_questions", "operator": "length_gte", "value": 3 }
+  ]
+}

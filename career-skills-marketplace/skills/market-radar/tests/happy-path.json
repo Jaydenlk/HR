@@ -1,0 +1,15 @@
+{
+  "description": "有实时来源时，期望高置信度且 trending_roles 非空",
+  "input": {
+    "query": "AI 算法工程师",
+    "city": "北京",
+    "timeframe": "recent_month"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "trending_roles", "operator": "length_gte", "value": 1 },
+    { "path": "market_sentiment", "operator": "not_eq", "value": "unknown" },
+    { "path": "key_signals", "operator": "length_gte", "value": 1 },
+    { "path": "data_freshness", "operator": "not_eq", "value": "unavailable" }
+  ]
+}

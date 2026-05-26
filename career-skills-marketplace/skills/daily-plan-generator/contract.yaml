@@ -1,0 +1,88 @@
+name: daily-plan-generator
+version: "1.0.0"
+purpose: "根据当前求职状态和用户画像，生成当天具体可执行的任务清单（含优先级和时间估算）"
+role: worker
+layer: execution
+
+when_to_use:
+  - 用户问「今天我该做什么」
+  - 用户需要当天求职行动的具体计划
+  - 求职进展停滞，需要结构化引导
+  - 有多个待办事项，需要优先级排序
+
+when_not_to_use:
+  - 用户需要的是长期策略（走 application-strategist）
+  - 用户在问具体某份简历如何优化（走 resume-tailor）
+  - 用户在问某个特定机会是否值得投（走 opportunity-intelligence）
+
+inputs_required:
+  - name: current_date
+    type: string
+    format: date
+    description: "当前日期，用于判断是否有今日面试/deadline"
+
+optional_context:
+  - name: user_profile
+    type: object
+    description: "profile-builder 输出的用户画像"
+  - name: pipeline_state
+    type: object
+    description: "application-tracker 的当前漏斗状态输出"
+  - name: today_interviews
+    type: array
+    description: "今日面试列表（含公司、职位、时间）"
+  - name: pending_actions
+    type: array
+    description: "待办事项列表（如需要回复的offer、需要跟进的投递）"
+
+evidence_required:
+  - "current_date（必须）"
+  - "user_profile 或 pipeline_state（缺少则降级为通用计划）"
+
+tools_allowed:
+  - Read
+  - Grep
+
+depends_on:
+  - profile-builder
+  - application-tracker
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "pipeline_state + user_profile + current_date 齐全"
+  medium:
+    condition: "有 user_profile 但缺少 pipeline_state，或反之"
+  low:
+    condition: "仅有 current_date，无状态数据"
+  insufficient:
+    condition: "无任何数据"
+    action: "返回 insufficient，daily_tasks 为空"
+
+failure_modes:
+  - type: task_fabrication
+    trigger: "无 interviewing 记录时生成「今日面试准备」为 high 优先级"
+    response: "禁止；无面试数据时面试准备只能是 low 优先级（通用学习）"
+  - type: deadline_miss
+    trigger: "当日有 offer deadline 但未出现在 high priority 任务"
+    response: "禁止；deadline 类任务必须为 high 优先级"
+  - type: task_overload
+    trigger: "生成超过8条任务"
+    response: "自动精简至最重要的6条，其余移入 recommendations"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json
+
+china_market_specificity: high
+
+live_research_required: false
+
+degradation_behavior:
+  missing_pipeline: "基于通用求职建议生成任务，在 cannot_determine 中说明"
+  missing_profile: "生成通用任务，无法个性化调整技能方向"
+  no_interviews: "不生成「面试准备」高优先任务，改为通用技能提升建议"

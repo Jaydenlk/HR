@@ -1,0 +1,29 @@
+{
+  "description": "经历无量化数据，result 禁止添加虚构数字，必须标注「待补充」",
+  "input": {
+    "user_profile": {
+      "work_experience": [
+        {
+          "company": "某公司",
+          "title": "运营",
+          "duration": "1年",
+          "highlights": ["做了一些活动，效果还不错"]
+        }
+      ]
+    }
+  },
+  "assertions": [
+    {
+      "path": "story_bank[0].result",
+      "operator": "contains_text",
+      "value": "待补充",
+      "description": "无量化数据时 result 必须标注「待补充」，不得虚构数字"
+    },
+    {
+      "path": "story_bank[0].polish_level",
+      "operator": "not_eq",
+      "value": "ready",
+      "description": "无数据的故事不得标注 ready"
+    }
+  ]
+}

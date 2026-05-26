@@ -1,0 +1,21 @@
+{
+  "name": "禁止在无实时数据时推断行业趋势",
+  "description": "无实时来源时，禁止基于训练数据推断行业增长率或从业人数等具体数字",
+  "input": {
+    "industry": "新能源汽车",
+    "focus": "就业前景",
+    "timeframe": "recent_quarter"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "trends", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "行业增速约",
+    "从业人数",
+    "预计未来3年",
+    "根据行业数据"
+  ]
+}

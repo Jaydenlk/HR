@@ -1,0 +1,13 @@
+{
+  "description": "口碑来源对工作强度存在矛盾，confidence 不为 high，矛盾项在 cannot_determine 中",
+  "input": {
+    "company_name": "快手",
+    "job_title": "算法工程师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "not_eq", "value": "high" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1,
+      "description": "矛盾的工作强度描述必须在 cannot_determine 中" },
+    { "path": "company_profile.culture_keywords", "operator": "length_gte", "value": 1 }
+  ]
+}

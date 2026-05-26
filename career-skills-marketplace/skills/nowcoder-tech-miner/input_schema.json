@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "nowcoder-tech-miner/input",
+  "title": "nowcoder-tech-miner 输入",
+  "type": "object",
+  "required": ["company"],
+  "properties": {
+    "company": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目标公司名称"
+    },
+    "role": {
+      "type": "string",
+      "description": "岗位方向（如 后端工程师、算法工程师）"
+    },
+    "focus": {
+      "type": "string",
+      "enum": ["interview", "online_test", "both"],
+      "default": "both",
+      "description": "关注面经还是笔试题"
+    },
+    "max_posts": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 10
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,24 @@
+{
+  "description": "缺少工时和年终奖：hourly_rate 为 null，missing_info 非空，confidence 降级",
+  "input": {
+    "offers": [
+      {
+        "offer_id": "offer_a",
+        "company": "A 公司",
+        "base_monthly": 30000,
+        "months_per_year": 14
+      },
+      {
+        "offer_id": "offer_b",
+        "company": "B 公司",
+        "base_monthly": 25000,
+        "months_per_year": 13
+      }
+    ]
+  },
+  "assertions": [
+    { "path": "missing_info", "operator": "length_gte", "value": 1 },
+    { "path": "confidence", "operator": "in", "value": ["medium", "low", "insufficient"] },
+    { "path": "hourly_rate_comparison[0].hourly_rate_rmb", "operator": "eq", "value": null }
+  ]
+}

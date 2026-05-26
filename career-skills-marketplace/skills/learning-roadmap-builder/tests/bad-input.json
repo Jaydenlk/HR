@@ -1,0 +1,11 @@
+{
+  "description": "空 skill_gaps → error + insufficient",
+  "input": {
+    "skill_gaps": []
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error.code", "operator": "eq", "value": "EMPTY_SKILL_GAPS" },
+    { "path": "roadmap", "operator": "length_eq", "value": 0 }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "question-bank-builder/input",
+  "title": "question-bank-builder 输入",
+  "type": "object",
+  "required": ["company_name", "job_title"],
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目标公司名称"
+    },
+    "job_title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目标岗位名称"
+    },
+    "interview_intelligence": {
+      "type": "object",
+      "description": "面试情报（来自 interview-intelligence），用于优先高频题",
+      "additionalProperties": true
+    },
+    "focus_categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["behavioral", "technical_cs", "technical_domain", "case_product", "case_business", "motivation", "cultural_fit", "system_design"]
+      },
+      "description": "用户指定重点类别"
+    },
+    "max_questions": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200,
+      "default": 50,
+      "description": "最大题目数量"
+    }
+  },
+  "additionalProperties": false
+}

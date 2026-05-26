@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "opportunity-intelligence/input",
+  "title": "opportunity-intelligence 输入",
+  "type": "object",
+  "required": [],
+  "properties": {
+    "jd_analysis": {
+      "type": "object",
+      "description": "jd-analyzer 的完整输出（含 parsed_jd 结构）",
+      "additionalProperties": true
+    },
+    "jd_text": {
+      "type": "string",
+      "minLength": 20,
+      "description": "职位描述原文（无 jd_analysis 时直接传入）"
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "profile-builder 输出的用户画像",
+      "additionalProperties": true
+    },
+    "match_diagnosis": {
+      "type": "object",
+      "description": "match-diagnosis 的诊断结果（若已有则直接使用，避免重复计算）",
+      "additionalProperties": true
+    },
+    "source_quality": {
+      "type": "object",
+      "description": "source-quality-auditor 的来源质量评审结果",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "anyOf": [
+    { "required": ["jd_analysis"] },
+    { "required": ["jd_text"] }
+  ]
+}

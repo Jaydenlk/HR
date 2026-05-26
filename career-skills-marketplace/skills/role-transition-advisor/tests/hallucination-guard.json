@@ -1,0 +1,23 @@
+{
+  "name": "禁止在 profile 为空时给出转型可行性评分",
+  "description": "无技能、无工作经历时，禁止生成 feasibility 评分或推荐具体转型路径",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "years_of_experience": 0 },
+      "skills": { "technical": [], "soft": [] },
+      "experience": []
+    },
+    "target_role": "产品经理"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["insufficient", "low"] },
+    { "path": "feasibility", "operator": "in", "value": ["unknown", "insufficient"] },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ],
+  "must_not_contain": [
+    "可行性高",
+    "可行性中等",
+    "建议先补充",
+    "3个月内可完成转型"
+  ]
+}

@@ -1,0 +1,87 @@
+name: application-strategist
+version: "1.0.0"
+purpose: "基于候选人画像和中国求职时间窗口，制定个性化求职策略：目标公司分层、投递顺序、每日行动计划"
+role: worker
+layer: execution
+
+when_to_use:
+  - 用户问「应该投哪些公司」或「怎么规划求职」
+  - 秋招/春招/金三银四开始前的策略规划
+  - 用户同时考虑多个行业或岗位，需要排优先级
+  - 用户在职跳槽，需要制定谨慎的探索计划
+
+when_not_to_use:
+  - 用户已锁定单一职位，只需执行（走 opportunity-intelligence）
+  - 用户在问如何优化简历（走 resume-tailor）
+  - 用户问如何准备面试（不在本技能范围内）
+
+inputs_required:
+  - name: user_profile
+    type: object
+    description: "profile-builder 输出的用户画像（技能、经验年限、目标行业、目标城市、薪资期望）"
+  - name: application_timeline
+    type: object
+    description: "求职时间约束：当前日期、期望入职时间、求职状态（在职/离职）"
+
+optional_context:
+  - name: source_quality_report
+    type: object
+    description: "source-quality-auditor 的渠道质量报告，用于推荐最优投递渠道"
+  - name: current_applications
+    type: array
+    description: "当前已有的投递记录，用于避免重复建议"
+  - name: market_context
+    type: object
+    description: "当前招聘市场背景（行业景气度、裁员情况等）"
+
+evidence_required:
+  - "user_profile（必须，缺失则 confidence: insufficient）"
+  - "application_timeline（缺失时策略缺少时间约束，降级为 medium）"
+
+tools_allowed:
+  - Read
+  - Grep
+
+depends_on:
+  - profile-builder
+  - source-quality-auditor
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "user_profile 完整 + application_timeline 明确"
+  medium:
+    condition: "user_profile 部分缺失 或 无 application_timeline"
+  low:
+    condition: "仅有目标行业，无详细技能和经验画像"
+  insufficient:
+    condition: "无 user_profile"
+    action: "返回 insufficient，不输出具体公司分层"
+
+failure_modes:
+  - type: missing_profile
+    trigger: "user_profile 为空或未提供"
+    response: "返回 insufficient，提示需要用户画像数据"
+  - type: company_fabrication
+    trigger: "画像不足时仍输出具体公司名称"
+    response: "禁止；只输出公司类型/规模/行业描述，不编造具体公司名"
+  - type: window_mismatch
+    trigger: "当前日期在秋招截止后但仍建议走秋招"
+    response: "明确说明时间窗口已过，转为社招策略"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json
+
+china_market_specificity: high
+
+live_research_required: false
+
+degradation_behavior:
+  missing_timeline: "策略不含时间约束，仅给出通用优先级顺序"
+  missing_source_quality: "渠道建议基于通用经验（BOSS直聘/内推/猎聘），不做个性化渠道排序"
+  partial_profile: "基于现有数据给出部分策略，在 cannot_determine 中说明缺少什么"

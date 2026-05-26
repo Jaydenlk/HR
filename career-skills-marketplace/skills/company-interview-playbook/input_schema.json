@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "company-interview-playbook/input",
+  "title": "company-interview-playbook 输入",
+  "type": "object",
+  "required": ["company_name"],
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目标公司名称"
+    },
+    "job_title": {
+      "type": "string",
+      "description": "目标岗位（提供后攻略更定向）"
+    },
+    "interview_intelligence": {
+      "type": "object",
+      "description": "面试情报（来自 interview-intelligence）",
+      "additionalProperties": true
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "用户画像（来自 profile-builder）",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
