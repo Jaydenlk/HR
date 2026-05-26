@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "personal-brand-builder 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "brand_strategy", "platform_actions", "content_ideas", "profile_optimization"
+  ],
+  "properties": {
+    "skill_name": { "const": "personal-brand-builder" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low", "insufficient"] },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "relevance"],
+        "properties": {
+          "field": { "type": "string" },
+          "value": { "type": "string" },
+          "relevance": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "brand_strategy": {
+      "type": "object",
+      "required": ["type", "positioning", "evidence_basis"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["technical_depth", "industry_insight", "career_experience"],
+          "description": "品牌类型"
+        },
+        "positioning": { "type": "string", "description": "一句话定位" },
+        "evidence_basis": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "支撑该品牌方向的 profile 字段引用"
+        }
+      }
+    },
+    "platform_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["platform", "action", "priority", "rationale"],
+        "properties": {
+          "platform": { "type": "string", "description": "平台名称（如：掘金、GitHub）" },
+          "action": { "type": "string", "description": "具体行动" },
+          "priority": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "rationale": { "type": "string", "description": "基于 profile 哪个字段的判断" }
+        }
+      }
+    },
+    "content_ideas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "angle", "source_experience"],
+        "properties": {
+          "title": { "type": "string", "description": "内容标题" },
+          "angle": { "type": "string", "description": "独特角度" },
+          "source_experience": { "type": "string", "description": "来自 profile 哪段经历" },
+          "format": {
+            "type": "string",
+            "enum": ["article", "tutorial", "case_study", "opinion", "thread"],
+            "description": "内容形式"
+          }
+        }
+      }
+    },
+    "profile_optimization": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["platform", "current_issue", "suggested_change"],
+        "properties": {
+          "platform": { "type": "string" },
+          "current_issue": { "type": "string", "description": "当前 profile 的不足（基于 profile 分析）" },
+          "suggested_change": { "type": "string", "description": "具体修改建议" }
+        }
+      }
+    }
+  }
+}

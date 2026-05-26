@@ -1,0 +1,29 @@
+{
+  "description": "验证 fit_pct 必须由 evidence_basis 支撑，不允许无证据的高分路径",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "李明",
+        "education": { "school": "普通一本", "major": "市场营销", "degree": "本科" },
+        "years_of_experience": 1,
+        "current_role": { "value": "市场专员" }
+      },
+      "skills": {
+        "technical": [],
+        "soft": [{ "name": "沟通能力", "evidence_source": "工作描述中提及" }]
+      },
+      "experience": [
+        { "company": "某小公司", "role": "市场专员", "duration": "2025.01-至今" }
+      ],
+      "constraints": { "location": ["北京"] },
+      "career_intent": { "target_roles": ["高级架构师"], "urgency": "active" }
+    },
+    "target_role": "高级架构师"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "medium"] },
+    { "path": "paths[0].fit_pct", "operator": "lte", "value": 30 },
+    { "path": "paths[0].evidence_basis", "operator": "length_gte", "value": 1 },
+    { "path": "risks", "operator": "length_gte", "value": 1 }
+  ]
+}

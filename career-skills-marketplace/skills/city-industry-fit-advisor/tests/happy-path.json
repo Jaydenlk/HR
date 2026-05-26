@@ -1,0 +1,30 @@
+{
+  "description": "完整画像 + 多个候选城市 → fit_matrix 包含多个评分，有 recommendation",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "张伟",
+        "years_of_experience": 5,
+        "current_role": { "value": "技术专家" }
+      },
+      "skills": {
+        "technical": [
+          { "name": "Go", "proficiency": "used_in_project", "evidence_source": "项目" },
+          { "name": "Redis", "proficiency": "used_in_project", "evidence_source": "项目" }
+        ]
+      },
+      "experience": [{ "company": "美团", "role": "技术专家", "duration": "2023-至今" }],
+      "constraints": { "location": ["北京", "杭州"], "salary_expectation": "30k+" }
+    },
+    "candidate_cities": ["北京", "杭州", "成都"],
+    "has_housing_requirement": true
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "not_eq", "value": "insufficient" },
+    { "path": "fit_matrix", "operator": "length_gte", "value": 2 },
+    { "path": "fit_matrix[0].fit_score", "operator": "gte", "value": 0 },
+    { "path": "fit_matrix[0].evidence_basis", "operator": "length_gte", "value": 1 },
+    { "path": "cost_of_living_impact", "operator": "length_gte", "value": 2 },
+    { "path": "recommendation", "operator": "not_empty", "value": true }
+  ]
+}

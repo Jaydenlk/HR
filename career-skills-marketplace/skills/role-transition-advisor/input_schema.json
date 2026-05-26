@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "role-transition-advisor/input",
+  "title": "role-transition-advisor 输入",
+  "description": "必须提供 profile 和 target_role",
+  "type": "object",
+  "required": ["profile", "target_role"],
+  "properties": {
+    "profile": {
+      "type": "object",
+      "description": "来自 profile-builder 的用户画像对象",
+      "additionalProperties": true
+    },
+    "target_role": {
+      "type": "string",
+      "minLength": 2,
+      "description": "目标职位名称"
+    },
+    "target_company_type": {
+      "type": "string",
+      "enum": ["internet", "state_owned", "foreign", "startup", "any"],
+      "description": "目标公司类型"
+    },
+    "timeline_months": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60,
+      "description": "期望完成转型的月数"
+    }
+  },
+  "additionalProperties": false
+}

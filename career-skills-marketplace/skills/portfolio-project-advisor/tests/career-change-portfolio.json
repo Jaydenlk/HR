@@ -1,0 +1,19 @@
+{
+  "description": "转产品方向的用户 → portfolio 以产品文档为主，非代码项目",
+  "input": {
+    "profile": {
+      "basic": { "name": "陈静", "years_of_experience": 4, "current_role": { "value": "前端工程师" } },
+      "skills": {
+        "technical": [{ "name": "React", "proficiency": "used_in_project", "evidence_source": "项目" }]
+      },
+      "experience": [{ "company": "某公司", "role": "前端工程师", "duration": "2022-至今" }],
+      "career_intent": { "target_roles": ["产品经理"] }
+    },
+    "target_role": "产品经理"
+  },
+  "assertions": [
+    { "path": "project_ideas", "operator": "length_gte", "value": 1 },
+    { "path": "project_ideas[0].skills_demonstrated", "operator": "contains_any", "value": ["产品文档", "PRD", "竞品分析", "用户研究"] },
+    { "path": "anti_patterns", "operator": "length_gte", "value": 1 }
+  ]
+}

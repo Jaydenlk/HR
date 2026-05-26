@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "graduate-school-vs-job-advisor 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "analysis", "recommendation", "critical_factors"
+  ],
+  "properties": {
+    "skill_name": { "const": "graduate-school-vs-job-advisor" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low", "insufficient"] },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "relevance"],
+        "properties": {
+          "field": { "type": "string" },
+          "value": { "type": "string" },
+          "relevance": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "analysis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path_name", "pros", "cons", "feasibility_note"],
+        "properties": {
+          "path_name": {
+            "type": "string",
+            "description": "路径名称（如：考研985、直接工作校招、出国读研）"
+          },
+          "pros": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "优点（必须引用 profile 或用户提供的具体数据）"
+          },
+          "cons": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "缺点（必须引用具体数据）"
+          },
+          "feasibility_note": {
+            "type": "string",
+            "description": "该路径对用户的可行性说明（基于 profile）"
+          },
+          "opportunity_cost": {
+            "type": "string",
+            "description": "选择此路径的机会成本"
+          }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "string",
+      "description": "综合建议（引用 critical_factors 作为依据）"
+    },
+    "critical_factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["factor", "user_situation", "impact"],
+        "properties": {
+          "factor": { "type": "string", "description": "关键决策因素" },
+          "user_situation": { "type": "string", "description": "用户在此维度的实际情况（引用 profile）" },
+          "impact": {
+            "type": "string",
+            "enum": ["supports_grad_school", "supports_work", "neutral"],
+            "description": "该因素对选择的倾向"
+          }
+        }
+      }
+    }
+  }
+}

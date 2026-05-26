@@ -1,0 +1,82 @@
+name: career-path-planner
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户询问职业发展方向或未来规划
+  - 用户希望了解自己有哪些可行的职业路径
+  - 求职主理人需要为用户制定中长期规划建议
+  - 用户想知道当前技能能够支撑哪些职位目标
+
+when_not_to_use:
+  - 用户没有提供任何画像信息（需先运行 profile-builder）
+  - 用户只询问短期求职技巧（使用 match-diagnosis 或 resume-tailor）
+  - 用户画像 confidence 为 insufficient 且未提供任何补充信息
+
+inputs:
+  primary:
+    - name: profile
+      type: object
+      required: true
+      description: "来自 profile-builder 的用户画像对象"
+  optional:
+    - name: target_role
+      type: string
+      required: false
+      description: "用户期望的目标职位（若已知）"
+    - name: target_industry
+      type: string
+      required: false
+      description: "用户期望的目标行业（若已知）"
+    - name: time_horizon
+      type: string
+      required: false
+      enum: ["1year", "3year", "5year"]
+      default: "3year"
+      description: "规划时间跨度"
+
+confidence_policy:
+  high:
+    condition: "profile.confidence 为 high，且 profile 包含 experience、skills、education"
+    threshold: "evidence_count >= 8"
+  medium:
+    condition: "profile.confidence 为 medium，或缺少 experience / education 之一"
+    threshold: "evidence_count 4-7"
+  low:
+    condition: "profile.confidence 为 low 或仅有 user_background 描述"
+    threshold: "evidence_count < 4"
+  insufficient:
+    condition: "未提供 profile 或 profile 为空对象"
+    action: "返回 error，提示先运行 profile-builder"
+
+failure_modes:
+  - type: missing_profile
+    trigger: "profile 字段缺失或为空"
+    response: "返回 error，message 说明需要先构建用户画像"
+  - type: profile_too_sparse
+    trigger: "profile.confidence == insufficient 或 experience 为空数组"
+    response: "返回低置信度通用框架，cannot_determine 列出缺失维度"
+  - type: contradictory_intent
+    trigger: "profile.career_intent.target_roles 与 profile.skills 完全不匹配"
+    response: "生成路径并在 risks 中标注能力-意向落差"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - paths[]
+    - recommended_path
+    - immediate_actions[]
+  metadata:
+    - confidence
+    - evidence_count
+    - cannot_determine[]
+
+dependencies:
+  depends_on:
+    - profile-builder
+  shared_schemas:
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  knowledge:
+    - _career-skills-shared/knowledge/role-taxonomy/
+    - _career-skills-shared/knowledge/company-taxonomy/

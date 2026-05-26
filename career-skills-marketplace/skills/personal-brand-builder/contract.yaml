@@ -1,0 +1,72 @@
+name: personal-brand-builder
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户想建立或提升个人技术品牌
+  - 用户询问如何在掘金/GitHub/知乎等平台建立影响力
+  - 用户的简历展示需要辅以网络影响力佐证
+  - 求职主理人判断用户需要增强在线可见度
+
+when_not_to_use:
+  - 用户没有任何技术或职业经验（无法建立有内容的品牌）
+  - 用户画像 confidence 为 insufficient
+  - 用户只需要简历优化（使用 resume-tailor）
+
+inputs:
+  primary:
+    - name: profile
+      type: object
+      required: true
+      description: "来自 profile-builder 的用户画像"
+  optional:
+    - name: brand_focus
+      type: string
+      required: false
+      enum: ["technical_depth", "industry_insight", "career_experience", "auto"]
+      default: "auto"
+      description: "品牌方向（auto 则根据 profile 自动判断）"
+    - name: target_audience
+      type: string
+      required: false
+      description: "目标受众描述（如：同行工程师、招聘官、初学者）"
+
+confidence_policy:
+  high:
+    condition: "profile.confidence 为 high，有丰富的 experience 和 technical skills"
+    threshold: "profile.skills.technical 有 2 项以上 used_in_project"
+  medium:
+    condition: "profile 部分完整，有基本的技能和经历"
+    threshold: "至少 1 项 used_in_project 技能"
+  low:
+    condition: "profile 稀疏，只有基本信息"
+    threshold: "仅有 mentioned 级别技能"
+  insufficient:
+    condition: "profile 缺失或无任何技能/经历"
+    action: "返回 error，无法在无经验基础上建立品牌"
+
+failure_modes:
+  - type: no_experience_basis
+    trigger: "profile.experience 为空且 profile.skills.technical 全为 mentioned"
+    response: "返回 low confidence，说明内容基础不足，建议先积累项目经验"
+  - type: missing_profile
+    trigger: "profile 字段缺失"
+    response: "返回 error"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - brand_strategy
+    - platform_actions[]
+    - content_ideas[]
+    - profile_optimization[]
+  metadata:
+    - confidence
+    - evidence_count
+
+dependencies:
+  depends_on:
+    - profile-builder
+  shared_schemas:
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json

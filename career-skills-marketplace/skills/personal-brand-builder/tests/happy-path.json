@@ -1,0 +1,25 @@
+{
+  "description": "大厂技术经验 → 技术深度型品牌，内容建议基于真实经历",
+  "input": {
+    "profile": {
+      "basic": { "name": "张伟", "years_of_experience": 5, "current_role": { "value": "技术专家" } },
+      "skills": {
+        "technical": [
+          { "name": "Go", "proficiency": "used_in_project", "evidence_source": "项目" },
+          { "name": "Redis", "proficiency": "used_in_project", "evidence_source": "项目" }
+        ]
+      },
+      "experience": [
+        { "company": "字节跳动", "role": "高级后端工程师", "duration": "2020.07-2023.06",
+          "achievements": [{ "text": "主导Redis缓存改造，P99延迟降低70%", "evidence_source": "工作描述" }] }
+      ]
+    }
+  },
+  "assertions": [
+    { "path": "brand_strategy.type", "operator": "eq", "value": "technical_depth" },
+    { "path": "brand_strategy.evidence_basis", "operator": "length_gte", "value": 1 },
+    { "path": "platform_actions", "operator": "length_gte", "value": 1 },
+    { "path": "content_ideas", "operator": "length_gte", "value": 1 },
+    { "path": "content_ideas[0].source_experience", "operator": "not_empty", "value": true }
+  ]
+}

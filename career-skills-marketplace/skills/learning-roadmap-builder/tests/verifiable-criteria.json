@@ -1,0 +1,14 @@
+{
+  "description": "每个阶段的 completion_criteria 必须可验证（不能是'我觉得掌握了'）",
+  "input": {
+    "skill_gaps": [
+      { "skill_name": "MySQL", "gap_severity": "important", "user_current": "仅基础SELECT", "target_required": "能做SQL优化" }
+    ],
+    "weekly_hours": 8
+  },
+  "assertions": [
+    { "path": "roadmap[0].phases[0].completion_criteria", "operator": "not_empty", "value": true },
+    { "path": "roadmap[0].phases[0].output_artifact", "operator": "not_empty", "value": true },
+    { "path": "roadmap[0].phases", "operator": "length_gte", "value": 2 }
+  ]
+}

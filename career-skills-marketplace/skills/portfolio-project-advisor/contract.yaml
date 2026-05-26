@@ -1,0 +1,75 @@
+name: portfolio-project-advisor
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - 用户想做 portfolio 项目但不知道做什么
+  - 用户画像技能需要实战项目佐证
+  - 求职主理人识别到用户的简历缺乏项目经验
+  - 用户完成 skill-gap-planner 后需要配套的实践项目
+
+when_not_to_use:
+  - 用户已有足够的工作项目经验（无需额外 portfolio）
+  - 用户只需要学习计划而非项目建议（使用 learning-roadmap-builder）
+
+inputs:
+  primary:
+    - name: profile
+      type: object
+      required: true
+      description: "来自 profile-builder 的用户画像"
+  optional:
+    - name: skill_gaps
+      type: array
+      required: false
+      description: "来自 skill-gap-planner 的差距列表"
+    - name: target_role
+      type: string
+      required: false
+      description: "目标职位（影响项目推荐方向）"
+    - name: available_weeks
+      type: integer
+      required: false
+      minimum: 1
+      maximum: 52
+      default: 8
+      description: "可用于做项目的总周数"
+
+confidence_policy:
+  high:
+    condition: "profile.confidence 为 high，且有 skill_gaps 输入"
+    threshold: "evidence_count >= 4"
+  medium:
+    condition: "profile 完整，但无 skill_gaps 输入"
+    threshold: "evidence_count 2-3"
+  low:
+    condition: "profile 稀疏"
+    threshold: "evidence_count < 2"
+  insufficient:
+    condition: "profile 缺失"
+    action: "返回 error"
+
+failure_modes:
+  - type: missing_profile
+    trigger: "profile 字段缺失"
+    response: "返回 error"
+  - type: no_technical_skills
+    trigger: "profile.skills.technical 为空数组"
+    response: "返回 low confidence，说明无技术基础无法推荐技术项目，建议先确定技能方向"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - project_ideas[]
+    - anti_patterns[]
+  metadata:
+    - confidence
+    - evidence_count
+
+dependencies:
+  depends_on:
+    - profile-builder
+    - skill-gap-planner
+  shared_schemas:
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json

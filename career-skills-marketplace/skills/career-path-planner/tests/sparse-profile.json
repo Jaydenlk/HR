@@ -1,0 +1,18 @@
+{
+  "description": "所有关键字段为空的稀疏画像 → low confidence，paths 为空",
+  "input": {
+    "profile": {
+      "basic": { "name": null, "education": null, "years_of_experience": null, "current_role": null },
+      "skills": { "technical": [], "soft": [], "languages": [] },
+      "experience": [],
+      "constraints": { "location": null },
+      "career_intent": { "target_roles": [], "urgency": "unknown" }
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "low" },
+    { "path": "paths", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 2 },
+    { "path": "next_actions", "operator": "length_gte", "value": 1 }
+  ]
+}

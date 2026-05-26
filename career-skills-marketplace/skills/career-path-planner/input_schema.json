@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "career-path-planner/input",
+  "title": "career-path-planner 输入",
+  "description": "需要提供 profile-builder 输出的画像对象",
+  "type": "object",
+  "required": ["profile"],
+  "properties": {
+    "profile": {
+      "type": "object",
+      "description": "来自 profile-builder 的用户画像对象",
+      "additionalProperties": true
+    },
+    "target_role": {
+      "type": "string",
+      "description": "用户期望目标职位"
+    },
+    "target_industry": {
+      "type": "string",
+      "description": "用户期望目标行业"
+    },
+    "time_horizon": {
+      "type": "string",
+      "enum": ["1year", "3year", "5year"],
+      "default": "3year",
+      "description": "规划时间跨度"
+    }
+  },
+  "additionalProperties": false
+}

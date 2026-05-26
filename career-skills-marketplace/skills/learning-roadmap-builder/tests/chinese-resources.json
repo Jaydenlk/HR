@@ -1,0 +1,15 @@
+{
+  "description": "preferred_language=zh 时 resource_list 应优先包含中文资源",
+  "input": {
+    "skill_gaps": [
+      { "skill_name": "React", "gap_severity": "important", "user_current": "有Vue基础", "target_required": "能开发React应用" }
+    ],
+    "preferred_language": "zh",
+    "weekly_hours": 10
+  },
+  "assertions": [
+    { "path": "resource_list", "operator": "length_gte", "value": 1 },
+    { "path": "resource_list[0].language", "operator": "in", "value": ["zh", "both"] },
+    { "path": "roadmap[0].phases", "operator": "length_gte", "value": 2 }
+  ]
+}

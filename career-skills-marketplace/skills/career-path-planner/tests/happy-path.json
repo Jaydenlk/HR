@@ -1,0 +1,36 @@
+{
+  "description": "完整画像（大厂5年后端）→ 高置信度3条路径",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "张伟",
+        "education": { "school": "复旦大学", "major": "计算机科学与技术", "degree": "本科" },
+        "years_of_experience": 5,
+        "current_role": { "value": "技术专家" }
+      },
+      "skills": {
+        "technical": [
+          { "name": "Go", "proficiency": "used_in_project", "evidence_source": "使用Go构建高并发微服务" },
+          { "name": "Redis", "proficiency": "used_in_project", "evidence_source": "主导Redis缓存层改造" },
+          { "name": "Kafka", "proficiency": "mentioned", "evidence_source": "技术技能列表" }
+        ],
+        "soft": [{ "name": "团队领导", "evidence_source": "带领3人小组" }]
+      },
+      "experience": [
+        { "company": "字节跳动", "role": "高级后端工程师", "duration": "2020.07-2023.06" },
+        { "company": "美团", "role": "技术专家", "duration": "2023.07-至今" }
+      ],
+      "constraints": { "location": ["北京", "上海"] },
+      "career_intent": { "target_roles": ["后端架构"], "urgency": "unknown" }
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "paths", "operator": "length_gte", "value": 2 },
+    { "path": "paths[0].fit_pct", "operator": "gte", "value": 50 },
+    { "path": "paths[0].evidence_basis", "operator": "length_gte", "value": 1 },
+    { "path": "recommended_path", "operator": "not_empty", "value": true },
+    { "path": "immediate_actions", "operator": "length_gte", "value": 1 },
+    { "path": "evidence_used", "operator": "length_gte", "value": 2 }
+  ]
+}

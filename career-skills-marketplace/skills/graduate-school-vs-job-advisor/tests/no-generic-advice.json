@@ -1,0 +1,22 @@
+{
+  "description": "recommendation 必须引用 critical_factors，不能只说「读研更好」",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "李晓",
+        "education": { "school": "某本科", "major": "计算机", "degree": "本科" },
+        "years_of_experience": 0
+      },
+      "skills": { "technical": [{ "name": "Python", "proficiency": "mentioned", "evidence_source": "学过" }] },
+      "career_intent": { "target_roles": ["数据分析师"] }
+    },
+    "gpa": 3.2,
+    "economic_pressure": "moderate"
+  },
+  "assertions": [
+    { "path": "recommendation", "operator": "not_empty", "value": true },
+    { "path": "critical_factors", "operator": "length_gte", "value": 1 },
+    { "path": "analysis", "operator": "length_gte", "value": 1 },
+    { "path": "analysis[0].pros", "operator": "length_gte", "value": 1 }
+  ]
+}

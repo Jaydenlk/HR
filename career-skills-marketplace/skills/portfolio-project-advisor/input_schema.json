@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "portfolio-project-advisor/input",
+  "title": "portfolio-project-advisor 输入",
+  "type": "object",
+  "required": ["profile"],
+  "properties": {
+    "profile": {
+      "type": "object",
+      "description": "来自 profile-builder 的用户画像",
+      "additionalProperties": true
+    },
+    "skill_gaps": {
+      "type": "array",
+      "description": "来自 skill-gap-planner 的差距列表",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "target_role": {
+      "type": "string",
+      "description": "目标职位"
+    },
+    "available_weeks": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 52,
+      "default": 8
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,15 @@
+{
+  "description": "多技能输入：critical 优先于 nice_to_have，nice_to_have 应进 backlog",
+  "input": {
+    "skill_gaps": [
+      { "skill_name": "SQL", "gap_severity": "critical", "user_current": "无SQL经验", "target_required": "能查询业务数据" },
+      { "skill_name": "Python", "gap_severity": "nice_to_have", "user_current": "无Python经验", "target_required": "基础脚本" }
+    ],
+    "weekly_hours": 10
+  },
+  "assertions": [
+    { "path": "roadmap[0].skill_name", "operator": "eq", "value": "SQL" },
+    { "path": "roadmap[0].priority", "operator": "eq", "value": 1 },
+    { "path": "recommendations", "operator": "contains_match", "pattern": "Python|backlog" }
+  ]
+}

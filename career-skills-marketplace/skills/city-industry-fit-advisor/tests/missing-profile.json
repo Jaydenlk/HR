@@ -1,0 +1,10 @@
+{
+  "description": "缺少 profile → error + insufficient",
+  "input": {
+    "candidate_cities": ["北京", "杭州"]
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "fit_matrix", "operator": "length_eq", "value": 0 }
+  ]
+}

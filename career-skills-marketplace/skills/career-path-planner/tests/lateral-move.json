@@ -1,0 +1,36 @@
+{
+  "description": "前端4年 + 主动转产品意愿 → lateral 路径 + vertical 保底路径",
+  "input": {
+    "profile": {
+      "basic": {
+        "name": "陈静",
+        "education": { "school": "同济大学", "major": "软件工程", "degree": "本科" },
+        "years_of_experience": 4,
+        "current_role": { "value": "前端开发工程师" }
+      },
+      "skills": {
+        "technical": [
+          { "name": "React", "proficiency": "used_in_project", "evidence_source": "项目经历" },
+          { "name": "TypeScript", "proficiency": "used_in_project", "evidence_source": "项目经历" }
+        ],
+        "soft": [
+          { "name": "需求沟通", "evidence_source": "经常与PM对接" },
+          { "name": "用户体验意识", "evidence_source": "主导用户调研" }
+        ]
+      },
+      "experience": [
+        { "company": "某互联网公司", "role": "前端开发工程师", "duration": "2022.03-至今" }
+      ],
+      "constraints": { "location": ["杭州", "上海"] },
+      "career_intent": { "target_roles": ["产品经理"], "urgency": "active" }
+    },
+    "target_role": "产品经理"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "medium" },
+    { "path": "paths", "operator": "length_gte", "value": 1 },
+    { "path": "paths", "operator": "has_item_with", "field": "path_type", "value": "lateral" },
+    { "path": "recommended_path", "operator": "not_empty", "value": true },
+    { "path": "risks", "operator": "length_gte", "value": 1 }
+  ]
+}

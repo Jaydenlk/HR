@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "role-transition-advisor 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "feasibility", "skill_gap", "typical_transition_path", "success_factors", "first_step"
+  ],
+  "properties": {
+    "skill_name": { "const": "role-transition-advisor" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "转型可行性分析概述" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "relevance"],
+        "properties": {
+          "field": { "type": "string" },
+          "value": { "type": "string" },
+          "relevance": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "feasibility": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "not_feasible"],
+      "description": "转型可行性评级"
+    },
+    "feasibility_rationale": {
+      "type": "string",
+      "description": "可行性评级的具体理由，必须引用 profile 字段"
+    },
+    "skill_gap": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "current_level", "required_level", "gap_severity", "remedy"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "current_level": { "type": "string", "description": "用户当前水平（来自 profile）" },
+          "required_level": { "type": "string", "description": "目标角色要求水平" },
+          "gap_severity": {
+            "type": "string",
+            "enum": ["critical", "important", "nice_to_have"],
+            "description": "差距重要程度"
+          },
+          "remedy": { "type": "string", "description": "弥补方式" },
+          "estimated_months": { "type": "integer", "minimum": 0, "description": "预计弥补时间（月）" }
+        }
+      }
+    },
+    "typical_transition_path": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path_name", "description", "duration"],
+        "properties": {
+          "path_name": { "type": "string" },
+          "description": { "type": "string" },
+          "duration": { "type": "string", "description": "预计时长" },
+          "success_rate_note": { "type": "string", "description": "该路径的成功率参考说明" }
+        }
+      }
+    },
+    "success_factors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["factor", "user_status"],
+        "properties": {
+          "factor": { "type": "string", "description": "成功关键因素" },
+          "user_status": {
+            "type": "string",
+            "enum": ["has", "partial", "missing"],
+            "description": "用户当前是否具备"
+          },
+          "evidence": { "type": "string", "description": "来自 profile 的证据" }
+        }
+      }
+    },
+    "first_step": {
+      "type": "string",
+      "description": "最重要的第一步行动（具体、可执行，不超过30天内完成）"
+    }
+  }
+}

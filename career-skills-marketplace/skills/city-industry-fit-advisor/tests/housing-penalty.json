@@ -1,0 +1,18 @@
+{
+  "description": "has_housing_requirement=true 时，北京的 cost_sustainability 应低于杭州",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "years_of_experience": 4 },
+      "skills": { "technical": [{ "name": "Go", "proficiency": "used_in_project", "evidence_source": "项目" }] },
+      "experience": [{ "company": "某大厂", "role": "工程师", "duration": "2022-至今" }],
+      "constraints": { "location": ["北京", "杭州"] }
+    },
+    "candidate_cities": ["北京", "杭州"],
+    "has_housing_requirement": true
+  },
+  "assertions": [
+    { "path": "fit_matrix", "operator": "length_gte", "value": 2 },
+    { "path": "cost_of_living_impact", "operator": "length_gte", "value": 2 },
+    { "path": "cost_of_living_impact[0].housing_cost_note", "operator": "not_empty", "value": true }
+  ]
+}

@@ -1,0 +1,76 @@
+name: learning-roadmap-builder
+version: "1.0.0"
+role: worker
+
+when_to_use:
+  - skill-gap-planner 输出后，用户需要更详细的学习路线图
+  - 用户对某个技能有学习意向，需要结构化计划
+  - 求职主理人需要为用户制定可执行的学习路径
+
+when_not_to_use:
+  - 用户没有明确的技能学习目标
+  - skill-gap-planner 结果为空（无差距）
+  - 用户需要的是职业方向建议（使用 career-path-planner）
+
+inputs:
+  primary:
+    - name: skill_gaps
+      type: array
+      required: true
+      description: "来自 skill-gap-planner 的 gap_analysis 数组，或手动指定的技能差距列表"
+  optional:
+    - name: profile
+      type: object
+      required: false
+      description: "用户画像，用于定制化资源推荐（如：是否有编程基础）"
+    - name: weekly_hours
+      type: integer
+      required: false
+      minimum: 1
+      maximum: 80
+      default: 12
+      description: "每周可投入学习的小时数"
+    - name: preferred_language
+      type: string
+      required: false
+      enum: ["zh", "en", "both"]
+      default: "zh"
+      description: "偏好学习资源语言"
+
+confidence_policy:
+  high:
+    condition: "skill_gaps 来自 skill-gap-planner 高置信度输出，且 profile 可用"
+    threshold: "evidence_count >= 4"
+  medium:
+    condition: "skill_gaps 为手动输入，或缺少 profile 定制化信息"
+    threshold: "evidence_count 2-3"
+  low:
+    condition: "skill_gaps 信息极少，无法生成有效路线图"
+    threshold: "evidence_count < 2"
+  insufficient:
+    condition: "skill_gaps 缺失或为空数组"
+    action: "返回 error"
+
+failure_modes:
+  - type: empty_gaps
+    trigger: "skill_gaps 为空数组"
+    response: "返回 error，提示需要提供技能差距信息"
+  - type: too_many_skills
+    trigger: "skill_gaps 超过 10 项"
+    response: "优先处理 critical 级别差距，其余列入 backlog，说明理由"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - roadmap[]
+    - resource_list[]
+  metadata:
+    - confidence
+    - total_estimated_weeks
+
+dependencies:
+  depends_on:
+    - skill-gap-planner
+  shared_schemas:
+    - _career-skills-shared/evidence-schema/evidence.schema.json
+    - _career-skills-shared/output-schema/skill-output-base.schema.json

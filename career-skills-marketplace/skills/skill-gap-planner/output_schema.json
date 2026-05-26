@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "skill-gap-planner 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "gap_analysis", "learning_plan", "quick_wins", "long_term_investments"
+  ],
+  "properties": {
+    "skill_name": { "const": "skill-gap-planner" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low", "insufficient"] },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "relevance"],
+        "properties": {
+          "field": { "type": "string" },
+          "value": { "type": "string" },
+          "relevance": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "gap_analysis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "gap_severity", "user_current", "target_required", "source_evidence"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "gap_severity": {
+            "type": "string",
+            "enum": ["critical", "important", "nice_to_have"]
+          },
+          "user_current": { "type": "string", "description": "用户当前水平（引用 profile 字段）" },
+          "target_required": { "type": "string", "description": "目标要求（引用 JD 或通用角色标准）" },
+          "source_evidence": { "type": "string", "description": "差距判断的依据来源" }
+        }
+      }
+    },
+    "learning_plan": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "priority", "approach", "estimated_weeks", "completion_criteria"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "priority": { "type": "integer", "minimum": 1, "description": "优先级，1最高" },
+          "approach": { "type": "string", "description": "学习方法描述" },
+          "estimated_weeks": { "type": "integer", "minimum": 1 },
+          "completion_criteria": { "type": "string", "description": "可验证的完成标准" },
+          "resource_type": {
+            "type": "string",
+            "enum": ["official_docs", "project_practice", "open_source_contribution", "mentorship", "certification"],
+            "description": "推荐资源类别（不指定具体课程）"
+          }
+        }
+      }
+    },
+    "quick_wins": {
+      "type": "array",
+      "description": "3个月内可见效的快速补强项",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "action", "expected_result"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "action": { "type": "string", "description": "具体可执行的行动" },
+          "expected_result": { "type": "string", "description": "预期成果" },
+          "basis": { "type": "string", "description": "基于 profile 哪个字段判断可快速见效" }
+        }
+      }
+    },
+    "long_term_investments": {
+      "type": "array",
+      "description": "3个月以上的长期能力投资",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "rationale", "path"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "rationale": { "type": "string", "description": "为什么需要长期投入" },
+          "path": { "type": "string", "description": "长期发展路径描述" }
+        }
+      }
+    }
+  }
+}

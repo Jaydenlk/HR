@@ -1,0 +1,14 @@
+{
+  "description": "无 jd_analysis 也无 target_role → error",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试", "years_of_experience": 3 },
+      "skills": { "technical": [], "soft": [] },
+      "experience": []
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "error", "operator": "exists", "value": true }
+  ]
+}

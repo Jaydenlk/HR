@@ -1,0 +1,26 @@
+{
+  "description": "profile 中未提及的技能不能出现在 quick_wins 的 basis 中",
+  "input": {
+    "profile": {
+      "basic": { "name": "测试用户", "years_of_experience": 2, "current_role": { "value": "运营专员" } },
+      "skills": {
+        "technical": [],
+        "soft": [{ "name": "数据整理", "evidence_source": "Excel使用" }]
+      },
+      "experience": [{ "company": "某公司", "role": "运营专员", "duration": "2024-至今" }]
+    },
+    "jd_analysis": {
+      "required_skills": [
+        { "name": "Python", "level": "basic", "importance": "critical" },
+        { "name": "SQL", "level": "proficient", "importance": "critical" }
+      ],
+      "job_title": "初级数据分析师"
+    }
+  },
+  "assertions": [
+    { "path": "gap_analysis", "operator": "has_item_with", "field": "skill_name", "value": "SQL" },
+    { "path": "gap_analysis", "operator": "has_item_with", "field": "skill_name", "value": "Python" },
+    { "path": "gap_analysis[0].user_current", "operator": "not_eq", "value": "partial" },
+    { "path": "evidence_used", "operator": "length_gte", "value": 1 }
+  ]
+}

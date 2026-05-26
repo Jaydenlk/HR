@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "learning-roadmap-builder 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "roadmap", "resource_list"
+  ],
+  "properties": {
+    "skill_name": { "const": "learning-roadmap-builder" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string" },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low", "insufficient"] },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "value", "relevance"],
+        "properties": {
+          "field": { "type": "string" },
+          "value": { "type": "string" },
+          "relevance": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "total_estimated_weeks": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "按指定 weekly_hours 计算的总预计周数"
+    },
+    "roadmap": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "phases"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "priority": { "type": "integer", "minimum": 1 },
+          "total_weeks": { "type": "integer", "minimum": 1 },
+          "phases": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["phase_name", "goal", "estimated_weeks", "completion_criteria"],
+              "properties": {
+                "phase_name": { "type": "string", "description": "阶段名称" },
+                "goal": { "type": "string", "description": "本阶段目标" },
+                "estimated_weeks": { "type": "integer", "minimum": 1 },
+                "activities": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "建议学习活动"
+                },
+                "completion_criteria": { "type": "string", "description": "可验证的完成标准" },
+                "output_artifact": { "type": "string", "description": "阶段完成时应有的输出物" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "resource_list": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "resource_type", "description", "quality_criteria"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "resource_type": {
+            "type": "string",
+            "enum": ["official_docs", "chinese_community", "book", "video", "open_source", "practice_platform"],
+            "description": "资源类型"
+          },
+          "description": { "type": "string", "description": "资源描述（不指定具体链接）" },
+          "quality_criteria": { "type": "string", "description": "如何判断资源质量" },
+          "language": { "type": "string", "enum": ["zh", "en", "both"] },
+          "for_level": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "advanced"],
+            "description": "适合的学习阶段"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "graduate-school-vs-job-advisor/input",
+  "title": "graduate-school-vs-job-advisor 输入",
+  "type": "object",
+  "required": ["profile"],
+  "properties": {
+    "profile": {
+      "type": "object",
+      "description": "来自 profile-builder 的用户画像",
+      "additionalProperties": true
+    },
+    "gpa": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 4.0,
+      "description": "4分制 GPA"
+    },
+    "gpa_percentile": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "年级排名百分位"
+    },
+    "target_school_tier": {
+      "type": "string",
+      "enum": ["985", "211", "双非", "any"]
+    },
+    "economic_pressure": {
+      "type": "string",
+      "enum": ["none", "moderate", "high"]
+    },
+    "has_internship": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

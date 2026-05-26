@@ -1,0 +1,32 @@
+{
+  "description": "完整画像 + JD 数据 → 高置信度差距分析",
+  "input": {
+    "profile": {
+      "basic": { "name": "张伟", "years_of_experience": 5, "current_role": { "value": "技术专家" } },
+      "skills": {
+        "technical": [
+          { "name": "Go", "proficiency": "used_in_project", "evidence_source": "项目" },
+          { "name": "Redis", "proficiency": "used_in_project", "evidence_source": "项目" },
+          { "name": "MySQL", "proficiency": "mentioned", "evidence_source": "技能列表" }
+        ]
+      },
+      "experience": [{ "company": "美团", "role": "技术专家", "duration": "2023-至今" }]
+    },
+    "jd_analysis": {
+      "required_skills": [
+        { "name": "Go", "level": "proficient", "importance": "critical" },
+        { "name": "Kubernetes", "level": "proficient", "importance": "critical" },
+        { "name": "MySQL", "level": "proficient", "importance": "important" }
+      ],
+      "job_title": "高级后端架构师"
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "gap_analysis", "operator": "length_gte", "value": 1 },
+    { "path": "gap_analysis[0].user_current", "operator": "not_empty", "value": true },
+    { "path": "gap_analysis[0].target_required", "operator": "not_empty", "value": true },
+    { "path": "learning_plan", "operator": "length_gte", "value": 1 },
+    { "path": "learning_plan[0].completion_criteria", "operator": "not_empty", "value": true }
+  ]
+}
