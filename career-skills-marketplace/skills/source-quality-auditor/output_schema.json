@@ -1,14 +1,51 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "SourceQualityAuditorOutput",
   "type": "object",
-  "required": ["audit_results", "overall_confidence_ceiling", "conflict_detected", "usable_source_count", "summary", "confidence"],
-  "additionalProperties": false,
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "cannot_determine",
+    "audit_results"
+  ],
   "properties": {
+    "skill_name": { "const": "source-quality-auditor" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": {
+      "type": "string",
+      "description": "整体审计结果的简短中文说明"
+    },
     "confidence": {
       "type": "string",
-      "enum": ["high", "medium", "low"],
+      "enum": ["high", "medium", "low", "insufficient"],
       "description": "整体置信度，受 overall_confidence_ceiling 约束"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "审计过程中使用的证据"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "行动建议"
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "已识别的来源风险"
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "因来源不足无法判断的事项"
     },
     "audit_results": {
       "type": "array",
@@ -17,80 +54,24 @@
       "items": {
         "type": "object",
         "required": ["source_id", "grade", "freshness", "verification_status", "issues", "recommendation"],
-        "additionalProperties": false,
         "properties": {
-          "source_id": {
-            "type": "string",
-            "description": "对应输入来源的 source_id"
-          },
-          "grade": {
-            "type": "string",
-            "enum": ["A", "B", "C", "D"],
-            "description": "来源质量等级"
-          },
-          "freshness": {
-            "type": "string",
-            "enum": ["fresh", "stale", "unknown"],
-            "description": "内容时效性"
-          },
-          "verification_status": {
-            "type": "string",
-            "enum": ["verified", "unverifiable", "unreachable", "mismatch"],
-            "description": "验证状态"
-          },
-          "issues": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "该来源存在的问题列表"
-          },
-          "recommendation": {
-            "type": "string",
-            "enum": ["use", "use_with_caution", "discard"],
-            "description": "使用建议"
-          },
-          "conflict": {
-            "type": "boolean",
-            "description": "是否与其他来源存在冲突"
-          },
-          "conflict_detail": {
-            "type": "string",
-            "description": "冲突详情，仅 conflict=true 时填写"
-          }
+          "source_id": { "type": "string" },
+          "grade": { "type": "string", "enum": ["A", "B", "C", "D"] },
+          "freshness": { "type": "string", "enum": ["current", "recent", "stale", "unknown"] },
+          "verification_status": { "type": "string", "enum": ["verified", "unverifiable", "unreachable", "mismatch"] },
+          "issues": { "type": "array", "items": { "type": "string" } },
+          "recommendation": { "type": "string", "enum": ["use", "use_with_caution", "discard"] },
+          "conflict": { "type": "boolean" },
+          "conflict_detail": { "type": "string" }
         }
       }
     },
     "overall_confidence_ceiling": {
       "type": "string",
       "enum": ["high", "medium", "low"],
-      "description": "基于来源质量的整体置信度上限，最终 confidence 不得超过此值"
+      "description": "基于来源质量的整体置信度上限"
     },
-    "conflict_detected": {
-      "type": "boolean",
-      "description": "是否检测到来源间的事实冲突"
-    },
-    "usable_source_count": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "等级 B 及以上的可用来源数量"
-    },
-    "summary": {
-      "type": "string",
-      "minLength": 1,
-      "description": "整体审计结果的简短中文说明"
-    },
-    "evidence_chain": {
-      "type": "array",
-      "description": "证据链，包含所有审计过的来源节点",
-      "items": {
-        "type": "object",
-        "properties": {
-          "source_id": { "type": "string" },
-          "grade": { "type": "string" },
-          "verification_status": { "type": "string" }
-        }
-      }
-    }
+    "conflict_detected": { "type": "boolean" },
+    "usable_source_count": { "type": "integer", "minimum": 0 }
   }
 }

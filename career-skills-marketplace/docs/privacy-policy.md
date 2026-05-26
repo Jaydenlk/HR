@@ -9,8 +9,9 @@ Career Skills Marketplace 是一个在你本地 Claude Code 环境中运行的�
 所有你输入的求职数据——包括简历、职位描述、面试记录、对话历史——均存储在你本地机器上，不经过任何远程服务器。
 
 具体存储位置：
-- 用户画像和证据文件：`~/.claude/skills/career-skills-marketplace/.evidence/`（如工具生成了本地记录）
-- 知识图谱数据：`~/.claude/skills/career-skills-marketplace/knowledge/`（随安装附带，不含个人数据）
+- 各 skill 文件：`~/.claude/skills/<skill-name>/`（如 `career-principal/`、`jd-analyzer/` 等）
+- 共享资源和知识图谱：`~/.claude/skills/_career-skills-shared/`（随安装附带，不含个人数据）
+- 证据文件（如工具生成了本地记录）：`~/.claude/skills/_career-skills-shared/.evidence/`
 
 ---
 
