@@ -73,6 +73,9 @@ export class FeedItem {
   @Column({ type: 'datetime', nullable: true })
   published_at: Date | null;
 
+  @Column({ type: 'varchar', default: 'unknown' })
+  date_confidence: 'high' | 'medium' | 'low' | 'unknown';
+
   @Column({ type: 'text', nullable: true })
   summary: string | null;
 
