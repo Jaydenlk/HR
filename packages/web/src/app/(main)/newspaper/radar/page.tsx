@@ -14,6 +14,7 @@ import { api } from '@/lib/api';
 import type {
   FeedItem,
   FeedSourceKind,
+  DateConfidence,
   RadarResult,
   CompanyRadarItem,
   CompanyRadarResponse,
@@ -150,6 +151,18 @@ function getConfidence(item: FeedItem): 'high' | 'medium' | 'low' {
   if (item.quality_score >= 70) return 'high';
   if (item.quality_score >= 40) return 'medium';
   return 'low';
+}
+
+function getYearQuarter(iso: string | null): string {
+  if (!iso) return '时间未知';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '时间未知';
+  const q = Math.ceil((d.getMonth() + 1) / 3);
+  return `${d.getFullYear()}Q${q}`;
+}
+
+function isDateUncertain(dc: DateConfidence | undefined): boolean {
+  return dc === 'low' || dc === 'unknown' || dc === undefined;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -500,6 +513,8 @@ function RadarCard({ item }: { item: FeedItem }) {
   const confidence = getConfidence(item);
   const isLow = confidence === 'low';
   const dateStr = formatDate(item.published_at ?? item.fetched_at ?? item.created_at);
+  const quarterLabel = getYearQuarter(item.published_at);
+  const dateUncertain = isDateUncertain(item.date_confidence);
 
   return (
     <article
@@ -513,6 +528,7 @@ function RadarCard({ item }: { item: FeedItem }) {
         <span className={`source-badge ${item.source_kind}`}>
           {SOURCE_KIND_LABELS[item.source_kind] ?? item.source_kind}
         </span>
+        <span className="quarter-label">{quarterLabel}</span>
         <span className={`confidence-badge confidence-${confidence}`}>
           {confidence === 'high' ? '高置信' : confidence === 'medium' ? '中置信' : '低置信'}
         </span>
@@ -540,6 +556,9 @@ function RadarCard({ item }: { item: FeedItem }) {
             {item.source_name ?? SOURCE_KIND_LABELS[item.source_kind]}
             {dateStr ? ` · ${dateStr}` : ''}
           </small>
+          {dateUncertain && (
+            <small className="date-uncertain-label">发布时间待确认</small>
+          )}
         </div>
         {item.source_url && (
           <a href={item.source_url} target="_blank" rel="noopener noreferrer">
@@ -880,6 +899,9 @@ function TrendTab() {
                 <span className="hot-post-rank">{i + 1}</span>
                 <span className="hot-post-title">{post.title}</span>
                 {post.company && <span className="hot-post-company">{post.company}</span>}
+                {(!post.published_at || isDateUncertain(post.date_confidence)) && (
+                  <span className="date-uncertain-label">发布时间待确认</span>
+                )}
                 <span className={`source-badge ${post.source_kind}`}>
                   {SOURCE_KIND_LABELS[post.source_kind as FeedSourceKind] ?? post.source_kind}
                 </span>
@@ -1574,6 +1596,26 @@ const RADAR_CSS = `
 .hot-post-company {
   font-size: 11px;
   color: var(--color-ink-3);
+}
+
+.quarter-label {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--color-surface-3);
+  color: var(--color-ink-3);
+}
+
+.date-uncertain-label {
+  display: inline-block;
+  font-size: 10.5px;
+  color: #b35900;
+  background: rgba(255, 149, 0, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Responsive */

@@ -313,6 +313,8 @@ export interface DigestRun {
   source?: FeedSource | null;
 }
 
+export type DateConfidence = 'high' | 'medium' | 'low' | 'unknown';
+
 export interface FeedItem {
   id: string;
   title: string;
@@ -330,6 +332,7 @@ export interface FeedItem {
   published_at: string | null;
   fetched_at: string | null;
   created_at: string;
+  date_confidence: DateConfidence;
   user?: User | null;
 }
 
@@ -421,6 +424,8 @@ export interface TrendRadarResponse {
     source_kind: string;
     source_url: string;
     created_at: string;
+    published_at: string | null;
+    date_confidence: DateConfidence;
   }>;
 }
 
