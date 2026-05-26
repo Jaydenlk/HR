@@ -999,20 +999,40 @@ final_output_shape:
 
 #### 分类体系
 
-| 类别 | 代表企业 | 知识图谱覆盖目标 |
-|------|---------|----------------|
-| 互联网大厂 | 阿里/腾讯/字节/美团/拼多多/京东/百度/快手 | MVP: 8家, Roadmap: 15+ |
-| 稳定中厂 | 小红书/得物/B站/大疆/蔚来/米哈游/网易/携程 | MVP: 10家, Roadmap: 30+ |
-| 外企 | 微软/谷歌/亚马逊/苹果/SAP/Oracle/IBM | MVP: 8家, Roadmap: 20+ |
-| 国企/央企/金融 | 运营商/银行/电网/烟草/中金/中信 | MVP: 8家, Roadmap: 20+ |
-| 新能源/硬科技 | 宁德时代/比亚迪/华为/中芯/海康 | MVP: 6家, Roadmap: 15+ |
-| AI 初创 | Moonshot/智谱/百川/MiniMax/零一万物 | MVP: 5家, Roadmap: 10+ |
-| 出海公司 | SHEIN/TikTok/Shopee/Temu | MVP: 4家, Roadmap: 10+ |
-| 咨询/快消/四大 | MBB/PwC/Deloitte/P&G/Unilever | MVP: 6家, Roadmap: 15+ |
-| 高风险公司池 | 已知问题企业（频繁裁员/拖薪/骗局） | MVP: 5条规则, Roadmap: 动态更新 |
+| 类别 | 代表企业 | Seed 50 | Baseline 300 | Extended 600 |
+|------|---------|---------|-------------|-------------|
+| 互联网大厂 | 阿里/腾讯/字节/美团/拼多多/京东/百度/快手 | 8 | 15 | 15 |
+| 稳定中厂 | 小红书/得物/B站/大疆/蔚来/米哈游/网易/携程 | 10 | 40 | 60 |
+| AI/机器人/硬科技 | Moonshot/智谱/百川/宁德时代/比亚迪/华为/中芯/海康 | 6 | 30 | 50 |
+| 外企中国岗位 | 微软/谷歌/亚马逊/苹果/SAP/Oracle/IBM | 6 | 25 | 100+ |
+| 金融/券商/银行/保险 | 中金/中信/招行/平安/高盛中国 | 4 | 30 | 50 |
+| 央企/国企/事业单位 | 运营商/电网/烟草/航天/中车 | 4 | 25 | 40 |
+| 咨询/快消/四大/广告 | MBB/PwC/P&G/Ogilvy | 4 | 25 | 40 |
+| 出海公司 | SHEIN/TikTok/Shopee/Temu | 3 | 15 | 25 |
+| 游戏/内容/文娱 | 米哈游/莉莉丝/叠纸/B站/爱奇艺 | 2 | 20 | 30 |
+| 电商/本地生活/物流 | 美团/饿了么/顺丰/菜鸟 | 2 | 20 | 30 |
+| 医疗/生物医药 | 药明康德/迈瑞/联影 | 0 | 15 | 30 |
+| 教育/企服/SaaS | 飞书/钉钉/有赞/用友 | 0 | 15 | 30 |
+| 新能源/汽车 | 蔚来/理想/小鹏/小米汽车 | 1 | 15 | 25 |
+| 高风险公司池 | 已知问题企业 | 5条规则 | 10条+案例 | 社区动态更新 |
 
-**MVP 总计：~50 家公司节点**
-**Roadmap 目标：135+ 家公司节点**
+**初始 50 家是 bootstrap seed，不是产品覆盖上限。**
+
+| Stage | 公司数 | 定位 | 维护方式 |
+|-------|--------|------|---------|
+| **A: Seed** | 50 | 安装即用 / eval / demo 验证 | 编辑审核 |
+| **B: Baseline** | 300 | 中国大陆求职主流目标 | 编辑审核 + 早期贡献者 |
+| **C: Extended** | 600 | 更完整的大陆就业市场 | 社区贡献 + 审核 |
+
+#### 分层维护策略
+
+600 家不是全部手写精细画像，分三层：
+
+| Tier | 数量 | 字段完整度 | 适用范围 |
+|------|------|-----------|---------|
+| **Tier 1: Deep Profile** | 80-120 家 | 全部字段 (aliases/business_lines/common_roles/interview_style/hiring_season/salary_source_policy/risk_tags/evidence_examples) | 大厂 + 头部中厂 + 核心外企 |
+| **Tier 2: Standard Profile** | 180-220 家 | 中等字段 (aliases/sector/company_type/common_roles/source_policy/known_risks) | 主流目标公司 |
+| **Tier 3: Lightweight Profile** | ~300 家 | 轻量字段 (company_name/aliases/sector/company_type/location/source_confidence/needs_verification) | 长尾公司、区域强势企业、垂直龙头 |
 
 #### 公司节点 Schema
 
@@ -1631,7 +1651,12 @@ final_output_shape:
 
 ## 10. Roadmap
 
-### Phase 1: MVP 6 Skills (当前 → +4周)
+### Phase 1: MVP 6 Skills
+
+**时间估计（非绝对值）**：
+- Skeleton + 6 skills 初版：~2 周
+- 含 eval + installer + 50 公司 seed + examples：~4 周
+- 含 production-grade docs 和跨环境支持：~6 周
 
 ```yaml
 deliverables:
@@ -1639,9 +1664,10 @@ deliverables:
   - Career Principal SKILL.md
   - 5 个 sub-skills (profile/jd/resume/match/auditor)
   - Evidence Layer schema
-  - Knowledge Graph seed (50 公司)
-  - 7×6 = 42 个 test cases
+  - Knowledge Graph Stage A seed (50 公司)
+  - 6 skill × 5 eval = 30 个 test cases + 10 个 workflow eval
   - README.zh-CN.md
+  - CLI entry point (career ask / career run)
 
 acceptance_criteria:
   - npx skills add 成功安装
@@ -1659,8 +1685,8 @@ parallelizable_subagent_tasks:
   - B: profile-builder + jd-analyzer
   - C: match-diagnosis + resume-tailor
   - D: source-quality-auditor + evidence schema
-  - E: Knowledge Graph seed data
-  - F: evals + README
+  - E: Knowledge Graph seed data (50 公司)
+  - F: evals + README + CLI
 ```
 
 ### Phase 2: Interview + Opportunity (+4周 → +8周)
@@ -1672,7 +1698,7 @@ deliverables:
   - interview-debrief skill
   - opportunity-intelligence skill
   - behavioral-story-builder skill
-  - Knowledge Graph 扩展到 80 公司
+  - Knowledge Graph 扩展到 100 公司 (Stage A→B 过渡)
 
 acceptance_criteria:
   - "明天面试"意图路由完整可用
@@ -1749,13 +1775,13 @@ parallelizable_subagent_tasks:
   - D: daily-plan-generator
 ```
 
-### Phase 5: Knowledge Graph + Community (+16周 → +20周)
+### Phase 5: Knowledge Graph Expansion + Community (+16周 → +22周)
 
 ```yaml
 deliverables:
-  - Knowledge Graph 扩展到 135+ 公司
+  - Knowledge Graph Stage B: 300 公司 (Tier 1: 80-120 / Tier 2: 180-220)
   - Market Vocabulary Graph 完整
-  - 贡献指南 + 审核流程
+  - 贡献指南 + 审核流程 (CONTRIBUTING.md / PR_TEMPLATE.md)
   - Community gallery / index
   - Knowledge Graph 版本管理
 
@@ -1764,15 +1790,38 @@ acceptance_criteria:
   - 审核流程有明确 checklist
   - 无个人隐私数据泄露
   - 知识图谱版本可追溯
+  - 分层维护策略落地 (Tier 1/2/3)
 
 risks:
   - 社区贡献质量参差不齐
+  - 300 家公司的 Tier 分配决策
   - 数据审核工作量
 
 parallelizable_subagent_tasks:
-  - A: Knowledge Graph 大规模扩充
-  - B: Contribution guide + templates
-  - C: Review workflow automation
+  - A: Tier 1 Deep Profile (80-120 家)
+  - B: Tier 2 Standard Profile (180-220 家)
+  - C: Contribution guide + templates + PR review workflow
+  - D: Knowledge Graph 质量 eval
+```
+
+### Phase 5.5: Community Extended Graph (+22周 → +28周)
+
+```yaml
+deliverables:
+  - Knowledge Graph Stage C: 600 公司 (含 Tier 3 Lightweight ~300 家)
+  - 社区贡献者审核机制自动化
+  - needs_verification 标记系统
+  - 去重/别名冲突解决机制
+
+acceptance_criteria:
+  - 600 家公司可查询
+  - Tier 3 数据标注 needs_verification
+  - 社区 PR 有自动化质量检查
+  - 无私人隐私数据
+
+risks:
+  - Tier 3 数据质量不可控
+  - 维护 600 家的 freshness 成本
 ```
 
 ### Phase 6: Multi-environment Adapters (+20周 → +24周)
