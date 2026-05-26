@@ -1,8 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, Not } from 'typeorm';
+import { Repository, MoreThanOrEqual, Not, In } from 'typeorm';
 import { FeedItem } from './entities/feed-item.entity';
 import { EvidenceService } from '../intelligence/evidence.service';
+import { CompanyRegistryService } from './company-registry.service';
+import {
+  normalizeQualityScore,
+  isUsable,
+  isCandidate,
+  isRejected,
+  buildDominantSignal,
+} from './radar-helpers';
 
 // --- Response interfaces ---
 
@@ -63,12 +71,40 @@ export interface RadarResult {
   role_stats: Array<{ role_category: string; count: number }>;
 }
 
+export interface CompanyRadarItem {
+  company: string;
+  company_id: string | null;
+  company_type: string | null;
+  priority: string | null;
+  sector: string | null;
+  total_count: number;
+  usable_count: number;
+  low_confidence_count: number;
+  candidate_count: number;
+  rejected_count: number;
+  xhs_count: number;
+  nowcoder_count: number;
+  wechat_count: number;
+  top_roles: string[];
+  high_confidence_count: number;
+  quality_score_avg: number;
+  latest_collected_at: string | null;
+  dominant_signal: string | null;
+}
+
+export interface CompanyRadarResponse {
+  companies: CompanyRadarItem[];
+  total_companies: number;
+  generated_at: string;
+}
+
 @Injectable()
 export class NewspaperService {
   constructor(
     @InjectRepository(FeedItem)
     private readonly feedRepo: Repository<FeedItem>,
     private readonly evidence: EvidenceService,
+    private readonly companyRegistry: CompanyRegistryService,
   ) {}
 
   async getNewspaper(userId: string): Promise<NewspaperEdition> {
@@ -333,6 +369,126 @@ export class NewspaperService {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
       .map(([tag]) => tag);
+  }
+
+  // --- Radar Companies ---
+
+  async getRadarCompanies(): Promise<CompanyRadarResponse> {
+    const items = await this.feedRepo.find({
+      where: {
+        source_kind: In(['xhs', 'nowcoder', 'wechat']),
+      },
+    });
+
+    // Filter to items with non-null, non-empty company
+    const companyItems = items.filter(
+      (i) => i.company !== null && i.company.trim() !== '',
+    );
+
+    // Group by company
+    const byCompany = new Map<string, FeedItem[]>();
+    for (const item of companyItems) {
+      const key = item.company as string;
+      const list = byCompany.get(key) || [];
+      list.push(item);
+      byCompany.set(key, list);
+    }
+
+    // Fetch all registered companies for enrichment
+    const allRegistered = await this.companyRegistry.findAll();
+    const registryMap = new Map(allRegistered.map((c) => [c.name, c]));
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const companies: CompanyRadarItem[] = [];
+
+    for (const [company, group] of byCompany) {
+      const usableCount = group.filter((i) => isUsable(i)).length;
+      const candidateCount = group.filter((i) => isCandidate(i)).length;
+      const rejectedCount = group.filter((i) => isRejected(i)).length;
+
+      const xhsCount = group.filter((i) => i.source_kind === 'xhs').length;
+      const nowcoderCount = group.filter((i) => i.source_kind === 'nowcoder').length;
+      const wechatCount = group.filter((i) => i.source_kind === 'wechat').length;
+
+      const lowConfCount = group.filter((i) => i.confidence === 'low').length;
+      const highConfCount = group.filter((i) => i.confidence === 'high').length;
+
+      // Top roles
+      const roleCounts = new Map<string, number>();
+      for (const item of group) {
+        if (item.role_category) {
+          roleCounts.set(item.role_category, (roleCounts.get(item.role_category) ?? 0) + 1);
+        }
+      }
+      const topRoles = [...roleCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([role]) => role);
+
+      // Quality score average
+      const scores = group.map((i) => normalizeQualityScore(i.quality_score));
+      const qualityAvg = scores.length > 0
+        ? Math.round((scores.reduce((sum, s) => sum + s, 0) / scores.length) * 10) / 10
+        : 0;
+
+      // Latest collected_at
+      const dates = group
+        .map((i) => i.created_at)
+        .filter((d): d is Date => d instanceof Date);
+      const latestDate = dates.length > 0
+        ? new Date(Math.max(...dates.map((d) => d.getTime())))
+        : null;
+
+      const hasRecentItems = dates.some((d) => d >= sevenDaysAgo);
+
+      // Dominant signal
+      const dominantSignal = buildDominantSignal({
+        roleCounts,
+        totalCount: group.length,
+        xhsCount,
+        nowcoderCount,
+        hasRecentItems,
+        usableCount,
+      });
+
+      // Enrich from registry
+      const registered = registryMap.get(company) ?? null;
+
+      companies.push({
+        company,
+        company_id: registered?.id ?? null,
+        company_type: registered?.company_type ?? null,
+        priority: registered?.priority ?? null,
+        sector: registered?.sector ?? null,
+        total_count: group.length,
+        usable_count: usableCount,
+        low_confidence_count: lowConfCount,
+        candidate_count: candidateCount,
+        rejected_count: rejectedCount,
+        xhs_count: xhsCount,
+        nowcoder_count: nowcoderCount,
+        wechat_count: wechatCount,
+        top_roles: topRoles,
+        high_confidence_count: highConfCount,
+        quality_score_avg: qualityAvg,
+        latest_collected_at: latestDate ? latestDate.toISOString() : null,
+        dominant_signal: dominantSignal,
+      });
+    }
+
+    // Sort by usable_count DESC, quality_score_avg DESC
+    companies.sort((a, b) => {
+      if (b.usable_count !== a.usable_count) return b.usable_count - a.usable_count;
+      return b.quality_score_avg - a.quality_score_avg;
+    });
+
+    return {
+      companies,
+      total_companies: companies.length,
+      generated_at: new Date().toISOString(),
+    };
   }
 
   // --- Radar ---

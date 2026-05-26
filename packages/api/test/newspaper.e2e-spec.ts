@@ -470,6 +470,59 @@ describe('Newspaper (e2e)', () => {
   });
 
   /* ================================================================ */
+  /*  GET /newspaper/radar/companies                                   */
+  /* ================================================================ */
+
+  describe('GET /api/newspaper/radar/companies', () => {
+    it('returns CompanyRadarResponse with companies array', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/companies')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.companies)).toBe(true);
+      expect(typeof res.body.total_companies).toBe('number');
+      expect(typeof res.body.generated_at).toBe('string');
+    });
+
+    it('source counts sum to total_count for each company', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/companies')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const c of res.body.companies) {
+        expect(c.xhs_count + c.nowcoder_count + c.wechat_count).toBe(c.total_count);
+      }
+    });
+
+    it('usable + candidate + rejected = total for each company', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/companies')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const c of res.body.companies) {
+        expect(c.usable_count + c.candidate_count + c.rejected_count).toBe(c.total_count);
+      }
+    });
+
+    it('excludes items with null company', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/companies')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const c of res.body.companies) {
+        expect(c.company).not.toBeNull();
+        expect(c.company).not.toBe('');
+      }
+    });
+
+    it('returns 401 without auth token', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/companies');
+      expect(res.status).toBe(401);
+    });
+  });
+
+  /* ================================================================ */
   /*  User personalization — coach_actions react to user state        */
   /* ================================================================ */
 
