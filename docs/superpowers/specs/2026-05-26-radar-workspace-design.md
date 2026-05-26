@@ -54,7 +54,10 @@ interface CompanyRadarItem {
   
   latest_collected_at: string;   // 最新 fetched_at ISO
   
-  dominant_signal: string | null; // AI 或规则生成的一句话信号描述
+  candidate_count: number;       // confidence='low' OR normalized_quality < 50
+  rejected_count: number;        // quality_score = -1
+
+  dominant_signal: string | null; // 纯规则生成的一句话信号描述（不调 AI）
 }
 
 // Response
@@ -74,13 +77,32 @@ interface CompanyRadarResponse {
 
 **排序：** 默认按 usable_count DESC，quality_score_avg DESC。
 
-**usable 判定规则（全局统一，抽成方法）：**
+**口径说明：** `total_count = usable_count + candidate_count + rejected_count`
+
+### 2.1.1 quality_score 归一化（全局统一）
+
+真实 DB 中 quality_score 尺度不一致：XHS 管线输出 0-10，WebSearch 入库为 40-60，rejected 为 -1。
+所有聚合、排序、usable 判定统一使用 normalized score：
+
+```typescript
+function normalizeQualityScore(raw: number | null): number {
+  if (raw === null || raw === undefined || raw < 0) return 0;
+  if (raw <= 10) return raw * 10;     // 0-10 → 0-100
+  if (raw > 100) return 100;
+  return raw;                          // 11-100 → 原值
+}
 ```
-isUsable(item) = item.quality_score >= 50 
+
+**isUsable 判定规则（全局统一，抽成方法）：**
+```
+isUsable(item) = normalizeQualityScore(item.quality_score) >= 50
                  AND item.confidence IN ('medium', 'high')
                  AND item.source_url IS NOT NULL
-                 AND LENGTH(item.content) > 200
+                 AND LENGTH(item.content) >= 200
 ```
+
+**isCandidate：** 不满足 isUsable 但 quality_score != -1
+**isRejected：** quality_score = -1
 
 ### 2.2 岗位雷达 `GET /newspaper/radar/roles`
 
@@ -93,6 +115,8 @@ interface RoleRadarItem {
   
   total_count: number;
   usable_count: number;
+  candidate_count: number;
+  rejected_count: number;
   
   xhs_count: number;
   nowcoder_count: number;
@@ -120,7 +144,8 @@ interface RoleRadarResponse {
 
 **归一化规则：**
 - 使用 feed_items.role_category 字段，值为 role_categories.json 的 role_key
-- role_category 为 null 或不在已知列表中的归入 "general"
+- role_category 为 null、空字符串、字面量 `"null"`、或不在已知列表中的，全部归入 "general"
+- 前端不允许出现 "null" 岗位卡片
 - 不对 role 原字符串做 group by
 
 ### 2.3 趋势雷达 `GET /newspaper/radar/trends`
@@ -194,7 +219,13 @@ function normalizeQuarter(input: string): string | null {
 }
 ```
 
-**quarter 为空的条目：** 不纳入任何季度过滤结果。用户选"全部"时才显示。
+**quarter 口径（修订）：**
+- DB 现状：139 条 quarter=null，2 条 "2026Q2"，部分字面量 `"null"`，部分未来季度如 "2026Q3"
+- 字面量 `"null"` 视同 null
+- **Radar 默认筛选为"全部"**，不默认 current quarter（否则页面几乎空）
+- 只有用户主动选择 current/previous/具体季度时才过滤
+- quarter 为 null 的条目：选"全部"时显示，选具体季度时排除
+- 未来季度（> current）：不计入趋势统计，可在"全部"中显示但标记为 "待确认"
 
 ### 2.5 后端代码组织
 
@@ -367,6 +398,10 @@ Newspaper 首页的 trending tags 加 `onClick`：
 | 切趋势 tab | 显示本周新增或诚实空状态 |
 | 回到搜索 tab | 筛选器正常：company + keyword + role + source_kind + quarter |
 | 首页热词标签 | 点击跳 radar + keyword 预填 |
+| 公司卡片显示 usable_count | 显示的是 usable 数而非 total_count |
+| low/candidate 不算可用 | 公司/岗位卡片的主数字是 usable_count |
+| source_kind 三色标签 | 每张卡片上的来源色标正确（红/绿/蓝） |
+| "null" 岗位不出现 | 岗位雷达不显示 "null" 卡片 |
 
 ### 5.3 红线
 
