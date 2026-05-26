@@ -4,7 +4,8 @@
   "type": "object",
   "required": [
     "skill_name", "skill_version", "summary", "confidence",
-    "evidence_used", "recommendations", "risks", "cannot_determine",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
     "intent_detected", "skills_invoked"
   ],
   "properties": {

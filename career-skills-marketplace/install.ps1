@@ -1,14 +1,32 @@
 #Requires -Version 5.1
+param(
+    [ValidateSet('claude', 'codex')]
+    [string]$Target = 'claude'
+)
+
 $ErrorActionPreference = 'Stop'
 
 $MarketplaceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$SkillsRoot = Join-Path $env:USERPROFILE '.claude\skills'
-$SharedDir = Join-Path $SkillsRoot '_career-skills-shared'
-
 $Skills = @('career-principal', 'profile-builder', 'jd-analyzer', 'resume-tailor', 'match-diagnosis', 'source-quality-auditor')
+
+switch ($Target) {
+    'claude' {
+        $SkillsRoot = Join-Path $env:USERPROFILE '.claude\skills'
+    }
+    'codex' {
+        if ($env:CODEX_HOME) {
+            $SkillsRoot = Join-Path $env:CODEX_HOME 'skills'
+        } else {
+            $SkillsRoot = Join-Path $env:USERPROFILE '.codex\skills'
+        }
+    }
+}
+
+$SharedDir = Join-Path $SkillsRoot '_career-skills-shared'
 
 Write-Host "Career Skills Marketplace Installer"
 Write-Host "===================================="
+Write-Host "Target: $SkillsRoot"
 Write-Host ""
 
 # Check for existing installations
@@ -54,15 +72,12 @@ Write-Host ""
 if ($AllOk) {
     Write-Host "Installed to: $SkillsRoot"
     Write-Host ""
-    Write-Host "  Skills:  ~/.claude/skills/career-principal/"
-    Write-Host "           ~/.claude/skills/profile-builder/"
-    Write-Host "           ~/.claude/skills/jd-analyzer/"
-    Write-Host "           ~/.claude/skills/resume-tailor/"
-    Write-Host "           ~/.claude/skills/match-diagnosis/"
-    Write-Host "           ~/.claude/skills/source-quality-auditor/"
-    Write-Host "  Shared:  ~/.claude/skills/_career-skills-shared/"
+    foreach ($skill in $Skills) {
+        Write-Host "  $(Join-Path $SkillsRoot $skill)/"
+    }
+    Write-Host "  $SharedDir/"
     Write-Host ""
-    Write-Host 'Next: Open Claude Code and say "帮我分析一个 JD"'
+    Write-Host 'Next: Open your agent environment and say "帮我分析一个 JD"'
 } else {
     Write-Host "ERROR: Some skills are missing. Installation may be incomplete."
     exit 1

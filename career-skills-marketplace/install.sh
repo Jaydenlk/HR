@@ -2,13 +2,38 @@
 set -e
 
 MARKETPLACE_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILLS_ROOT="${HOME}/.claude/skills"
-SHARED_DIR="${SKILLS_ROOT}/_career-skills-shared"
-
 SKILLS=("career-principal" "profile-builder" "jd-analyzer" "resume-tailor" "match-diagnosis" "source-quality-auditor")
+
+# Default: Claude Code
+SKILLS_ROOT="${HOME}/.claude/skills"
+
+# Parse --target flag
+if [ "$1" = "--target" ]; then
+  case "$2" in
+    claude)
+      SKILLS_ROOT="${HOME}/.claude/skills"
+      ;;
+    codex)
+      if [ -n "$CODEX_HOME" ]; then
+        SKILLS_ROOT="${CODEX_HOME}/skills"
+      else
+        SKILLS_ROOT="${HOME}/.codex/skills"
+      fi
+      ;;
+    *)
+      echo "Usage: install.sh [--target claude|codex]"
+      echo "  claude (default): install to ~/.claude/skills/"
+      echo "  codex: install to \$CODEX_HOME/skills/ or ~/.codex/skills/"
+      exit 1
+      ;;
+  esac
+fi
+
+SHARED_DIR="${SKILLS_ROOT}/_career-skills-shared"
 
 echo "Career Skills Marketplace Installer"
 echo "===================================="
+echo "Target: ${SKILLS_ROOT}"
 echo ""
 
 # Check for existing installations — never overwrite
@@ -50,15 +75,12 @@ echo ""
 if [ "$ALL_OK" = true ]; then
   echo "Installed to: ${SKILLS_ROOT}/"
   echo ""
-  echo "  Skills:  ~/.claude/skills/career-principal/"
-  echo "           ~/.claude/skills/profile-builder/"
-  echo "           ~/.claude/skills/jd-analyzer/"
-  echo "           ~/.claude/skills/resume-tailor/"
-  echo "           ~/.claude/skills/match-diagnosis/"
-  echo "           ~/.claude/skills/source-quality-auditor/"
-  echo "  Shared:  ~/.claude/skills/_career-skills-shared/"
+  for skill in "${SKILLS[@]}"; do
+    echo "  ${SKILLS_ROOT}/${skill}/"
+  done
+  echo "  ${SHARED_DIR}/"
   echo ""
-  echo "Next: Open Claude Code and say \"帮我分析一个 JD\""
+  echo "Next: Open your agent environment and say \"帮我分析一个 JD\""
 else
   echo "ERROR: Some skills are missing. Installation may be incomplete."
   exit 1
