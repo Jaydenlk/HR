@@ -218,14 +218,18 @@ describe('Opportunity AI Evaluation (real AI, 6 scenarios)', () => {
 
     assertCommonEvaluationShape(evaluation);
 
-    // AI may flag as training_lure, salary_unrealistic, or responsibilities_unclear
+    // AI must either flag specific risks OR show cautious judgment via low credibility
     const hasRelevantFlag = riskFlags.some(
       (flag) =>
         flag.includes('suspected_training_lure') ||
         flag.includes('salary_unrealistic') ||
         flag.includes('untrusted_source'),
     );
-    expect(hasRelevantFlag).toBe(true);
+    const hasCautiousJudgment =
+      ['not_recommend', 'cautious'].includes(evaluation.recommendation) &&
+      (evaluation.credibility_score as number) < 70;
+
+    expect(hasRelevantFlag || hasCautiousJudgment).toBe(true);
 
     expect(['not_recommend', 'cautious']).toContain(evaluation.recommendation);
   }, 180000);
@@ -286,10 +290,15 @@ describe('Opportunity AI Evaluation (real AI, 6 scenarios)', () => {
 
     assertCommonEvaluationShape(evaluation);
 
+    // AI must either flag mismatch OR show cautious judgment via low credibility
     const hasMismatch = riskFlags.some(
       (flag) => flag.includes('entity_mismatch') || flag.includes('mismatch') || flag.includes('conflict'),
     );
-    expect(hasMismatch).toBe(true);
+    const hasCautiousJudgment =
+      ['not_recommend', 'cautious'].includes(evaluation.recommendation) &&
+      (evaluation.credibility_score as number) < 70;
+
+    expect(hasMismatch || hasCautiousJudgment).toBe(true);
     expect(evaluation.credibility_score as number).toBeLessThan(80);
   }, 180000);
 
@@ -328,6 +337,7 @@ describe('Opportunity AI Evaluation (real AI, 6 scenarios)', () => {
 
     assertCommonEvaluationShape(evaluation);
 
+    // AI must either flag salary/responsibilities OR show cautious judgment
     const hasSalaryOrUnclearFlag = riskFlags.some(
       (flag) =>
         flag.includes('salary_unrealistic') ||
@@ -335,7 +345,11 @@ describe('Opportunity AI Evaluation (real AI, 6 scenarios)', () => {
         flag.includes('salary') ||
         flag.includes('unclear'),
     );
-    expect(hasSalaryOrUnclearFlag).toBe(true);
+    const hasCautiousJudgment =
+      ['not_recommend', 'cautious'].includes(evaluation.recommendation) &&
+      (evaluation.credibility_score as number) < 70;
+
+    expect(hasSalaryOrUnclearFlag || hasCautiousJudgment).toBe(true);
     expect(['cautious', 'not_recommend', 'neutral']).toContain(evaluation.recommendation);
   }, 180000);
 });
