@@ -1,6 +1,6 @@
 meta:
   name: 市场数据来源类型目录
-  version: "1.0"
+  version: "2.0"
   confidence: medium
   source_policy: "基于平台公开信息及行业使用经验汇编"
   last_reviewed_at: "2026-05-26"
@@ -15,7 +15,7 @@ grade_definition:
   C: "用户自述数据，仅供参考，不能直接作为事实引用"
   D: "匿名信息或传言，高度不确定，需谨慎对待"
 
-source_types:
+sources:
   - id: boss_zhipin
     name: Boss直聘
     platform_type: job_posting_platform
@@ -35,6 +35,7 @@ source_types:
       - "可通过与BOSS直接聊天获取更多未公开信息"
     confidence: medium
     source_policy: "基于平台公开信息"
+    how_skills_should_use_it: "用于提取岗位技能要求趋势和薪资区间参考，不可作为精确薪资事实引用，需注明来自Boss直聘标注区间"
 
   - id: lagou
     name: 拉勾网
@@ -50,8 +51,10 @@ source_types:
       - "精确薪资数据"
     china_specific_notes:
       - "定位互联网行业，适合技术和产品岗位研究"
+      - "近年流量相对下降，以Boss直聘为主要参考"
     confidence: medium
     source_policy: "基于平台公开信息"
+    how_skills_should_use_it: "适合提取互联网技术岗的技能要求，与Boss直聘交叉验证；薪资数据仅作区间参考"
 
   - id: liepin
     name: 猎聘
@@ -70,6 +73,7 @@ source_types:
       - "发布猎头职位的薪资区间通常更接近真实水平"
     confidence: medium
     source_policy: "基于平台公开信息"
+    how_skills_should_use_it: "适合中高端岗位薪资区间参考，用于社招市场分析；需标注数据来源为猎头平台，不等同于公司官方薪资"
 
   - id: zhilian
     name: 智联招聘
@@ -85,15 +89,17 @@ source_types:
       - "互联网高端岗位（覆盖度不如Boss直聘）"
     china_specific_notes:
       - "传统行业覆盖全面，国企和外企岗位较多"
+      - "适合分析非互联网行业的用人需求趋势"
     confidence: medium
     source_policy: "基于平台公开信息"
+    how_skills_should_use_it: "主要用于传统行业岗位分析和二三线城市市场研究，薪资数据仅供方向性参考"
 
   - id: nowcoder
     name: 牛客网
     platform_type: interview_sharing
-    default_grade: C
+    default_grade: B
     typical_freshness: "面经持续更新，时效性较好"
-    content_type: "求职者自述面试经历，含题目、流程和结果"
+    content_type: "求职者自述面试经历，含题目、流程和结果；同时含算法练习平台"
     best_for:
       - "了解具体公司和岗位的面试流程和题型"
       - "获取算法题和技术题的练习资源"
@@ -108,10 +114,11 @@ source_types:
       - "校招信息发布及时，应届生必看"
     confidence: medium
     source_policy: "基于平台公开信息"
+    how_skills_should_use_it: "提取面试流程结构和常见题型分布，面经作为定性信息使用，不作为薪资数据来源；需标注来自牛客社区用户分享"
 
   - id: xiaohongshu
     name: 小红书
-    platform_type: interview_sharing
+    platform_type: social_media_ug
     default_grade: C
     typical_freshness: "内容持续更新，时效性较好"
     content_type: "图文形式的求职经验分享，偏向叙事性内容"
@@ -123,11 +130,14 @@ source_types:
     not_suitable_for:
       - "精确数据或量化信息"
       - "需要系统性结构化信息的场景"
+      - "薪资数据作为独立事实来源（不可单独引用）"
     china_specific_notes:
       - "内容偏感性和个人化，适合获取定性感受"
       - "近年求职相关内容快速增加，覆盖度提升"
+      - "存在大量软广告和夸大内容，需批判性筛选"
     confidence: low
     source_policy: "基于平台公开信息，内容为用户生成"
+    how_skills_should_use_it: "仅用于定性感受参考，不可单独引用作为薪资或事实依据；若引用须注明来自小红书用户分享且不具代表性"
 
   - id: maimai
     name: 脉脉
@@ -152,6 +162,7 @@ source_types:
       - "部分内容已被证实为虚假信息，需批判性阅读"
     confidence: low
     source_policy: "基于平台公开信息，匿名内容真实性存疑"
+    how_skills_should_use_it: "用于了解公司文化情绪方向，不得引用作为可核实事实；使用时需明确标注为匿名社区内容，置信度低"
 
   - id: wechat_official_accounts
     name: 微信公众号
@@ -166,12 +177,13 @@ source_types:
     not_suitable_for:
       - "实时信息获取"
       - "精确数据（除非作者注明数据来源）"
-    use_case: "建立认知框架，了解行业发展趋势"
     china_specific_notes:
       - "关注头部行业公众号，内容质量差异大"
       - "需关注文章发布时间，避免引用过时信息"
+      - "评级因账号而异：专业机构账号可达B级，个人号偏C"
     confidence: medium
     source_policy: "质量取决于账号，需识别来源可靠性"
+    how_skills_should_use_it: "用于行业趋势分析背景资料；引用时需注明具体账号名和文章发布日期，不同账号质量差异显著需单独评级"
 
   - id: zhihu
     name: 知乎
@@ -186,15 +198,38 @@ source_types:
     not_suitable_for:
       - "需要精确数据的场景"
       - "最新动态（内容更新较慢）"
-    use_case: "建立认知，了解复杂问题的多维度视角"
     china_specific_notes:
       - "知乎职场内容质量参差不齐，优质回答者需长期筛选"
       - "部分内容存在夸大或营销成分"
+      - "知名认证作者内容可上调至B级"
     confidence: medium
     source_policy: "用户生成内容，质量因作者不同差异大"
+    how_skills_should_use_it: "适合补充行业认知背景，不作为数据来源；引用须注明作者认证状态，匿名或低赞回答不可引用"
+
+  - id: linkedin_china
+    name: LinkedIn中国
+    platform_type: professional_network
+    default_grade: B
+    typical_freshness: "职位实时更新，用户档案按需更新"
+    best_for:
+      - "了解外资企业和跨国公司的招聘需求"
+      - "研究高端管理和专业岗位的要求"
+      - "了解外企薪资结构和晋升体系"
+      - "建立跨行业职场人脉连接"
+    not_suitable_for:
+      - "国内纯本土公司岗位（覆盖度弱）"
+      - "校招市场信息"
+      - "精确薪资数据"
+    china_specific_notes:
+      - "在华访问受限，需配合工具使用；部分功能已被领英职场替代"
+      - "外资企业和咨询公司招聘质量较高"
+      - "国内用户活跃度低于Boss直聘，数据时效性参差不齐"
+    confidence: medium
+    source_policy: "基于平台公开信息，覆盖外资企业为主"
+    how_skills_should_use_it: "主要用于外资企业岗位分析，适合了解国际化岗位要求；薪资信息以区间参考为主，需与国内平台数据交叉验证"
 
   - id: company_official
-    name: 企业官网
+    name: 企业官网及官方招聘页面
     platform_type: official_data
     default_grade: A
     typical_freshness: "按公司更新周期，通常季度或年度"
@@ -209,11 +244,13 @@ source_types:
     china_specific_notes:
       - "上市公司年报含员工薪酬披露，可参考整体薪资水平"
       - "部分公司官网招聘页面及时性差，以招聘平台为准"
+      - "A股上市公司年报披露平均薪酬，但为全公司均值，不代表特定岗位"
     confidence: high
     source_policy: "官方来源，内容真实但可能不完整"
+    how_skills_should_use_it: "可直接引用作为公司战略、组织架构的一手来源；年报薪酬数据注明为公司整体均值而非岗位级别数据"
 
   - id: government_labor
-    name: 人力资源和社会保障部
+    name: 人力资源和社会保障部及地方政府数据
     platform_type: official_data
     default_grade: A
     typical_freshness: "按发布周期，通常年度或季度"
@@ -222,19 +259,22 @@ source_types:
       - "宏观就业市场趋势数据"
       - "各地区行业平均薪资参考（注意样本和口径）"
       - "劳动法规政策查询"
+      - "社保公积金缴纳标准和城市政策"
     not_suitable_for:
       - "互联网行业的精确薪资数据（统计样本有限）"
       - "实时就业市场动态"
     china_specific_notes:
       - "人社部薪资数据为统计均值，与互联网行业实际差距大"
       - "适合了解法定标准，不适合互联网求职薪资参考"
+      - "各省市人社厅发布的最低工资、公积金基数是权威法规依据"
     confidence: high
     source_policy: "政府官方来源，数据权威但覆盖面有限"
+    how_skills_should_use_it: "用于法规查询和宏观趋势背景；引用政府薪资数据时须标注口径（全行业均值非互联网），避免误导"
 
   - id: nowcoder_offer_reveal
     name: 牛客开奖
     platform_type: salary_reference
-    default_grade: C
+    default_grade: B
     typical_freshness: "校招季更新频繁（秋招9-11月，春招3-5月）"
     content_type: "应届生主动分享的offer细节，含薪资、城市、岗位"
     best_for:
@@ -251,11 +291,12 @@ source_types:
       - "部分信息未核实，需横向对比多个数据点"
     confidence: medium
     source_policy: "用户自述数据，存在选择性偏差"
+    how_skills_should_use_it: "用于校招薪资区间参考，需注明数据来源及校招季时间；至少引用3个以上数据点才可描述趋势，单一数据点不得作为结论"
 
   - id: offershow
     name: OfferShow
     platform_type: salary_reference
-    default_grade: C
+    default_grade: B
     typical_freshness: "持续更新，数据量增长中"
     content_type: "薪资和offer信息的匿名聚合展示"
     best_for:
@@ -271,6 +312,7 @@ source_types:
       - "适合作为参考点，需结合其他来源交叉验证"
     confidence: low
     source_policy: "用户匿名提交，无法核实准确性"
+    how_skills_should_use_it: "提供方向性薪资参考，须与牛客开奖和Boss直聘标注数据结合使用；数据量不足时不得单独作为结论依据"
 
   - id: levels_fyi
     name: levels.fyi
@@ -287,6 +329,29 @@ source_types:
       - "非科技行业数据"
     china_specific_notes:
       - "对于有意加入外企的求职者参考价值较高"
-      - "外企在华薪资与海外数据不可直接对比"
+      - "外企在华薪资与海外数据不可直接对比，需以国内数据为准"
     confidence: medium
     source_policy: "用户提交数据，覆盖外资科技公司较好，国内公司较弱"
+    how_skills_should_use_it: "仅用于外资科技公司薪资结构参考；引用时须说明数据主要来自海外用户提交，中国区数据有限，不代表国内实际水平"
+
+  - id: tianyancha_qichacha
+    name: 天眼查及企查查
+    platform_type: business_registry
+    default_grade: B
+    typical_freshness: "工商数据准实时更新，通常1-7天延迟"
+    content_type: "企业工商注册、股权结构、法律诉讼、融资记录"
+    best_for:
+      - "核实公司是否合法存续及注册资本"
+      - "了解公司股权结构和实际控制人"
+      - "查询融资历史和投资方背景"
+      - "识别法律风险：诉讼、失信、被执行记录"
+    not_suitable_for:
+      - "薪资或岗位信息（无此类数据）"
+      - "公司实际经营情况的判断（仅反映注册信息）"
+    china_specific_notes:
+      - "数据来源于国家工商总局，官方可靠性高"
+      - "融资信息有时滞，以公司官方公告为准"
+      - "可核实公司是否存在劳动仲裁或劳动纠纷记录"
+    confidence: high
+    source_policy: "基于政府工商登记数据，融资信息来源于媒体报道及平台收录"
+    how_skills_should_use_it: "用于公司背景核实和风险提示；可引用工商注册信息作为客观事实，融资金额须注明来源并标注信息截至日期"
