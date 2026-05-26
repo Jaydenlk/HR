@@ -1,0 +1,50 @@
+{
+  "description": "缺少 user_profile 时，match_assessment.score 必须为 null，禁止虚构匹配分",
+  "input": {
+    "jd_analysis": {
+      "skill_name": "jd-analyzer",
+      "confidence": "high",
+      "parsed_jd": {
+        "basic": {
+          "title": "算法工程师",
+          "company": "某AI公司",
+          "location": "北京",
+          "salary_range": "40k-70k",
+          "employment_type": "full_time"
+        },
+        "requirements": {
+          "explicit": [
+            { "text": "5年以上深度学习经验", "type": "experience", "priority": "must_have" }
+          ],
+          "implicit": []
+        },
+        "risk_signals": [],
+        "responsibilities": [
+          { "text": "负责大模型推理优化", "category": "core" }
+        ],
+        "benefits": [],
+        "company_context": { "stage": "growth", "signals": [] }
+      }
+    }
+  },
+  "assertions": [
+    {
+      "path": "match_assessment.score",
+      "operator": "eq",
+      "value": null,
+      "description": "缺少 user_profile 时，匹配分必须为 null，禁止虚构"
+    },
+    {
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须在 cannot_determine 中说明缺少什么数据"
+    },
+    {
+      "path": "confidence",
+      "operator": "not_eq",
+      "value": "high",
+      "description": "缺少 user_profile 时置信度不应为 high"
+    }
+  ]
+}

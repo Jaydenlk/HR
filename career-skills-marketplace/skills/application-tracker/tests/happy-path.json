@@ -1,0 +1,18 @@
+{
+  "description": "多条完整投递记录含日期，期望 pipeline_view 数量正确，ghost_detection 检出超期记录",
+  "input": {
+    "applications": [
+      { "company": "字节跳动", "position": "后端工程师", "applied_date": "2026-02-20", "status": "interviewing", "last_updated": "2026-03-10" },
+      { "company": "拼多多", "position": "服务端开发", "applied_date": "2026-02-10", "status": "submitted", "last_updated": "2026-02-10" },
+      { "company": "滴滴", "position": "后端工程师", "applied_date": "2026-02-15", "status": "rejected", "last_updated": "2026-03-01" }
+    ],
+    "current_date": "2026-03-15"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "pipeline_view.interview_count", "operator": "eq", "value": 1 },
+    { "path": "pipeline_view.rejected_count", "operator": "eq", "value": 1 },
+    { "path": "stats.total_applications", "operator": "eq", "value": 3 },
+    { "path": "ghost_detection", "operator": "length_gte", "value": 1 }
+  ]
+}

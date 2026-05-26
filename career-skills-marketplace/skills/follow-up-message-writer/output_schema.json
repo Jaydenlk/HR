@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "follow-up-message-writer 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "message_draft", "timing_advice", "tone_guide"
+  ],
+  "properties": {
+    "skill_name": { "const": "follow-up-message-writer" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "跟进消息生成说明（中文）" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "content"],
+        "properties": {
+          "source": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "message_draft": {
+      "type": "string",
+      "description": "生成的跟进消息正文（中文，可直接使用）"
+    },
+    "timing_advice": {
+      "type": "object",
+      "description": "发送时机建议",
+      "required": ["recommended_send_time", "is_timing_appropriate", "timing_note"],
+      "properties": {
+        "recommended_send_time": {
+          "type": "string",
+          "description": "建议发送时间（如「今天内，工作时间」）"
+        },
+        "is_timing_appropriate": {
+          "type": "boolean",
+          "description": "当前时机是否合适发送"
+        },
+        "timing_note": {
+          "type": "string",
+          "description": "时机说明（若时机不佳则给出建议）"
+        }
+      }
+    },
+    "tone_guide": {
+      "type": "object",
+      "description": "语气指南",
+      "required": ["tone", "key_tone_points", "avoid"],
+      "properties": {
+        "tone": {
+          "type": "string",
+          "enum": ["formal", "semi_formal", "casual", "grateful", "professional"],
+          "description": "整体语气"
+        },
+        "key_tone_points": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "此场景下语气的关键要点"
+        },
+        "avoid": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "应该避免的语气或表达"
+        }
+      }
+    }
+  }
+}

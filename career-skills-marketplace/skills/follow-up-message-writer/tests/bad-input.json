@@ -1,0 +1,10 @@
+{
+  "description": "缺少 followup_type、company、position，期望 confidence=insufficient，message_draft 为空",
+  "input": {
+    "contact_name": "张工"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "message_draft", "operator": "eq", "value": "" }
+  ]
+}

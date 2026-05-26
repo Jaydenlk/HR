@@ -1,0 +1,16 @@
+{
+  "description": "无人脉数据，期望 referral_paths 为空，network_gaps 有目标公司空缺",
+  "input": {
+    "target_companies": ["字节跳动", "美团"],
+    "user_profile": {
+      "years_of_experience": 2,
+      "skills": ["Python"],
+      "education": "985大学"
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["medium", "low"] },
+    { "path": "referral_paths", "operator": "length_eq", "value": 0 },
+    { "path": "network_gaps", "operator": "length_gte", "value": 1 }
+  ]
+}

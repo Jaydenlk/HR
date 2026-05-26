@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "application-strategist 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "target_company_tiers", "application_sequence", "daily_action_plan", "risk_assessment"
+  ],
+  "properties": {
+    "skill_name": { "const": "application-strategist" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "求职策略概述（中文）" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "content"],
+        "properties": {
+          "source": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "target_company_tiers": {
+      "type": "array",
+      "description": "目标公司分层列表",
+      "items": {
+        "type": "object",
+        "required": ["tier", "description", "rationale", "example_types"],
+        "properties": {
+          "tier": {
+            "type": "string",
+            "enum": ["stretch", "target", "safety"]
+          },
+          "description": { "type": "string", "description": "该层公司特征描述" },
+          "rationale": { "type": "string", "description": "为何划入此层的理由" },
+          "example_types": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "公司类型/规模/行业描述（非具体公司名，除非基于真实数据）"
+          },
+          "priority": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "application_sequence": {
+      "type": "array",
+      "description": "建议投递顺序和节奏",
+      "items": {
+        "type": "object",
+        "required": ["week", "focus", "target_count", "channels"],
+        "properties": {
+          "week": { "type": "string", "description": "时间段（如「第1-2周」）" },
+          "focus": { "type": "string", "description": "该阶段的重心" },
+          "target_count": { "type": "integer", "minimum": 1, "description": "计划投递数量" },
+          "channels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "建议使用的渠道（如内推、BOSS直聘、猎聘）"
+          }
+        }
+      }
+    },
+    "daily_action_plan": {
+      "type": "array",
+      "description": "每日具体行动任务",
+      "items": {
+        "type": "object",
+        "required": ["action", "time_estimate", "priority"],
+        "properties": {
+          "action": { "type": "string" },
+          "time_estimate": { "type": "string", "description": "预计耗时（如「30分钟」）" },
+          "priority": { "type": "string", "enum": ["high", "medium", "low"] }
+        }
+      }
+    },
+    "risk_assessment": {
+      "type": "object",
+      "description": "求职风险评估",
+      "required": ["main_risks", "mitigation"],
+      "properties": {
+        "main_risks": { "type": "array", "items": { "type": "string" } },
+        "mitigation": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

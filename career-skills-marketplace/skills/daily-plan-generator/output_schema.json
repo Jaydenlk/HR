@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "daily-plan-generator 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "daily_tasks", "today_focus", "timeline_context"
+  ],
+  "properties": {
+    "skill_name": { "const": "daily-plan-generator" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string", "description": "今日求职重点概述（中文）" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "content"],
+        "properties": {
+          "source": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "daily_tasks": {
+      "type": "array",
+      "description": "今日具体任务清单（最多6条）",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["task", "priority", "time_estimate", "category"],
+        "properties": {
+          "task": { "type": "string", "description": "具体任务描述" },
+          "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+          "time_estimate": { "type": "string", "description": "预计时间（如「30分钟」「2小时」）" },
+          "category": {
+            "type": "string",
+            "enum": ["interview_prep", "application", "follow_up", "resume", "networking", "learning", "admin"],
+            "description": "任务类型"
+          },
+          "context": { "type": "string", "description": "任务背景说明（可选）" }
+        }
+      }
+    },
+    "today_focus": {
+      "type": "string",
+      "description": "今日核心焦点（一句话）",
+      "enum": [
+        "面试准备",
+        "扩大投递量",
+        "跟进现有投递",
+        "offer决策",
+        "简历优化",
+        "均衡推进"
+      ]
+    },
+    "timeline_context": {
+      "type": "object",
+      "description": "时间窗口背景信息",
+      "required": ["market_phase", "urgency_level"],
+      "properties": {
+        "market_phase": {
+          "type": "string",
+          "description": "当前招聘市场阶段（如「金三银四旺季」「秋招高峰」）"
+        },
+        "urgency_level": {
+          "type": "string",
+          "enum": ["critical", "high", "normal", "low"],
+          "description": "整体求职紧迫程度"
+        },
+        "days_until_key_event": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "null" }
+          ],
+          "description": "距下一关键事件天数（如面试/deadline），无则 null"
+        }
+      }
+    }
+  }
+}

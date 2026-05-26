@@ -1,0 +1,16 @@
+{
+  "description": "投递记录缺少日期，期望 ghost_detection 为空，cannot_determine 提及幽灵检测不可用",
+  "input": {
+    "applications": [
+      { "company": "某互联网公司", "position": "产品经理", "status": "submitted" },
+      { "company": "某电商平台", "position": "运营", "status": "in_review" }
+    ],
+    "current_date": "2026-03-15"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "medium"] },
+    { "path": "ghost_detection", "operator": "length_eq", "value": 0 },
+    { "path": "stats.avg_response_days", "operator": "eq", "value": null },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

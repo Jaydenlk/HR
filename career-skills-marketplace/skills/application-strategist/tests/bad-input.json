@@ -1,0 +1,10 @@
+{
+  "description": "无 user_profile，期望 confidence=insufficient，所有策略字段为空",
+  "input": {},
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "target_company_tiers", "operator": "length_eq", "value": 0 },
+    { "path": "application_sequence", "operator": "length_eq", "value": 0 },
+    { "path": "daily_action_plan", "operator": "length_eq", "value": 0 }
+  ]
+}

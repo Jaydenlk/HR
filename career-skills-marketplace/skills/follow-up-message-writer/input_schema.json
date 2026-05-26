@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "follow-up-message-writer/input",
+  "title": "follow-up-message-writer 输入",
+  "type": "object",
+  "required": ["followup_type", "company", "position"],
+  "properties": {
+    "followup_type": {
+      "type": "string",
+      "enum": ["thank_you", "status_inquiry", "rejection_reply", "offer_followup", "acceptance"],
+      "description": "跟进类型：thank_you=感谢信，status_inquiry=进度询问，rejection_reply=拒信回复，offer_followup=offer催促，acceptance=录用确认"
+    },
+    "company": {
+      "type": "string",
+      "description": "公司名称"
+    },
+    "position": {
+      "type": "string",
+      "description": "职位名称"
+    },
+    "interview_details": {
+      "type": "object",
+      "description": "面试细节（thank_you 类型使用）",
+      "properties": {
+        "interviewer_name": { "type": "string", "description": "面试官姓名或称谓" },
+        "interview_round": { "type": "string", "description": "面试轮次（如「一面」「技术面」）" },
+        "key_topics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "面试中讨论过的关键话题（用于个性化感谢信）"
+        },
+        "interview_date": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": false
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "收件人姓名或称谓（如「张工」「HR小李」）"
+    },
+    "days_since_event": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "距面试/投递/拒信的天数"
+    },
+    "user_profile": {
+      "type": "object",
+      "description": "profile-builder 输出的用户画像",
+      "additionalProperties": true
+    },
+    "custom_points": {
+      "type": "array",
+      "description": "用户希望在消息中特别提及的内容",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

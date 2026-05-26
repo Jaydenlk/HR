@@ -1,0 +1,28 @@
+{
+  "description": "今日有面试+完整漏斗，期望 today_focus=面试准备，面试相关任务为 high 优先级",
+  "input": {
+    "current_date": "2026-03-15",
+    "user_profile": {
+      "skills": ["Java", "Spring Boot"],
+      "employment_status": "unemployed"
+    },
+    "today_interviews": [
+      { "company": "字节跳动", "position": "后端工程师", "time": "14:00", "round": "二面", "format": "online" }
+    ],
+    "pipeline_state": {
+      "pipeline_view": {
+        "submitted_count": 4,
+        "interview_count": 1,
+        "offer_count": 0,
+        "rejected_count": 2
+      },
+      "stale_alerts": []
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "today_focus", "operator": "eq", "value": "面试准备" },
+    { "path": "daily_tasks", "operator": "length_gte", "value": 2 },
+    { "path": "daily_tasks", "operator": "length_lte", "value": 8 }
+  ]
+}

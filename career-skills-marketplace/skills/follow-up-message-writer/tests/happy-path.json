@@ -1,0 +1,20 @@
+{
+  "description": "完整感谢信输入（含面试细节），期望生成个性化消息，timing=合适，confidence=high",
+  "input": {
+    "followup_type": "thank_you",
+    "company": "字节跳动",
+    "position": "后端工程师",
+    "contact_name": "张工",
+    "days_since_event": 1,
+    "interview_details": {
+      "interview_round": "二面",
+      "key_topics": ["分布式系统设计", "JVM调优"]
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "message_draft", "operator": "not_empty" },
+    { "path": "timing_advice.is_timing_appropriate", "operator": "eq", "value": true },
+    { "path": "tone_guide.avoid", "operator": "length_gte", "value": 1 }
+  ]
+}

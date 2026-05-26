@@ -1,0 +1,14 @@
+{
+  "description": "感谢信但 days_since_event=7，期望 timing_advice.is_timing_appropriate=false，消息策略调整",
+  "input": {
+    "followup_type": "thank_you",
+    "company": "美团",
+    "position": "产品经理",
+    "days_since_event": 7
+  },
+  "assertions": [
+    { "path": "timing_advice.is_timing_appropriate", "operator": "eq", "value": false },
+    { "path": "message_draft", "operator": "not_empty" },
+    { "path": "timing_advice.timing_note", "operator": "not_empty" }
+  ]
+}

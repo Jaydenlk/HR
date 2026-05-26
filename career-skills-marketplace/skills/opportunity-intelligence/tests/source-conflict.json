@@ -1,0 +1,36 @@
+{
+  "description": "source_quality 有 red 信号，期望所有 red_flags 进入 risk_flags，recommendation=skip",
+  "input": {
+    "jd_analysis": {
+      "skill_name": "jd-analyzer",
+      "confidence": "medium",
+      "parsed_jd": {
+        "basic": {
+          "title": "海外销售专员",
+          "company": "某国际贸易公司",
+          "location": "广州",
+          "salary_range": "30000-80000元/月",
+          "employment_type": "full_time"
+        },
+        "requirements": { "explicit": [], "implicit": [] },
+        "risk_signals": [
+          { "signal": "入职需缴纳培训费", "real_meaning": "非正规招聘特征", "severity": "red", "evidence": "JD末尾提及保证金" }
+        ],
+        "responsibilities": [],
+        "benefits": [],
+        "company_context": { "stage": "unknown", "signals": [] }
+      }
+    },
+    "source_quality": {
+      "overall_quality": "red",
+      "red_flags": [
+        { "flag": "要求缴纳押金", "severity": "red", "detail": "正规招聘不向应聘者收费" }
+      ]
+    }
+  },
+  "assertions": [
+    { "path": "recommendation", "operator": "eq", "value": "skip" },
+    { "path": "risk_flags", "operator": "length_gte", "value": 1 },
+    { "path": "risk_flags[0].severity", "operator": "eq", "value": "red" }
+  ]
+}

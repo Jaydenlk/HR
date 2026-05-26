@@ -1,0 +1,15 @@
+{
+  "description": "同一公司两条不同状态记录，期望分别计入统计，不合并",
+  "input": {
+    "applications": [
+      { "company": "某大厂", "position": "后端工程师（A部门）", "applied_date": "2026-02-01", "status": "rejected", "last_updated": "2026-02-20" },
+      { "company": "某大厂", "position": "后端工程师（B部门）", "applied_date": "2026-02-15", "status": "interviewing", "last_updated": "2026-03-10" }
+    ],
+    "current_date": "2026-03-15"
+  },
+  "assertions": [
+    { "path": "stats.total_applications", "operator": "eq", "value": 2 },
+    { "path": "pipeline_view.interview_count", "operator": "eq", "value": 1 },
+    { "path": "pipeline_view.rejected_count", "operator": "eq", "value": 1 }
+  ]
+}

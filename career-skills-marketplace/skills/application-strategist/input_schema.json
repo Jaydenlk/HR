@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "application-strategist/input",
+  "title": "application-strategist 输入",
+  "type": "object",
+  "required": ["user_profile"],
+  "properties": {
+    "user_profile": {
+      "type": "object",
+      "description": "profile-builder 输出的用户画像",
+      "properties": {
+        "years_of_experience": { "type": "number", "minimum": 0 },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "education": { "type": "string" },
+        "target_industries": { "type": "array", "items": { "type": "string" } },
+        "target_locations": { "type": "array", "items": { "type": "string" } },
+        "target_salary_min": { "type": "number" },
+        "target_salary_max": { "type": "number" },
+        "employment_status": {
+          "type": "string",
+          "enum": ["employed", "unemployed", "student"],
+          "description": "在职/离职/在校"
+        }
+      },
+      "additionalProperties": true
+    },
+    "application_timeline": {
+      "type": "object",
+      "description": "求职时间约束",
+      "properties": {
+        "current_date": { "type": "string", "format": "date" },
+        "target_start_date": { "type": "string", "format": "date" },
+        "urgency": {
+          "type": "string",
+          "enum": ["urgent", "normal", "exploratory"],
+          "description": "urgent=1个月内必须到岗，normal=2-3个月，exploratory=随时"
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_quality_report": {
+      "type": "object",
+      "description": "source-quality-auditor 的渠道质量报告",
+      "additionalProperties": true
+    },
+    "current_applications": {
+      "type": "array",
+      "description": "当前已投递记录（避免重复建议）",
+      "items": {
+        "type": "object",
+        "properties": {
+          "company": { "type": "string" },
+          "position": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "market_context": {
+      "type": "object",
+      "description": "招聘市场背景补充信息",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

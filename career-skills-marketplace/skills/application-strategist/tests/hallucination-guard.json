@@ -1,0 +1,25 @@
+{
+  "description": "画像不足时，target_company_tiers 中 example_types 不应出现具体公司名（如「阿里巴巴」「腾讯」），只应描述公司类型",
+  "input": {
+    "user_profile": {
+      "years_of_experience": 1,
+      "skills": ["Excel", "PPT"],
+      "education": "本科",
+      "employment_status": "unemployed"
+    }
+  },
+  "assertions": [
+    {
+      "path": "confidence",
+      "operator": "not_eq",
+      "value": "high",
+      "description": "画像极度不足时不应给出 high 置信度"
+    },
+    {
+      "path": "target_company_tiers",
+      "operator": "length_eq",
+      "value": 0,
+      "description": "技能不明确时不应输出任何公司分层（防止虚构）"
+    }
+  ]
+}

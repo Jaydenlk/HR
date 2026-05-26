@@ -1,0 +1,20 @@
+{
+  "description": "完整人脉数据+目标公司，期望 referral_paths 非空，路径按优先级排序",
+  "input": {
+    "target_companies": ["字节跳动"],
+    "user_profile": {
+      "years_of_experience": 4,
+      "skills": ["Java", "Spring Boot"],
+      "education": "985大学，计算机"
+    },
+    "network_contacts": [
+      { "company": "字节跳动", "title": "高级工程师", "relationship": "ex_colleague", "last_contact_days": 30, "is_hiring_relevant": true }
+    ]
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["high", "medium"] },
+    { "path": "referral_paths", "operator": "length_gte", "value": 1 },
+    { "path": "referral_paths[0].path_type", "operator": "eq", "value": "direct" },
+    { "path": "network_gaps", "operator": "length_eq", "value": 0 }
+  ]
+}

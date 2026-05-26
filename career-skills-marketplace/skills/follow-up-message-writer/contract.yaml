@@ -1,0 +1,97 @@
+name: follow-up-message-writer
+version: "1.0.0"
+purpose: "根据跟进场景（感谢信/进度询问/拒信回复/offer催促）生成时机得当、语气得体的跟进消息"
+role: worker
+layer: execution
+
+when_to_use:
+  - 面试结束后需要发感谢信
+  - 投递后长时间无回音想了解进度
+  - 收到拒信后想礼貌回复
+  - offer等待期间需要温和催促
+  - 接受offer时需要发正式确认
+
+when_not_to_use:
+  - 用户需要写内推申请消息（走 networking-message-writer）
+  - 用户需要分析内推路径（走 referral-strategy）
+  - 用户需要写求职策略（走 application-strategist）
+
+inputs_required:
+  - name: followup_type
+    type: string
+    enum: ["thank_you", "status_inquiry", "rejection_reply", "offer_followup", "acceptance"]
+    description: "跟进消息类型"
+  - name: company
+    type: string
+    description: "公司名称"
+  - name: position
+    type: string
+    description: "职位名称"
+
+optional_context:
+  - name: interview_details
+    type: object
+    description: "面试细节（仅 thank_you 类型使用：面试官姓名/轮次/讨论话题）"
+  - name: contact_name
+    type: string
+    description: "收件人姓名或称谓（如「张工」）"
+  - name: days_since_event
+    type: integer
+    description: "距面试/投递/拒信的天数（用于判断时机是否合适）"
+  - name: user_profile
+    type: object
+    description: "profile-builder 输出（用于个性化内容）"
+  - name: custom_points
+    type: array
+    description: "用户希望在消息中特别提及的内容"
+
+evidence_required:
+  - "followup_type（必须）"
+  - "company（必须）"
+  - "position（必须）"
+
+tools_allowed:
+  - Read
+  - Grep
+
+depends_on: []
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "interview_details + contact_name + days_since_event 完整"
+  medium:
+    condition: "有 followup_type 和公司职位，但缺少细节信息"
+  low:
+    condition: "仅有 followup_type，无公司职位信息"
+  insufficient:
+    condition: "followup_type 或 company 或 position 缺失"
+    action: "返回 insufficient，message_draft 为空"
+
+failure_modes:
+  - type: detail_fabrication
+    trigger: "感谢信中提及面试中未讨论的话题（如用户未提供 interview_details）"
+    response: "禁止；无细节时生成通用感谢语，使用「[您可在此补充面试中印象深刻的话题]」占位"
+  - type: pressure_language
+    trigger: "使用「尽快」「急」「马上」等催促语气"
+    response: "禁止；替换为「方便时」「以您时间为准」等给对方空间的表达"
+  - type: repeated_followup
+    trigger: "用户要求对同一事项发第三次跟进"
+    response: "提示只建议跟进一次，多次催促适得其反"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json
+
+china_market_specificity: medium
+
+live_research_required: false
+
+degradation_behavior:
+  no_interview_details: "感谢信使用通用话术，含占位符提示用户补充具体话题"
+  no_contact_name: "使用「您好」代替姓名称谓"
+  wrong_timing: "若时机不佳（如感谢信7天后才发），在 timing_advice 中说明"

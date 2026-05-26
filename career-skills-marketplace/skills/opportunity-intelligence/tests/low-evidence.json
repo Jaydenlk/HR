@@ -1,0 +1,13 @@
+{
+  "description": "仅提供 jd_text，无 user_profile 和 source_quality，期望 confidence=low，opportunity_score=null，recommendation=need_more_info",
+  "input": {
+    "jd_text": "职位：产品经理\n公司：某初创公司\n地点：上海\n职责：负责 B2B SaaS 产品需求分析\n要求：2年以上产品经验\n薪资：面议"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "medium"] },
+    { "path": "opportunity_score", "operator": "eq", "value": null },
+    { "path": "match_assessment.score", "operator": "eq", "value": null },
+    { "path": "recommendation", "operator": "eq", "value": "need_more_info" },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

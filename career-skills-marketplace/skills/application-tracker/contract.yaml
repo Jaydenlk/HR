@@ -1,0 +1,83 @@
+name: application-tracker
+version: "1.0.0"
+purpose: "追踪求职投递状态，生成漏斗视图和统计数据，识别过期跟进和幽灵岗"
+role: worker
+layer: execution
+
+when_to_use:
+  - 用户想了解当前投递整体进展
+  - 用户需要识别哪些投递需要跟进
+  - 用户想知道哪些岗位可能是「幽灵岗」
+  - 定期（每周）回顾求职漏斗健康度
+
+when_not_to_use:
+  - 用户没有任何投递记录
+  - 用户在问如何写简历（走 resume-tailor）
+  - 用户在问某个特定岗位是否值得投（走 opportunity-intelligence）
+
+inputs_required:
+  - name: applications
+    type: array
+    description: "投递记录列表，每条包含公司、职位、投递日期、当前状态"
+  - name: current_date
+    type: string
+    format: date
+    description: "当前日期，用于计算过期天数"
+
+optional_context:
+  - name: follow_up_threshold_days
+    type: integer
+    description: "自定义幽灵检测阈值（默认14天）"
+  - name: user_preferences
+    type: object
+    description: "用户偏好设置（如跟进频率偏好）"
+
+evidence_required:
+  - "applications（至少1条记录）"
+  - "current_date（用于计算日期差）"
+
+tools_allowed:
+  - Read
+  - Grep
+
+depends_on: []
+
+output_schema: output_schema.json
+
+confidence_policy:
+  high:
+    condition: "投递记录 >= 3条，且每条含投递日期"
+  medium:
+    condition: "1-2条记录，或部分缺少日期信息"
+  low:
+    condition: "仅有公司/职位名称，无状态或日期"
+  insufficient:
+    condition: "无任何投递记录"
+    action: "返回 insufficient，所有统计字段为 null 或空"
+
+failure_modes:
+  - type: no_applications
+    trigger: "applications 为空数组或未提供"
+    response: "返回 insufficient，提示需要至少一条投递记录"
+  - type: missing_dates
+    trigger: "大部分记录缺少投递日期"
+    response: "无法计算幽灵检测，ghost_detection 为空，confidence 降级"
+  - type: status_fabrication
+    trigger: "用户未提供某条记录的状态，系统自行推断"
+    response: "禁止；缺少状态时标记为 submitted（默认），不推测"
+
+test_cases:
+  - tests/happy-path.json
+  - tests/low-evidence.json
+  - tests/bad-input.json
+  - tests/source-conflict.json
+  - tests/hallucination-guard.json
+
+china_market_specificity: medium
+
+live_research_required: false
+
+degradation_behavior:
+  missing_dates: "无法做幽灵检测，ghost_detection 返回空，在 cannot_determine 中说明"
+  single_record: "漏斗视图仅有1条，统计意义有限，confidence=medium"
+  no_status: "所有记录状态统一标记为 submitted，不推测"

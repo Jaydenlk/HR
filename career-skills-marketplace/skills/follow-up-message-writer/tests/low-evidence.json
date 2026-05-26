@@ -1,0 +1,14 @@
+{
+  "description": "进度询问，无联系人和面试细节，期望生成通用短消息，confidence=medium",
+  "input": {
+    "followup_type": "status_inquiry",
+    "company": "某公司",
+    "position": "产品经理",
+    "days_since_event": 18
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "medium" },
+    { "path": "message_draft", "operator": "not_empty" },
+    { "path": "timing_advice.is_timing_appropriate", "operator": "eq", "value": true }
+  ]
+}

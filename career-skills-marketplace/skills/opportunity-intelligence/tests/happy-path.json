@@ -1,0 +1,55 @@
+{
+  "description": "完整三维数据输入，期望 confidence=high，opportunity_score 在 60-100 之间，recommendation 为 strong_apply 或 apply_with_caution",
+  "input": {
+    "jd_analysis": {
+      "skill_name": "jd-analyzer",
+      "confidence": "high",
+      "parsed_jd": {
+        "basic": {
+          "title": "后端开发工程师",
+          "company": "字节跳动",
+          "location": "北京",
+          "salary_range": "30k-50k × 16 薪",
+          "employment_type": "full_time"
+        },
+        "requirements": {
+          "explicit": [
+            { "text": "3年以上Java后端经验", "type": "experience", "priority": "must_have" }
+          ],
+          "implicit": []
+        },
+        "risk_signals": [],
+        "responsibilities": [
+          { "text": "负责推荐系统后端开发", "category": "core" }
+        ],
+        "benefits": [
+          { "text": "五险一金", "verified": true }
+        ],
+        "company_context": { "stage": "mature", "signals": ["头部互联网，已上市"] }
+      }
+    },
+    "user_profile": {
+      "years_of_experience": 4,
+      "skills": ["Java", "Spring Boot", "MySQL", "Redis", "分布式系统"],
+      "education": "本科，计算机科学",
+      "target_location": "北京"
+    },
+    "match_diagnosis": {
+      "overall_match_score": 82,
+      "strengths": ["Java经验超出要求", "技术栈高度匹配"],
+      "gaps": ["推荐系统专项经验较弱"]
+    },
+    "source_quality": {
+      "overall_quality": "verified",
+      "red_flags": []
+    }
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "high" },
+    { "path": "opportunity_score", "operator": "gte", "value": 60 },
+    { "path": "opportunity_score", "operator": "lte", "value": 100 },
+    { "path": "recommendation", "operator": "in", "value": ["strong_apply", "apply_with_caution"] },
+    { "path": "risk_flags", "operator": "is_array" },
+    { "path": "match_assessment.score", "operator": "not_null" }
+  ]
+}

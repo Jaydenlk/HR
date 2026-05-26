@@ -1,0 +1,27 @@
+{
+  "description": "无任何面试记录时，daily_tasks 中不应有 category=interview_prep 且 priority=high 的任务",
+  "input": {
+    "current_date": "2026-03-15",
+    "user_profile": {
+      "skills": ["Java"],
+      "employment_status": "unemployed"
+    },
+    "pipeline_state": {
+      "pipeline_view": {
+        "submitted_count": 3,
+        "interview_count": 0,
+        "offer_count": 0,
+        "rejected_count": 1
+      },
+      "stale_alerts": []
+    }
+  },
+  "assertions": [
+    {
+      "path": "today_focus",
+      "operator": "not_eq",
+      "value": "面试准备",
+      "description": "无面试记录时焦点不应为面试准备"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "description": "目标行业超过3个，期望输出聚焦建议，risks 中包含分散风险提示",
+  "input": {
+    "user_profile": {
+      "years_of_experience": 3,
+      "skills": ["Python", "数据分析", "SQL"],
+      "education": "本科，统计学",
+      "target_industries": ["互联网", "金融科技", "教育", "制造业", "医疗健康"],
+      "target_locations": ["北京", "上海"],
+      "employment_status": "unemployed"
+    },
+    "application_timeline": {
+      "current_date": "2026-03-15",
+      "urgency": "urgent"
+    }
+  },
+  "assertions": [
+    { "path": "risks", "operator": "length_gte", "value": 1 },
+    { "path": "recommendations", "operator": "length_gte", "value": 1 },
+    { "path": "follow_up_questions", "operator": "length_gte", "value": 1 }
+  ]
+}

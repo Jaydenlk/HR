@@ -1,0 +1,22 @@
+{
+  "description": "漏斗无interview记录但today_interviews有面试，期望仍以面试准备为焦点，且在summary中提及状态不一致",
+  "input": {
+    "current_date": "2026-03-15",
+    "pipeline_state": {
+      "pipeline_view": {
+        "submitted_count": 5,
+        "interview_count": 0,
+        "offer_count": 0,
+        "rejected_count": 1
+      },
+      "stale_alerts": []
+    },
+    "today_interviews": [
+      { "company": "美团", "position": "后端工程师", "time": "10:00", "round": "一面", "format": "online" }
+    ]
+  },
+  "assertions": [
+    { "path": "today_focus", "operator": "eq", "value": "面试准备" },
+    { "path": "confidence", "operator": "in", "value": ["medium", "low"] }
+  ]
+}

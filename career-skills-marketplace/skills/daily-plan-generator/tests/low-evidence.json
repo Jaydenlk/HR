@@ -1,0 +1,12 @@
+{
+  "description": "仅有当前日期，无画像无漏斗，期望 confidence=low，daily_tasks 数量少于5条",
+  "input": {
+    "current_date": "2026-03-15"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "low" },
+    { "path": "daily_tasks", "operator": "length_gte", "value": 1 },
+    { "path": "daily_tasks", "operator": "length_lte", "value": 5 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}
