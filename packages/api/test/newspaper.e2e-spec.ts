@@ -26,7 +26,7 @@ async function seedFeedItem(
 ): Promise<FeedItem> {
   const item = repo.create({
     title: '测试面经',
-    content: '字节跳动后端一面，算法题+系统设计，顺利通过',
+    content: '字节跳动后端一面，算法题+系统设计，顺利通过。第一道是二叉树层序遍历变种，要求输出每层最大值。第二道是LRU缓存设计，要求用双向链表+哈希表实现。面试官很友好，先问了项目经验，然后做题，最后反问环节聊了团队技术栈，感觉整体难度中等偏上。建议提前准备高频算法题和系统设计基础概念。整体面试流程大约一小时，先是自我介绍，然后两道编程题，再是项目深挖和系统设计开放题讨论，最后HR简单聊了下薪资预期和入职时间，整体体验比较正规。',
     company: '字节跳动',
     role: '后端开发',
     source: 'xhs',
@@ -908,6 +908,120 @@ describe('Newspaper (e2e)', () => {
       expect(res.status).toBe(200);
       const urls = res.body.items?.map((i: { source_url: string }) => i.source_url) || [];
       expect(urls).toContain('https://example.com/2023-radar');
+    });
+  });
+
+  /* ================================================================ */
+  /*  Quarter derivation                                              */
+  /* ================================================================ */
+
+  describe('Quarter derivation', () => {
+    it('derives quarter from published_at, ignoring AI quarter', async () => {
+      // Seed item where AI would say 2026Q2 but published_at is 2023-09-15 (2023Q3)
+      await seedFeedItem(feedRepo, {
+        title: '2023Q3 quarter derivation test',
+        published_at: new Date('2023-09-15'),
+        date_confidence: 'high',
+        quarter: '2023Q3', // deriveQuarterFromPublishedAt would produce this
+        source_kind: 'nowcoder',
+        source_url: 'https://example.com/quarter-derive-001',
+        quality_score: 7,
+        confidence: 'high',
+        content: 'a'.repeat(300),
+      });
+      // Verify via radar that the item has the correct quarter (2023Q3, not AI's 2026Q2)
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar?quarter=2023Q3')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const urls = res.body.items.map((i: { source_url: string }) => i.source_url);
+      expect(urls).toContain('https://example.com/quarter-derive-001');
+    });
+
+    it('sets quarter=null when date_confidence is low', async () => {
+      await seedFeedItem(feedRepo, {
+        title: 'Low confidence quarter test',
+        published_at: new Date('2026-05-15'),
+        date_confidence: 'low',
+        quarter: null, // deriveQuarterFromPublishedAt returns null for low confidence
+        source_kind: 'xhs',
+        source_url: 'https://example.com/quarter-low-conf-001',
+        quality_score: 6,
+        confidence: 'medium',
+      });
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar?quarter=2026Q2')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const urls = res.body.items.map((i: { source_url: string }) => i.source_url);
+      expect(urls).not.toContain('https://example.com/quarter-low-conf-001');
+    });
+
+    it('sets quarter=null when published_at is null', async () => {
+      await seedFeedItem(feedRepo, {
+        title: 'Null published_at quarter test',
+        published_at: null,
+        date_confidence: 'unknown',
+        quarter: null, // deriveQuarterFromPublishedAt returns null for null published_at
+        source_kind: 'xhs',
+        source_url: 'https://example.com/quarter-null-pub-001',
+        quality_score: 6,
+        confidence: 'medium',
+      });
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar?quarter=2026Q2')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const urls = res.body.items.map((i: { source_url: string }) => i.source_url);
+      expect(urls).not.toContain('https://example.com/quarter-null-pub-001');
+    });
+  });
+
+  /* ================================================================ */
+  /*  Homepage usable filter                                          */
+  /* ================================================================ */
+
+  describe('Homepage usable filter', () => {
+    it('excludes current quarter items with content < 200 chars', async () => {
+      await seedFeedItem(feedRepo, {
+        title: 'Short content usable test',
+        published_at: new Date('2026-05-20'),
+        date_confidence: 'high',
+        source_kind: 'xhs',
+        source_url: 'https://example.com/short-content-001',
+        quality_score: 8,
+        confidence: 'high',
+        content: 'Too short to be usable', // < 200 chars
+      });
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const allItems = [
+        ...(res.body.headline_observations?.flatMap((o: { evidence_items?: Array<{ source_url: string }> }) => o.evidence_items) || []),
+        ...(res.body.user_voice || []),
+        ...(res.body.tech_radar || []),
+      ];
+      for (const item of allItems) {
+        expect(item.source_url).not.toBe('https://example.com/short-content-001');
+      }
+    });
+  });
+
+  /* ================================================================ */
+  /*  Trend hot_posts fields                                          */
+  /* ================================================================ */
+
+  describe('Trend hot_posts fields', () => {
+    it('returns published_at and date_confidence in hot_posts', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/trends')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      for (const post of res.body.hot_posts) {
+        expect(post).toHaveProperty('published_at');
+        expect(post).toHaveProperty('date_confidence');
+      }
     });
   });
 

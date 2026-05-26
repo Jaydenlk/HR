@@ -8,6 +8,7 @@ import {
   buildDominantSignal,
   getCurrentQuarter,
   isCurrentQuarter,
+  deriveQuarterFromPublishedAt,
 } from './radar-helpers';
 
 describe('normalizeQualityScore', () => {
@@ -213,5 +214,38 @@ describe('buildDominantSignal', () => {
       hasRecentItems: false, usableCount: 0,
     });
     expect(result).toContain('暂无高质量数据');
+  });
+});
+
+describe('deriveQuarterFromPublishedAt', () => {
+  it('derives 2026Q2 from May 2026 with high confidence', () => {
+    expect(deriveQuarterFromPublishedAt(new Date('2026-05-15'), 'high')).toBe('2026Q2');
+  });
+  it('derives 2021Q1 from March 2021 with high confidence', () => {
+    expect(deriveQuarterFromPublishedAt(new Date('2021-03-15'), 'high')).toBe('2021Q1');
+  });
+  it('derives 2026Q1 from January 2026 with medium confidence', () => {
+    expect(deriveQuarterFromPublishedAt(new Date('2026-01-10'), 'medium')).toBe('2026Q1');
+  });
+  it('derives 2025Q4 from December 2025 with high confidence', () => {
+    expect(deriveQuarterFromPublishedAt(new Date('2025-12-20'), 'high')).toBe('2025Q4');
+  });
+  it('derives 2026Q3 from July 2026 with high confidence', () => {
+    expect(deriveQuarterFromPublishedAt(new Date('2026-07-01'), 'high')).toBe('2026Q3');
+  });
+  it('returns null for null published_at', () => {
+    expect(deriveQuarterFromPublishedAt(null, 'high')).toBeNull();
+  });
+  it('returns null for low date_confidence', () => {
+    expect(deriveQuarterFromPublishedAt(new Date('2026-05-15'), 'low')).toBeNull();
+  });
+  it('returns null for unknown date_confidence', () => {
+    expect(deriveQuarterFromPublishedAt(new Date('2026-05-15'), 'unknown')).toBeNull();
+  });
+  it('accepts ISO string input', () => {
+    expect(deriveQuarterFromPublishedAt('2026-05-15T00:00:00.000Z', 'high')).toBe('2026Q2');
+  });
+  it('returns null for invalid date string', () => {
+    expect(deriveQuarterFromPublishedAt('not-a-date', 'high')).toBeNull();
   });
 });
