@@ -1,0 +1,53 @@
+{
+  "name": "china-market-case",
+  "description": "Chinese-market-specific terms (秋招, 五险一金, OD) are correctly interpreted using the knowledge graph.",
+  "input": {
+    "user_message": "我在秋招投了一家公司，HR 说这个岗位是 OD 的，五险一金按最低标准缴，还说有期权但具体条款不透露，我该怎么评估这个 offer？",
+    "context": {
+      "resume_text": "虚构用户F，计算机专业应届生，有一段暑期实习经历。",
+      "jd_text": "软件工程师（外包岗位），某互联网大厂，实际工作地点：北京，合同签订：某外包公司。",
+      "additional_context": {}
+    }
+  },
+  "expected_skills_invoked": [
+    "career-principal"
+  ],
+  "expected_output_properties": {
+    "confidence_level": "high",
+    "has_source_citations": true,
+    "refuses_fabrication": false,
+    "knowledge_graph_used": true
+  },
+  "assertions": [
+    {
+      "type": "contains",
+      "path": "output.term_explanations",
+      "expected": "OD"
+    },
+    {
+      "type": "contains",
+      "path": "output.term_explanations.OD",
+      "expected": "外包派遣"
+    },
+    {
+      "type": "contains",
+      "path": "output.term_explanations",
+      "expected": "五险一金"
+    },
+    {
+      "type": "contains",
+      "path": "output.risk_flags",
+      "expected": "五险一金基数"
+    },
+    {
+      "type": "contains",
+      "path": "output.risk_flags",
+      "expected": "期权条款"
+    },
+    {
+      "type": "confidence_above",
+      "path": "output.term_interpretations.confidence_score",
+      "expected": 0.75
+    }
+  ]
+}

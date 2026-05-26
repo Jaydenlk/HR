@@ -1,0 +1,62 @@
+{
+  "name": "low-quality-source-filtered",
+  "description": "A D-grade source (anonymous, undated, no corroboration) is filtered out and not used in output reasoning.",
+  "input": {
+    "user_message": "我看到一个帖子说某公司薪资内部有歧视，新人同岗位比老员工高 30%，帮我判断这个信息可不可信。",
+    "context": {
+      "resume_text": "",
+      "jd_text": "",
+      "additional_context": {
+        "source_a": {
+          "content": "据内部人士透露，该公司存在严重薪资倒挂，新人 base 比老员工高 20-30%，老员工怨声载道。",
+          "source_type": "anonymous_forum",
+          "source_label": "某匿名论坛无名帖",
+          "date": "unknown",
+          "corroboration": "none"
+        }
+      }
+    }
+  },
+  "expected_skills_invoked": [
+    "source-quality-auditor",
+    "career-principal"
+  ],
+  "expected_output_properties": {
+    "confidence_level": "low",
+    "has_source_citations": false,
+    "refuses_fabrication": false,
+    "source_filtered": true
+  },
+  "assertions": [
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "source-quality-auditor"
+    },
+    {
+      "type": "equals",
+      "path": "source_quality_auditor.grade",
+      "expected": "D"
+    },
+    {
+      "type": "equals",
+      "path": "source_quality_auditor.filtered",
+      "expected": true
+    },
+    {
+      "type": "contains",
+      "path": "output.explanation",
+      "expected": "来源质量不足"
+    },
+    {
+      "type": "not_present",
+      "path": "output.reasoning_used_source",
+      "expected": "source_a"
+    },
+    {
+      "type": "confidence_below",
+      "path": "output.confidence_score",
+      "expected": 0.30
+    }
+  ]
+}

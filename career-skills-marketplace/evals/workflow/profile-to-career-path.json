@@ -1,0 +1,52 @@
+{
+  "name": "profile-to-career-path",
+  "description": "Profile builder extracts structured profile then career-principal suggests direction without a JD.",
+  "input": {
+    "user_message": "我是运营三年，主要做过用户增长和活动策划，现在想换个方向，帮我看看我适合往哪里走。",
+    "context": {
+      "resume_text": "虚构用户B，运营经理\n工作经历：\n- 2021-2024 某电商平台，用户增长运营，负责新用户拉新活动设计，季度新增用户 12 万\n- 2020-2021 某内容平台，活动运营，策划线上活动 30+，平均参与率 18%\n技术工具：Excel、神策数据、飞书\n教育背景：某大学市场营销专业",
+      "jd_text": "",
+      "additional_context": {
+        "career_goal": "希望有更高的天花板，不想一直做执行层",
+        "constraints": "不想学编程，可以接受短期降薪"
+      }
+    }
+  },
+  "expected_skills_invoked": [
+    "profile-builder",
+    "career-principal"
+  ],
+  "expected_output_properties": {
+    "confidence_level": "medium",
+    "has_source_citations": false,
+    "refuses_fabrication": false,
+    "has_career_path_options": true
+  },
+  "assertions": [
+    {
+      "type": "skill_invoked",
+      "path": "execution_trace",
+      "expected": "profile-builder"
+    },
+    {
+      "type": "skill_not_invoked",
+      "path": "execution_trace",
+      "expected": "resume-tailor"
+    },
+    {
+      "type": "contains",
+      "path": "career_path.options",
+      "expected": "产品"
+    },
+    {
+      "type": "contains",
+      "path": "profile.transferable_skills",
+      "expected": "数据分析"
+    },
+    {
+      "type": "confidence_below",
+      "path": "career_path.confidence_score",
+      "expected": 0.80
+    }
+  ]
+}
