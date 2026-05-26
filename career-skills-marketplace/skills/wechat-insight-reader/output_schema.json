@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "wechat-insight-reader 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "insights"
+  ],
+  "properties": {
+    "skill_name": { "const": "wechat-insight-reader" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": {
+      "type": "string",
+      "description": "公众号洞察提取结果概述"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "无实时数据时为 insufficient"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "insights": {
+      "type": "array",
+      "description": "从公众号提取的洞察和方法论（无实时数据时为空数组）",
+      "items": {
+        "type": "object",
+        "required": ["title", "source_account", "key_points", "credibility_grade"],
+        "properties": {
+          "title": { "type": "string", "description": "文章标题" },
+          "source_account": { "type": "string", "description": "来源公众号名称" },
+          "date": { "type": "string", "description": "发布日期（ISO 8601）" },
+          "key_points": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "核心观点（来自原文，不推断）"
+          },
+          "methodology": {
+            "type": "string",
+            "description": "文章核心方法论框架（如 STAR/OKR/用户旅程）"
+          },
+          "credibility_grade": {
+            "type": "string",
+            "enum": ["A", "B", "C", "D"]
+          },
+          "url": {
+            "type": "string",
+            "description": "文章 URL（如可获取）"
+          }
+        }
+      }
+    }
+  }
+}

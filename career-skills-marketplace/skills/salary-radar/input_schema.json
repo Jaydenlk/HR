@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "salary-radar/input",
+  "title": "salary-radar 输入",
+  "type": "object",
+  "required": ["role"],
+  "properties": {
+    "role": {
+      "type": "string",
+      "minLength": 1,
+      "description": "岗位名称（如 后端工程师、产品经理）"
+    },
+    "company": {
+      "type": "string",
+      "description": "公司名称（指定公司时结果更精确）"
+    },
+    "city": {
+      "type": "string",
+      "description": "城市（如 北京、上海、深圳）"
+    },
+    "years_of_experience": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "工作年限"
+    },
+    "industry": {
+      "type": "string",
+      "description": "行业"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "offer-comparator/input",
+  "title": "offer-comparator 输入",
+  "type": "object",
+  "required": ["offers"],
+  "properties": {
+    "offers": {
+      "type": "array",
+      "minItems": 2,
+      "description": "待比较的 offer 列表（至少 2 个）",
+      "items": {
+        "type": "object",
+        "required": ["offer_id", "company"],
+        "properties": {
+          "offer_id": { "type": "string", "description": "用于结果对应的唯一标识" },
+          "company": { "type": "string" },
+          "role": { "type": "string" },
+          "base_monthly": { "type": "number", "description": "月基本工资（元）" },
+          "months_per_year": { "type": "number", "description": "年薪月数（如 14 表示十四薪）" },
+          "annual_bonus_months": { "type": "number", "description": "年终奖月数（如 2 表示 2 个月）" },
+          "equity_value_annual": { "type": "number", "description": "股权年价值（元，可不填）" },
+          "equity_type": {
+            "type": "string",
+            "enum": ["RSU", "option", "virtual_stock", "none", "unknown"],
+            "description": "股权类型"
+          },
+          "social_insurance_rate": { "type": "number", "description": "公积金缴存比例（如 0.12）" },
+          "probation_salary_ratio": { "type": "number", "description": "试用期工资比例（如 0.8=80%）" },
+          "weekly_hours": { "type": "number", "description": "周工作小时数（如 45）" },
+          "city": { "type": "string" },
+          "remote_policy": {
+            "type": "string",
+            "enum": ["full_remote", "hybrid", "onsite", "unknown"]
+          },
+          "company_stage": {
+            "type": "string",
+            "enum": ["startup", "growth", "mature", "public", "unknown"]
+          },
+          "notes": { "type": "string", "description": "其他备注" }
+        }
+      }
+    },
+    "weights": {
+      "type": "object",
+      "description": "用户自定义维度权重（总和应为 1.0）",
+      "properties": {
+        "compensation": { "type": "number", "minimum": 0, "maximum": 1 },
+        "growth": { "type": "number", "minimum": 0, "maximum": 1 },
+        "stability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "work_life_balance": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "user_priorities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "用户优先级说明（如「更看重稳定性」）"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "description": "禁止从训练数据推断技术题：无来源则 technical_questions 必须为空",
+  "input": {
+    "company": "阿里巴巴",
+    "role": "Java 工程师",
+    "focus": "online_test"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "technical_questions", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

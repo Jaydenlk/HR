@@ -1,0 +1,12 @@
+{
+  "description": "来源超过 6 个月：credibility_grade 降为 C，confidence=low",
+  "input": {
+    "company": "某公司",
+    "focus": "interview"
+  },
+  "simulate": "stale_sources_only",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "credibility_ceiling", "operator": "eq", "value": "B" }
+  ]
+}

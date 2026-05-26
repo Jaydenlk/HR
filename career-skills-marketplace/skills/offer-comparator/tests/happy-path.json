@@ -1,0 +1,31 @@
+{
+  "description": "两个完整 offer：输出 comparison/weighted_scores/recommendation 均非空",
+  "input": {
+    "offers": [
+      {
+        "offer_id": "offer_a",
+        "company": "字节跳动",
+        "base_monthly": 35000,
+        "months_per_year": 14,
+        "annual_bonus_months": 2,
+        "weekly_hours": 60,
+        "city": "北京"
+      },
+      {
+        "offer_id": "offer_b",
+        "company": "某银行科技部",
+        "base_monthly": 25000,
+        "months_per_year": 13,
+        "annual_bonus_months": 3,
+        "weekly_hours": 40,
+        "city": "北京"
+      }
+    ]
+  },
+  "assertions": [
+    { "path": "comparison", "operator": "length_gte", "value": 2 },
+    { "path": "weighted_scores", "operator": "length_gte", "value": 2 },
+    { "path": "recommendation.preferred_offer_id", "operator": "exists", "value": true },
+    { "path": "hourly_rate_comparison", "operator": "length_gte", "value": 2 }
+  ]
+}

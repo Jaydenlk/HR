@@ -1,0 +1,14 @@
+{
+  "description": "有实时数据：credibility_ceiling=B，confidence 最高为 medium",
+  "input": {
+    "company": "美团",
+    "role": "后端工程师",
+    "focus": "both"
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["medium", "low", "insufficient"] },
+    { "path": "credibility_ceiling", "operator": "eq", "value": "B" },
+    { "path": "mined_posts", "operator": "is_array", "value": true },
+    { "path": "technical_questions", "operator": "is_array", "value": true }
+  ]
+}

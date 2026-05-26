@@ -1,0 +1,17 @@
+{
+  "description": "无实时数据时必须降级：confidence=insufficient，数组为空，sentiment=unknown",
+  "input": {
+    "query": "量化交易工程师",
+    "city": "上海"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "trending_roles", "operator": "length_eq", "value": 0 },
+    { "path": "hot_companies", "operator": "length_eq", "value": 0 },
+    { "path": "market_sentiment", "operator": "eq", "value": "unknown" },
+    { "path": "key_signals", "operator": "length_eq", "value": 0 },
+    { "path": "data_freshness", "operator": "eq", "value": "unavailable" },
+    { "path": "next_actions", "operator": "length_gte", "value": 1 }
+  ]
+}

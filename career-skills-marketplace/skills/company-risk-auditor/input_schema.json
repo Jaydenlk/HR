@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "company-risk-auditor/input",
+  "title": "company-risk-auditor 输入",
+  "type": "object",
+  "required": ["company"],
+  "properties": {
+    "company": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目标公司名称"
+    },
+    "role": {
+      "type": "string",
+      "description": "目标岗位（不同岗位风险可能不同）"
+    },
+    "focus_areas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["layoff_risk", "culture", "financial_health", "legal_issues", "work_hours"]
+      },
+      "description": "重点关注的风险维度"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "industry-trend-analyst/input",
+  "title": "industry-trend-analyst 输入",
+  "type": "object",
+  "required": ["industry"],
+  "properties": {
+    "industry": {
+      "type": "string",
+      "minLength": 2,
+      "description": "行业或赛道名称（如 新能源汽车、大模型、医疗健康）"
+    },
+    "region": {
+      "type": "string",
+      "description": "地区（如 中国、全球、长三角）"
+    },
+    "timeframe": {
+      "type": "string",
+      "enum": ["near_term", "mid_term", "long_term"],
+      "default": "mid_term",
+      "description": "分析时间维度（近期1年/中期3年/长期5年+）"
+    }
+  },
+  "additionalProperties": false
+}

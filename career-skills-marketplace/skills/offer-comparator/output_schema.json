@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "offer-comparator 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "comparison", "weighted_scores", "recommendation",
+    "hourly_rate_comparison", "missing_info"
+  ],
+  "properties": {
+    "skill_name": { "const": "offer-comparator" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": { "type": "string" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "comparison": {
+      "type": "array",
+      "description": "每个 offer 在各维度的详细比较",
+      "items": {
+        "type": "object",
+        "required": ["offer_id", "company", "dimensions"],
+        "properties": {
+          "offer_id": { "type": "string" },
+          "company": { "type": "string" },
+          "dimensions": {
+            "type": "object",
+            "properties": {
+              "annual_total_compensation": {
+                "type": "number",
+                "description": "年总包（月薪*年薪月数 + 年终奖，元）"
+              },
+              "effective_monthly": {
+                "type": "number",
+                "description": "实际月均收入（含年终奖平摊）"
+              },
+              "social_insurance_annual": {
+                "type": "number",
+                "description": "年公积金（公司部分，元）"
+              },
+              "probation_loss": {
+                "type": "number",
+                "description": "试用期损失金额（如有折扣）"
+              },
+              "stability_score": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 10,
+                "description": "稳定性评分（1-10）"
+              },
+              "growth_potential": {
+                "type": "string",
+                "description": "成长潜力描述"
+              }
+            }
+          }
+        }
+      }
+    },
+    "weighted_scores": {
+      "type": "array",
+      "description": "加权综合评分",
+      "items": {
+        "type": "object",
+        "required": ["offer_id", "company", "total_score"],
+        "properties": {
+          "offer_id": { "type": "string" },
+          "company": { "type": "string" },
+          "total_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "dimension_scores": { "type": "object" }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "required": ["preferred_offer_id", "rationale", "confidence"],
+      "properties": {
+        "preferred_offer_id": { "type": "string" },
+        "rationale": { "type": "string" },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low", "uncertain"] },
+        "caveats": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "hourly_rate_comparison": {
+      "type": "array",
+      "description": "时薪对比（考虑实际工时）",
+      "items": {
+        "type": "object",
+        "required": ["offer_id", "company"],
+        "properties": {
+          "offer_id": { "type": "string" },
+          "company": { "type": "string" },
+          "weekly_hours": { "type": "number" },
+          "hourly_rate_rmb": {
+            "oneOf": [
+              { "type": "number" },
+              { "type": "null" }
+            ],
+            "description": "时薪（元/小时），工时未知时为 null"
+          }
+        }
+      }
+    },
+    "missing_info": {
+      "type": "array",
+      "description": "影响分析质量的缺失信息",
+      "items": {
+        "type": "object",
+        "required": ["offer_id", "field", "impact"],
+        "properties": {
+          "offer_id": { "type": "string" },
+          "field": { "type": "string" },
+          "impact": {
+            "type": "string",
+            "description": "缺失该信息对分析的影响"
+          }
+        }
+      }
+    }
+  }
+}

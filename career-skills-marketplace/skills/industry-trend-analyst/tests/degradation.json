@@ -1,0 +1,15 @@
+{
+  "description": "无实时数据：所有信号数组为空，hiring_outlook=unknown，confidence=insufficient",
+  "input": {
+    "industry": "元宇宙",
+    "region": "中国"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "growth_signals", "operator": "length_eq", "value": 0 },
+    { "path": "risk_signals", "operator": "length_eq", "value": 0 },
+    { "path": "hiring_outlook", "operator": "eq", "value": "unknown" },
+    { "path": "recommended_entry_roles", "operator": "length_eq", "value": 0 }
+  ]
+}

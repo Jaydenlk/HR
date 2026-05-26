@@ -1,0 +1,11 @@
+{
+  "description": "缺少四要素之一（无 year 信息）：grade 必须为 C",
+  "input": {
+    "role": "产品经理"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "salary_range.grade", "operator": "in", "value": ["C", "D", null] },
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "description": "无实时数据：insights 为空，confidence=insufficient",
+  "input": { "topic": "互联网行业裁员趋势" },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "insights", "operator": "length_eq", "value": 0 },
+    { "path": "next_actions", "operator": "length_gte", "value": 1 }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "salary-radar 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "salary_range", "data_sources", "comparison"
+  ],
+  "properties": {
+    "skill_name": { "const": "salary-radar" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": {
+      "type": "string",
+      "description": "薪资数据聚合结果概述，必须说明数据来源和时效"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"]
+    },
+    "evidence_used": { "type": "array", "items": { "type": "object" } },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "salary_range": {
+      "description": "薪资区间（缺少 year+city+role+source 四要素时 grade 必须为 C）",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["p25", "p50", "p75", "unit", "grade"],
+          "properties": {
+            "p25": { "type": "number", "description": "25 分位薪资（元/月）" },
+            "p50": { "type": "number", "description": "50 分位薪资（中位数）" },
+            "p75": { "type": "number", "description": "75 分位薪资" },
+            "unit": { "type": "string", "enum": ["monthly_rmb", "annual_rmb"] },
+            "year": { "type": "string", "description": "数据年份（如 2026）" },
+            "city": { "type": "string" },
+            "role": { "type": "string" },
+            "grade": {
+              "type": "string",
+              "enum": ["A", "B", "C", "D"],
+              "description": "缺少 year/city/role/source 任一时必须为 C"
+            },
+            "freshness": {
+              "type": "string",
+              "enum": ["fresh", "stale", "unknown"]
+            }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "breakdown": {
+      "type": "object",
+      "description": "薪资组成分解（中国市场特定）",
+      "properties": {
+        "base_monthly": { "type": "number", "description": "月基本工资" },
+        "months_per_year": { "type": "number", "description": "年薪月数（13薪/14薪等）" },
+        "annual_bonus": { "type": "string", "description": "年终奖描述（如 2-4个月月薪）" },
+        "equity": { "type": "string", "description": "股权/期权描述（如 RSU/期权）" },
+        "social_insurance": { "type": "string", "description": "社保公积金比例描述" }
+      }
+    },
+    "data_sources": {
+      "type": "array",
+      "description": "薪资数据来源列表",
+      "items": {
+        "type": "object",
+        "required": ["source_name", "grade"],
+        "properties": {
+          "source_name": { "type": "string" },
+          "url": { "type": "string" },
+          "date": { "type": "string" },
+          "grade": { "type": "string", "enum": ["A", "B", "C", "D"] }
+        }
+      }
+    },
+    "comparison": {
+      "type": "array",
+      "description": "横向对比（同岗位不同公司或城市）",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "value", "grade"],
+        "properties": {
+          "dimension": { "type": "string", "description": "对比维度（如 同岗位北京中位数）" },
+          "value": { "type": "string", "description": "数值描述" },
+          "grade": { "type": "string", "enum": ["A", "B", "C", "D"] }
+        }
+      }
+    },
+    "data_freshness": {
+      "type": "string",
+      "enum": ["fresh", "stale", "unavailable"]
+    }
+  }
+}

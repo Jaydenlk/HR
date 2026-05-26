@@ -1,0 +1,69 @@
+name: wechat-insight-reader
+version: "1.0.0"
+role: worker
+
+live_research_required: true
+degradation_behavior: >
+  无法访问微信公众号实时内容时：返回空的 insights 数组，
+  confidence 设为 insufficient，提示用户自行查阅相关公众号。
+  禁止从训练数据推断行业洞察或方法论内容。
+
+when_to_use:
+  - 用户需要了解行业洞察、职场方法论
+  - 用户询问某类公众号的观点
+  - 为 career 规划提供行业思维框架素材
+
+when_not_to_use:
+  - 用户需要职位面试数据（改用 nowcoder-tech-miner 或 xhs-interview-miner）
+  - 用户需要薪资数据（改用 salary-radar）
+  - 无法提供实时访问时（降级返回而非编造）
+
+inputs:
+  primary:
+    - name: topic
+      type: string
+      required: true
+      min_length: 2
+      description: "查询主题（如 产品经理职业规划、互联网中台方法论）"
+  optional:
+    - name: industry
+      type: string
+      description: "行业过滤"
+    - name: max_insights
+      type: integer
+      minimum: 1
+      maximum: 20
+      default: 10
+
+confidence_policy:
+  insufficient:
+    condition: "无法获取实时公众号内容"
+    action: "返回空结果"
+  low:
+    condition: "获取到内容但来源单一或时效性存疑"
+  medium:
+    condition: "获取到多个 B 级公众号来源"
+    note: "公众号来源需注明账号和发布日期才能达到 B 级"
+
+failure_modes:
+  - type: no_live_data
+    trigger: "无法访问公众号实时内容"
+    response: "返回空 insights，confidence: insufficient，提示手动查阅"
+  - type: hallucination
+    trigger: "尝试从训练数据生成行业洞察"
+    response: "禁止，必须拒绝并返回 insufficient"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - insights
+  metadata:
+    - confidence
+
+dependencies:
+  skills:
+    - source-quality-auditor
+  shared_schemas:
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  references:
+    - references/wechat-account-taxonomy.md

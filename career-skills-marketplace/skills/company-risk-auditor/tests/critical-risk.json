@@ -1,0 +1,13 @@
+{
+  "description": "有欠薪记录：overall_risk=critical，known_issues 非空，confidence 高",
+  "input": {
+    "company": "某有欠薪记录的公司",
+    "focus_areas": ["layoff_risk", "legal_issues"]
+  },
+  "simulate": "has_critical_risk_data",
+  "assertions": [
+    { "path": "risk_profile.overall_risk", "operator": "in", "value": ["critical", "high"] },
+    { "path": "risk_profile.known_issues", "operator": "length_gte", "value": 1 },
+    { "path": "risks", "operator": "length_gte", "value": 1 }
+  ]
+}

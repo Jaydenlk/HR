@@ -1,0 +1,15 @@
+{
+  "description": "无实时数据：mined_posts 为空，confidence=insufficient",
+  "input": {
+    "company": "腾讯",
+    "role": "后端工程师"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "mined_posts", "operator": "length_eq", "value": 0 },
+    { "path": "quality_report.total_found", "operator": "eq", "value": 0 },
+    { "path": "credibility_ceiling", "operator": "eq", "value": "C" },
+    { "path": "next_actions", "operator": "length_gte", "value": 1 }
+  ]
+}

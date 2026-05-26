@@ -1,0 +1,16 @@
+{
+  "description": "有实时数据：salary_range 非 null，四要素完整，grade B+",
+  "input": {
+    "role": "后端工程师",
+    "city": "北京",
+    "years_of_experience": 3
+  },
+  "assertions": [
+    { "path": "salary_range", "operator": "not_null", "value": true },
+    { "path": "salary_range.p50", "operator": "gt", "value": 0 },
+    { "path": "salary_range.year", "operator": "exists", "value": true },
+    { "path": "salary_range.city", "operator": "exists", "value": true },
+    { "path": "data_sources", "operator": "length_gte", "value": 1 },
+    { "path": "data_freshness", "operator": "not_eq", "value": "unavailable" }
+  ]
+}

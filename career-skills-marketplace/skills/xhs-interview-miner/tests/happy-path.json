@@ -1,0 +1,14 @@
+{
+  "description": "有实时小红书数据：confidence 最高为 low，credibility_ceiling 为 C",
+  "input": {
+    "company": "字节跳动",
+    "role": "产品经理",
+    "max_posts": 5
+  },
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "credibility_ceiling", "operator": "eq", "value": "C" },
+    { "path": "quality_report.total_found", "operator": "gte", "value": 0 },
+    { "path": "mined_posts", "operator": "is_array", "value": true }
+  ]
+}

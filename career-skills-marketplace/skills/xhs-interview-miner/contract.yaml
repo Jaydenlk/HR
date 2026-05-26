@@ -1,0 +1,79 @@
+name: xhs-interview-miner
+version: "1.0.0"
+role: worker
+
+live_research_required: true
+degradation_behavior: >
+  无法访问小红书实时内容时：返回空的 mined_posts 和 quality_report，
+  confidence 设为 insufficient，提示用户手动搜索小红书获取面经。
+  禁止从训练数据推断面试题目或流程。
+
+credibility_ceiling:
+  grade: C
+  reason: >
+    小红书内容混杂推广笔记和真实面经，平台无法区分营销内容，
+    即使来自实时抓取，可靠性上限为 C 级（仅供参考，需交叉验证）。
+
+when_to_use:
+  - 用户需要了解某公司/岗位的小红书面经
+  - 为 interview-coach 或其他 skill 提供面试题素材
+  - 用户询问"小红书上怎么说这个公司面试"
+
+when_not_to_use:
+  - 用户需要高可靠性面试数据（改用 nowcoder-tech-miner）
+  - 用户需要技术笔试题（小红书不擅长，改用 nowcoder）
+  - 无法提供实时访问时（降级返回而非编造）
+
+inputs:
+  primary:
+    - name: company
+      type: string
+      required: true
+      min_length: 1
+      description: "目标公司名称"
+  optional:
+    - name: role
+      type: string
+      description: "岗位方向（如 产品经理、后端工程师）"
+    - name: max_posts
+      type: integer
+      minimum: 1
+      maximum: 20
+      default: 10
+      description: "最多返回帖子数量"
+
+confidence_policy:
+  insufficient:
+    condition: "无法获取实时小红书内容"
+    action: "返回空结果+手动搜索提示"
+  low:
+    condition: "获取到内容但无法区分真实面经和推广"
+    note: "小红书来源置信度上限为 C，整体置信度最高为 low"
+
+failure_modes:
+  - type: no_live_data
+    trigger: "无法访问小红书实时内容"
+    response: "返回空 mined_posts，confidence: insufficient，提示手动搜索"
+  - type: all_promotional
+    trigger: "抓取到的内容均为推广笔记"
+    response: "mined_posts 为空，quality_report 说明原因"
+  - type: hallucination
+    trigger: "尝试从训练数据推断面试题"
+    response: "禁止，必须拒绝并返回 insufficient"
+
+outputs:
+  schema: output_schema.json
+  key_fields:
+    - mined_posts
+    - quality_report
+  metadata:
+    - confidence
+    - credibility_ceiling
+
+dependencies:
+  skills:
+    - source-quality-auditor
+  shared_schemas:
+    - _career-skills-shared/output-schema/skill-output-base.schema.json
+  references:
+    - references/xhs-quality-signals.md

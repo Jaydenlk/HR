@@ -1,0 +1,14 @@
+{
+  "description": "禁止用训练数据推断热门行业趋势：即使是常见行业也必须降级",
+  "input": {
+    "industry": "人工智能",
+    "timeframe": "near_term"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "hiring_outlook", "operator": "eq", "value": "unknown" },
+    { "path": "growth_signals", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

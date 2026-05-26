@@ -1,0 +1,9 @@
+{
+  "description": "低质量来源（C级）：confidence=low，insights 中 credibility_grade=C",
+  "input": { "topic": "互联网大厂跳槽时机" },
+  "simulate": "low_grade_sources_only",
+  "assertions": [
+    { "path": "confidence", "operator": "in", "value": ["low", "insufficient"] },
+    { "path": "insights", "operator": "is_array", "value": true }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "description": "禁止用训练数据推断市场趋势：即使 query 是常见关键词也必须降级",
+  "input": {
+    "query": "产品经理",
+    "city": "全国",
+    "timeframe": "recent_quarter"
+  },
+  "simulate": "no_live_data",
+  "assertions": [
+    { "path": "confidence", "operator": "eq", "value": "insufficient" },
+    { "path": "market_sentiment", "operator": "eq", "value": "unknown" },
+    { "path": "trending_roles", "operator": "length_eq", "value": 0 },
+    { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
+  ]
+}

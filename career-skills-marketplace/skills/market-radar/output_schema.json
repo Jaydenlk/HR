@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "market-radar 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "trending_roles", "hot_companies", "market_sentiment", "key_signals"
+  ],
+  "properties": {
+    "skill_name": { "const": "market-radar" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": {
+      "type": "string",
+      "description": "市场信号聚合结果概述（无实时数据时需明确标注降级状态）"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "无实时来源时必须为 insufficient"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "使用的实时数据来源（无实时数据时为空数组）"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "follow_up_questions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "trending_roles": {
+      "type": "array",
+      "description": "当前热门岗位列表（无实时数据时为空数组）",
+      "items": {
+        "type": "object",
+        "required": ["role_name", "demand_signal", "source"],
+        "properties": {
+          "role_name": { "type": "string" },
+          "demand_signal": {
+            "type": "string",
+            "enum": ["surging", "growing", "stable", "declining"],
+            "description": "需求趋势"
+          },
+          "source": { "type": "string", "description": "来源平台或 URL" }
+        }
+      }
+    },
+    "hot_companies": {
+      "type": "array",
+      "description": "招聘活跃公司（无实时数据时为空数组）",
+      "items": {
+        "type": "object",
+        "required": ["company_name", "hiring_signal"],
+        "properties": {
+          "company_name": { "type": "string" },
+          "hiring_signal": { "type": "string", "description": "招聘活跃信号描述" }
+        }
+      }
+    },
+    "market_sentiment": {
+      "type": "string",
+      "enum": ["positive", "neutral", "negative", "unknown"],
+      "description": "整体市场情绪（无实时数据时为 unknown）"
+    },
+    "key_signals": {
+      "type": "array",
+      "description": "关键市场信号（无实时数据时为空数组）",
+      "items": {
+        "type": "object",
+        "required": ["signal", "source", "date"],
+        "properties": {
+          "signal": { "type": "string" },
+          "source": { "type": "string" },
+          "date": { "type": "string", "description": "ISO 8601 日期" }
+        }
+      }
+    },
+    "data_freshness": {
+      "type": "string",
+      "enum": ["fresh", "stale", "unavailable"],
+      "description": "数据时效状态"
+    }
+  }
+}

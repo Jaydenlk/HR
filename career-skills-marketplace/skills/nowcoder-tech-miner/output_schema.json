@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "nowcoder-tech-miner 输出",
+  "type": "object",
+  "required": [
+    "skill_name", "skill_version", "summary", "confidence",
+    "evidence_used", "recommendations", "risks", "next_actions",
+    "follow_up_questions", "cannot_determine",
+    "mined_posts", "technical_questions"
+  ],
+  "properties": {
+    "skill_name": { "const": "nowcoder-tech-miner" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": {
+      "type": "string",
+      "description": "牛客网面经/笔试题提取结果概述"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "牛客网来源上限 B 级，整体置信度最高为 medium；无实时数据时为 insufficient"
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "使用的牛客网帖子来源"
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": { "type": "array", "items": { "type": "string" } },
+    "mined_posts": {
+      "type": "array",
+      "description": "从牛客网提取的面经帖子（无实时数据时为空数组）",
+      "items": {
+        "type": "object",
+        "required": ["post_id", "title", "content_type", "credibility_grade"],
+        "properties": {
+          "post_id": { "type": "string" },
+          "title": { "type": "string" },
+          "date": { "type": "string" },
+          "content_type": {
+            "type": "string",
+            "enum": ["interview_experience", "online_test", "offer_report"],
+            "description": "内容类型"
+          },
+          "interview_rounds": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "result": {
+            "type": "string",
+            "enum": ["offer", "rejected", "pending", "unknown"]
+          },
+          "credibility_grade": {
+            "type": "string",
+            "enum": ["A", "B", "C", "D"],
+            "description": "可信度等级，牛客网来源上限为 B"
+          }
+        }
+      }
+    },
+    "technical_questions": {
+      "type": "array",
+      "description": "提取的技术题目列表（仅来自实时内容，禁止推断）",
+      "items": {
+        "type": "object",
+        "required": ["question", "category", "source_post_id"],
+        "properties": {
+          "question": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["algorithm", "system_design", "language_specific", "database", "network", "project_related", "other"]
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard", "unknown"]
+          },
+          "source_post_id": { "type": "string", "description": "来源帖子 ID" },
+          "frequency": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "在多少帖子中出现（> 1 说明高频）"
+          }
+        }
+      }
+    },
+    "credibility_ceiling": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D"],
+      "description": "本 skill 输出的可信度上限（固定为 B）"
+    }
+  }
+}
