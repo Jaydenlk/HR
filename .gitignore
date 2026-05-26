@@ -8,6 +8,8 @@ out/
 .DS_Store
 coach-dev.db
 .worktrees/
+.claude/worktrees/
+.clone/
 .tools/*
 !.tools/
 !.tools/xhs-bridge.mjs
