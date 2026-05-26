@@ -8,9 +8,9 @@
 - Date: 2026-05-26
 
 ## Test Counts Summary
-- **60 unit tests** (radar-helpers.spec.ts) — ALL PASS
+- **55 unit tests** (radar-helpers.spec.ts) — ALL PASS
 - **61 e2e tests** (newspaper.e2e-spec.ts) — ALL PASS
-- **Total: 121 tests passing**
+- **Total: 116 tests passing**
 
 ---
 
@@ -123,4 +123,4 @@ All freshness rules verified via Jest e2e test fixtures (newspaper.e2e-spec.ts).
 - [x] eslint src/ (web): PASS (0 errors, 0 warnings)
 - [x] next build: PASS
 - [x] 61 newspaper e2e tests: PASS
-- [x] 60 radar-helpers unit tests: PASS
+- [x] 55 radar-helpers unit tests: PASS
