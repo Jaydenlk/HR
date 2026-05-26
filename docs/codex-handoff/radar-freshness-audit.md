@@ -59,7 +59,7 @@
 
 ## Test Coverage
 
-### Unit Tests (55 total in radar-helpers.spec.ts)
+### Unit Tests (60 total in radar-helpers.spec.ts)
 - 10 deriveQuarterFromPublishedAt tests:
   - High confidence: May 2026 -> 2026Q2, March 2021 -> 2021Q1, Jan 2026 -> 2026Q1, Dec 2025 -> 2025Q4, Jul 2026 -> 2026Q3
   - Medium confidence: derives correctly
