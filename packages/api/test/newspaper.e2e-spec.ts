@@ -537,6 +537,32 @@ describe('Newspaper (e2e)', () => {
       }
     });
 
+    it('company radar top_roles does not contain null', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/companies')
+        .set('Authorization', `Bearer ${token}`);
+      for (const c of res.body.companies) {
+        for (const role of c.top_roles) {
+          expect(role).not.toBe('null');
+          expect(role).not.toBeNull();
+        }
+      }
+    });
+
+    it('dominant_signal does not contain raw role keys', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar/companies')
+        .set('Authorization', `Bearer ${token}`);
+      const rawKeys = ['backend', 'frontend', 'algorithm', 'embedded', 'product', 'operations', 'hr', 'design', 'data', 'finance', 'consulting', 'marketing', 'management_trainee', 'testing', 'client', 'general'];
+      for (const c of res.body.companies) {
+        if (c.dominant_signal && c.dominant_signal.includes('岗面经集中')) {
+          for (const key of rawKeys) {
+            expect(c.dominant_signal).not.toContain(key + '岗面经集中');
+          }
+        }
+      }
+    });
+
     it('returns 401 without auth token', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/newspaper/radar/companies');

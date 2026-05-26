@@ -456,12 +456,11 @@ export class NewspaperService {
       const lowConfCount = group.filter((i) => i.confidence === 'low').length;
       const highConfCount = group.filter((i) => i.confidence === 'high').length;
 
-      // Top roles
+      // Top roles — normalize every item's role_category
       const roleCounts = new Map<string, number>();
       for (const item of group) {
-        if (item.role_category) {
-          roleCounts.set(item.role_category, (roleCounts.get(item.role_category) ?? 0) + 1);
-        }
+        const normalized = normalizeRoleCategory(item.role_category);
+        roleCounts.set(normalized, (roleCounts.get(normalized) ?? 0) + 1);
       }
       const topRoles = [...roleCounts.entries()]
         .sort((a, b) => b[1] - a[1])

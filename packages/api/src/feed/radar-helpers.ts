@@ -50,6 +50,7 @@ export function normalizeQuarter(input: string): string | null {
 const KNOWN_ROLE_KEYS = new Set([
   'backend', 'frontend', 'algorithm', 'embedded', 'product',
   'operations', 'hr', 'design', 'data', 'finance', 'consulting', 'marketing',
+  'management_trainee', 'testing', 'client', 'general',
 ]);
 
 export function normalizeRoleCategory(value: string | null): string {
@@ -57,6 +58,15 @@ export function normalizeRoleCategory(value: string | null): string {
   if (KNOWN_ROLE_KEYS.has(value)) return value;
   return 'general';
 }
+
+const ROLE_LABELS: Record<string, string> = {
+  backend: '后端开发', frontend: '前端开发', algorithm: '算法',
+  embedded: '嵌入式', product: '产品', operations: '运营',
+  hr: 'HR', design: '设计', data: '数据分析',
+  finance: '金融', consulting: '咨询', marketing: '市场',
+  management_trainee: '管培', testing: '测试', client: '客户端',
+  general: '综合',
+};
 
 interface DominantSignalInput {
   roleCounts: Map<string, number>;
@@ -71,7 +81,7 @@ export function buildDominantSignal(input: DominantSignalInput): string | null {
   if (input.usableCount === 0) return '暂无高质量数据';
   for (const [role, count] of input.roleCounts) {
     if (input.totalCount > 0 && count / input.totalCount > 0.5) {
-      return `${role}岗面经集中`;
+      return `${ROLE_LABELS[role] || role}岗面经集中`;
     }
   }
   if (input.xhsCount > input.nowcoderCount * 2) {

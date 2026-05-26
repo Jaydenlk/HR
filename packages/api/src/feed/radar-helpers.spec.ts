@@ -10,7 +10,10 @@ import {
 
 describe('normalizeQualityScore', () => {
   it('returns 0 for null', () => expect(normalizeQualityScore(null)).toBe(0));
-  it('returns 0 for undefined', () => expect(normalizeQualityScore(undefined as unknown as number | null)).toBe(0));
+  it('returns 0 for undefined', () => {
+    const undef = undefined as unknown as (number | null);
+    expect(normalizeQualityScore(undef)).toBe(0);
+  });
   it('returns 0 for -1 (rejected)', () => expect(normalizeQualityScore(-1)).toBe(0));
   it('returns 0 for negative values', () => expect(normalizeQualityScore(-5)).toBe(0));
   it('scales 0-10 range to 0-100', () => {
@@ -126,6 +129,10 @@ describe('normalizeRoleCategory', () => {
   it('returns "general" for unknown values', () => {
     expect(normalizeRoleCategory('mystery_role')).toBe('general');
   });
+  it('normalizes management_trainee', () => expect(normalizeRoleCategory('management_trainee')).toBe('management_trainee'));
+  it('normalizes testing', () => expect(normalizeRoleCategory('testing')).toBe('testing'));
+  it('normalizes client', () => expect(normalizeRoleCategory('client')).toBe('client'));
+  it('normalizes general', () => expect(normalizeRoleCategory('general')).toBe('general'));
 });
 
 describe('buildDominantSignal', () => {
@@ -135,7 +142,7 @@ describe('buildDominantSignal', () => {
       totalCount: 10, xhsCount: 5, nowcoderCount: 5,
       hasRecentItems: false, usableCount: 5,
     });
-    expect(result).toContain('backend');
+    expect(result).toContain('后端开发');
     expect(result).toContain('集中');
   });
   it('returns xhs voice signal when xhs > nowcoder * 2', () => {
