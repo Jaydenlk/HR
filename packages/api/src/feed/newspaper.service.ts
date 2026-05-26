@@ -11,6 +11,7 @@ import {
   isRejected,
   buildDominantSignal,
   normalizeRoleCategory,
+  normalizeQuarter,
 } from './radar-helpers';
 
 // --- Response interfaces ---
@@ -799,7 +800,10 @@ export class NewspaperService {
       });
     }
     if (query.quarter) {
-      qb.andWhere('item.quarter = :quarter', { quarter: query.quarter });
+      const normalized = normalizeQuarter(query.quarter);
+      if (normalized !== null) {
+        qb.andWhere('item.quarter = :quarter', { quarter: normalized });
+      }
     }
     if (query.keyword) {
       qb.andWhere(

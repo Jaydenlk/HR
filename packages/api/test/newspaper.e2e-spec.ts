@@ -665,6 +665,60 @@ describe('Newspaper (e2e)', () => {
   });
 
   /* ================================================================ */
+  /*  Quarter filter normalization                                     */
+  /* ================================================================ */
+
+  describe('Radar quarter filter normalization', () => {
+    it('quarter=current finds items with the current quarter value', async () => {
+      // Seeded items already have quarter='2026Q2' which matches current
+      const res = await request(app.getHttpServer())
+        .get('/api/newspaper/radar?quarter=current')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.items.length).toBeGreaterThan(0);
+      for (const item of res.body.items as Array<{ quarter: string }>) {
+        expect(item.quarter).toBe('2026Q2');
+      }
+    });
+
+    it('quarter=all returns all items (no quarter filter)', async () => {
+      const resAll = await request(app.getHttpServer())
+        .get('/api/newspaper/radar?quarter=all')
+        .set('Authorization', `Bearer ${token}`);
+      const resNone = await request(app.getHttpServer())
+        .get('/api/newspaper/radar')
+        .set('Authorization', `Bearer ${token}`);
+      expect(resAll.status).toBe(200);
+      expect(resNone.status).toBe(200);
+      expect(resAll.body.total).toBe(resNone.body.total);
+    });
+
+    it('quarter=null returns all items (no quarter filter)', async () => {
+      const resNull = await request(app.getHttpServer())
+        .get('/api/newspaper/radar?quarter=null')
+        .set('Authorization', `Bearer ${token}`);
+      const resNone = await request(app.getHttpServer())
+        .get('/api/newspaper/radar')
+        .set('Authorization', `Bearer ${token}`);
+      expect(resNull.status).toBe(200);
+      expect(resNone.status).toBe(200);
+      expect(resNull.body.total).toBe(resNone.body.total);
+    });
+
+    it('empty quarter returns all items (no quarter filter)', async () => {
+      const resEmpty = await request(app.getHttpServer())
+        .get('/api/newspaper/radar?quarter=')
+        .set('Authorization', `Bearer ${token}`);
+      const resNone = await request(app.getHttpServer())
+        .get('/api/newspaper/radar')
+        .set('Authorization', `Bearer ${token}`);
+      expect(resEmpty.status).toBe(200);
+      expect(resNone.status).toBe(200);
+      expect(resEmpty.body.total).toBe(resNone.body.total);
+    });
+  });
+
+  /* ================================================================ */
   /*  User personalization — coach_actions react to user state        */
   /* ================================================================ */
 
