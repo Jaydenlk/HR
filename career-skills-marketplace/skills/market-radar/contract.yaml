@@ -85,3 +85,8 @@ knowledge_dependencies:
     usage: "数据来源平台分级规则（A/B/C/D），对每条获取到的实时市场数据进行来源评级"
     required: false
     degradation: "使用内置分级规则评估来源质量，覆盖范围可能不全"
+
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"

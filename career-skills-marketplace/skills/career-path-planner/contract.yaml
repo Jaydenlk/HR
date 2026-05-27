@@ -90,3 +90,8 @@ knowledge_dependencies:
     usage: "目标岗位标准技能要求，用于计算适配度（fit_pct）的技能覆盖率维度（40%权重）"
     required: false
     degradation: "仅依赖 profile.skills 与路径目标岗位名称的文字匹配，技能覆盖率评估精度降低"
+
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"

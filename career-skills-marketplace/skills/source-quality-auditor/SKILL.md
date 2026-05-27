@@ -182,3 +182,18 @@ allowed-tools: [Read, Grep]
 | 文件 | 用途 | 何时使用 | 不可用时降级 |
 |------|------|---------|------------|
 | `../_career-skills-shared/knowledge/market-source-types.yaml` | 中国求职信息平台的标准分级规则（A/B/C/D级定义、各平台特性、时效期定义），作为来源评级的权威参考 | 对每条来源进行 grade 评级时 | 使用 SKILL.md 中内置的平台分级规则（第1-3节），覆盖主流平台 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当来源无 URL 且无日期时，视为信息不足（无法执行可信度审计）
+- 信息不足时不能输出 `verified` 状态，因为无 URL 意味着无法核实内容真实性
+- 低置信度时 grade 降至 C 或 D（无 URL 且无日期 → 最高 C；URL 不可达 → D），`verification_status` 标注为 `unverifiable` 或 `unreachable`
+- 追问：「请提供来源的原始链接或发布日期，以便更准确地评估信息可信度」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: `audit_results` 中每条来源的 `grade` 必须附 `issues` 列表，说明降级依据（如「缺少发布日期」「薪资数据缺少城市维度」）
+- Reasoning: `summary` 字段体现「基于 N 条来源，其中 X 条 B+ 级，发现 Y 处冲突，因此整体置信度上限为 Z」的归纳过程
+- Opinion: `recommendation`（use/use_with_caution/discard）是基于 grade + freshness + verification_status 的综合判断，`conflict_detected` 时列出所有版本而非自行裁决

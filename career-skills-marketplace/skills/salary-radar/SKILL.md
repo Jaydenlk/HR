@@ -61,3 +61,18 @@ salary-radar 需要分解以下中国特有组成部分：
 | 文件 | 用途 | 何时使用 | 不可用时降级 |
 |------|------|---------|------------|
 | `../_career-skills-shared/knowledge/offer-comparison-factors.yaml` | 中国薪资结构的标准组成要素定义（base/bonus/equity/社保等），用于解析和标准化用户提供的薪资数据 | 分解薪资结构（breakdown 字段）时 | 使用内置薪资结构定义，可能缺少某些特殊条款说明 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当缺少岗位（role）、城市（city）或数据年份（year）任一要素时，视为信息不足
+- 信息不足时不能输出薪资范围（`salary_range`），因为缺少定位维度的薪资数字无参考价值且可能严重误导
+- 低置信度时只给出知识图谱历史参考（标注 freshness: stale, confidence: low），不结合无来源数据推算实际值
+- 追问最小必要问题：缺岗位时追问「请提供具体职位名称（如：后端工程师、产品经理）」；缺城市时追问「请提供工作所在城市」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: 每条薪资数据在 `data_sources` 字段列出来源平台、数据年份、样本说明，grade 字段标注来源等级（A/B/C）
+- Reasoning: `comparison` 字段体现当前 offer 与市场分位数的对比逻辑，说明「高于/低于市场中位数的原因推断」
+- Opinion: `breakdown` 字段区分确定性薪资（base × 月数）与不确定部分（equity/期权），建议标注「建议核实」而非给出确定性判断

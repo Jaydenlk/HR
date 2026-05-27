@@ -117,3 +117,8 @@ knowledge_dependencies:
     usage: "中国求职信息平台的标准分级规则（A/B/C/D 级定义、各平台特性、时效期规则），作为来源评级的权威参考"
     required: false
     degradation: "使用 SKILL.md 内置的平台分级规则，主流平台已覆盖，冷门平台可能缺少细分规则"
+
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"

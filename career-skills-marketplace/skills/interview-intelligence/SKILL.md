@@ -94,3 +94,18 @@ allowed-tools: [Read, Grep]
 | `../_career-skills-shared/knowledge/interview-question-taxonomy.yaml` | 面试题类型分类和通用高频题库，用于在无实时面经时生成备考优先项 | 无实时面经数据（confidence: insufficient）时降级使用 | 输出仅含通用面试知识，confidence 置为 low，cannot_determine 说明缺失的定向情报 |
 | `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 已知公司的面试风格（interview_style）和流程特征 | 查询目标公司的面试流程类型时 | 面试风格标注为 unknown，仅给出岗位通用流程框架 |
 | `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型与典型面试流程的映射（如大厂/国企/外企的流程差异） | 无公司精确数据时按公司类型推断流程 | 仅输出通用面试流程，不做公司类型推断 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当目标公司不在知识图谱（`companies.seed.yaml`）且无实时面经数据时，视为信息不足
+- 信息不足时不能输出具体面试题（`common_questions[]` 中的 `question` 字段），因为无来源支撑的具体题目属于编造，会误导用户备考方向
+- 低置信度时只给出通用流程框架（按公司类型：大厂/国企/外企/初创推断流程轮数），`confidence` 标注为 low，`cannot_determine` 列明缺失的定向情报
+- 追问：「请问您有该公司的近期面经来源（如牛客帖子链接）吗？这将帮助我提供更精准的备考建议」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: `common_questions` 每题必须附 `source_hint`（如「牛客/看准近6个月高频」），无来源题目不得出现在输出中
+- Reasoning: `preparation_priorities` 每项的 `rationale` 字段说明「为何该方向是优先级」，引用面经数据或公司类型推断依据
+- Opinion: `interview_flow` 每轮的 `confidence` 字段区分「已有面经数据支撑」与「基于公司类型推断」，`red_flags_to_watch` 标注 severity 并说明推断基础

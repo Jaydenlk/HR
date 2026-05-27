@@ -73,3 +73,18 @@ allowed-tools: [Read, Grep]
 | 文件 | 用途 | 何时使用 | 不可用时降级 |
 |------|------|---------|------------|
 | `../_career-skills-shared/knowledge/offer-comparison-factors.yaml` | 中国市场 offer 比较的标准维度定义（薪酬结构/成长潜力/稳定性/工作生活平衡），用于确保比较维度完整且符合中国市场实际 | 构建各维度评分时，验证是否覆盖了所有关键比较要素 | 使用默认维度权重（薪酬40%/成长30%/稳定20%/平衡10%），不引用维度定义文件 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当只有单个 offer 或缺少关键字段（月薪/年终奖/公司名称）时，视为信息不足
+- 信息不足时不能输出推荐选择（`recommendation.choice`），因为单 offer 或信息残缺时无法做有意义的对比决策
+- 低置信度时只列出已知信息的对比表格（`comparison`），缺失字段标注 uncertain，不给出加权总分
+- 追问最小必要问题：缺月薪时追问「请提供 [offer名称] 的基本月薪」；缺关键要素时追问「请补充以下信息：五险一金比例/年终奖月数/试用期折扣」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: 所有对比数据来源于用户直接提供的 offer 信息，`missing_info` 字段诚实列出用户未提供的字段
+- Reasoning: `weighted_scores` 字段体现各维度评分的计算过程，`hourly_rate_comparison` 展示时薪计算的推导步骤
+- Opinion: `recommendation` 标注 `confidence` 等级，区分「基于完整信息的强推荐」与「基于部分信息的参考意见」

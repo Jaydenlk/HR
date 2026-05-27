@@ -82,6 +82,11 @@ knowledge_dependencies:
     required: false
     degradation: "不做公司类型推断，输出通用面试流程"
 
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"
+
 china_market_specificity: very_high
 
 live_research_required: false

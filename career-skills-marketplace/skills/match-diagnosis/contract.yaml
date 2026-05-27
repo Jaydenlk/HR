@@ -181,6 +181,11 @@ knowledge_dependencies:
     required: false
     degradation: "仅依赖职位名称文字匹配，岗位目标维度评分准确度降低"
 
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"
+
 failure_modes:
   - id: missing_user_profile
     condition: user_profile 未提供
