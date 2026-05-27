@@ -1146,15 +1146,6 @@ companies:
     needs_verification: true
     source_policy: "低置信度，待社区验证"
 
-  - id: zhipuai-tech
-    canonical_name: 智谱AI
-    aliases: ["智谱AI", "ZhiPu AI", "GLM大模型"]
-    company_type: stable_mid_tech
-    tier: tier_3
-    cities: ["北京"]
-    confidence: low
-    needs_verification: true
-    source_policy: "低置信度，待社区验证"
 
   - id: minimax-ai
     canonical_name: MiniMax
@@ -1176,25 +1167,7 @@ companies:
     needs_verification: true
     source_policy: "低置信度，待社区验证"
 
-  - id: baichuan-ai
-    canonical_name: 百川智能
-    aliases: ["百川智能", "Baichuan AI", "百川大模型"]
-    company_type: stable_mid_tech
-    tier: tier_3
-    cities: ["北京"]
-    confidence: low
-    needs_verification: true
-    source_policy: "低置信度，待社区验证"
 
-  - id: moonshot-ai
-    canonical_name: 月之暗面
-    aliases: ["月之暗面", "Moonshot AI", "Kimi"]
-    company_type: stable_mid_tech
-    tier: tier_3
-    cities: ["北京"]
-    confidence: low
-    needs_verification: true
-    source_policy: "低置信度，待社区验证"
 
   - id: lingxin-ai
     canonical_name: 零一万物

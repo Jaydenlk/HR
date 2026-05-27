@@ -719,7 +719,7 @@ companies:
   - id: horizon-robotics
     canonical_name: 地平线
     aliases: ["地平线", "Horizon Robotics", "地平线机器人"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["backend", "algorithm", "embedded-engineer", "hardware-engineer", "ai-engineer", "product-manager-b"]
     cities: ["北京", "上海", "深圳"]
@@ -732,7 +732,7 @@ companies:
   - id: cambricon
     canonical_name: 寒武纪
     aliases: ["寒武纪", "Cambricon", "寒武纪科技", "MLU芯片"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["backend", "algorithm", "hardware-engineer", "embedded-engineer", "ai-engineer"]
     cities: ["北京", "上海", "成都"]
@@ -745,7 +745,7 @@ companies:
   - id: sensetime
     canonical_name: 商汤科技
     aliases: ["商汤科技", "SenseTime", "商汤", "日日新"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["algorithm", "backend", "ai-engineer", "data-analyst", "product-manager-b", "sales"]
     cities: ["上海", "北京", "深圳", "香港"]
@@ -758,7 +758,7 @@ companies:
   - id: megvii
     canonical_name: 旷视科技
     aliases: ["旷视科技", "MEGVII", "旷视", "Face++", "人脸识别"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["algorithm", "backend", "ai-engineer", "embedded-engineer", "product-manager-b"]
     cities: ["北京", "上海", "深圳"]
@@ -771,7 +771,7 @@ companies:
   - id: cloudwalk
     canonical_name: 云从科技
     aliases: ["云从科技", "CloudWalk", "云从"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["algorithm", "backend", "ai-engineer", "product-manager-b", "sales"]
     cities: ["广州", "上海", "北京"]
@@ -784,7 +784,7 @@ companies:
   - id: bitmain
     canonical_name: 比特大陆
     aliases: ["比特大陆", "Bitmain", "蚂蚁矿机", "算力芯片"]
-    company_type: new_energy
+    company_type: stable_mid_tech
     tier: tier_2
     main_roles: ["backend", "hardware-engineer", "algorithm", "embedded-engineer"]
     cities: ["北京", "深圳", "上海"]
@@ -820,10 +820,10 @@ companies:
     source_policy: "基于公开招聘信息汇编"
     needs_verification: true
 
-  - id: dji-agibot
+  - id: unitree-robotics
     canonical_name: 宇树科技
     aliases: ["宇树科技", "Unitree Robotics", "宇树", "Unitree"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["backend", "algorithm", "hardware-engineer", "embedded-engineer", "ai-engineer"]
     cities: ["杭州", "深圳"]
@@ -836,7 +836,7 @@ companies:
   - id: zte
     canonical_name: 中兴通讯
     aliases: ["中兴通讯", "ZTE", "中兴", "ZTE Corporation"]
-    company_type: new_energy
+    company_type: stable_mid_tech
     tier: tier_2
     main_roles: ["backend", "embedded-engineer", "hardware-engineer", "devops", "sales", "product-manager-b"]
     cities: ["深圳", "北京", "上海", "南京"]
@@ -1164,7 +1164,7 @@ companies:
     source_policy: "基于公开招聘信息汇编"
     needs_verification: true
 
-  - id: deepl-cn
+  - id: iflytek
     canonical_name: 科大讯飞
     aliases: ["科大讯飞", "iFLYTEK", "讯飞", "星火大模型"]
     company_type: stable_mid_tech
@@ -1376,7 +1376,7 @@ companies:
     source_policy: "基于公开招聘信息汇编"
     needs_verification: true
 
-  - id: dji-overseas
+  - id: roborock
     canonical_name: 石头科技
     aliases: ["石头科技", "Roborock", "石头扫地机", "小瓦"]
     company_type: overseas

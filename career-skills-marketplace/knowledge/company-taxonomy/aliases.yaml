@@ -665,7 +665,7 @@ aliases:
     tier: tier_2
     nicknames: ["Gotion High Tech", "国轩", "Gotion"]
 
-  dji-agibot:
+  unitree-robotics:
     official_cn: 宇树科技
     tier: tier_2
     nicknames: ["Unitree Robotics", "宇树", "Unitree"]
@@ -795,7 +795,7 @@ aliases:
     tier: tier_2
     nicknames: ["泛微", "Fanwei", "e-office"]
 
-  deepl-cn:
+  iflytek:
     official_cn: 科大讯飞
     tier: tier_2
     nicknames: ["iFLYTEK", "讯飞", "星火大模型"]
@@ -875,7 +875,7 @@ aliases:
     tier: tier_2
     nicknames: ["Dreame Technology", "追觅", "扫地机器人"]
 
-  dji-overseas:
+  roborock:
     official_cn: 石头科技
     tier: tier_2
     nicknames: ["Roborock", "石头扫地机", "小瓦"]
@@ -2175,11 +2175,6 @@ aliases:
     tier: tier_3
     nicknames: ["老外网", "LaowaiEdu", "外教平台"]
 
-  zhipuai-tech:
-    official_cn: 智谱AI
-    tier: tier_3
-    nicknames: ["ZhiPu AI", "GLM大模型"]
-
   minimax-ai:
     official_cn: MiniMax
     tier: tier_3
@@ -2189,16 +2184,6 @@ aliases:
     official_cn: 阶跃星辰
     tier: tier_3
     nicknames: ["Step Fun", "阶跃AI"]
-
-  baichuan-ai:
-    official_cn: 百川智能
-    tier: tier_3
-    nicknames: ["Baichuan AI", "百川大模型"]
-
-  moonshot-ai:
-    official_cn: 月之暗面
-    tier: tier_3
-    nicknames: ["Moonshot AI", "Kimi"]
 
   lingxin-ai:
     official_cn: 零一万物
