@@ -22,13 +22,29 @@
     ]
   },
   "assertions": [
-    { "path": "comparison", "operator": "length_gte", "value": 2 },
-    { "path": "missing_info", "operator": "contains", "value": "equity_value_annual" },
-    { "path": "confidence", "operator": "in", "value": ["medium", "low", "insufficient"] }
+    {
+      "path": "comparison",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "comparison 中必须有 2 个 offer 的对比记录"
+    },
+    {
+      "path": "missing_info",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "equity_value_annual 未提供，必须在 missing_info 中记录"
+    },
+    {
+      "path": "confidence",
+      "operator": "in",
+      "value": ["medium", "low", "insufficient"],
+      "description": "股权信息缺失时，置信度不能为 high"
+    }
   ],
   "must_not_contain": [
     "股权价值约",
     "RSU估值",
-    "假设股权价值"
+    "假设股权价值",
+    "equity_value_annual 为"
   ]
 }

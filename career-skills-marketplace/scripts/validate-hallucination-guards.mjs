@@ -26,11 +26,38 @@ for (const skill of skills) {
   const schemaProps = new Set(Object.keys(schema.properties || {}));
   checked++;
 
-  for (const assertion of (guard.assertions || [])) {
+  const assertions = guard.assertions || [];
+
+  // Check top-level: assertions must be an array (not an object like critical_assertions)
+  if (!Array.isArray(assertions)) {
+    console.log(`FAIL: ${skill} — "assertions" must be an array, got ${typeof assertions}`);
+    failures++;
+    continue;
+  }
+
+  for (let i = 0; i < assertions.length; i++) {
+    const assertion = assertions[i];
+    const idx = `assertions[${i}]`;
+
+    // Each item must be an object (not a string or primitive)
+    if (typeof assertion !== 'object' || assertion === null || Array.isArray(assertion)) {
+      console.log(`FAIL: ${skill} — ${idx} must be an object, got ${Array.isArray(assertion) ? 'array' : typeof assertion}`);
+      failures++;
+      continue;
+    }
+
+    // Each item must have "path" key (not "field", not "check")
+    if (!('path' in assertion)) {
+      const badKey = 'field' in assertion ? '"field"' : 'check' in assertion ? '"check"' : 'no recognized path-like key';
+      console.log(`FAIL: ${skill} — ${idx} missing "path" key (found ${badKey} instead)`);
+      failures++;
+    }
+
+    // Root field of path must exist in schema properties
     const path = assertion.path || '';
     const rootField = path.split(/[.\[]/)[0];
     if (rootField && !schemaProps.has(rootField)) {
-      console.log(`FAIL: ${skill} — assertion path "${path}" root field "${rootField}" not in output_schema.properties`);
+      console.log(`FAIL: ${skill} — ${idx} path "${path}" root field "${rootField}" not in output_schema.properties`);
       failures++;
     }
   }

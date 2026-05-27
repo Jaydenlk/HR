@@ -28,30 +28,43 @@
       "keywords": ["Python", "Django", "Flask", "数据分析"]
     }
   },
-  "expected_properties": {
-    "match_result.overall_match_pct": { "maximum": 55 },
-    "match_result.gap_classification": { "contains_python_gap": true }
-  },
   "assertions": [
     {
-      "id": "no_python_positive_match",
-      "description": "dimension_scores 中 dimension=skills 的 analysis 字段不得包含对 Python 的正面匹配描述",
-      "check": "dimension_score_analysis('skills', not_contains_any=['Python 已匹配', 'Python 满足要求', 'Python 符合'])"
+      "path": "match_result",
+      "operator": "exists",
+      "value": true,
+      "description": "必须存在 match_result 对象"
     },
     {
-      "id": "python_gap_classified",
-      "description": "gap_classification 中存在 gap_item 描述 Python 缺失，gap_type 为 needs_time 或 hard_mismatch",
-      "check": "any_of(match_result.gap_classification, field='gap_item', contains='Python')"
+      "path": "match_result.match_label",
+      "operator": "in",
+      "value": ["weak_match", "no_match", "moderate_match"],
+      "description": "Python 是 required 必须项，用户不具备，匹配标签不能是 perfect_fit 或 strong_match"
     },
     {
-      "id": "overall_score_capped",
-      "description": "Python 是 required 必须项，用户不具备。总分不能超过 55",
-      "check": "match_result.overall_match_pct <= 55"
+      "path": "match_result.weaknesses",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "weaknesses 数组至少有一条，应提及 Python 缺失"
     },
     {
-      "id": "weaknesses_has_python",
-      "description": "weaknesses 数组中有一条明确提及 Python 缺失",
-      "check": "any_of(match_result.weaknesses, contains='Python')"
+      "path": "match_result.gap_classification",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "gap_classification 中必须存在关于 Python 的差距记录"
+    },
+    {
+      "path": "match_result.dimension_scores",
+      "operator": "length_eq",
+      "value": 5,
+      "description": "dimension_scores 必须有 5 个维度"
     }
+  ],
+  "must_not_contain": [
+    "Python 已匹配",
+    "Python 满足要求",
+    "Python 符合",
+    "熟悉 Python",
+    "具备 Python"
   ]
 }

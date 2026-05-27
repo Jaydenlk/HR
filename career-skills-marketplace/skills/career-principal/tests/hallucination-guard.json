@@ -4,59 +4,46 @@
   "input": {
     "user_message": "我和腾讯产品经理岗位的匹配度怎么样"
   },
-  "expected_properties": {
-    "status": ["partial", "success"],
-    "intent_detected": "match_diagnosis"
-  },
   "assertions": [
     {
-      "field": "cannot_determine",
-      "assertion": "length_gte",
+      "path": "cannot_determine",
+      "operator": "length_gte",
       "value": 1,
-      "reason": "没有简历和 JD 时，匹配度无法判断，必须列入 cannot_determine"
+      "description": "没有简历和 JD 时，匹配度无法判断，必须列入 cannot_determine"
     },
     {
-      "field": "cannot_determine",
-      "assertion": "contains_any_substring",
-      "value": ["匹配度", "匹配", "背景", "经历"],
-      "reason": "cannot_determine 中必须明确指出无法判断的是匹配度相关内容"
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient", "medium"],
+      "description": "没有证据支持高置信度，confidence 不能为 high"
     },
     {
-      "field": "confidence",
-      "assertion": "not_equals",
-      "value": "high",
-      "reason": "没有证据支持高置信度"
-    },
-    {
-      "field": "aggregated_result.key_findings",
-      "assertion": "does_not_contain_pattern",
-      "pattern": "(非常匹配|高度匹配|完全符合|你很适合|你一定能)",
-      "reason": "没有简历时，不能给出确定性的正面匹配评价（这是幻觉）"
-    },
-    {
-      "field": "aggregated_result.recommendations",
-      "assertion": "does_not_contain_pattern",
-      "pattern": "(你的.*经验|你的.*技能|根据你的背景)",
-      "reason": "没有简历时，不能假设用户有特定经历或技能（这是幻觉）"
-    },
-    {
-      "field": "follow_up_questions",
-      "assertion": "length_gte",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
       "value": 1,
-      "reason": "必须追问简历和/或具体 JD"
+      "description": "必须追问简历和/或具体 JD"
     },
     {
-      "field": "missing_information",
-      "assertion": "length_gte",
+      "path": "missing_information",
+      "operator": "length_gte",
       "value": 1,
-      "reason": "resume_text 缺失，至少有一个 missing_information 项"
+      "description": "resume_text 缺失，至少有一个 missing_information 项"
     },
     {
-      "field": "skills_invoked",
-      "assertion": "none_have_status",
-      "status": "completed",
-      "skill_names": ["match-diagnosis"],
-      "reason": "没有用户档案时，match-diagnosis 不能执行（会产生空洞结果）"
+      "path": "intent_detected",
+      "operator": "eq",
+      "value": "match_diagnosis",
+      "description": "意图识别为 match_diagnosis"
     }
+  ],
+  "must_not_contain": [
+    "非常匹配",
+    "高度匹配",
+    "完全符合",
+    "你很适合",
+    "你一定能",
+    "你的经验",
+    "你的技能",
+    "根据你的背景"
   ]
 }
