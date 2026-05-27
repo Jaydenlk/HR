@@ -1,5 +1,5 @@
 {
-  "name": "daily-plan-generator with upcoming interviews",
+  "name": "daily-plan-generator-with-upcoming-interviews",
   "description": "Tests that daily-plan-generator integrates application tracker state and upcoming interview schedule to produce a realistic, prioritized daily action plan.",
   "input": {
     "user_message": "帮我规划今天和明天的求职任务。",

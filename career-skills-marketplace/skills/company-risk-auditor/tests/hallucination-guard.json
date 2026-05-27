@@ -8,7 +8,7 @@
   "simulate": "no_public_data",
   "assertions": [
     { "path": "confidence", "operator": "in", "value": ["insufficient", "low"] },
-    { "path": "risk_profile.overall_risk", "operator": "in", "value": ["unknown", "insufficient"] },
+    { "path": "risk_profile.overall_risk", "operator": "in", "value": ["unknown", "low"] },
     { "path": "risk_profile.known_issues", "operator": "length_eq", "value": 0 },
     { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
   ],

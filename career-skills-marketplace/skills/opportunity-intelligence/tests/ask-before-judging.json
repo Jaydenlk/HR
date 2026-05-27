@@ -1,0 +1,51 @@
+{
+  "name": "ask-before-judging-ambiguous-outsource-jd",
+  "description": "JD 包含部分外包/培训机构信号但证据不充分，不得在证据不足时给出明确结论",
+  "input": {
+    "jd_text": "诚招Java开发工程师，薪资面议，无需经验可培训，上班地点待定，联系方式请加微信",
+    "source_url": null,
+    "company_name": null,
+    "posting_date": null
+  },
+  "product_principle": "ask-before-judging",
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度不能高于 low"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须列出无法确认的事项：公司真实性、是否外包、薪资范围"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须追问 JD 来源平台、发布公司主体、是否有公司官网"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出可执行下一步，如核实招聘方资质再决定是否投递"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "强烈推荐|非常匹配|完美契合",
+      "reason": "信息不足时不能给强结论"
+    },
+    {
+      "pattern": "\\b(9[0-9]|100)\\s*分",
+      "reason": "信息不足时不能给高分"
+    }
+  ]
+}

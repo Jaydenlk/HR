@@ -82,3 +82,8 @@ knowledge_dependencies:
     usage: "中国市场 offer 比较标准维度定义，确保比较框架完整覆盖薪酬/成长/稳定性/工作生活平衡四大维度"
     required: false
     degradation: "使用合同中定义的默认维度权重，不引用知识文件"
+
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"

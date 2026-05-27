@@ -22,32 +22,44 @@
     {
       "type": "contains",
       "path": "output.term_explanations",
-      "expected": "OD"
+      "operator": "contains",
+      "value": "OD",
+      "description": "术语解释必须包含OD"
     },
     {
       "type": "contains",
       "path": "output.term_explanations.OD",
-      "expected": "外包派遣"
+      "operator": "contains",
+      "value": "外包派遣",
+      "description": "OD解释必须包含外包派遣"
     },
     {
       "type": "contains",
       "path": "output.term_explanations",
-      "expected": "五险一金"
+      "operator": "contains",
+      "value": "五险一金",
+      "description": "术语解释必须包含五险一金"
     },
     {
       "type": "contains",
       "path": "output.risk_flags",
-      "expected": "五险一金基数"
+      "operator": "contains",
+      "value": "五险一金基数",
+      "description": "风险提示必须包含五险一金基数风险"
     },
     {
       "type": "contains",
       "path": "output.risk_flags",
-      "expected": "期权条款"
+      "operator": "contains",
+      "value": "期权条款",
+      "description": "风险提示必须包含期权条款不透明风险"
     },
     {
-      "type": "confidence_above",
-      "path": "output.term_interpretations.confidence_score",
-      "expected": 0.75
+      "type": "confidence_check",
+      "path": "output.term_interpretations.confidence",
+      "operator": "gte",
+      "value": 0.75,
+      "description": "术语解释置信度应不低于0.75"
     }
   ]
 }

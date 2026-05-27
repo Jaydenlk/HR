@@ -47,15 +47,15 @@
 {
   "skill_name": "offer-comparator",
   "skill_version": "1.0.0",
-  "summary": "字节跳动年总包（不含RSU）约 59万，银行约 40万；综合时薪字节约 224元/时（60h/周），银行约 192元/时（40h/周）。银行时薪接近字节但工时少 33%。",
+  "summary": "字节跳动年总包（不含RSU）约 56万，银行约 40万；综合时薪字节约 180元/时（60h/周），银行约 192元/时（40h/周）。银行时薪反超字节且工时少 33%。",
   "confidence": "high",
   "evidence_used": [
     { "source": "用户提供 offer_a 数据", "grade": "A" },
     { "source": "用户提供 offer_b 数据", "grade": "A" }
   ],
   "recommendations": [
-    "从纯收入看，字节年总包高出银行约 55%（不含RSU）",
-    "考虑时薪，字节时薪约 224元/时，银行约 154元/时，但字节额外工时约 1000小时/年",
+    "从纯收入看，字节年总包高出银行约 40%（不含RSU）",
+    "考虑时薪，字节时薪约 180元/时，银行约 192元/时，银行时薪反超字节，且字节额外工时约 1040小时/年",
     "银行试用期无折扣，字节试用期损失约 7000元/月"
   ],
   "risks": [
@@ -78,8 +78,8 @@
       "offer_id": "offer_a",
       "company": "字节跳动",
       "dimensions": {
-        "annual_total_compensation": 594000,
-        "effective_monthly": 49500,
+        "annual_total_compensation": 560000,
+        "effective_monthly": 46667,
         "social_insurance_annual": 50400,
         "probation_loss": 7000,
         "stability_score": 6,
@@ -125,7 +125,7 @@
   ],
   "recommendation": {
     "preferred_offer_id": "offer_b",
-    "rationale": "用户优先考虑工作生活平衡，银行方案在该维度显著优于字节，且时薪差距在合理范围内（154 vs 224 元/时）。字节RSU价值不确定，不建议纳入决策权重。",
+    "rationale": "用户优先考虑工作生活平衡，银行方案在该维度显著优于字节。时薪银行（192元/时）实际反超字节（180元/时），少工作1040小时/年且收入不减。字节RSU价值不确定，不建议纳入决策权重。",
     "confidence": "medium",
     "caveats": [
       "如果用户更看重收入最大化，字节的决定性因素是RSU能否兑现",
@@ -137,7 +137,7 @@
       "offer_id": "offer_a",
       "company": "字节跳动",
       "weekly_hours": 60,
-      "hourly_rate_rmb": 224.4
+      "hourly_rate_rmb": 179.5
     },
     {
       "offer_id": "offer_b",

@@ -41,6 +41,9 @@ inputs:
       maximum: 20
       default: 10
       description: "最多返回帖子数量"
+    - name: source_audit
+      type: object
+      description: "来自 source-quality-auditor 的来源审计结果"
 
 confidence_policy:
   insufficient:

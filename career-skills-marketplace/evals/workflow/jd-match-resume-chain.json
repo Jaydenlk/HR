@@ -24,44 +24,60 @@
   },
   "assertions": [
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "jd-analyzer"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "jd-analyzer",
+      "description": "必须调用jd-analyzer"
     },
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "profile-builder"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "profile-builder",
+      "description": "必须调用profile-builder"
     },
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "match-diagnosis"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "match-diagnosis",
+      "description": "必须调用match-diagnosis"
     },
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "resume-tailor"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "resume-tailor",
+      "description": "必须调用resume-tailor"
     },
     {
       "type": "contains",
       "path": "match_diagnosis.gaps",
-      "expected": "消息队列"
+      "operator": "contains",
+      "value": "消息队列",
+      "description": "差距分析必须包含消息队列"
     },
     {
-      "type": "confidence_below",
-      "path": "match_diagnosis.confidence_score",
-      "expected": 0.85
+      "type": "confidence_check",
+      "path": "match_diagnosis.confidence",
+      "operator": "lte",
+      "value": 0.85,
+      "description": "置信度应低于0.85"
     },
     {
       "type": "contains",
       "path": "resume_tailor.output",
-      "expected": "API 网关"
+      "operator": "contains",
+      "value": "API 网关",
+      "description": "改写简历必须包含API网关经历"
     },
     {
-      "type": "refusal_present",
+      "type": "field_check",
       "path": "resume_tailor.fabrication_refused",
-      "expected": false
+      "operator": "eq",
+      "value": false,
+      "description": "改写简历时不应触发拒绝编造"
     }
   ]
 }

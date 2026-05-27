@@ -145,7 +145,10 @@
       "experience_hint": "你修复了每日百单丢失bug，对用户有直接影响，可以从用户价值角度包装这个故事"
     }
   ],
-  "evidence_used": [],
+  "evidence_used": [
+    { "source_type": "user_resume", "source_name": "用户工作经历", "field": "work_experience[0].highlights" },
+    { "source_type": "user_resume", "source_name": "用户工作经历", "field": "work_experience[1].highlights" }
+  ],
   "recommendations": [
     "「问题解决」维度已有3个故事，面试时可以根据问题方向灵活选择",
     "「needs_polish」的故事需要补充量化数据，建议翻查当时的数据记录"

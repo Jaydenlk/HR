@@ -90,6 +90,11 @@ knowledge_dependencies:
     required: false
     degradation: "品牌维度标注 uncertain，评分保守估算"
 
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"
+
 china_market_specificity: high
 
 live_research_required: false

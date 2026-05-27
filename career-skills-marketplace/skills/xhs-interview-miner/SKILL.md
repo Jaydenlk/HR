@@ -42,6 +42,14 @@ allowed-tools: [Read, Grep, WebSearch, WebFetch]
 4. `next_actions` 引导用户手动搜索小红书
 5. `credibility_ceiling` 仍标注为 `C`
 
+## source_audit 动态置信度调整
+
+当调用方传入 `source_audit`（来自 `source-quality-auditor` 的审计结果）时，
+本 skill 以审计结果中的 `credibility_ceiling` 动态调整本次输出的可信度上限。
+
+- **有 source_audit 时**：读取 `source_audit.credibility_ceiling`，以该等级作为本次输出的最高允许 `credibility_grade`。
+- **无 source_audit 时**：回退到硬编码上限 C 级（小红书内容可信度固定上限）。
+
 ## 输出字段说明
 
 ### mined_posts[]

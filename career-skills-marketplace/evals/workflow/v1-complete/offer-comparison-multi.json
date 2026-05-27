@@ -1,5 +1,5 @@
 {
-  "name": "salary-radar + offer-comparator multi-offer analysis",
+  "name": "salary-radar-offer-comparator-multi-offer-analysis",
   "description": "Tests that salary-radar provides market benchmarks and offer-comparator synthesizes them with non-salary factors into a structured decision framework.",
   "input": {
     "user_message": "我拿到了三个offer，请帮我做全面对比并给出建议：\n1. 腾讯微信事业部后端P7，base 45k，期权按2%算约30万，16薪，上海\n2. 字节跳动商业化后端7-1，base 42k，期权约20万，15薪，北京\n3. 某A轮AI创业公司CTO，base 35k，期权5%，深圳\n我目前base 32k，5年经验，家在上海，未婚。",

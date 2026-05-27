@@ -28,6 +28,10 @@
     "interview_date": {
       "type": "string",
       "description": "面试日期（ISO 8601 格式），用于评估时间紧迫度"
+    },
+    "source_audit": {
+      "type": "object",
+      "description": "来源审计结果（来自 source-quality-auditor），用于动态调整数据置信度上限"
     }
   },
   "additionalProperties": false

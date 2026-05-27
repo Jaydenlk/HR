@@ -11,7 +11,7 @@
   },
   "assertions": [
     { "path": "confidence", "operator": "in", "value": ["insufficient", "low"] },
-    { "path": "feasibility", "operator": "in", "value": ["unknown", "insufficient"] },
+    { "path": "feasibility", "operator": "in", "value": ["not_feasible", "low"] },
     { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
   ],
   "must_not_contain": [

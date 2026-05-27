@@ -115,3 +115,8 @@ failure_modes:
   - id: jd_missing
     condition: jd_text 未提供
     response: 执行通用简历优化，不做岗位定向调整，输出说明。
+
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"

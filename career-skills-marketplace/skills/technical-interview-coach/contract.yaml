@@ -66,10 +66,10 @@ failure_modes:
 
 china_market_specificity: high
 
-live_research_required: true
+live_research_required: false
 
 degradation_behavior:
-  no_company_data: "company_specific_focus 为空数组，practice_questions 基于通用规律，cannot_determine 说明缺失的公司特定信息"
+  no_company_data: "company_specific_focus 为空数组，practice_questions 基于通用规律，cannot_determine 说明缺失的公司特定信息。注：本 skill 仅使用 Read/Grep 工具读取预加载的知识图谱，无实时联网能力，实时面经数据由 interview-intelligence 传入"
   no_interview_intelligence: "preparation_plan 基于该类型技术岗的通用面试规律，confidence: low"
   limited_time: "若 available_weeks < 2，优先级只包含 critical 项，说明时间不足以全面覆盖"
 

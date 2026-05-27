@@ -114,7 +114,7 @@
   "evidence_used": [
     { "source": "看准网腾讯评价", "time_range": "2025-2026", "count": 150 },
     { "source": "牛客面经", "time_range": "2025-2026", "count": 67 },
-    { "source": "脉脉薪资数据", "time_range": "2025年", "count": 35 }
+    { "source": "脉脉薪资数据", "time_range": "2025年", "count": 35, "audited_by": "source-quality-auditor", "auditor_grade": "B", "auditor_note": "脉脉数据有实名背书，满足四要素（年份/城市/岗位/来源），评为 B 级；salary_range_estimate 引用此数据源" }
   ],
   "recommendations": [
     "提前研究目标BU的核心产品（微信/QQ音乐/腾讯视频/游戏等），准备真实使用洞察",

@@ -60,7 +60,7 @@ skills:
     role: worker
     layer: execution
     description: "投递策略：制定岗位优先级、时间节点与投递路径"
-    depends_on: [opportunity-intelligence, match-diagnosis]
+    depends_on: [profile-builder, source-quality-auditor]
     live_research_required: false
   - name: application-tracker
     path: skills/application-tracker
@@ -74,7 +74,7 @@ skills:
     role: worker
     layer: execution
     description: "日计划生成：基于求职阶段和面试安排生成每日行动计划"
-    depends_on: [application-tracker]
+    depends_on: [profile-builder, application-tracker]
     live_research_required: false
   - name: networking-message-writer
     path: skills/networking-message-writer
@@ -104,7 +104,7 @@ skills:
     role: worker
     layer: interview
     description: "面试情报：汇总目标公司面试流程、高频题型与评委风格"
-    depends_on: [jd-analyzer]
+    depends_on: [source-quality-auditor]
     live_research_required: true
   - name: mock-interviewer
     path: skills/mock-interviewer
@@ -139,7 +139,7 @@ skills:
     role: worker
     layer: interview
     description: "行为故事构建：将个人经历结构化为 STAR 格式的行为面试素材"
-    depends_on: [profile-builder]
+    depends_on: [profile-builder, interview-debrief]
     live_research_required: false
   - name: technical-interview-coach
     path: skills/technical-interview-coach
@@ -211,7 +211,7 @@ skills:
     role: worker
     layer: market_intelligence
     description: "行业趋势分析：解读行业增长周期、政策影响与人才需求变化"
-    depends_on: [source-quality-auditor]
+    depends_on: [market-radar, source-quality-auditor]
     live_research_required: true
 
   # Layer 5: Career Strategy
@@ -269,7 +269,7 @@ skills:
     role: worker
     layer: career_strategy
     description: "城市与行业适配顾问：基于目标行业分布和个人约束推荐最优就业城市"
-    depends_on: [industry-trend-analyst]
+    depends_on: [profile-builder]
     live_research_required: false
 
 shared:
@@ -291,10 +291,11 @@ knowledge:
   market_sources: knowledge/market-sources/
 
 knowledge_stats:
-  companies: 50
-  company_stage: "A (seed)"
+  companies: 600
+  company_tiers: "T1=50 (deep) + T2=250 (standard) + T3=300 (lightweight)"
   role_categories: 12
-  market_terms: 18
+  roles: 30
+  market_terms: 30
   interview_question_types: 8
   offer_comparison_factors: 15
   city_industry_mappings: 20

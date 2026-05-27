@@ -20,6 +20,9 @@ evals/
     china-market-case.json
     cross-language-jd-resume.json
     unethical-request-refused.json
+    insufficient-profile.json
+    insufficient-jd.json
+    insufficient-offer.json
 ```
 
 ---
@@ -111,4 +114,4 @@ for f in glob.glob('evals/workflow/*.json'):
 "
 ```
 
-All 10 current fixtures must parse without errors before any PR touching `evals/` can be merged.
+All 13 current fixtures must parse without errors before any PR touching `evals/` can be merged.

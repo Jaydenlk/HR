@@ -1,0 +1,3011 @@
+meta:
+  tier: tier_3
+  total: 300
+  freshness: "2026-Q2-estimate"
+  last_verified: "2026-05-27"
+  note: 低置信度扩展公司，覆盖新一线城市科技企业、D轮以下初创、垂直行业龙头、外资小型办公室，待社区验证
+
+companies:
+  - id: zhongsoftware-chengdu
+    canonical_name: 中软国际成都
+    aliases: ["中软国际", "中软成都"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: ufoto-chengdu
+    canonical_name: 互影科技
+    aliases: ["互影科技", "Ufoto"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guanyu-tech
+    canonical_name: 观远数据
+    aliases: ["观远数据", "观远", "Guandata"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chengdu-xinchao
+    canonical_name: 新潮传媒
+    aliases: ["新潮传媒", "电梯广告"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: seewo-tech
+    canonical_name: 希沃科技
+    aliases: ["希沃", "Seewo", "视源股份旗下"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都", "广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: sichuan-changhong
+    canonical_name: 四川长虹
+    aliases: ["四川长虹", "长虹电视", "长虹集团"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["成都", "绵阳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chengdu-yitu
+    canonical_name: 依图科技成都
+    aliases: ["依图科技", "依图成都"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: pixelworks-cd
+    canonical_name: 矽力杰成都
+    aliases: ["矽力杰成都", "Pixelworks成都"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: lianhua-tech-cd
+    canonical_name: 联华科技成都
+    aliases: ["联华科技", "联华成都"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: dacheng-cloud-cd
+    canonical_name: 大成云网
+    aliases: ["大成云网", "大成科技"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chengdu-huawei-bpo
+    canonical_name: 华为成都研发中心
+    aliases: ["华为成都", "华为成都研发"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: anjiuyun
+    canonical_name: 安居云
+    aliases: ["安居云", "房产科技"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: dingdang-health
+    canonical_name: 叮当快药
+    aliases: ["叮当快药", "叮当健康"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: laobaixing-pharma
+    canonical_name: 老百姓大药房
+    aliases: ["老百姓大药房", "老百姓药房"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都", "长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: muyuan-tech
+    canonical_name: 目源科技
+    aliases: ["目源科技", "Muyuan"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chengdu-iflytek
+    canonical_name: 科大讯飞成都
+    aliases: ["讯飞成都", "科大讯飞成都"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: boxin-tech
+    canonical_name: 博欣科技
+    aliases: ["博欣科技", "BoXin"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: leifu-tech
+    canonical_name: 雷富科技
+    aliases: ["雷富科技", "Leifu"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nongfenqi
+    canonical_name: 农分期
+    aliases: ["农分期", "NongFenQi", "涉农金融"]
+    company_type: finance
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chengdu-deepblue
+    canonical_name: 深蓝汽车成都
+    aliases: ["深蓝汽车成都", "深蓝成都研发"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hisilicon-wuhan
+    canonical_name: 海思半导体武汉
+    aliases: ["海思武汉", "HiSilicon武汉"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-guide
+    canonical_name: 高德红外
+    aliases: ["高德红外", "Guide Infrared"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-douyu-tech
+    canonical_name: 斗鱼科技武汉总部
+    aliases: ["斗鱼武汉", "武汉斗鱼"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: yangtze-memory
+    canonical_name: 长江存储
+    aliases: ["长江存储", "YMTC", "武汉芯片"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-tianyu
+    canonical_name: 天喻信息
+    aliases: ["天喻信息", "Wuhan Tianyu"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-baidu-cloud
+    canonical_name: 百度武汉研发中心
+    aliases: ["百度武汉", "百度武汉研发"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-hci
+    canonical_name: 光谷人机交互研究院
+    aliases: ["光谷人机交互", "HCI武汉"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: ewinwin-wuhan
+    canonical_name: 嬴彻科技武汉
+    aliases: ["嬴彻科技", "Inceptio武汉"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["武汉", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-transwarp
+    canonical_name: 星环科技武汉
+    aliases: ["星环科技", "Transwarp武汉"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-ecloud
+    canonical_name: 电信云武汉
+    aliases: ["天翼云武汉", "电信云武汉基地"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-fibrlink
+    canonical_name: 烽火通信
+    aliases: ["烽火通信", "FiberHome", "烽火"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-greenland-tech
+    canonical_name: 绿地科技武汉
+    aliases: ["绿地科技", "绿地数字"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-gree-smart
+    canonical_name: 格力智能装备武汉
+    aliases: ["格力装备武汉", "格力智能武汉"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-whty
+    canonical_name: 武汉天远视科技
+    aliases: ["天远视科技", "WHTY"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wuhan-iflytek
+    canonical_name: 科大讯飞武汉分部
+    aliases: ["讯飞武汉", "科大讯飞武汉"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["武汉"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-tuhu
+    canonical_name: 途虎养车南京
+    aliases: ["途虎养车", "Tuhu Car", "途虎南京"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["南京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-jimu
+    canonical_name: 积目科技
+    aliases: ["积目科技", "Jimu"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-ztesoft
+    canonical_name: 中兴软创
+    aliases: ["中兴软创", "ZTEsoft", "中兴业务软件"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京", "深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-runhe
+    canonical_name: 润和软件
+    aliases: ["润和软件", "HuaYun", "HYC"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-nari-tech
+    canonical_name: 南瑞集团
+    aliases: ["南瑞集团", "NARI Tech", "南瑞科技"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-casco
+    canonical_name: 卡斯柯信号
+    aliases: ["卡斯柯信号", "CASCO Signal"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-codewave
+    canonical_name: 网易云音乐南京
+    aliases: ["网易云音乐南京", "网易南京研发"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-wangsu
+    canonical_name: 网宿科技南京
+    aliases: ["网宿科技", "Wangsu南京", "CDN南京"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-fiberhome
+    canonical_name: 南京烽火
+    aliases: ["南京烽火", "FiberHome南京"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-dahua
+    canonical_name: 大华技术南京研发
+    aliases: ["大华南京", "大华南京研发"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-neusoft
+    canonical_name: 东软集团南京
+    aliases: ["东软南京", "Neusoft南京"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-wenjie
+    canonical_name: 文杰信息
+    aliases: ["文杰信息", "Wenjie Info"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-suning-tech
+    canonical_name: 苏宁科技南京
+    aliases: ["苏宁科技", "苏宁技术中心"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-liuliang
+    canonical_name: 六量科技
+    aliases: ["六量科技", "LiuLiang"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nanjing-sanweichuan
+    canonical_name: 三维传
+    aliases: ["三维传", "SanWeiChuan"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-casicloud
+    canonical_name: 中国航天云网西安
+    aliases: ["航天云网西安", "CASICLOUD西安"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-dahua
+    canonical_name: 大华技术西安研发
+    aliases: ["大华西安", "大华西安研发"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-tongchan
+    canonical_name: 通产信息
+    aliases: ["通产信息", "TongChan"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-heli
+    canonical_name: 西安合力亿捷
+    aliases: ["合力亿捷", "客服系统西安"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-thunisoft
+    canonical_name: 清华同方软件西安
+    aliases: ["同方软件西安", "清华同方西安"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-360-rd
+    canonical_name: 360西安研发
+    aliases: ["360西安", "360西安研发", "奇安信西安"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-aero-engine
+    canonical_name: 航发西控
+    aliases: ["航发西控", "航空发动机西安"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-meituan
+    canonical_name: 美团西安研发
+    aliases: ["美团西安", "美团西安中心"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-yunda
+    canonical_name: 韵达科技西安
+    aliases: ["韵达西安", "韵达科技西安"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-lewei
+    canonical_name: 乐威科技
+    aliases: ["乐威科技", "LeWei西安"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-datang
+    canonical_name: 大唐电信西安
+    aliases: ["大唐电信西安", "大唐西安研发"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-primus
+    canonical_name: 铂睿科技
+    aliases: ["铂睿科技", "Primus西安"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-beyond-limit
+    canonical_name: 超越极限
+    aliases: ["超越极限", "Beyond Limit"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-nvxiu
+    canonical_name: 西安诺维雪
+    aliases: ["诺维雪", "Nvxiu西安"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xian-huanqiu
+    canonical_name: 环球数科西安
+    aliases: ["环球数科", "环球西安"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["西安"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-meituan
+    canonical_name: 美团长沙研发
+    aliases: ["美团长沙", "美团长沙研发"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-didi
+    canonical_name: 滴滴长沙研发
+    aliases: ["滴滴长沙", "滴滴长沙研发"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hengsheng-digi
+    canonical_name: 恒生电子长沙
+    aliases: ["恒生电子", "恒生长沙", "金融IT"]
+    company_type: finance
+    tier: tier_3
+    cities: ["长沙", "杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-keda
+    canonical_name: 科达制造
+    aliases: ["科达制造", "KEDA Smart"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-cscec-tech
+    canonical_name: 中建科技长沙
+    aliases: ["中建科技长沙", "中建长沙研发"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-hunan-tv-tech
+    canonical_name: 芒果超媒技术部门
+    aliases: ["芒果超媒技术", "芒果TV技术", "湖南卫视科技"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-sany-heavy
+    canonical_name: 三一重工IT
+    aliases: ["三一重工IT", "三一智能IT"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-zoomlion-tech
+    canonical_name: 中联重科IT
+    aliases: ["中联重科IT", "中联数字"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-vivo-dev
+    canonical_name: vivo长沙研发
+    aliases: ["vivo长沙", "vivo长沙研发"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: changsha-deepblue-cs
+    canonical_name: 深蓝汽车长沙基地
+    aliases: ["深蓝汽车长沙", "深蓝长沙研发"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhengzhou-yuanchen
+    canonical_name: 元辰科技
+    aliases: ["元辰科技", "YuanChen郑州"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["郑州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhengzhou-yusys
+    canonical_name: 宇信科技郑州
+    aliases: ["宇信科技", "宇信郑州"]
+    company_type: finance
+    tier: tier_3
+    cities: ["郑州", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhengzhou-boyuan
+    canonical_name: 博苑网络
+    aliases: ["博苑网络", "BoyuanNet"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["郑州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhengzhou-zhongzhi
+    canonical_name: 中知数字
+    aliases: ["中知数字", "ZhongZhi Digital"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["郑州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hefei-iflexion
+    canonical_name: 科大国创
+    aliases: ["科大国创", "iFlexion合肥"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["合肥"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hefei-ustc-tech
+    canonical_name: 中科类脑
+    aliases: ["中科类脑", "科大类脑智能"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["合肥"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hefei-rongsheng
+    canonical_name: 荣胜科技合肥
+    aliases: ["荣胜科技", "Rongsheng合肥"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["合肥"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hefei-boe-cloud
+    canonical_name: 京东方云合肥
+    aliases: ["京东方云", "BOE Cloud合肥"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["合肥"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hefei-bitauto
+    canonical_name: 易鑫集团合肥
+    aliases: ["易鑫集团", "Bitauto合肥"]
+    company_type: finance
+    tier: tier_3
+    cities: ["合肥"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hefei-shengda-electric
+    canonical_name: 盛达电气
+    aliases: ["盛达电气", "ShengDa Electric"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["合肥"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nongxin-tech
+    canonical_name: 农信互联
+    aliases: ["农信互联", "NongXin", "猪联网"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: dabeigou-agri
+    canonical_name: 大北农科技
+    aliases: ["大北农科技", "DBN Tech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: jd-agtech
+    canonical_name: 京东农场
+    aliases: ["京东农场", "JD AgTech", "京东农业"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: alibaba-agtech
+    canonical_name: 阿里巴巴农业
+    aliases: ["阿里农业", "盒马农业", "数字农业阿里"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["杭州", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xinjuwang-agri
+    canonical_name: 新巨网
+    aliases: ["新巨网", "XinJuWang", "农业互联网"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhongnong-bigdata
+    canonical_name: 中农大数据
+    aliases: ["中农大数据", "ZhongNong BigData"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: greenland-agri-iot
+    canonical_name: 绿农IoT
+    aliases: ["绿农IoT", "农业物联网"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海", "成都"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: pinduoduo-agri
+    canonical_name: 多多买菜农业
+    aliases: ["多多农研", "拼多多农业", "多多农业"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: cainiao-tech
+    canonical_name: 菜鸟科技
+    aliases: ["菜鸟科技", "Cainiao Tech", "菜鸟网络"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["杭州", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shansong-tech
+    canonical_name: 闪送科技
+    aliases: ["闪送", "Shansong", "即时配送"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: yundaex-tech
+    canonical_name: 韵达科技
+    aliases: ["韵达科技", "Yundaex Tech"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhongtong-tech
+    canonical_name: 中通科技
+    aliases: ["中通科技", "ZTO Tech", "中通技术"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: yto-tech
+    canonical_name: 圆通科技
+    aliases: ["圆通科技", "YTO Express Tech"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: g7-networks
+    canonical_name: G7易流
+    aliases: ["G7", "G7易流", "商用车物联网"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: manbang-tech
+    canonical_name: 满帮科技
+    aliases: ["满帮", "Full Truck Alliance", "运满满货车帮"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["贵阳", "上海", "南京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shukun-tech
+    canonical_name: 树根互联
+    aliases: ["树根互联", "ShuGen", "工业互联网"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海", "深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: lawtime-tech
+    canonical_name: 法天使
+    aliases: ["法天使", "LawTime", "法律AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: lvfa-tech
+    canonical_name: 律法科技
+    aliases: ["律法科技", "LvFa Tech", "合同AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: numlaw-ai
+    canonical_name: 数律科技
+    aliases: ["数律科技", "NumLaw AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: juzheng-law
+    canonical_name: 聚正法律科技
+    aliases: ["聚正法律", "JuZheng Law"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wolawyer
+    canonical_name: 无讼科技
+    aliases: ["无讼", "WoLawyer", "无讼法务云"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhangmen-edu
+    canonical_name: 掌门教育
+    aliases: ["掌门教育", "掌门1对1", "ZhangMen"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: ixuetang-tech
+    canonical_name: 爱学堂科技
+    aliases: ["爱学堂", "iXuetang"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: speakfit-en
+    canonical_name: 流利说
+    aliases: ["流利说", "Liulishuo", "AI英语"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: gaotu-tech
+    canonical_name: 高途教育
+    aliases: ["高途", "Gaotu", "跟谁学"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: onlineschool-cn
+    canonical_name: 网校通科技
+    aliases: ["网校通", "OnlineSchool"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: kaipusen-edu
+    canonical_name: 开普森教育
+    aliases: ["开普森", "KaiPuSen"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: ulearning-tech
+    canonical_name: 优学院
+    aliases: ["优学院", "ULearning", "企业培训"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: laowai-edu
+    canonical_name: 老外网教育
+    aliases: ["老外网", "LaowaiEdu", "外教平台"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+
+  - id: minimax-ai
+    canonical_name: MiniMax
+    aliases: ["MiniMax", "MiniMax AI", "Talkie"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: stepfun-ai
+    canonical_name: 阶跃星辰
+    aliases: ["阶跃星辰", "Step Fun", "阶跃AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+
+
+  - id: lingxin-ai
+    canonical_name: 零一万物
+    aliases: ["零一万物", "01.AI", "Yi大模型"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: midu-ai
+    canonical_name: 秘塔AI
+    aliases: ["秘塔AI", "Midu AI", "秘塔搜索"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: deepseek-tech
+    canonical_name: 深度求索
+    aliases: ["深度求索", "DeepSeek", "DeepSeek AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: tiangong-ai
+    canonical_name: 天工AI
+    aliases: ["天工AI", "TianGong", "昆仑万维旗下AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xloop-ai
+    canonical_name: 循环智能
+    aliases: ["循环智能", "XLoop AI", "对话AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: biren-tech
+    canonical_name: 壁仞科技
+    aliases: ["壁仞科技", "Biren Tech", "AI芯片"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: mthreads-gpu
+    canonical_name: 摩尔线程
+    aliases: ["摩尔线程", "Moore Threads", "国产GPU"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: suiyuan-tech
+    canonical_name: 燧原科技
+    aliases: ["燧原科技", "Suiyuan Tech", "AI训练芯片"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: ninebot-ai
+    canonical_name: 九号公司
+    aliases: ["九号公司", "Ninebot", "九号机器人"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: cowarobot
+    canonical_name: 科沃斯机器人
+    aliases: ["科沃斯", "ECOVACS", "扫地机器人"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["苏州", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: elastic-cn
+    canonical_name: Elastic中国区
+    aliases: ["Elastic", "Elasticsearch中国", "ELK Stack"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: mongodb-cn
+    canonical_name: MongoDB中国区
+    aliases: ["MongoDB", "MongoDB中国", "文档数据库"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: huggingface-cn
+    canonical_name: Hugging Face中国区
+    aliases: ["Hugging Face", "HuggingFace中国", "AI模型社区"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: cloudera-cn
+    canonical_name: Cloudera中国区
+    aliases: ["Cloudera", "Cloudera中国", "大数据平台"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: teradata-cn
+    canonical_name: Teradata中国区
+    aliases: ["Teradata", "Teradata中国", "数据仓库"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zendesk-cn
+    canonical_name: Zendesk中国区
+    aliases: ["Zendesk", "Zendesk中国", "客服SaaS"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: freshworks-cn
+    canonical_name: Freshworks中国区
+    aliases: ["Freshworks", "Freshworks中国", "客服CRM"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hubspot-cn
+    canonical_name: HubSpot中国区
+    aliases: ["HubSpot", "HubSpot中国", "营销CRM"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: docusign-cn
+    canonical_name: DocuSign中国区
+    aliases: ["DocuSign", "DocuSign中国", "电子签约"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: paloalto-cn
+    canonical_name: Palo Alto Networks中国区
+    aliases: ["Palo Alto Networks", "PAN中国", "下一代防火墙"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: fortinet-cn
+    canonical_name: Fortinet中国区
+    aliases: ["Fortinet", "Fortinet中国", "FortiGate安全"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: crowdstrike-cn
+    canonical_name: CrowdStrike中国区
+    aliases: ["CrowdStrike", "CrowdStrike中国", "端点安全"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: vmware-cn
+    canonical_name: VMware中国区
+    aliases: ["VMware", "VMware中国", "Broadcom虚拟化"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: nutanix-cn
+    canonical_name: Nutanix中国区
+    aliases: ["Nutanix", "Nutanix中国", "超融合基础设施"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: netapp-cn
+    canonical_name: NetApp中国区
+    aliases: ["NetApp", "NetApp中国", "数据存储管理"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: okta-cn
+    canonical_name: Okta中国区
+    aliases: ["Okta", "Okta中国", "身份管理"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: figma-cn
+    canonical_name: Figma中国区
+    aliases: ["Figma", "Figma中国", "UI设计工具"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: retool-cn
+    canonical_name: Retool中国区
+    aliases: ["Retool", "Retool中国", "低代码内部工具"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: palantir-cn
+    canonical_name: Palantir中国区
+    aliases: ["Palantir", "Palantir中国", "数据分析AI"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: scale-ai-cn
+    canonical_name: Scale AI中国区
+    aliases: ["Scale AI", "Scale AI中国", "AI数据标注"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guomei-tech
+    canonical_name: 国美零售科技
+    aliases: ["国美科技", "GuoMei Tech"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: pconline-tech
+    canonical_name: 太平洋电脑网
+    aliases: ["太平洋电脑", "PCOnline"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zol-tech
+    canonical_name: 中关村在线
+    aliases: ["中关村在线", "ZOL", "IT媒体"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: smzdm-cn
+    canonical_name: 什么值得买
+    aliases: ["什么值得买", "SMZDM", "导购社区"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guazi-used-car
+    canonical_name: 瓜子二手车
+    aliases: ["瓜子二手车", "GuaZi", "瓜子网"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: uxin-group
+    canonical_name: 优信集团
+    aliases: ["优信", "Uxin", "优信二手车"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: lvmama-travel
+    canonical_name: 驴妈妈旅游
+    aliases: ["驴妈妈", "LvMama", "驴妈妈旅游网"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: qyer-travel
+    canonical_name: 穷游网
+    aliases: ["穷游", "Qyer", "穷游自由行"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: tujia-vacation
+    canonical_name: 途家民宿
+    aliases: ["途家", "Tujia", "途家民宿"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: moji-weather
+    canonical_name: 墨迹天气
+    aliases: ["墨迹天气", "MoJi Weather", "天气App"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: coocaa-tv
+    canonical_name: 酷开科技
+    aliases: ["酷开科技", "Coocaa TV", "创维旗下OTT"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: yanxuan-tech
+    canonical_name: 网易严选技术
+    aliases: ["网易严选", "Yanxuan Tech"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["杭州", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wangyi-cloudmusic
+    canonical_name: 网易云音乐
+    aliases: ["网易云音乐", "CloudMusic", "云音乐"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["杭州", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: kugou-music
+    canonical_name: 酷狗音乐
+    aliases: ["酷狗音乐", "KuGou Music", "酷狗"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["广州", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: kuwo-music
+    canonical_name: 酷我音乐
+    aliases: ["酷我音乐", "KuWo Music", "酷我"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: lizhi-podcast
+    canonical_name: 荔枝FM
+    aliases: ["荔枝FM", "Lizhi Podcast", "荔枝播客"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: jiemian-news
+    canonical_name: 界面新闻
+    aliases: ["界面新闻", "JieMian", "界面财经"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xueqiu-finance
+    canonical_name: 雪球网
+    aliases: ["雪球网", "Xueqiu", "雪球投资"]
+    company_type: finance
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: maoyan-group
+    canonical_name: 猫眼娱乐
+    aliases: ["猫眼娱乐", "MaoYan", "猫眼电影"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: cango-finance
+    canonical_name: 灿谷集团
+    aliases: ["灿谷", "Cango Finance", "汽车金融"]
+    company_type: finance
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: qudian-finance
+    canonical_name: 趣店金融
+    aliases: ["趣店", "QuDian", "趣分期"]
+    company_type: finance
+    tier: tier_3
+    cities: ["厦门", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shouqianba
+    canonical_name: 收钱吧
+    aliases: ["收钱吧", "ShouQianBa", "聚合收款"]
+    company_type: finance
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xinyebao
+    canonical_name: 信也科技
+    aliases: ["信也科技", "XinYeBao", "PPmoney"]
+    company_type: finance
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: 91jinrong
+    canonical_name: 91金融
+    aliases: ["91金融", "91JinRong", "互联网金融"]
+    company_type: finance
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: 51job-group
+    canonical_name: 前程无忧
+    aliases: ["前程无忧", "51Job", "无忧精英"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhaopin-hr
+    canonical_name: 智联招聘
+    aliases: ["智联招聘", "ZhaoPin", "智联HR"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: growing-io
+    canonical_name: GrowingIO
+    aliases: ["GrowingIO", "增长分析", "用户行为分析"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: sensors-data
+    canonical_name: 神策数据
+    aliases: ["神策数据", "Sensors Data", "私有化数据分析"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: datarangers-cn
+    canonical_name: 数数科技DataRangers
+    aliases: ["数数科技", "DataRangers", "游戏数据分析"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: posthog-cn
+    canonical_name: PostHog中国区
+    aliases: ["PostHog", "PostHog中国", "开源产品分析"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: metabase-cn
+    canonical_name: Metabase中国区
+    aliases: ["Metabase", "Metabase中国", "开源BI"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhuque-satellite
+    canonical_name: 朱雀空间
+    aliases: ["朱雀空间", "ZhuQue Space", "商业航天"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: gelonghui-finance
+    canonical_name: 格隆汇
+    aliases: ["格隆汇", "GeLongHui", "港股财经"]
+    company_type: finance
+    tier: tier_3
+    cities: ["上海", "深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: tiantian-fund-app
+    canonical_name: 天天基金网
+    aliases: ["天天基金", "TianTian Fund", "天天基金APP"]
+    company_type: finance
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: yixin-group-fin
+    canonical_name: 易鑫集团
+    aliases: ["易鑫集团", "YiXin Group", "汽车贷款"]
+    company_type: finance
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: workplus-oa
+    canonical_name: WorkPlus协同
+    aliases: ["WorkPlus", "WorkPlus协同", "企业IM"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shimo-docs-plus
+    canonical_name: 轻流平台
+    aliases: ["轻流", "QingLiu", "无代码平台"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: petmart-cn
+    canonical_name: 宠物家
+    aliases: ["宠物家", "PetMart", "宠物零售科技"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: moji-agri
+    canonical_name: 摩吉科技
+    aliases: ["摩吉科技", "MoJi Agri", "农业大数据"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: yihua-timber
+    canonical_name: 宜华生活科技
+    aliases: ["宜华生活", "YiHua Timber", "家居科技"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xiaxia-beauty
+    canonical_name: 小葫芦美妆
+    aliases: ["小葫芦美妆", "XiaXia Beauty", "美妆直播"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: fengniao-agtech
+    canonical_name: 丰鸟农业科技
+    aliases: ["丰鸟农业", "FengNiao AgTech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: polysign-hr
+    canonical_name: 博睿人力科技
+    aliases: ["博睿人力", "PolySign HR", "HR SaaS"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shengda-sports
+    canonical_name: 盛大体育科技
+    aliases: ["盛大体育", "ShengDa Sports"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: yuanpeng-vr
+    canonical_name: 元鹏VR科技
+    aliases: ["元鹏VR", "YuanPeng VR"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: midu-search
+    canonical_name: 秘塔搜索
+    aliases: ["秘塔搜索", "Midu Search", "AI搜索引擎"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: jina-ai-cn
+    canonical_name: Jina AI中国区
+    aliases: ["Jina AI", "Jina AI中国", "嵌入模型"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: wandb-cn
+    canonical_name: Weights and Biases中国区
+    aliases: ["WandB", "Weights and Biases中国", "ML实验追踪"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: labelbox-cn
+    canonical_name: Labelbox中国区
+    aliases: ["Labelbox", "Labelbox中国", "数据标注平台"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: roboflow-cn
+    canonical_name: Roboflow中国区
+    aliases: ["Roboflow", "Roboflow中国", "计算机视觉数据"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-changan-digital
+    canonical_name: 长安数字科技
+    aliases: ["长安数字", "长安汽车IT"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-zhongyuan-net
+    canonical_name: 中原网视
+    aliases: ["中原网视", "重庆中原"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-caeri-tech
+    canonical_name: 重庆汽研技术
+    aliases: ["汽研技术", "重庆汽研IT"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-liangjiang-ai
+    canonical_name: 两江人工智能研究院
+    aliases: ["两江AI", "重庆两江AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-gome-rd
+    canonical_name: 国美重庆研发中心
+    aliases: ["国美重庆", "国美重庆研发"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-xiaomi-mfg
+    canonical_name: 小米重庆制造
+    aliases: ["小米重庆", "小米工厂重庆"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-bosch-cn
+    canonical_name: 博世重庆研发
+    aliases: ["博世重庆", "Bosch重庆研发"]
+    company_type: foreign_enterprise
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-vivo-mfg
+    canonical_name: vivo重庆制造
+    aliases: ["vivo重庆", "vivo重庆工厂"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-zhongruan
+    canonical_name: 中软国际重庆
+    aliases: ["中软重庆", "中软国际重庆"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: chongqing-aikea-tech
+    canonical_name: 爱客科技
+    aliases: ["爱客科技", "AiKea重庆"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["重庆"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-zhiyao
+    canonical_name: 执要科技
+    aliases: ["执要科技", "ZhiYao Tech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-mofang
+    canonical_name: 魔方格科技
+    aliases: ["魔方格", "MoFangGe"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-lianhua-cloud
+    canonical_name: 联花云科技
+    aliases: ["联花云", "LianHua Cloud"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-wanzhi
+    canonical_name: 万治科技
+    aliases: ["万治科技", "WanZhi Tech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-qilin-data
+    canonical_name: 麒麟数据
+    aliases: ["麒麟数据", "QiLin Data"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-shengbo
+    canonical_name: 盛搏科技
+    aliases: ["盛搏科技", "ShengBo Tech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-youzan-dev
+    canonical_name: 有赞技术
+    aliases: ["有赞技术", "Youzan Tech", "微商城技术"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-ruixing-tech
+    canonical_name: 瑞星科技杭州
+    aliases: ["瑞星科技", "Ruixing Tech杭州"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-xunyou-net
+    canonical_name: 寻游网络
+    aliases: ["寻游网络", "XunYou Net"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hangzhou-meiya-pico
+    canonical_name: 美亚柏科杭州
+    aliases: ["美亚柏科", "MeiYa Pico杭州", "电子取证"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-yealink
+    canonical_name: 亿联网络
+    aliases: ["亿联网络", "Yealink", "IP话机"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州", "厦门"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-wesion
+    canonical_name: 威信科技
+    aliases: ["威信科技", "Wesion广州"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-lianluo
+    canonical_name: 联络互动
+    aliases: ["联络互动", "LianLuo Tech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-cmge-dev
+    canonical_name: 中手游开发部
+    aliases: ["中手游技术", "CMGE Dev"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-igexin
+    canonical_name: 个推广州
+    aliases: ["个推广州", "iGetui广州", "移动推送广州"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-teligen
+    canonical_name: 泰联科技
+    aliases: ["泰联科技", "Teligen广州"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-ruijin
+    canonical_name: 睿金科技
+    aliases: ["睿金科技", "RuiJin Tech广州"]
+    company_type: finance
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-gzric
+    canonical_name: 广州智能制造研究院
+    aliases: ["广州智能制造", "GZRIC"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-topwise
+    canonical_name: 卓智科技
+    aliases: ["卓智科技", "Topwise广州"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: guangzhou-aispeech
+    canonical_name: 思必驰广州
+    aliases: ["思必驰广州", "AISpeech广州", "语音AI广州"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["广州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-gosuncn
+    canonical_name: 高新兴科技
+    aliases: ["高新兴", "GoSuncn", "智慧城市"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-nantian-it
+    canonical_name: 南天信息
+    aliases: ["南天信息", "NanTian IT"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-pax-tech
+    canonical_name: 百富计算机
+    aliases: ["百富计算机", "PAX Technology", "收款终端"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-winfo
+    canonical_name: 维信诺科技
+    aliases: ["维信诺", "Winfo OLED"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-yovole
+    canonical_name: 优沃科技
+    aliases: ["优沃科技", "YoVole深圳"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-shenyi
+    canonical_name: 深一智能
+    aliases: ["深一智能", "ShenYi AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-byd-cloud
+    canonical_name: 比亚迪云服务
+    aliases: ["比亚迪云", "BYD Cloud"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-bota-robotics
+    canonical_name: 柏惟机器人
+    aliases: ["柏惟机器人", "Bota Robotics深圳"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-kaadas
+    canonical_name: 凯迪仕智能锁
+    aliases: ["凯迪仕", "Kaadas", "智能锁IoT"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shenzhen-shijue-ai
+    canonical_name: 视觉AI深圳
+    aliases: ["视觉AI深圳", "ShiJue AI"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-lzlabs
+    canonical_name: 联至实验室
+    aliases: ["联至实验室", "LZLabs北京"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-chinasoft-rd
+    canonical_name: 中国软件研发中心
+    aliases: ["中软研发中心", "中国软件研发"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-eastmoney-tech
+    canonical_name: 东方财富技术部
+    aliases: ["东方财富技术", "东方财富Tech", "Choice金融终端技术"]
+    company_type: finance
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-wisdomtree
+    canonical_name: 智树科技
+    aliases: ["智树科技", "WisdomTree北京"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-shizhan
+    canonical_name: 实战科技
+    aliases: ["实战科技", "ShiZhan Tech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-moshanghua
+    canonical_name: 末上花科技
+    aliases: ["末上花", "MoShangHua"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-caac-tech
+    canonical_name: 中国航信技术
+    aliases: ["中国航信", "TravelSky Tech", "航信IT"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-cncert
+    canonical_name: 国家互联网应急中心
+    aliases: ["CNCERT", "国家互联网应急中心"]
+    company_type: state_owned
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-beike-tech
+    canonical_name: 贝壳找房技术
+    aliases: ["贝壳技术", "链家技术", "贝壳IT"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: beijing-qianxin-sec
+    canonical_name: 奇安信安全
+    aliases: ["奇安信", "QiAnXin", "网络安全奇安信"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-shunfeng-tech
+    canonical_name: 顺丰科技上海
+    aliases: ["顺丰科技上海", "SF Tech上海"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-lufax-tech
+    canonical_name: 陆金所技术
+    aliases: ["陆金所", "Lufax Tech", "平安金融壹账通"]
+    company_type: finance
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-moxian
+    canonical_name: 陌现科技
+    aliases: ["陌现科技", "MoXian Tech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-ksyun-edge
+    canonical_name: 金山云上海
+    aliases: ["金山云上海", "Ksyun上海"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-lalamove-cn
+    canonical_name: 货拉拉中国
+    aliases: ["货拉拉", "Lalamove中国", "同城货运"]
+    company_type: ecommerce_local
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-newrank
+    canonical_name: 新榜科技
+    aliases: ["新榜", "NewRank", "内容营销SaaS"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-taqu-tech
+    canonical_name: 他趣科技
+    aliases: ["他趣", "TaQu社交"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-yundong-tech
+    canonical_name: 云动科技
+    aliases: ["云动科技", "YunDong Tech"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-suning-fin
+    canonical_name: 苏宁金融上海
+    aliases: ["苏宁金融上海", "苏宁银行上海分部"]
+    company_type: finance
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: shanghai-ztgame
+    canonical_name: 中手游上海
+    aliases: ["中手游上海", "ZT Game上海"]
+    company_type: gaming_content
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: weiyikang-health
+    canonical_name: 微医康科技
+    aliases: ["微医康", "WeiYiKang"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["北京", "杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: jinhe-health
+    canonical_name: 锦合健康
+    aliases: ["锦合健康", "JinHe Health"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: yijia-health
+    canonical_name: 医家汇
+    aliases: ["医家汇", "YiJia Health", "连锁诊所平台"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhongjian-health-tech
+    canonical_name: 中检健康科技
+    aliases: ["中检健康", "CCIC Health Tech"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: pusheng-biotech
+    canonical_name: 溥盛生物
+    aliases: ["溥盛生物", "PuSheng Biotech"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: qiming-med
+    canonical_name: 启明医疗
+    aliases: ["启明医疗", "QiMing Med", "心脏瓣膜"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["苏州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xiangshi-pharma
+    canonical_name: 象石药业
+    aliases: ["象石药业", "XiangShi Pharma"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zhiwei-health
+    canonical_name: 智为健康
+    aliases: ["智为健康", "ZhiWei Health AI"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: carevision-ai
+    canonical_name: 景行科技
+    aliases: ["景行科技", "CareVision AI", "医疗影像AI"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: anxin-insurance-tech
+    canonical_name: 安心险科技
+    aliases: ["安心险科技", "AnXin Insurance Tech"]
+    company_type: finance
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: miku-health
+    canonical_name: 米库健康
+    aliases: ["米库健康", "Miku Health", "儿童健康监测"]
+    company_type: healthcare_biotech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: leapmotor-tech
+    canonical_name: 零跑汽车技术
+    aliases: ["零跑技术", "Leapmotor Tech", "零跑汽车IT"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: zeekr-tech
+    canonical_name: 极氪技术
+    aliases: ["极氪技术", "ZEEKR Tech", "极氪IT"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["杭州", "宁波"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hozon-aito
+    canonical_name: 哪吒汽车技术
+    aliases: ["哪吒技术", "Hozon Auto Tech"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["上海", "桐乡"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: faw-jiefang-ev
+    canonical_name: 一汽解放新能源
+    aliases: ["一汽解放EV", "FAW Jiefang EV"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["长春"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: svolt-energy
+    canonical_name: 蜂巢能源
+    aliases: ["蜂巢能源", "SVOLT Energy", "动力电池"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["常州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: capotech-ev
+    canonical_name: 远景动力
+    aliases: ["远景动力", "CapoTech EV", "Envision Power"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: sinoev-batteries
+    canonical_name: 中创新航
+    aliases: ["中创新航", "SinoEV Batteries", "CALB"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["常州", "深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: eve-energy
+    canonical_name: 亿纬锂能
+    aliases: ["亿纬锂能", "EVE Energy", "锂电池"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["惠州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: coslight-tech
+    canonical_name: 科士达
+    aliases: ["科士达", "Coslight Tech", "储能逆变器"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: heijin-tech
+    canonical_name: 黑晶科技
+    aliases: ["黑晶科技", "HeiJin Tech", "光伏组件"]
+    company_type: new_energy
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: pacvue-cn
+    canonical_name: Pacvue中国
+    aliases: ["Pacvue", "Pacvue中国", "亚马逊广告SaaS"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: datafini-tech
+    canonical_name: 数舶科技
+    aliases: ["数舶科技", "DataFini", "跨境数据分析"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: dtgo-tech
+    canonical_name: 大途科技
+    aliases: ["大途科技", "DTGO", "出海营销工具"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: akulaku-tech
+    canonical_name: Akulaku科技
+    aliases: ["Akulaku", "阿库拉库", "东南亚金融科技"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: raysync-cross
+    canonical_name: 镭速传输
+    aliases: ["镭速传输", "RaySync", "大文件跨境传输"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: kwaiads-global
+    canonical_name: 快手海外广告
+    aliases: ["快手海外广告", "SnackVideo广告", "Kwai Ads"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: cloudwalk-overseas
+    canonical_name: 云从科技海外
+    aliases: ["云从科技海外", "CloudWalk Overseas"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: tencentglobal-tech
+    canonical_name: 腾讯国际化技术
+    aliases: ["腾讯国际技术", "Tencent Global Tech"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: bixin-crypto
+    canonical_name: 币信
+    aliases: ["币信", "BixinCrypto", "加密货币钱包"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["香港", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: lianlian-global
+    canonical_name: 连连支付国际
+    aliases: ["连连支付", "LianLian Global", "跨境支付"]
+    company_type: overseas_cross_border
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: brandlink-cn
+    canonical_name: 品牌连接
+    aliases: ["品牌连接", "BrandLink", "KOL营销SaaS"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: admaster-cn
+    canonical_name: AdMaster
+    aliases: ["AdMaster", "精硕科技", "广告监测"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["上海", "北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: miaozhen-systems
+    canonical_name: 秒针系统
+    aliases: ["秒针系统", "Miaozhen Systems", "数字营销监测"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: xingyuzhao
+    canonical_name: 行云招网络
+    aliases: ["行云招", "XingYuZhao", "精准招募"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: mediav-cn
+    canonical_name: MediaV易传媒
+    aliases: ["MediaV", "易传媒", "程序化广告"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: dable-cn
+    canonical_name: Dable中国区
+    aliases: ["Dable", "Dable中国", "内容推荐广告"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["北京", "上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: tanx-alibaba
+    canonical_name: 淘宝联盟技术
+    aliases: ["淘宝联盟技术", "TanX广告", "阿里妈妈广告技术"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["杭州"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: mgtv-ads
+    canonical_name: 芒果TV广告技术
+    aliases: ["芒果TV广告", "MGTV Ads Tech"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["长沙"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: blue-cursor-tech
+    canonical_name: 蓝标传媒科技
+    aliases: ["蓝标传媒", "Blue Cursor", "BlueFocus技术"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["北京"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: roia-marketing
+    canonical_name: 行者营销
+    aliases: ["行者营销", "Roia Marketing", "效果营销"]
+    company_type: consulting_advertising
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: insta360
+    canonical_name: 影石创新
+    aliases: ["影石", "Insta360", "影石科技", "影石创新科技"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: tuhu-auto
+    canonical_name: 途虎养车
+    aliases: ["途虎", "Tuhu", "途虎科技", "途虎养车网"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hellobike
+    canonical_name: 哈啰出行
+    aliases: ["哈啰", "Hello", "哈罗单车", "哈啰单车", "哈啰出行科技"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+

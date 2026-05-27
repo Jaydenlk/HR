@@ -1,0 +1,48 @@
+{
+  "name": "ask-before-judging-no-target-jd",
+  "description": "提供了简历但没有目标 JD，无法定向优化，不得凭空假设目标岗位",
+  "input": {
+    "resume_text": "张明，产品经理，4年经验。主导用户增长产品线，DAU从80万增长至150万，设计A/B测试体系年均200+实验，使用SQL+Python数据分析，协调技术运营市场三方推进百人规模项目。"
+  },
+  "product_principle": "ask-before-judging",
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度不能高于 low"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须明确指出缺少目标 JD 无法进行定向优化"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须询问目标岗位或请用户粘贴 JD"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出可执行下一步，如提供目标 JD 链接或文本"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "强烈推荐|非常匹配|完美契合",
+      "reason": "信息不足时不能给强结论"
+    },
+    {
+      "pattern": "\\b(9[0-9]|100)\\s*分",
+      "reason": "信息不足时不能给高分"
+    }
+  ]
+}

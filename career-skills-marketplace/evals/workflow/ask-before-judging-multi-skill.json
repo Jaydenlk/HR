@@ -1,0 +1,59 @@
+{
+  "name": "ask-before-judging-anxious-graduate",
+  "description": "焦虑应届生完全未准备，principal 必须做信息收集而非直接评判，不得给出无据结论",
+  "input": {
+    "user_message": "我快毕业了什么都没准备，现在该怎么办"
+  },
+  "product_principle": "ask-before-judging",
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度不能高于 low"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须列出无法判断的事项：专业、目标岗位、毕业时间、已有技能"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须追问专业方向、目标行业/岗位、毕业时间节点"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出首步可执行行动，如完善个人信息或明确求职方向"
+    },
+    {
+      "type": "field_check",
+      "path": "triage_mode",
+      "operator": "equals",
+      "value": true,
+      "description": "principal 必须进入信息收集（triage）模式而非直接给方案"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "强烈推荐|非常匹配|完美契合",
+      "reason": "信息不足时不能给强结论"
+    },
+    {
+      "pattern": "\\b(9[0-9]|100)\\s*分",
+      "reason": "信息不足时不能给高分"
+    },
+    {
+      "pattern": "你应该立刻|你必须马上",
+      "reason": "在了解背景前不得给强指令性建议"
+    }
+  ]
+}

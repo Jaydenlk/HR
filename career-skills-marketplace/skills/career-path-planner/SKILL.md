@@ -79,3 +79,18 @@ allowed-tools: [Read, Grep]
 |------|------|---------|------------|
 | `../_career-skills-shared/knowledge/career-path-patterns.yaml` | 中国市场已验证的职业转型路径模式（如开发→产品、运营→增长等），用于评估转型可行性（feasibility）和典型里程碑 | 生成横向转型路径和行业切换路径时 | 不输出横向路径，仅输出纵向晋升路径，并标注 confidence: low |
 | `../_career-skills-shared/knowledge/role-taxonomy/roles.yaml` | 目标岗位的标准技能要求，用于计算适配度（fit_pct）中的技能覆盖率维度（40%权重） | 计算每条路径的适配度分数时 | 仅依赖 profile.skills 与路径名称的文字匹配，技能覆盖率计算精度降低 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当未提供用户画像（`profile` 缺失或为空对象）时，视为信息不足
+- 信息不足时不能输出路径适配度（`fit_pct`），因为适配度计算的四个维度（技能/经验/学历/行业相关度）全部依赖 profile 数据
+- 低置信度时只列出通用转型模式（如「同类岗位纵向晋升」「技术转管理通用路径」），不计算 fit_pct，confidence 标注 low
+- 追问：「请先使用 profile-builder 构建您的画像，或直接提供您的工作年限、技能和教育背景」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: 每条路径的 `evidence_basis` 字段必须引用 profile 中的具体字段（如 `profile.skills.technical[Go]`），路径合理性锚定真实数据而非泛化假设
+- Reasoning: `fit_pct` 计算过程在 `evidence_basis` 中展开，体现技能覆盖率 40% + 经验年限 25% + 学历 15% + 行业相关度 20% 的加权逻辑
+- Opinion: `recommended_path` 的推荐理由引用最高 fit_pct，`immediate_actions` 每条行动对应 profile 中的一个具体短板或优势，标注「建议」而非「必须」

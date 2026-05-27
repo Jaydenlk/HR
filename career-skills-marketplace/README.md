@@ -1,34 +1,61 @@
-# Career Skills Marketplace
+# Career Skills Marketplace — v1 Beta Release Candidate
 
-**Career Skills Marketplace** is a Claude Code plugin for Chinese job seekers. It provides a semi-automated job search operating system driven by a "Career Principal" orchestrator and 37 callable skills across 5 layers.
+A Claude Code / Codex skill marketplace for Chinese job seekers. 37 callable skills across 5 layers, orchestrated by a "Career Principal" that handles 39 recognized intents.
 
-## What it does
+**This is not a CLI tool, npm package, Web UI, or API.** It runs entirely inside Claude Code or Codex. No live internet scraping.
 
-- Analyzes job descriptions (JD) for fit signals and risk flags
-- Builds a structured capability profile from your resume or conversation
-- Diagnoses match gaps between your profile and a target JD
-- Rewrites resume bullets grounded in your real experience — no fabrication
-- Audits information sources for credibility and recency
-- Generates daily action plans, networking messages, and follow-up drafts
-- Prepares you for interviews with mock sessions, question banks, and company playbooks
-- Monitors market intelligence: salary ranges, company risks, industry trends
-- Guides career strategy: path planning, role transitions, skill gap closure
+---
 
 ## Skill layers
 
-| Layer | Skills | Purpose |
-|-------|--------|---------|
+| Layer | Count | Coverage |
+|-------|-------|----------|
 | Layer 1: Core Reasoning | 6 | JD parsing, profile building, match diagnosis, resume tailoring |
 | Layer 2: Career Execution | 7 | Opportunity tracking, daily planning, networking, referrals |
 | Layer 3: Interview | 8 | Mock interviews, question banks, behavioral stories, company playbooks |
 | Layer 4: Market Intelligence | 8 | Salary radar, offer comparison, company risk, industry trends |
 | Layer 5: Career Strategy | 8 | Path planning, role transitions, skill gaps, learning roadmaps |
 
-The system uses a curated knowledge graph: 50 companies, 12 role categories, 18 Chinese job-search terms, interview taxonomy, offer factors, and city-industry fit mappings.
+## Knowledge graph
 
-## Quick start
+600 companies across three tiers:
 
-For a full Chinese-language guide covering installation, usage examples, and limitations, see [README.zh-CN.md](README.zh-CN.md).
+- **Tier 1** — 50 companies with deep profiles (verified fields)
+- **Tier 2** — 250 companies with standard profiles (`needs_verification: true`)
+- **Tier 3** — 300 companies with lightweight profiles (`needs_verification: true`)
+
+Also includes: 30 roles across 12 categories, 30 Chinese job-search terms, career path patterns, city-industry fit mappings, interview taxonomy, offer evaluation factors, and market source grades.
+
+## No live adapters
+
+Live adapters for XHS (小红书), 牛客, 公众号, and general web search are deferred. When real-time data is unavailable, skills degrade gracefully to `confidence: insufficient` rather than fabricating information.
+
+## Install
+
+```bash
+# macOS / Linux — Claude Code (default)
+git clone https://github.com/career-skills/career-skills-marketplace.git
+cd career-skills-marketplace
+bash install.sh
+
+# macOS / Linux — Codex
+bash install.sh --target codex
+
+# Windows — Claude Code
+.\install.ps1
+
+# Windows — Codex
+.\install.ps1 -Target codex
+```
+
+The installer dynamically discovers all skills and copies them to `~/.claude/skills/<skill-name>/` (Claude Code) or `~/.codex/skills/<skill-name>/` (Codex). It never deletes existing directories.
+
+## Documentation
+
+- Full Chinese guide, all skill descriptions, and usage examples: [README.zh-CN.md](README.zh-CN.md)
+- Known limitations and deferred features: [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)
+- Installation details and troubleshooting: [docs/installation.md](docs/installation.md)
+- Usage examples (10 realistic scenarios): [docs/usage-examples.md](docs/usage-examples.md)
 
 ## License
 

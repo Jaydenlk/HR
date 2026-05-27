@@ -1,38 +1,76 @@
-# Career Skills Marketplace v1 Alpha RC — Known Limitations
+# Career Skills Marketplace v1 Beta — Known Limitations
 
-> 状态: v1 Alpha Release Candidate
-> 审计结论: PASS_WITH_RISKS
-> 审计文档: docs/codex-handoff/career-skills-v1-rc/FINAL-CODEX-AUDIT.md
+> Version: v1.0.0-beta.1
+> Audit conclusion: PASS_WITH_RISKS
+> Audit document: docs/codex-handoff/career-skills-v1-rc/FINAL-CODEX-AUDIT.md
 
 ---
 
-## 测试覆盖
+## Live adapters — deferred
 
-- 37 个 skill 的 hallucination-guard 测试字段名尚未全量验证。已修复 2 个 P0 级字段名错误（nowcoder-tech-miner, offer-comparator），其余 35 个未逐一核对 test assertion path 与 output_schema 字段名是否一致。
-- Workflow eval fixtures 中 10 个 v1-complete fixtures 已转为结构化断言，但尚无自动化 eval runner 执行它们。
+Live adapters for the following sources are not implemented in v1:
 
-## 知识图谱
+- 小红书 (XHS) interview mining
+- 牛客 tech discussion mining
+- 微信公众号 articles
+- General web search
 
-- Tier 1 公司：50 家，字段完整，可用于 skill 判断。
-- Tier 2 公司：105 家，已有基础数据但未经深度审计。标注 `needs_verification: true`。
-- Tier 3 公司：暂缺。用户查询不在图谱中的公司时，skill 会降级到 `confidence: low` 或 `insufficient`。
-- 知识图谱是静态编译数据，不代表实时市场状态。skill 输出引用知识图谱时会标注 freshness。
+When these data sources are absent, affected skills (`xhs-interview-miner`, `nowcoder-tech-miner`, `market-radar`, `salary-radar`) degrade to `confidence: insufficient`. They will not fabricate data to fill the gap.
 
-## 依赖与集成
+There is no automatic internet scraping of any kind in this release.
 
-- `interview-intelligence` 声明依赖 `source-quality-auditor` 但无输入接口消费审计结果。credibility ceiling 硬编码（B 级），不影响功能但未来需修复。
-- `xhs-interview-miner` 和 `nowcoder-tech-miner` 的 `source-quality-auditor` 依赖同样为名义声明。
+## CLI and npm package — deferred
 
-## 产品形态
+This is a Claude Code / Codex skill marketplace installed via `install.sh` / `install.ps1`. There is no CLI binary, no npm package, and no `npx` invocation path. These are deferred to a future release.
 
-- 当前是 Claude Code / Codex skill marketplace，通过 `install.sh` / `install.ps1` 安装。
-- 不是 CLI 工具、npm 包、Web App 或 Local API。
-- 不包含 live adapter——不会自动联网抓取小红书、牛客、公众号或任何外部数据。
-- 所有 market intelligence skill（market-radar, salary-radar, xhs-interview-miner 等）在无实时数据时降级为 `confidence: insufficient`。
+## Web UI — not planned
 
-## 使用警告
+No web interface is planned for this project. It operates inside Claude Code or Codex only.
 
-- 市场/薪资/offer 判断基于知识图谱历史数据和用户提供的信息，必须遵循 `confidence` 和 `evidence_used` 字段，不保证替代人工判断。
-- 不编造不在用户简历中的经历（zero-fabrication policy）。
-- 不对知识图谱范围外的公司给出高置信判断。
-- 所有建议标注来源和置信度，用户应自行交叉验证。
+## Knowledge graph — verification status
+
+The knowledge graph covers 600 companies:
+
+- **Tier 1 (50 companies)**: Deep profiles with verified fields. Suitable for high-confidence skill judgments.
+- **Tier 2 (250 companies)**: Standard profiles. Marked `needs_verification: true`. Community verification needed before treating as authoritative.
+- **Tier 3 (300 companies)**: Lightweight profiles. Marked `needs_verification: true`. Significant gaps expected.
+
+For companies not in the knowledge graph, skills fall back to `confidence: low` or `confidence: insufficient`.
+
+## Temporal limits on market information
+
+All market data (salary ranges, company status, industry trends) is derived from static knowledge graph data compiled at build time. It does not update automatically.
+
+Every skill output that references knowledge graph data includes a `freshness` field. Always check this field. Do not treat outputs as current market intelligence without cross-referencing live sources.
+
+## Not a substitute for professional judgment
+
+This system provides structured analysis, not decisions. It does not replace:
+
+- Personal career judgment based on individual circumstances
+- Professional legal advice on employment contracts or labor disputes
+- Professional financial advice on compensation or equity evaluation
+
+All outputs should be cross-verified by the user before acting on them.
+
+## Output quality depends on input quality
+
+Skills produce outputs grounded in user-provided information. Vague or incomplete inputs produce lower-confidence outputs. The system will not invent details not present in what you provided.
+
+## Hallucination guard — fixture-based, not runtime enforcement
+
+Hallucination-guard tests cover all 37 skills and validate that `confidence: insufficient` is returned when evidence is missing. However, these tests run against static fixtures during development. They are not runtime enforcement that executes on every user interaction.
+
+## Known P2 issues remaining
+
+The following issues were identified during F3 audit and left as P2 (low severity, non-blocking):
+
+- `career-path-planner`: feasibility score may deviate by 1 point from expected due to rounding at boundary conditions
+- City data in knowledge graph: undated — collection period is not recorded per city entry
+- Knowledge path prefix inconsistency: some skills use `_career-skills-shared/` prefix, others use relative paths
+
+These do not affect correctness of core outputs but are noted for future cleanup.
+
+## Dependency declarations vs actual wiring
+
+`interview-intelligence` declares a dependency on `source-quality-auditor` but does not consume its output through a formal input interface. The credibility ceiling is hardcoded at grade B. Similarly, `xhs-interview-miner` and `nowcoder-tech-miner` declare `source-quality-auditor` as a dependency without consuming its structured output. This is a naming inconsistency, not a functional bug.

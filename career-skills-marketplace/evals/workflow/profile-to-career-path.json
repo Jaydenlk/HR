@@ -24,29 +24,39 @@
   },
   "assertions": [
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "profile-builder"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "profile-builder",
+      "description": "必须调用profile-builder"
     },
     {
-      "type": "skill_not_invoked",
-      "path": "execution_trace",
-      "expected": "resume-tailor"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "not_contains",
+      "value": "resume-tailor",
+      "description": "不得调用resume-tailor"
     },
     {
       "type": "contains",
       "path": "career_path.options",
-      "expected": "产品"
+      "operator": "contains",
+      "value": "产品",
+      "description": "职业路径选项必须包含产品方向"
     },
     {
       "type": "contains",
       "path": "profile.transferable_skills",
-      "expected": "数据分析"
+      "operator": "contains",
+      "value": "数据分析",
+      "description": "可迁移技能必须包含数据分析"
     },
     {
-      "type": "confidence_below",
-      "path": "career_path.confidence_score",
-      "expected": 0.80
+      "type": "confidence_check",
+      "path": "career_path.confidence",
+      "operator": "lte",
+      "value": 0.80,
+      "description": "置信度应低于0.80"
     }
   ]
 }

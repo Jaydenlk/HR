@@ -90,3 +90,8 @@ knowledge_dependencies:
     usage: "识别风险信号中的中国职场黑话（大小周、虚拟股、期权等）"
     required: false
     degradation: "使用内置关键词表，覆盖范围可能不全"
+
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"

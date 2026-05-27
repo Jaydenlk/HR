@@ -150,3 +150,18 @@ allowed-tools: [Read, Grep]
 |------|------|---------|------------|
 | `../_career-skills-shared/knowledge/role-taxonomy/roles.yaml` | 目标岗位的标准技能要求列表，用于补充 JD 中未明确列出的隐性要求 | 评估技能匹配维度（30%权重）时，JD 要求不完整时参考 | 仅对比 JD 显性要求，不补充隐性标准 |
 | `../_career-skills-shared/knowledge/role-taxonomy/role-categories.yaml` | 岗位大类分类，用于判断角色目标维度（role）的匹配合理性 | 评估岗位目标维度（15%权重）时 | 仅使用 JD 职位名称判断，不参考类别映射 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当 `user_profile` 或 `jd_analysis` 任一缺失时，视为信息不足
+- 信息不足时不能输出精确匹配分数（`overall_match_pct` 和 `dimension_scores`），因为缺少对比基准，任何数字都是幻觉
+- 低置信度时只给出维度级别的定性评估（如「技能维度：无法评估，缺少 JD 技能要求」），不产生加权总分
+- 追问最小必要问题：缺简历时追问「请提供您的工作经历和技能列表」；缺 JD 时追问「请提供目标职位的职位描述」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: 每个维度得分必须引用 `user_profile` 和 `jd_analysis` 中的具体字段作为对比依据
+- Reasoning: 在 `dimension_scores[].analysis` 中体现「用户有 X，JD 要求 Y，因此得分 Z」的推理过程
+- Opinion: `gap_classification` 中每项差距标注 `gap_type`，`improvement_suggestions` 标注 `priority` 和 `estimated_effort`，区分已知事实与推断建议

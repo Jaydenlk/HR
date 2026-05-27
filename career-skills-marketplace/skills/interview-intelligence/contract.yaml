@@ -33,6 +33,9 @@ optional_context:
   - name: interview_date
     type: string
     description: "面试日期（ISO 8601），用于时间紧迫度评估"
+  - name: source_audit
+    type: object
+    description: "来自 source-quality-auditor 的来源审计结果"
 
 depends_on:
   - source-quality-auditor
@@ -79,12 +82,17 @@ knowledge_dependencies:
     required: false
     degradation: "不做公司类型推断，输出通用面试流程"
 
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"
+
 china_market_specificity: very_high
 
-live_research_required: true
+live_research_required: false
 
 degradation_behavior:
-  no_live_data: "降级到知识图谱通用信息，confidence: low，cannot_determine 说明缺失的实时数据，禁止编造具体题目或流程轮数"
+  no_live_data: "降级到知识图谱通用信息，confidence: low，cannot_determine 说明缺失的实时数据，禁止编造具体题目或流程轮数。注：本 skill 仅使用 Read/Grep 工具读取预加载的知识图谱，无实时联网能力，实时面经数据由上游 xhs-interview-miner / nowcoder-tech-miner 提供"
   partial_data: "有公司无岗位数据时，基于同类岗位通用规律输出，confidence: medium，标注数据来源为类比推断"
   stale_data: "面经超过18个月时，confidence 降至 low，并在 summary 中注明数据时效风险"
 

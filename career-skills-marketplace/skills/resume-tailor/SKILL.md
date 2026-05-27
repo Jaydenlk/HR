@@ -129,3 +129,18 @@ allowed-tools: [Read, Grep]
 | 文件 | 用途 | 何时使用 | 不可用时降级 |
 |------|------|---------|------------|
 | `../_career-skills-shared/knowledge/role-taxonomy/roles.yaml` | 目标岗位的标准关键词（resume_keywords），指导改写时关键词嵌入优先级 | 有 JD 时，决定哪些技能词应在简历中强化 | 仅依赖 JD 原文关键词，不引用岗位标准关键词 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当未提供目标 JD 时，视为信息不足（无法做定向改写）
+- 信息不足时不能输出针对性改写（即无法在改写理由中引用 JD 要求），因为没有匹配目标，所有定向调整都是臆测
+- 低置信度时只做通用简历优化（统一语气/格式/STAR 结构/关键词密度），不调整内容权重或强化特定方向
+- 追问：「请提供目标职位的 JD，以便为您做针对特定岗位的改写」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: 每处改写的 `source` 字段必须指向用户原始简历或画像中的具体位置（如「原文第3段工作经历」）
+- Reasoning: `reason` 字段体现「原文表述 X → 关联 JD 要求 Y → 改写为 Z」的完整推理链
+- Opinion: `fabrication_check` 标注改写可信度（PASS 为事实，NEED_USER_CONFIRM 为推断），`overall_assessment.honest_gaps` 诚实列出无法通过改写弥补的差距

@@ -1,5 +1,5 @@
 {
-  "name": "referral-strategy + networking-message-writer chain",
+  "name": "referral-strategy-networking-message-writer-chain",
   "description": "Tests that referral-strategy identifies the optimal referral path and contact approach, and networking-message-writer produces a personalized, non-generic cold outreach message.",
   "input": {
     "user_message": "我想内推进字节跳动数据平台部门的数据工程师岗位。我在领英上找到了两个人：一个是字节的数据工程师（和我同校，但不认识），一个是数据平台部门的组长（我们有共同前同事）。帮我制定策略并写消息。",
@@ -91,7 +91,7 @@
       "description": "给contact_b的消息必须以共同前同事为开篇钩子"
     },
     {
-      "type": "length_gte",
+      "type": "length_lte",
       "path": "output.messages.contact_a.opening_line",
       "operator": "lte",
       "value": 200,

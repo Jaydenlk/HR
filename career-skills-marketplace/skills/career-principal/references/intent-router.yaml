@@ -102,10 +102,10 @@ intents:
       - user_profile
     missing_input_questions:
       jd_text: "如果能提供 JD，我可以针对这个岗位的具体要求设计面试题"
-    primary_skill: profile-builder
+    primary_skill: interview-intelligence
     secondary_skills:
+      - profile-builder
       - jd-analyzer
-      - source-quality-auditor
       - mock-interviewer
       - question-bank-builder
       - behavioral-story-builder
@@ -128,9 +128,9 @@ intents:
       - jd_text
     missing_input_questions:
       user_message: "请描述面试过程：问了什么问题、你怎么回答的，这样我才能做有效复盘"
-    primary_skill: profile-builder
+    primary_skill: interview-debrief
     secondary_skills:
-      - source-quality-auditor
+      - profile-builder
     confidence_gate: "user_message 字符数 >= 50"
     fallback: "描述太简短，只能给出一般性反馈 (confidence: low)"
 
@@ -213,8 +213,9 @@ intents:
       - user_message
     missing_input_questions:
       user_message: "请提供公司名称和岗位，这样我才能查找相关面经信息"
-    primary_skill: source-quality-auditor
-    secondary_skills: []
+    primary_skill: interview-intelligence
+    secondary_skills:
+      - source-quality-auditor
     confidence_gate: "user_message 包含公司名称"
     fallback: "未提供公司和岗位信息，只能给出通用面试资源 (confidence: low)"
 
@@ -566,6 +567,7 @@ intents:
       - source-quality-auditor
       - industry-trend-analyst
       - xhs-interview-miner
+      - wechat-insight-reader
     confidence_gate: "user_message 字符数 >= 20"
     fallback: "查询范围太宽泛，只能提供整体市场趋势概述 (confidence: low)"
 

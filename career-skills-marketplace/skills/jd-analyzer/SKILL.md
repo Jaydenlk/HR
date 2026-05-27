@@ -114,3 +114,18 @@ allowed-tools: [Read, Grep]
 | `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 已知公司的类型、发展阶段、已知风险信号 | 解析 `company_context` 字段时 | `company_context.stage` 置为 `unknown`，不补充知识图谱信息 |
 | `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型分类（互联网/传统/外企等）辅助阶段判断 | JD 中公司信息不足时 | 仅依赖 JD 原文判断 |
 | `../_career-skills-shared/knowledge/market-vocabulary/china-job-search-terms.yaml` | 中国求职黑话词汇表（大小周/996/虚拟股等）用于风险信号识别 | 解析 `risk_signals` 时 | 使用内置术语表，覆盖范围可能较窄 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当 JD 原文少于 100 字时，视为信息不足
+- 信息不足时不能输出隐性要求推断（`implicit[]` 字段），因为语义依据不足，推断会脱离原文
+- 低置信度时只输出可从原文提取的显性字段（`basic`、`requirements.explicit`、`responsibilities`），不补全 `company_context` 和 `implicit` 推断
+- 如需更准确分析，追问：「请提供更完整的 JD 原文，包含职位职责和任职要求」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: 所有字段必须引用 JD 原文片段作为依据；隐性要求每项附 `inference_reason`，引用原文触发语句
+- Reasoning: 在 `risk_signals` 的 `real_meaning` 字段中体现从原文表述到风险含义的推理过程
+- Opinion: `company_context.stage` 和 `implicit` 字段标注 `confidence` 等级（high/medium/low），推断类内容标注推断依据而非陈述为事实

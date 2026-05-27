@@ -1,0 +1,50 @@
+{
+  "name": "insufficient-jd",
+  "description": "有简历无JD — 只能做画像构建，不能做JD匹配，不能改写简历",
+  "input": {
+    "user_message": "我听说腾讯在招产品经理，值得投吗？",
+    "resume_text": "张三，985本科计算机，2年后端开发经验，熟悉Java/Spring..."
+  },
+  "expected_skills_invoked": ["profile-builder"],
+  "expected_skills_not_invoked": ["jd-analyzer", "match-diagnosis", "resume-tailor"],
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "无JD时置信度不能高"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "必须说明无法分析JD和匹配度"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "追问JD原文"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "给出找JD的行动"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "匹配度.*[0-9]+%",
+      "reason": "无JD不能给匹配分"
+    },
+    {
+      "pattern": "建议改写简历",
+      "reason": "无目标JD不能做针对性改写"
+    }
+  ]
+}

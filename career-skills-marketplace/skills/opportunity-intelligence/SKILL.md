@@ -87,3 +87,18 @@ allowed-tools:
 |------|------|---------|------------|
 | `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 查询目标公司的已知风险信号、公司类型（tier）和发展阶段，辅助风险维度评分 | 计算风险系数（25%权重）时，判断公司是否属于已知高风险类别 | 风险维度仅依赖 jd-analyzer 输出的 risk_signals，不补充公司历史信息 |
 | `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型分类，辅助判断市场定位维度（35%权重）中的品牌价值评估 | 评估公司品牌/成长维度时 | 品牌维度标注为 uncertain，仅依赖 JD 文本推断 |
+
+## 产品原则适用
+
+本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+
+### 信息不足时 (Ask-before-judging)
+- 当缺少 `user_profile`（无法计算匹配维度 40% 权重）时，视为信息不足
+- 信息不足时不能输出综合评分（`opportunity_score`），因为最大权重维度缺失，任何总分都失去实际意义
+- 低置信度时只做 JD 层面的风险评估（仅基于市场分 35% + 风险分 25%），明确标注 `match_score: cannot_determine`
+- 追问：「您的简历或画像信息有助于计算匹配度，请提供以获得完整评估」
+
+### 出处-思考-观点 (Source-Reason-Opinion)
+- Source: 市场分来自知识图谱公司数据（标注 tier 来源），风险分来自 `jd-analyzer.risk_signals`（每条附 evidence），匹配分来自 `match-diagnosis` 输出
+- Reasoning: `summary` 字段体现三维评分的合成逻辑，说明哪个维度拉高/拉低了综合分
+- Opinion: `recommendation` 字段（strong_apply/apply_with_caution/skip/need_more_info）标注置信度，`risk_flags` 区分已验证风险与推断风险

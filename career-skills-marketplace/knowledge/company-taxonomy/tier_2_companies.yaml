@@ -1,8 +1,8 @@
 meta:
   tier: tier_2
-  total: 110
+  total: 250
   freshness: "2026-Q2-estimate"
-  last_verified: "2026-05-26"
+  last_verified: "2026-05-27"
   note: 标准画像公司，数据来自公开招聘信息汇编，需定期核实
 
 companies:
@@ -719,7 +719,7 @@ companies:
   - id: horizon-robotics
     canonical_name: 地平线
     aliases: ["地平线", "Horizon Robotics", "地平线机器人"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["backend", "algorithm", "embedded-engineer", "hardware-engineer", "ai-engineer", "product-manager-b"]
     cities: ["北京", "上海", "深圳"]
@@ -732,7 +732,7 @@ companies:
   - id: cambricon
     canonical_name: 寒武纪
     aliases: ["寒武纪", "Cambricon", "寒武纪科技", "MLU芯片"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["backend", "algorithm", "hardware-engineer", "embedded-engineer", "ai-engineer"]
     cities: ["北京", "上海", "成都"]
@@ -745,7 +745,7 @@ companies:
   - id: sensetime
     canonical_name: 商汤科技
     aliases: ["商汤科技", "SenseTime", "商汤", "日日新"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["algorithm", "backend", "ai-engineer", "data-analyst", "product-manager-b", "sales"]
     cities: ["上海", "北京", "深圳", "香港"]
@@ -758,7 +758,7 @@ companies:
   - id: megvii
     canonical_name: 旷视科技
     aliases: ["旷视科技", "MEGVII", "旷视", "Face++", "人脸识别"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["algorithm", "backend", "ai-engineer", "embedded-engineer", "product-manager-b"]
     cities: ["北京", "上海", "深圳"]
@@ -771,7 +771,7 @@ companies:
   - id: cloudwalk
     canonical_name: 云从科技
     aliases: ["云从科技", "CloudWalk", "云从"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["algorithm", "backend", "ai-engineer", "product-manager-b", "sales"]
     cities: ["广州", "上海", "北京"]
@@ -784,7 +784,7 @@ companies:
   - id: bitmain
     canonical_name: 比特大陆
     aliases: ["比特大陆", "Bitmain", "蚂蚁矿机", "算力芯片"]
-    company_type: new_energy
+    company_type: stable_mid_tech
     tier: tier_2
     main_roles: ["backend", "hardware-engineer", "algorithm", "embedded-engineer"]
     cities: ["北京", "深圳", "上海"]
@@ -820,10 +820,10 @@ companies:
     source_policy: "基于公开招聘信息汇编"
     needs_verification: true
 
-  - id: dji-agibot
+  - id: unitree-robotics
     canonical_name: 宇树科技
     aliases: ["宇树科技", "Unitree Robotics", "宇树", "Unitree"]
-    company_type: new_energy
+    company_type: ai_startup
     tier: tier_2
     main_roles: ["backend", "algorithm", "hardware-engineer", "embedded-engineer", "ai-engineer"]
     cities: ["杭州", "深圳"]
@@ -836,7 +836,7 @@ companies:
   - id: zte
     canonical_name: 中兴通讯
     aliases: ["中兴通讯", "ZTE", "中兴", "ZTE Corporation"]
-    company_type: new_energy
+    company_type: stable_mid_tech
     tier: tier_2
     main_roles: ["backend", "embedded-engineer", "hardware-engineer", "devops", "sales", "product-manager-b"]
     cities: ["深圳", "北京", "上海", "南京"]
@@ -1164,7 +1164,7 @@ companies:
     source_policy: "基于公开招聘信息汇编"
     needs_verification: true
 
-  - id: deepl-cn
+  - id: iflytek
     canonical_name: 科大讯飞
     aliases: ["科大讯飞", "iFLYTEK", "讯飞", "星火大模型"]
     company_type: stable_mid_tech
@@ -1376,7 +1376,7 @@ companies:
     source_policy: "基于公开招聘信息汇编"
     needs_verification: true
 
-  - id: dji-overseas
+  - id: roborock
     canonical_name: 石头科技
     aliases: ["石头科技", "Roborock", "石头扫地机", "小瓦"]
     company_type: overseas
@@ -1388,3 +1388,1913 @@ companies:
     freshness: "2026-Q2-estimate"
     source_policy: "基于公开招聘信息汇编"
     needs_verification: true
+
+  # ── 医疗/生物补充（16家）──────────────────────────────────────────
+
+  - id: beigene
+    canonical_name: 百济神州
+    aliases: ["百济神州", "BeiGene", "百济", "泽布替尼"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["algorithm", "data-analyst", "backend", "hr", "finance-analyst", "sales"]
+    cities: ["北京", "上海", "苏州"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: innovent-biologics
+    canonical_name: 信达生物
+    aliases: ["信达生物", "Innovent Biologics", "信达", "达伯舒"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "hr", "sales", "finance-analyst"]
+    cities: ["苏州", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: fosun-pharma
+    canonical_name: 复星医药
+    aliases: ["复星医药", "Fosun Pharma", "复星", "复星国际医药"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "hr", "sales", "finance-analyst", "backend"]
+    cities: ["上海", "北京", "广州"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: tigermed
+    canonical_name: 泰格医药
+    aliases: ["泰格医药", "Tigermed", "泰格"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "hr", "backend", "finance-analyst"]
+    cities: ["杭州", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: kanglong-huacheng
+    canonical_name: 康龙化成
+    aliases: ["康龙化成", "Kanghong Huacheng", "康龙"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "backend", "hr", "finance-analyst"]
+    cities: ["北京", "上海", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: nuozheng-jianhua
+    canonical_name: 诺诚健华
+    aliases: ["诺诚健华", "Nuozheng Jianhua", "诺诚"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "hr", "sales"]
+    cities: ["北京", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: remegen
+    canonical_name: 荣昌生物
+    aliases: ["荣昌生物", "RemeGen", "荣昌"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "hr", "sales"]
+    cities: ["烟台", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: kelun-pharma
+    canonical_name: 科伦药业
+    aliases: ["科伦药业", "Kelun Pharma", "科伦"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "hr", "sales", "finance-analyst"]
+    cities: ["成都", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: bgi-genomics
+    canonical_name: 华大基因
+    aliases: ["华大基因", "BGI Genomics", "华大", "BGI"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["algorithm", "data-analyst", "backend", "ai-engineer", "hr"]
+    cities: ["深圳", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: berry-genomics
+    canonical_name: 贝瑞基因
+    aliases: ["贝瑞基因", "Berry Genomics", "贝瑞"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "backend", "hr", "sales"]
+    cities: ["北京", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: daan-gene
+    canonical_name: 达安基因
+    aliases: ["达安基因", "Daan Gene", "达安"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "backend", "hr"]
+    cities: ["广州", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: aid-genomics
+    canonical_name: 艾德生物
+    aliases: ["艾德生物", "Aid Genomics", "艾德"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["data-analyst", "hr", "sales"]
+    cities: ["厦门", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: kingmed-diagnostics
+    canonical_name: 金域医学
+    aliases: ["金域医学", "KingMed Diagnostics", "金域"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "hr", "sales"]
+    cities: ["广州", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: dian-diagnostics
+    canonical_name: 迪安诊断
+    aliases: ["迪安诊断", "Dian Diagnostics", "迪安"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "hr", "sales"]
+    cities: ["杭州", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: lepu-medical
+    canonical_name: 乐普医疗
+    aliases: ["乐普医疗", "Lepu Medical", "乐普"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["hardware-engineer", "backend", "sales", "data-analyst"]
+    cities: ["北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: microport
+    canonical_name: 微创医疗
+    aliases: ["微创医疗", "MicroPort", "微创"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["hardware-engineer", "algorithm", "backend", "sales", "data-analyst"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 教育/企服/SaaS补充（12家）──────────────────────────────────────────
+
+  - id: beisen
+    canonical_name: 北森云计算
+    aliases: ["北森", "Beisen", "北森测评", "北森HR"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "consulting-analyst", "sales"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: moka-hr
+    canonical_name: Moka
+    aliases: ["Moka", "Moka HR", "Moka招聘", "Moka人力"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "sales"]
+    cities: ["北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: feishu-standalone
+    canonical_name: 飞书独立运营
+    aliases: ["飞书", "Feishu", "Lark", "飞书文档"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "algorithm", "data-analyst"]
+    cities: ["北京", "上海", "杭州"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: dingtalk-standalone
+    canonical_name: 钉钉独立运营
+    aliases: ["钉钉", "DingTalk", "阿里钉钉"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "algorithm", "data-analyst"]
+    cities: ["杭州", "北京", "上海"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: shimo-docs
+    canonical_name: 石墨文档
+    aliases: ["石墨文档", "Shimo Docs", "石墨"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "data-analyst"]
+    cities: ["北京", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: yuque
+    canonical_name: 语雀
+    aliases: ["语雀", "Yuque", "阿里语雀"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b"]
+    cities: ["杭州", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: lanlinksoft
+    canonical_name: 蓝凌软件
+    aliases: ["蓝凌", "Lanlinksoft", "蓝凌OA"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "consulting-analyst", "sales"]
+    cities: ["广州", "上海", "北京"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: mingdao-cloud
+    canonical_name: 明道云
+    aliases: ["明道云", "Mingdao Cloud", "明道", "APaaS"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: jiandaoyun
+    canonical_name: 简道云
+    aliases: ["简道云", "Jiandaoyun", "JDY", "帆软简道云"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "sales"]
+    cities: ["南京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: fanruan
+    canonical_name: 帆软软件
+    aliases: ["帆软", "FineReport", "FanRuan", "FineBI"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "consulting-analyst", "sales", "data-analyst"]
+    cities: ["南京", "上海", "北京", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: zhiyuan-互联
+    canonical_name: 致远互联
+    aliases: ["致远互联", "Zhiyuan", "致远OA", "致远协同"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "consulting-analyst", "sales"]
+    cities: ["北京", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: notion-cn
+    canonical_name: Notion中国区
+    aliases: ["Notion", "Notion中国", "notion笔记"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "product-manager-b", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: low
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 新能源/汽车补充（12家）──────────────────────────────────────────
+
+  - id: zeekr
+    canonical_name: 极氪汽车
+    aliases: ["极氪", "Zeekr", "吉利极氪", "极氪汽车"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "algorithm", "product-manager-c", "data-analyst"]
+    cities: ["杭州", "宁波", "上海"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: zhiji-auto
+    canonical_name: 智己汽车
+    aliases: ["智己汽车", "IM Motors", "智己", "上汽智己"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "product-manager-c", "data-analyst"]
+    cities: ["上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: avatr-auto
+    canonical_name: 阿维塔科技
+    aliases: ["阿维塔", "Avatr", "阿维塔汽车", "长安蔚来"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "product-manager-c"]
+    cities: ["重庆", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: lantu-auto
+    canonical_name: 岚图汽车
+    aliases: ["岚图汽车", "Lantu Auto", "岚图", "东风岚图"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "product-manager-c"]
+    cities: ["武汉", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: great-wall-motor
+    canonical_name: 长城汽车
+    aliases: ["长城汽车", "Great Wall Motor", "长城", "哈弗", "魏牌", "欧拉"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "product-manager-c", "sales", "data-analyst"]
+    cities: ["保定", "上海", "深圳", "苏州"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: geely-auto
+    canonical_name: 吉利汽车
+    aliases: ["吉利汽车", "Geely Auto", "吉利", "Geely", "领克", "银河"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "product-manager-c", "sales", "data-analyst"]
+    cities: ["杭州", "宁波", "上海", "成都"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: changan-auto
+    canonical_name: 长安汽车
+    aliases: ["长安汽车", "Changan Auto", "长安", "深蓝汽车", "启源"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "product-manager-c", "sales"]
+    cities: ["重庆", "上海", "北京"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: saic-motor
+    canonical_name: 上汽集团
+    aliases: ["上汽集团", "SAIC Motor", "上汽", "荣威", "名爵MG", "飞凡"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "product-manager-b", "data-analyst", "hr"]
+    cities: ["上海"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: gac-group
+    canonical_name: 广汽集团
+    aliases: ["广汽集团", "GAC Group", "广汽", "埃安", "传祺"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "product-manager-b", "data-analyst"]
+    cities: ["广州", "上海"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: catl-new-energy
+    canonical_name: 宁德新能源
+    aliases: ["宁德新能源", "CATL New Energy", "时代新能源"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "data-analyst", "algorithm", "test-engineer"]
+    cities: ["宁德", "上海", "深圳", "成都"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: evc-power
+    canonical_name: 亿纬锂能
+    aliases: ["亿纬锂能", "EVE Energy", "亿纬", "EVE"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["hardware-engineer", "backend", "data-analyst", "test-engineer"]
+    cities: ["惠州", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: sunwoda
+    canonical_name: 欣旺达
+    aliases: ["欣旺达", "Sunwoda", "欣旺达电子"]
+    company_type: new_energy
+    tier: tier_2
+    main_roles: ["hardware-engineer", "backend", "data-analyst", "test-engineer"]
+    cities: ["深圳", "上海", "惠州"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 游戏/内容补充（7家）──────────────────────────────────────────
+
+  - id: zhaoxi-guangnian
+    canonical_name: 朝夕光年
+    aliases: ["朝夕光年", "Zhaoxi Guangnian", "字节游戏", "晶核"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "game-client", "product-manager-c", "ui-designer", "algorithm"]
+    cities: ["上海", "北京", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: seasun-games
+    canonical_name: 西山居
+    aliases: ["西山居", "Seasun Games", "剑网3"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "game-client", "product-manager-c", "ui-designer", "content-operations"]
+    cities: ["北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+
+  - id: yoozoo-games
+    canonical_name: 游族网络
+    aliases: ["游族网络", "Yoozoo Games", "游族"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "game-client", "product-manager-c", "data-analyst"]
+    cities: ["上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: 4399-games
+    canonical_name: 福建游龙科技4399
+    aliases: ["4399", "四三九九", "4399游戏", "4399小游戏"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "frontend", "game-client", "product-manager-c", "content-operations"]
+    cities: ["福州", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: boke-city
+    canonical_name: 波克城市
+    aliases: ["波克城市", "Boke City", "波克", "捕鱼达人"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "game-client", "product-manager-c", "ui-designer"]
+    cities: ["上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: qingci-games
+    canonical_name: 青瓷游戏
+    aliases: ["青瓷游戏", "Qingci Games", "青瓷", "不思议迷宫", "最强蜗牛"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "game-client", "product-manager-c", "ui-designer"]
+    cities: ["厦门", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 金融科技补充（14家）──────────────────────────────────────────
+
+  - id: jd-technology
+    canonical_name: 京东科技
+    aliases: ["京东科技", "JD Technology", "京东数科", "京东金融"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["backend", "frontend", "algorithm", "product-manager-b", "data-analyst", "finance-analyst"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: duxiaoman
+    canonical_name: 度小满金融
+    aliases: ["度小满", "Duxiaoman", "度小满金融", "百度金融"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "product-manager-b", "data-analyst", "finance-analyst"]
+    cities: ["北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: 360-finance
+    canonical_name: 360数科
+    aliases: ["360数科", "360 Finance", "奇富科技", "360金融"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "product-manager-b", "data-analyst", "finance-analyst"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: lufax
+    canonical_name: 陆金所控股
+    aliases: ["陆金所", "Lufax", "陆金所控股", "平安普惠"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "product-manager-b", "data-analyst", "finance-analyst", "sales"]
+    cities: ["上海", "北京", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: webank
+    canonical_name: 微众银行
+    aliases: ["微众银行", "WeBank", "腾讯系银行"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["backend", "frontend", "algorithm", "data-analyst", "finance-analyst", "product-manager-b"]
+    cities: ["深圳", "上海"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: mybank
+    canonical_name: 网商银行
+    aliases: ["网商银行", "MYbank", "阿里系银行", "蚂蚁银行"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "data-analyst", "finance-analyst", "product-manager-b"]
+    cities: ["杭州", "上海"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: tianhong-fund
+    canonical_name: 天弘基金
+    aliases: ["天弘基金", "Tianhong Fund", "余额宝母基金"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["finance-analyst", "backend", "data-analyst", "algorithm"]
+    cities: ["北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: bosera-fund
+    canonical_name: 博时基金
+    aliases: ["博时基金", "Bosera Fund", "博时"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["finance-analyst", "data-analyst", "backend", "algorithm"]
+    cities: ["深圳", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: southern-fund
+    canonical_name: 南方基金
+    aliases: ["南方基金", "Southern Fund", "南方", "南方资产"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["finance-analyst", "data-analyst", "backend", "algorithm", "sales"]
+    cities: ["深圳", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: cmf-fund
+    canonical_name: 招商基金
+    aliases: ["招商基金", "CMF", "招商资管"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["finance-analyst", "data-analyst", "backend", "sales"]
+    cities: ["深圳", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: efund
+    canonical_name: 易方达基金
+    aliases: ["易方达", "E Fund", "易方达基金"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["finance-analyst", "data-analyst", "backend", "algorithm", "sales"]
+    cities: ["广州", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: hwabao-fund
+    canonical_name: 汇添富基金
+    aliases: ["汇添富", "Hwabao Fund", "汇添富基金"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["finance-analyst", "data-analyst", "backend", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: gtja-fund
+    canonical_name: 国泰基金
+    aliases: ["国泰基金", "Guotai Fund", "国泰资管"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["finance-analyst", "data-analyst", "backend", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: harvest-fund
+    canonical_name: 嘉实基金
+    aliases: ["嘉实基金", "Harvest Fund", "嘉实"]
+    company_type: finance
+    tier: tier_2
+    main_roles: ["finance-analyst", "data-analyst", "backend", "sales"]
+    cities: ["北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 出海/跨境补充（9家）──────────────────────────────────────────
+
+  - id: aukey
+    canonical_name: 奥睿科Aukey
+    aliases: ["Aukey", "奥睿科", "AUKEY"]
+    company_type: overseas
+    tier: tier_2
+    main_roles: ["backend", "product-manager-c", "supply-chain", "marketing", "data-analyst"]
+    cities: ["深圳", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: banggu-technology
+    canonical_name: 棒谷科技
+    aliases: ["棒谷科技", "Banggu", "棒谷"]
+    company_type: overseas
+    tier: tier_2
+    main_roles: ["backend", "product-manager-c", "supply-chain", "data-analyst"]
+    cities: ["深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: zebao-technology
+    canonical_name: 泽宝技术
+    aliases: ["泽宝技术", "Zebao", "泽宝"]
+    company_type: overseas
+    tier: tier_2
+    main_roles: ["backend", "product-manager-c", "supply-chain", "data-analyst"]
+    cities: ["深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: youkeshu
+    canonical_name: 有棵树
+    aliases: ["有棵树", "Youkeshu", "广州有棵树"]
+    company_type: overseas
+    tier: tier_2
+    main_roles: ["backend", "product-manager-c", "supply-chain", "data-analyst", "marketing"]
+    cities: ["广州", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: tongtuo-technology
+    canonical_name: 通拓科技
+    aliases: ["通拓科技", "Tongtuo", "通拓"]
+    company_type: overseas
+    tier: tier_2
+    main_roles: ["backend", "product-manager-c", "supply-chain", "data-analyst"]
+    cities: ["深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: saiwei-commerce
+    canonical_name: 赛维时代
+    aliases: ["赛维时代", "Saiwei", "赛维"]
+    company_type: overseas
+    tier: tier_2
+    main_roles: ["backend", "product-manager-c", "supply-chain", "data-analyst", "marketing"]
+    cities: ["广州", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: aoji-technology
+    canonical_name: 傲基科技
+    aliases: ["傲基科技", "Aoji", "傲基"]
+    company_type: overseas
+    tier: tier_2
+    main_roles: ["backend", "product-manager-c", "supply-chain", "data-analyst"]
+    cities: ["深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: global-easy-buy
+    canonical_name: 环球易购
+    aliases: ["环球易购", "Global Easy Buy", "GLOBALEGROW"]
+    company_type: overseas
+    tier: tier_2
+    main_roles: ["backend", "product-manager-c", "supply-chain", "data-analyst", "marketing"]
+    cities: ["深圳", "广州"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 咨询/广告补充（6家）──────────────────────────────────────────
+
+  - id: ogilvy-cn
+    canonical_name: 奥美广告中国
+    aliases: ["奥美", "Ogilvy", "Ogilvy China", "奥美公关"]
+    company_type: consulting_fmcg
+    tier: tier_2
+    main_roles: ["marketing", "ui-designer", "content-operations", "product-manager-c", "sales"]
+    cities: ["上海", "北京", "广州"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: bluefocus
+    canonical_name: 蓝色光标
+    aliases: ["蓝色光标", "BlueFocus", "蓝标"]
+    company_type: consulting_fmcg
+    tier: tier_2
+    main_roles: ["marketing", "content-operations", "product-manager-c", "data-analyst", "sales"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: liou-digital
+    canonical_name: 利欧数字
+    aliases: ["利欧数字", "Liou Digital", "利欧"]
+    company_type: consulting_fmcg
+    tier: tier_2
+    main_roles: ["marketing", "content-operations", "data-analyst", "ui-designer"]
+    cities: ["上海", "北京"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: huayang-lianzhong
+    canonical_name: 华扬联众
+    aliases: ["华扬联众", "Huayang Lianzhong", "华扬"]
+    company_type: consulting_fmcg
+    tier: tier_2
+    main_roles: ["marketing", "content-operations", "data-analyst", "product-manager-c"]
+    cities: ["北京", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: shengguang-group
+    canonical_name: 省广集团
+    aliases: ["省广集团", "Shengguang Group", "省广"]
+    company_type: consulting_fmcg
+    tier: tier_2
+    main_roles: ["marketing", "content-operations", "data-analyst", "ui-designer"]
+    cities: ["广州", "上海", "北京"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: hakuhodo-cn
+    canonical_name: 博报堂中国
+    aliases: ["博报堂", "Hakuhodo", "Hakuhodo China"]
+    company_type: consulting_fmcg
+    tier: tier_2
+    main_roles: ["marketing", "content-operations", "data-analyst", "consulting-analyst"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 地方强势/硬科技补充（14家）──────────────────────────────────────────
+
+  - id: navinfo
+    canonical_name: 四维图新
+    aliases: ["四维图新", "NavInfo", "四维", "高精地图"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "data-analyst", "embedded-engineer", "product-manager-b"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: thundersoft
+    canonical_name: 中科创达
+    aliases: ["中科创达", "ThunderSoft", "创达", "OS平台"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "algorithm", "product-manager-b", "data-analyst"]
+    cities: ["北京", "上海", "深圳", "西安"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: arcsoft
+    canonical_name: 虹软科技
+    aliases: ["虹软科技", "ArcSoft", "虹软", "相机算法"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["algorithm", "backend", "embedded-engineer", "ai-engineer"]
+    cities: ["杭州", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: inovance
+    canonical_name: 汇川技术
+    aliases: ["汇川技术", "Inovance", "汇川", "工业自动化"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "algorithm", "sales"]
+    cities: ["深圳", "苏州", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: hans-laser
+    canonical_name: 大族激光
+    aliases: ["大族激光", "Hans Laser", "大族", "激光设备"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "algorithm", "sales"]
+    cities: ["深圳", "苏州", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: lead-intelligent
+    canonical_name: 先导智能
+    aliases: ["先导智能", "Lead Intelligent", "先导", "锂电设备"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "algorithm"]
+    cities: ["无锡", "苏州", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: jereh-group
+    canonical_name: 杰瑞股份
+    aliases: ["杰瑞股份", "Jereh Group", "杰瑞"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "data-analyst", "sales", "finance-analyst"]
+    cities: ["烟台", "北京", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: supcon
+    canonical_name: 中控技术
+    aliases: ["中控技术", "Supcon", "中控", "工业自动化DCS"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "embedded-engineer", "hardware-engineer", "algorithm", "sales"]
+    cities: ["杭州", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: siasun-robot
+    canonical_name: 新松机器人
+    aliases: ["新松机器人", "SIASUN Robot", "新松", "工业机器人"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "embedded-engineer", "hardware-engineer"]
+    cities: ["沈阳", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: estun
+    canonical_name: 埃斯顿
+    aliases: ["埃斯顿", "Estun", "埃斯顿机器人"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "embedded-engineer", "hardware-engineer"]
+    cities: ["南京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: goodix
+    canonical_name: 汇顶科技
+    aliases: ["汇顶科技", "Goodix", "汇顶", "指纹芯片"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["hardware-engineer", "algorithm", "embedded-engineer", "backend"]
+    cities: ["深圳", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: gigadevice
+    canonical_name: 兆易创新
+    aliases: ["兆易创新", "GigaDevice", "兆易", "GD32", "Flash芯片"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["hardware-engineer", "embedded-engineer", "backend", "algorithm"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: unisoc
+    canonical_name: 紫光展锐
+    aliases: ["紫光展锐", "UNISOC", "展锐", "紫光展讯"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["hardware-engineer", "embedded-engineer", "algorithm", "backend"]
+    cities: ["上海", "深圳", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: asr-micro
+    canonical_name: 翱捷科技
+    aliases: ["翱捷科技", "ASR Microelectronics", "翱捷", "ASR"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["hardware-engineer", "embedded-engineer", "algorithm"]
+    cities: ["上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 外资补充（15家）──────────────────────────────────────────
+
+  - id: shopify-cn
+    canonical_name: Shopify中国区
+    aliases: ["Shopify", "Shopify中国", "独立站平台"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "sales", "data-analyst"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: stripe-cn
+    canonical_name: Stripe中国区
+    aliases: ["Stripe", "Stripe中国", "支付基础设施"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: databricks-cn
+    canonical_name: Databricks中国区
+    aliases: ["Databricks", "Databricks中国", "Delta Lake", "数据湖"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "algorithm", "ai-engineer", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: snowflake-cn
+    canonical_name: Snowflake中国区
+    aliases: ["Snowflake", "Snowflake中国", "数据仓库云"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "algorithm", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: confluent-cn
+    canonical_name: Confluent中国区
+    aliases: ["Confluent", "Confluent中国", "Kafka商业版"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "devops", "data-analyst", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: hashicorp-cn
+    canonical_name: HashiCorp中国区
+    aliases: ["HashiCorp", "HashiCorp中国", "Terraform", "Vault"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "devops", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: gitlab-cn
+    canonical_name: GitLab中国区
+    aliases: ["GitLab", "GitLab中国", "代码托管", "DevSecOps"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "devops", "product-manager-b", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: jetbrains-cn
+    canonical_name: JetBrains中国区
+    aliases: ["JetBrains", "JetBrains中国", "IntelliJ IDEA", "IDE工具"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "sales"]
+    cities: ["上海"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: atlassian-cn
+    canonical_name: Atlassian中国区
+    aliases: ["Atlassian", "Atlassian中国", "Jira", "Confluence工具"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "product-manager-b", "devops", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: zoom-cn
+    canonical_name: Zoom中国区
+    aliases: ["Zoom", "Zoom中国", "Zoom视频会议"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: salesforce-cn
+    canonical_name: Salesforce中国区
+    aliases: ["Salesforce", "Salesforce中国", "CRM云"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "product-manager-b", "consulting-analyst", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: servicenow-cn
+    canonical_name: ServiceNow中国区
+    aliases: ["ServiceNow", "ServiceNow中国", "IT服务管理"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "product-manager-b", "consulting-analyst", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: workday-cn
+    canonical_name: Workday中国区
+    aliases: ["Workday", "Workday中国", "HR云", "财务云"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "product-manager-b", "consulting-analyst", "hr", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: low
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: adobe-cn
+    canonical_name: Adobe中国区
+    aliases: ["Adobe", "Adobe中国", "Creative Cloud", "PDF"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "ui-designer", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: autodesk-cn
+    canonical_name: Autodesk中国区
+    aliases: ["Autodesk", "Autodesk中国", "AutoCAD", "Maya", "3ds Max"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "sales"]
+    cities: ["上海", "北京", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 央企/国企补充（12家）──────────────────────────────────────────
+
+  - id: state-grid-tech
+    canonical_name: 国家电网信息通信产业集团
+    aliases: ["国家电网科技", "国网信产", "国网科技", "国电信息"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "devops", "data-analyst", "hardware-engineer", "product-manager-b"]
+    cities: ["北京", "上海", "南京", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: aecc
+    canonical_name: 中国航空发动机集团
+    aliases: ["中国航发", "AECC", "航空发动机", "中航发"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "algorithm", "embedded-engineer", "data-analyst"]
+    cities: ["北京", "上海", "沈阳", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: cetc
+    canonical_name: 中国电子科技集团
+    aliases: ["中国电科", "CETC", "中电科", "电科集团"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "algorithm", "embedded-engineer", "devops"]
+    cities: ["北京", "上海", "成都", "南京", "西安"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: norinco
+    canonical_name: 中国兵器工业集团
+    aliases: ["中国兵器", "NORINCO Group", "兵器集团", "中北集团"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "data-analyst"]
+    cities: ["北京", "西安", "成都", "重庆"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: casic
+    canonical_name: 中国航天科工集团
+    aliases: ["航天科工", "CASIC", "航科工", "中国航天科工"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "algorithm", "data-analyst"]
+    cities: ["北京", "武汉", "贵州", "西安"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: cnnc
+    canonical_name: 中国核工业集团
+    aliases: ["中核集团", "CNNC", "中国核电", "中核"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "data-analyst", "finance-analyst", "hr"]
+    cities: ["北京", "上海", "连云港", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: cgnpc
+    canonical_name: 中国广核集团
+    aliases: ["中广核", "CGNPC", "广核", "中广核电力"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "data-analyst", "hr", "finance-analyst"]
+    cities: ["深圳", "广州", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: crrc
+    canonical_name: 中国中车
+    aliases: ["中国中车", "CRRC", "中车", "高铁列车"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "data-analyst", "hr"]
+    cities: ["北京", "上海", "青岛", "株洲", "长春"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: cccc
+    canonical_name: 中国交通建设集团
+    aliases: ["中国交建", "CCCC", "中交", "港珠澳大桥建设方"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "finance-analyst", "hr"]
+    cities: ["北京", "上海", "广州", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: crcc
+    canonical_name: 中国铁建股份
+    aliases: ["中国铁建", "CRCC", "铁建", "中铁"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "finance-analyst", "hr"]
+    cities: ["北京", "上海", "广州", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: chemchina
+    canonical_name: 中国化工集团
+    aliases: ["中国化工", "ChemChina", "中化集团", "先正达"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "finance-analyst", "hr", "supply-chain"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: cofco-group
+    canonical_name: 中粮集团
+    aliases: ["中粮集团", "COFCO", "中粮", "中粮食品"]
+    company_type: state_owned
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "supply-chain", "finance-analyst", "hr", "marketing"]
+    cities: ["北京", "上海", "广州", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  # ── 补充至250（综合类28家）──────────────────────────────────────────
+
+  - id: vipshop
+    canonical_name: 唯品会
+    aliases: ["唯品会", "VIP.com", "特卖平台", "唯品仓"]
+    company_type: ecommerce_local
+    tier: tier_2
+    main_roles: ["backend", "frontend", "algorithm", "product-manager-c", "data-analyst", "supply-chain"]
+    cities: ["广州", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: 58-wuba
+    canonical_name: 58同城
+    aliases: ["58同城", "58.com", "赶集网", "安居客"]
+    company_type: ecommerce_local
+    tier: tier_2
+    main_roles: ["backend", "frontend", "algorithm", "product-manager-c", "data-analyst", "sales"]
+    cities: ["北京", "上海", "深圳", "广州"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: autohome
+    canonical_name: 汽车之家
+    aliases: ["汽车之家", "Autohome", "汽车之家网"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-c", "data-analyst", "content-operations", "sales"]
+    cities: ["北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: huya
+    canonical_name: 虎牙直播
+    aliases: ["虎牙", "Huya", "虎牙直播", "HUYA Inc"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "frontend", "algorithm", "product-manager-c", "content-operations", "data-analyst"]
+    cities: ["广州", "北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: douyu
+    canonical_name: 斗鱼直播
+    aliases: ["斗鱼", "DouYu", "斗鱼TV"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "frontend", "algorithm", "product-manager-c", "content-operations"]
+    cities: ["武汉", "北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: trip-cn
+    canonical_name: 携程集团
+    aliases: ["携程", "Trip.com Group", "携程旅游", "Ctrip"]
+    company_type: ecommerce_local
+    tier: tier_2
+    main_roles: ["backend", "frontend", "algorithm", "product-manager-c", "data-analyst", "growth-operations"]
+    cities: ["上海", "北京", "成都"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: liepin
+    canonical_name: 猎聘网
+    aliases: ["猎聘", "Liepin", "猎聘网", "中高端招聘"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-c", "data-analyst", "sales"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: qianxin
+    canonical_name: 奇安信科技
+    aliases: ["奇安信", "QianXin", "360分拆", "网络安全"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "devops", "product-manager-b", "data-analyst"]
+    cities: ["北京", "上海", "深圳", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: sangfor
+    canonical_name: 深信服科技
+    aliases: ["深信服", "Sangfor", "SANGFOR Technologies"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "devops", "product-manager-b", "sales"]
+    cities: ["深圳", "北京", "上海", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: nsfocus
+    canonical_name: 绿盟科技
+    aliases: ["绿盟科技", "NSFOCUS", "绿盟", "网络安全"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "devops", "product-manager-b", "sales"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: venustech
+    canonical_name: 启明星辰
+    aliases: ["启明星辰", "VenusTech", "启明", "网络安全"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "devops", "product-manager-b", "sales"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: hikvision
+    canonical_name: 海康威视
+    aliases: ["海康威视", "Hikvision", "海康", "安防视频"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "embedded-engineer", "hardware-engineer", "ai-engineer", "sales"]
+    cities: ["杭州", "上海", "北京", "深圳"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: dahua-tech
+    canonical_name: 大华技术
+    aliases: ["大华技术", "Dahua Technology", "大华", "安防摄像头"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "embedded-engineer", "hardware-engineer", "sales"]
+    cities: ["杭州", "上海", "北京", "深圳"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: chint-group
+    canonical_name: 正泰集团
+    aliases: ["正泰集团", "CHINT Group", "正泰", "光伏电气"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "data-analyst", "sales", "supply-chain"]
+    cities: ["上海", "杭州", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: abb-cn
+    canonical_name: ABB中国
+    aliases: ["ABB", "ABB中国", "工业自动化ABB", "ABB机器人"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "algorithm", "sales"]
+    cities: ["上海", "北京", "深圳", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: honeywell-cn
+    canonical_name: 霍尼韦尔中国
+    aliases: ["霍尼韦尔", "Honeywell", "Honeywell China"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "sales", "consulting-analyst"]
+    cities: ["上海", "北京", "深圳", "成都"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: schneider-cn
+    canonical_name: 施耐德电气中国
+    aliases: ["施耐德", "Schneider Electric", "Schneider China"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "product-manager-b", "sales"]
+    cities: ["上海", "北京", "深圳", "武汉"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: emerson-cn
+    canonical_name: 艾默生电气中国
+    aliases: ["艾默生", "Emerson Electric", "Emerson China"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "hardware-engineer", "embedded-engineer", "sales"]
+    cities: ["上海", "北京", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: michelin-cn
+    canonical_name: 米其林中国
+    aliases: ["米其林", "Michelin", "Michelin China"]
+    company_type: foreign_enterprise
+    tier: tier_2
+    main_roles: ["backend", "data-analyst", "supply-chain", "sales", "hr"]
+    cities: ["上海", "北京", "沈阳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+
+
+  - id: ucloud
+    canonical_name: 优刻得UCloud
+    aliases: ["优刻得", "UCloud", "UCloud云计算"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "devops", "product-manager-b", "data-analyst", "sales"]
+    cities: ["上海", "北京", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: bilibili-games
+    canonical_name: 哔哩哔哩游戏
+    aliases: ["B站游戏", "Bilibili Games", "BLG"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "game-client", "product-manager-c", "data-analyst"]
+    cities: ["上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: baishan-cloud
+    canonical_name: 白山云科技
+    aliases: ["白山云", "Baishan Cloud", "CDN云服务"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "devops", "data-analyst", "product-manager-b", "sales"]
+    cities: ["北京", "上海", "深圳"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: tuniu
+    canonical_name: 途牛旅游
+    aliases: ["途牛", "Tuniu", "途牛旅游网"]
+    company_type: ecommerce_local
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-c", "data-analyst", "sales"]
+    cities: ["南京", "上海", "北京"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: meituan-dianping
+    canonical_name: 美团平台（大众点评已并入）
+    aliases: ["美团商家", "美团平台", "美团SaaS"]
+    company_type: ecommerce_local
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-b", "data-analyst", "sales"]
+    cities: ["上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: sf-holding-tech
+    canonical_name: 顺丰科技
+    aliases: ["顺丰科技", "SF Technology", "顺丰技术", "SF-Tech"]
+    company_type: ecommerce_local
+    tier: tier_2
+    main_roles: ["backend", "algorithm", "data-analyst", "devops", "product-manager-b"]
+    cities: ["深圳", "上海", "北京"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: shixiseng
+    canonical_name: 实习僧
+    aliases: ["实习僧", "Shixiseng", "大学生实习"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "product-manager-c", "data-analyst", "sales"]
+    cities: ["成都", "北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+
+  - id: dongche-cn
+    canonical_name: 懂车帝
+    aliases: ["懂车帝", "DongChe", "字节汽车媒体"]
+    company_type: stable_mid_tech
+    tier: tier_2
+    main_roles: ["backend", "frontend", "content-operations", "product-manager-c", "data-analyst"]
+    cities: ["北京", "上海"]
+    hiring_relevance: low
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇编"
+    needs_verification: true
+  - id: ernst-young-cn
+    canonical_name: 安永中国
+    aliases: ["安永", "EY", "Ernst & Young China", "大四安永"]
+    company_type: consulting_fmcg
+    tier: tier_2
+    main_roles: ["finance-analyst", "consulting-analyst", "data-analyst", "hr"]
+    cities: ["北京", "上海", "深圳", "广州", "成都"]
+    hiring_relevance: high
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇总"
+    needs_verification: true
+
+
+  - id: perfectworld-games
+    canonical_name: 完美世界游戏
+    aliases: ["完美世界", "Perfect World", "完美游戏"]
+    company_type: gaming_content
+    tier: tier_2
+    main_roles: ["backend", "game-client", "ui-designer", "product-manager-c", "content-operations"]
+    cities: ["北京", "上海"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇总"
+    needs_verification: true
+  - id: grant-thornton-cn
+    canonical_name: 致同会计师事务所
+    aliases: ["致同", "Grant Thornton China", "致同中国", "中审众环"]
+    company_type: consulting_fmcg
+    tier: tier_2
+    main_roles: ["finance-analyst", "consulting-analyst", "data-analyst", "hr"]
+    cities: ["北京", "上海", "深圳", "广州"]
+    hiring_relevance: medium
+    confidence: medium
+    freshness: "2026-Q2-estimate"
+    source_policy: "基于公开招聘信息汇总"
+    needs_verification: true
+

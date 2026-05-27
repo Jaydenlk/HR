@@ -1,5 +1,5 @@
 {
-  "name": "role-transition-advisor + skill-gap-planner + learning-roadmap-builder chain",
+  "name": "role-transition-advisor-skill-gap-planner-learning-roadmap-builder-chain",
   "description": "Tests the full career transition analysis chain: feasibility assessment, gap quantification, and actionable learning roadmap generation.",
   "input": {
     "user_message": "我目前是传统制造业的供应链管理岗（3年），想转到互联网大厂做产品经理，可行吗？需要补哪些技能？怎么学？",
