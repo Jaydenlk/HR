@@ -10,8 +10,8 @@
     {
       "type": "field_check",
       "path": "confidence",
-      "operator": "eq",
-      "value": "insufficient",
+      "operator": "in",
+      "value": ["low", "insufficient"],
       "description": "信息严重不足"
     },
     {
