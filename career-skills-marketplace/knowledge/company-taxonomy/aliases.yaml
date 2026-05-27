@@ -352,3 +352,2755 @@ aliases:
     nicknames: ["小鹏", "P7/G9（以车型称呼公司）"]
     sub_brands: ["XNGP（辅助驾驶）", "小鹏MONA", "汇天（飞行汽车）"]
     biz_units: ["整车", "自动驾驶（AI智驾）", "飞行汽车（汇天科技）"]
+
+  # === Tier 2 & Tier 3 additions (F1.3b / F1.4) ===
+
+  youzan:
+    official_cn: 有赞
+    tier: tier_2
+    nicknames: ["Youzan", "有赞云", "有赞微商城"]
+
+  tuya:
+    official_cn: 涂鸦智能
+    tier: tier_2
+    nicknames: ["Tuya Smart", "Tuya", "涂鸦"]
+
+  yuanfudao:
+    official_cn: 猿辅导
+    tier: tier_2
+    nicknames: ["Yuanfudao", "猿题库", "斑马AI课", "小猿搜题"]
+
+  zuoyebang:
+    official_cn: 作业帮
+    tier: tier_2
+    nicknames: ["Zuoyebang", "作业帮直播课"]
+
+  perfectworld:
+    official_cn: 完美世界
+    tier: tier_2
+    nicknames: ["Perfect World", "完美世界游戏"]
+
+  shengqu-games:
+    official_cn: 盛趣游戏
+    tier: tier_2
+    nicknames: ["Shengqu Games", "盛大游戏（更名）", "Actoz"]
+
+  37-games:
+    official_cn: 三七互娱
+    tier: tier_2
+    nicknames: ["37Games", "37互娱", "三七游戏"]
+
+  giant-network:
+    official_cn: 巨人网络
+    tier: tier_2
+    nicknames: ["Giant Network", "征途", "球球大作战"]
+
+  xindong-network:
+    official_cn: 心动网络
+    tier: tier_2
+    nicknames: ["TapTap", "心动", "Hoolai Games"]
+
+  hypergryph:
+    official_cn: 鹰角网络
+    tier: tier_2
+    nicknames: ["Hypergryph", "明日方舟", "鹰角"]
+
+  sunborn:
+    official_cn: 散爆网络
+    tier: tier_2
+    nicknames: ["Sunborn", "少女前线", "散爆"]
+
+  kuro-games:
+    official_cn: 库洛游戏
+    tier: tier_2
+    nicknames: ["Kuro Games", "鸣潮", "战双帕弥什", "库洛"]
+
+  joyy:
+    official_cn: 欢聚集团
+    tier: tier_2
+    nicknames: ["JOYY", "YY", "虎牙直播", "Bigo Live"]
+
+  iqiyi:
+    official_cn: 爱奇艺
+    tier: tier_2
+    nicknames: ["iQIYI", "爱奇艺视频", "奇艺"]
+
+  qiankunai:
+    official_cn: 吉比特
+    tier: tier_2
+    nicknames: ["Forgame", "一将成名", "问道手游"]
+
+  kanzhun:
+    official_cn: 看准科技（BOSS直聘）
+    tier: tier_2
+    nicknames: ["BOSS直聘", "看准科技", "Kanzhun", "BOSS"]
+
+  lalamove:
+    official_cn: 货拉拉
+    tier: tier_2
+    nicknames: ["Lalamove", "货拉拉同城物流"]
+
+  beike:
+    official_cn: 贝壳找房
+    tier: tier_2
+    nicknames: ["Beike", "链家", "贝壳", "KE Holdings"]
+
+  zhihu:
+    official_cn: 知乎
+    tier: tier_2
+    nicknames: ["Zhihu", "知乎App"]
+
+  wechat-reading:
+    official_cn: 微信读书（腾讯旗下）
+    tier: tier_2
+    nicknames: ["微信读书", "WeRead", "番茄小说（字节）"]
+
+  ximalaya:
+    official_cn: 喜马拉雅
+    tier: tier_2
+    nicknames: ["Ximalaya", "喜马", "喜马拉雅FM"]
+
+  dianping:
+    official_cn: 大众点评（美团旗下）
+    tier: tier_2
+    nicknames: ["大众点评", "Dianping", "点评"]
+
+  linkedin-cn:
+    official_cn: 领英中国
+    tier: tier_2
+    nicknames: ["领英", "LinkedIn", "LinkedIn China", "领英职场"]
+
+  airbnb-cn:
+    official_cn: Airbnb中国
+    tier: tier_2
+    nicknames: ["Airbnb", "爱彼迎", "Airbnb China"]
+
+  uber-cn:
+    official_cn: Uber中国（已退出，现为滴滴）
+    tier: tier_2
+    nicknames: ["Uber", "优步"]
+
+  ibm-cn:
+    official_cn: IBM中国
+    tier: tier_2
+    nicknames: ["IBM", "IBM China", "蓝色巨人"]
+
+  cisco-cn:
+    official_cn: 思科中国
+    tier: tier_2
+    nicknames: ["思科", "Cisco", "Cisco China", "Cisco Systems"]
+
+  intel-cn:
+    official_cn: 英特尔中国
+    tier: tier_2
+    nicknames: ["英特尔", "Intel", "Intel China"]
+
+  qualcomm-cn:
+    official_cn: 高通中国
+    tier: tier_2
+    nicknames: ["高通", "Qualcomm", "Qualcomm China"]
+
+  siemens-cn:
+    official_cn: 西门子中国
+    tier: tier_2
+    nicknames: ["西门子", "Siemens", "Siemens China"]
+
+  bosch-cn:
+    official_cn: 博世中国
+    tier: tier_2
+    nicknames: ["博世", "Bosch", "Bosch China", "博世汽车"]
+
+  hp-cn:
+    official_cn: 惠普中国
+    tier: tier_2
+    nicknames: ["惠普", "HP", "HP China", "惠普企业（HPE）"]
+
+  jp-morgan-cn:
+    official_cn: 摩根大通中国
+    tier: tier_2
+    nicknames: ["摩根大通", "JPMorgan", "JP Morgan China", "JPMorgan Chase"]
+
+  goldman-sachs-cn:
+    official_cn: 高盛中国
+    tier: tier_2
+    nicknames: ["高盛", "Goldman Sachs", "Goldman Sachs China"]
+
+  ubs-cn:
+    official_cn: 瑞银中国
+    tier: tier_2
+    nicknames: ["瑞银", "UBS", "UBS China", "瑞士银行"]
+
+  accenture-cn:
+    official_cn: 埃森哲中国
+    tier: tier_2
+    nicknames: ["埃森哲", "Accenture", "Accenture China"]
+
+  boston-consulting-cn:
+    official_cn: 波士顿咨询中国
+    tier: tier_2
+    nicknames: ["波士顿咨询", "BCG", "BCG China", "MBB之B"]
+
+  guofu-securities:
+    official_cn: 广发证券
+    tier: tier_2
+    nicknames: ["GF Securities", "广发"]
+
+  haitong-securities:
+    official_cn: 海通证券
+    tier: tier_2
+    nicknames: ["Haitong Securities", "海通"]
+
+  huatai-securities:
+    official_cn: 华泰证券
+    tier: tier_2
+    nicknames: ["Huatai Securities", "华泰"]
+
+  guotai-junan:
+    official_cn: 国泰君安证券
+    tier: tier_2
+    nicknames: ["国泰君安", "Guotai Junan", "国君"]
+
+  xingye-securities:
+    official_cn: 兴业证券
+    tier: tier_2
+    nicknames: ["Industrial Securities", "兴证"]
+
+  futu:
+    official_cn: 富途控股
+    tier: tier_2
+    nicknames: ["富途", "Futu", "富途牛牛", "Futu Securities", "moomoo"]
+
+  tiger-broker:
+    official_cn: 老虎证券
+    tier: tier_2
+    nicknames: ["Tiger Brokers", "Tiger", "UP Fintech"]
+
+  ant-group:
+    official_cn: 蚂蚁集团
+    tier: tier_2
+    nicknames: ["Ant Group", "支付宝母公司", "蚂蚁科技"]
+
+  eastmoney:
+    official_cn: 东方财富
+    tier: tier_2
+    nicknames: ["East Money", "东财", "天天基金", "Choice数据"]
+
+  ccb-fintech:
+    official_cn: 建信金融科技
+    tier: tier_2
+    nicknames: ["CCB Fintech", "建行科技子公司"]
+
+  icbc-fintech:
+    official_cn: 工银科技
+    tier: tier_2
+    nicknames: ["ICBC Technology", "工行科技子公司"]
+
+  china-securities:
+    official_cn: 中国银河证券
+    tier: tier_2
+    nicknames: ["银河证券", "China Galaxy Securities", "中国银河"]
+
+  zheshang-securities:
+    official_cn: 浙商证券
+    tier: tier_2
+    nicknames: ["Zheshang Securities"]
+
+  kaiyuan-securities:
+    official_cn: 开源证券
+    tier: tier_2
+    nicknames: ["Kaiyuan Securities"]
+
+  cgb-fintech:
+    official_cn: 广银科技（广发银行旗下）
+    tier: tier_2
+    nicknames: ["广银科技", "广发银行科技", "广发金科"]
+
+  leapmotor:
+    official_cn: 零跑汽车
+    tier: tier_2
+    nicknames: ["Leapmotor", "零跑", "Stellantis合资"]
+
+  neta-auto:
+    official_cn: 哪吒汽车
+    tier: tier_2
+    nicknames: ["Neta Auto", "哪吒", "合众新能源"]
+
+  horizon-robotics:
+    official_cn: 地平线
+    tier: tier_2
+    nicknames: ["Horizon Robotics", "地平线机器人"]
+
+  cambricon:
+    official_cn: 寒武纪
+    tier: tier_2
+    nicknames: ["Cambricon", "寒武纪科技", "MLU芯片"]
+
+  sensetime:
+    official_cn: 商汤科技
+    tier: tier_2
+    nicknames: ["SenseTime", "商汤", "日日新"]
+
+  megvii:
+    official_cn: 旷视科技
+    tier: tier_2
+    nicknames: ["MEGVII", "旷视", "Face++", "人脸识别"]
+
+  cloudwalk:
+    official_cn: 云从科技
+    tier: tier_2
+    nicknames: ["CloudWalk", "云从"]
+
+  bitmain:
+    official_cn: 比特大陆
+    tier: tier_2
+    nicknames: ["Bitmain", "蚂蚁矿机", "算力芯片"]
+
+  longi-green:
+    official_cn: 隆基绿能
+    tier: tier_2
+    nicknames: ["LONGi Green", "隆基", "LONGi"]
+
+  gotion-high-tech:
+    official_cn: 国轩高科
+    tier: tier_2
+    nicknames: ["Gotion High Tech", "国轩", "Gotion"]
+
+  dji-agibot:
+    official_cn: 宇树科技
+    tier: tier_2
+    nicknames: ["Unitree Robotics", "宇树", "Unitree"]
+
+  zte:
+    official_cn: 中兴通讯
+    tier: tier_2
+    nicknames: ["ZTE", "中兴", "ZTE Corporation"]
+
+  xiaomi:
+    official_cn: 小米集团
+    tier: tier_2
+    nicknames: ["小米", "Xiaomi", "MIUI", "红米", "Redmi", "小米汽车"]
+
+  oppo:
+    official_cn: OPPO
+    tier: tier_2
+    nicknames: ["一加", "OnePlus", "真我", "Realme", "findx系列"]
+
+  lenovo:
+    official_cn: 联想集团
+    tier: tier_2
+    nicknames: ["联想", "Lenovo", "ThinkPad", "Legion", "联想智慧中国"]
+
+  casc:
+    official_cn: 中国航天科技集团
+    tier: tier_2
+    nicknames: ["中国航天", "CASC", "航天科技", "神舟飞船"]
+
+  cssc:
+    official_cn: 中国船舶集团
+    tier: tier_2
+    nicknames: ["中国船舶", "CSSC", "中船", "江南造船"]
+
+  cnpc:
+    official_cn: 中国石油天然气集团
+    tier: tier_2
+    nicknames: ["中石油", "CNPC", "中国石油", "PetroChina"]
+
+  sinopec:
+    official_cn: 中国石化
+    tier: tier_2
+    nicknames: ["中石化", "Sinopec", "中国石油化工"]
+
+  china-construction:
+    official_cn: 中国建筑集团
+    tier: tier_2
+    nicknames: ["中国建筑", "CSCEC", "中建", "中建总公司"]
+
+  china-telecom:
+    official_cn: 中国电信
+    tier: tier_2
+    nicknames: ["China Telecom", "电信", "天翼云"]
+
+  china-unicom:
+    official_cn: 中国联通
+    tier: tier_2
+    nicknames: ["China Unicom", "联通", "沃云"]
+
+  bank-of-china:
+    official_cn: 中国银行
+    tier: tier_2
+    nicknames: ["BOC", "Bank of China", "中行"]
+
+  agricultural-bank:
+    official_cn: 中国农业银行
+    tier: tier_2
+    nicknames: ["农业银行", "ABC", "中国农行", "Agricultural Bank"]
+
+  china-life:
+    official_cn: 中国人寿
+    tier: tier_2
+    nicknames: ["China Life", "国寿", "中寿"]
+
+  cnooc:
+    official_cn: 中国海洋石油集团
+    tier: tier_2
+    nicknames: ["中海油", "CNOOC", "中国海油"]
+
+  china-southern-power:
+    official_cn: 中国南方电网
+    tier: tier_2
+    nicknames: ["南方电网", "China Southern Power Grid", "南网"]
+
+  wuxi-apptec:
+    official_cn: 药明康德
+    tier: tier_2
+    nicknames: ["WuXi AppTec", "药明", "WuXi"]
+
+  mindray:
+    official_cn: 迈瑞医疗
+    tier: tier_2
+    nicknames: ["Mindray", "迈瑞", "Mindray Medical"]
+
+  united-imaging:
+    official_cn: 联影医疗
+    tier: tier_2
+    nicknames: ["United Imaging", "联影"]
+
+  hengrui-pharma:
+    official_cn: 恒瑞医药
+    tier: tier_2
+    nicknames: ["Hengrui Pharma", "恒瑞"]
+
+  alibaba-health:
+    official_cn: 阿里健康
+    tier: tier_2
+    nicknames: ["Alibaba Health", "阿里健康大药房"]
+
+  ping-an-health:
+    official_cn: 平安健康医疗
+    tier: tier_2
+    nicknames: ["平安好医生", "平安健康", "Ping An Health"]
+
+  yonyou:
+    official_cn: 用友网络
+    tier: tier_2
+    nicknames: ["用友", "Yonyou", "NC系列", "BIP"]
+
+  kingdee:
+    official_cn: 金蝶国际
+    tier: tier_2
+    nicknames: ["金蝶", "Kingdee", "云星空"]
+
+  fanwei:
+    official_cn: 泛微网络
+    tier: tier_2
+    nicknames: ["泛微", "Fanwei", "e-office"]
+
+  deepl-cn:
+    official_cn: 科大讯飞
+    tier: tier_2
+    nicknames: ["iFLYTEK", "讯飞", "星火大模型"]
+
+  tal-education:
+    official_cn: 好未来
+    tier: tier_2
+    nicknames: ["TAL Education", "学而思", "家长帮"]
+
+  roland-berger-cn:
+    official_cn: 罗兰贝格中国
+    tier: tier_2
+    nicknames: ["罗兰贝格", "Roland Berger", "Roland Berger China"]
+
+  bain-cn:
+    official_cn: 贝恩咨询中国
+    tier: tier_2
+    nicknames: ["贝恩咨询", "Bain & Company", "Bain China", "MBB之B（贝恩）"]
+
+  kearney-cn:
+    official_cn: 科尔尼咨询中国
+    tier: tier_2
+    nicknames: ["科尔尼", "Kearney", "A.T. Kearney China"]
+
+  oliver-wyman-cn:
+    official_cn: 奥纬咨询中国
+    tier: tier_2
+    nicknames: ["奥纬咨询", "Oliver Wyman", "Oliver Wyman China"]
+
+  unilever-cn:
+    official_cn: 联合利华中国
+    tier: tier_2
+    nicknames: ["联合利华", "Unilever", "Unilever China", "旁氏", "清扬", "多芬"]
+
+  loreal-cn:
+    official_cn: 欧莱雅中国
+    tier: tier_2
+    nicknames: ["欧莱雅", "L'Oréal", "L'Oreal China", "巴黎欧莱雅", "兰蔻"]
+
+  nestle-cn:
+    official_cn: 雀巢中国
+    tier: tier_2
+    nicknames: ["雀巢", "Nestlé", "Nestle China", "奇巧", "Nescafé"]
+
+  johnson-cn:
+    official_cn: 强生中国
+    tier: tier_2
+    nicknames: ["强生", "Johnson & Johnson", "J&J China", "西安杨森", "大宝（旗下品牌）"]
+
+  ey-cn:
+    official_cn: 安永中国
+    tier: tier_2
+    nicknames: ["安永", "Ernst & Young", "EY China", "四大"]
+
+  kpmg-cn:
+    official_cn: 毕马威中国
+    tier: tier_2
+    nicknames: ["毕马威", "KPMG", "KPMG China", "四大"]
+
+  anker:
+    official_cn: 安克创新
+    tier: tier_2
+    nicknames: ["Anker", "Anker Innovations", "Soundcore", "Eufy"]
+
+  patpat:
+    official_cn: PatPat
+    tier: tier_2
+    nicknames: ["PatPat童装", "PatPat出海"]
+
+  global-egrow:
+    official_cn: 广州跨境电商（Club Factory前身）
+    tier: tier_2
+    nicknames: ["Club Factory", "跨境电商中小企业"]
+
+  dreame:
+    official_cn: 追觅科技
+    tier: tier_2
+    nicknames: ["Dreame Technology", "追觅", "扫地机器人"]
+
+  dji-overseas:
+    official_cn: 石头科技
+    tier: tier_2
+    nicknames: ["Roborock", "石头扫地机", "小瓦"]
+
+  beigene:
+    official_cn: 百济神州
+    tier: tier_2
+    nicknames: ["BeiGene", "百济", "泽布替尼"]
+
+  innovent-biologics:
+    official_cn: 信达生物
+    tier: tier_2
+    nicknames: ["Innovent Biologics", "信达", "达伯舒"]
+
+  fosun-pharma:
+    official_cn: 复星医药
+    tier: tier_2
+    nicknames: ["Fosun Pharma", "复星", "复星国际医药"]
+
+  tigermed:
+    official_cn: 泰格医药
+    tier: tier_2
+    nicknames: ["Tigermed", "泰格"]
+
+  kanglong-huacheng:
+    official_cn: 康龙化成
+    tier: tier_2
+    nicknames: ["Kanghong Huacheng", "康龙"]
+
+  nuozheng-jianhua:
+    official_cn: 诺诚健华
+    tier: tier_2
+    nicknames: ["Nuozheng Jianhua", "诺诚"]
+
+  remegen:
+    official_cn: 荣昌生物
+    tier: tier_2
+    nicknames: ["RemeGen", "荣昌"]
+
+  kelun-pharma:
+    official_cn: 科伦药业
+    tier: tier_2
+    nicknames: ["Kelun Pharma", "科伦"]
+
+  bgi-genomics:
+    official_cn: 华大基因
+    tier: tier_2
+    nicknames: ["BGI Genomics", "华大", "BGI"]
+
+  berry-genomics:
+    official_cn: 贝瑞基因
+    tier: tier_2
+    nicknames: ["Berry Genomics", "贝瑞"]
+
+  daan-gene:
+    official_cn: 达安基因
+    tier: tier_2
+    nicknames: ["Daan Gene", "达安"]
+
+  aid-genomics:
+    official_cn: 艾德生物
+    tier: tier_2
+    nicknames: ["Aid Genomics", "艾德"]
+
+  kingmed-diagnostics:
+    official_cn: 金域医学
+    tier: tier_2
+    nicknames: ["KingMed Diagnostics", "金域"]
+
+  dian-diagnostics:
+    official_cn: 迪安诊断
+    tier: tier_2
+    nicknames: ["Dian Diagnostics", "迪安"]
+
+  lepu-medical:
+    official_cn: 乐普医疗
+    tier: tier_2
+    nicknames: ["Lepu Medical", "乐普"]
+
+  microport:
+    official_cn: 微创医疗
+    tier: tier_2
+    nicknames: ["MicroPort", "微创"]
+
+  beisen:
+    official_cn: 北森云计算
+    tier: tier_2
+    nicknames: ["北森", "Beisen", "北森测评", "北森HR"]
+
+  moka-hr:
+    official_cn: Moka
+    tier: tier_2
+    nicknames: ["Moka HR", "Moka招聘", "Moka人力"]
+
+  feishu-standalone:
+    official_cn: 飞书独立运营
+    tier: tier_2
+    nicknames: ["飞书", "Feishu", "Lark", "飞书文档"]
+
+  dingtalk-standalone:
+    official_cn: 钉钉独立运营
+    tier: tier_2
+    nicknames: ["钉钉", "DingTalk", "阿里钉钉"]
+
+  shimo-docs:
+    official_cn: 石墨文档
+    tier: tier_2
+    nicknames: ["Shimo Docs", "石墨"]
+
+  yuque:
+    official_cn: 语雀
+    tier: tier_2
+    nicknames: ["Yuque", "阿里语雀"]
+
+  lanlinksoft:
+    official_cn: 蓝凌软件
+    tier: tier_2
+    nicknames: ["蓝凌", "Lanlinksoft", "蓝凌OA"]
+
+  mingdao-cloud:
+    official_cn: 明道云
+    tier: tier_2
+    nicknames: ["Mingdao Cloud", "明道", "APaaS"]
+
+  jiandaoyun:
+    official_cn: 简道云
+    tier: tier_2
+    nicknames: ["Jiandaoyun", "JDY", "帆软简道云"]
+
+  fanruan:
+    official_cn: 帆软软件
+    tier: tier_2
+    nicknames: ["帆软", "FineReport", "FanRuan", "FineBI"]
+
+  zhiyuan-互联:
+    official_cn: 致远互联
+    tier: tier_2
+    nicknames: ["Zhiyuan", "致远OA", "致远协同"]
+
+  notion-cn:
+    official_cn: Notion中国区
+    tier: tier_2
+    nicknames: ["Notion", "Notion中国", "notion笔记"]
+
+  zeekr:
+    official_cn: 极氪汽车
+    tier: tier_2
+    nicknames: ["极氪", "Zeekr", "吉利极氪"]
+
+  zhiji-auto:
+    official_cn: 智己汽车
+    tier: tier_2
+    nicknames: ["IM Motors", "智己", "上汽智己"]
+
+  avatr-auto:
+    official_cn: 阿维塔科技
+    tier: tier_2
+    nicknames: ["阿维塔", "Avatr", "阿维塔汽车", "长安蔚来"]
+
+  lantu-auto:
+    official_cn: 岚图汽车
+    tier: tier_2
+    nicknames: ["Lantu Auto", "岚图", "东风岚图"]
+
+  great-wall-motor:
+    official_cn: 长城汽车
+    tier: tier_2
+    nicknames: ["Great Wall Motor", "长城", "哈弗", "魏牌", "欧拉"]
+
+  geely-auto:
+    official_cn: 吉利汽车
+    tier: tier_2
+    nicknames: ["Geely Auto", "吉利", "Geely", "领克", "银河"]
+
+  changan-auto:
+    official_cn: 长安汽车
+    tier: tier_2
+    nicknames: ["Changan Auto", "长安", "深蓝汽车", "启源"]
+
+  saic-motor:
+    official_cn: 上汽集团
+    tier: tier_2
+    nicknames: ["SAIC Motor", "上汽", "荣威", "名爵MG", "飞凡"]
+
+  gac-group:
+    official_cn: 广汽集团
+    tier: tier_2
+    nicknames: ["GAC Group", "广汽", "埃安", "传祺"]
+
+  catl-new-energy:
+    official_cn: 宁德新能源
+    tier: tier_2
+    nicknames: ["CATL New Energy", "时代新能源"]
+
+  evc-power:
+    official_cn: 亿纬锂能
+    tier: tier_2
+    nicknames: ["EVE Energy", "亿纬", "EVE"]
+
+  sunwoda:
+    official_cn: 欣旺达
+    tier: tier_2
+    nicknames: ["Sunwoda", "欣旺达电子"]
+
+  zhaoxi-guangnian:
+    official_cn: 朝夕光年
+    tier: tier_2
+    nicknames: ["Zhaoxi Guangnian", "字节游戏", "晶核"]
+
+  seasun-games:
+    official_cn: 西山居
+    tier: tier_2
+    nicknames: ["Seasun Games", "剑网3"]
+
+  yoozoo-games:
+    official_cn: 游族网络
+    tier: tier_2
+    nicknames: ["Yoozoo Games", "游族"]
+
+  4399-games:
+    official_cn: 福建游龙科技4399
+    tier: tier_2
+    nicknames: ["4399", "四三九九", "4399游戏", "4399小游戏"]
+
+  boke-city:
+    official_cn: 波克城市
+    tier: tier_2
+    nicknames: ["Boke City", "波克", "捕鱼达人"]
+
+  qingci-games:
+    official_cn: 青瓷游戏
+    tier: tier_2
+    nicknames: ["Qingci Games", "青瓷", "不思议迷宫", "最强蜗牛"]
+
+  jd-technology:
+    official_cn: 京东科技
+    tier: tier_2
+    nicknames: ["JD Technology", "京东数科", "京东金融"]
+
+  duxiaoman:
+    official_cn: 度小满金融
+    tier: tier_2
+    nicknames: ["度小满", "Duxiaoman", "百度金融"]
+
+  360-finance:
+    official_cn: 360数科
+    tier: tier_2
+    nicknames: ["360 Finance", "奇富科技", "360金融"]
+
+  lufax:
+    official_cn: 陆金所控股
+    tier: tier_2
+    nicknames: ["陆金所", "Lufax", "平安普惠"]
+
+  webank:
+    official_cn: 微众银行
+    tier: tier_2
+    nicknames: ["WeBank", "腾讯系银行"]
+
+  mybank:
+    official_cn: 网商银行
+    tier: tier_2
+    nicknames: ["MYbank", "阿里系银行", "蚂蚁银行"]
+
+  tianhong-fund:
+    official_cn: 天弘基金
+    tier: tier_2
+    nicknames: ["Tianhong Fund", "余额宝母基金"]
+
+  bosera-fund:
+    official_cn: 博时基金
+    tier: tier_2
+    nicknames: ["Bosera Fund", "博时"]
+
+  southern-fund:
+    official_cn: 南方基金
+    tier: tier_2
+    nicknames: ["Southern Fund", "南方", "南方资产"]
+
+  cmf-fund:
+    official_cn: 招商基金
+    tier: tier_2
+    nicknames: ["CMF", "招商资管"]
+
+  efund:
+    official_cn: 易方达基金
+    tier: tier_2
+    nicknames: ["易方达", "E Fund"]
+
+  hwabao-fund:
+    official_cn: 汇添富基金
+    tier: tier_2
+    nicknames: ["汇添富", "Hwabao Fund"]
+
+  gtja-fund:
+    official_cn: 国泰基金
+    tier: tier_2
+    nicknames: ["Guotai Fund", "国泰资管"]
+
+  harvest-fund:
+    official_cn: 嘉实基金
+    tier: tier_2
+    nicknames: ["Harvest Fund", "嘉实"]
+
+  aukey:
+    official_cn: 奥睿科Aukey
+    tier: tier_2
+    nicknames: ["Aukey", "奥睿科", "AUKEY"]
+
+  banggu-technology:
+    official_cn: 棒谷科技
+    tier: tier_2
+    nicknames: ["Banggu", "棒谷"]
+
+  zebao-technology:
+    official_cn: 泽宝技术
+    tier: tier_2
+    nicknames: ["Zebao", "泽宝"]
+
+  youkeshu:
+    official_cn: 有棵树
+    tier: tier_2
+    nicknames: ["Youkeshu", "广州有棵树"]
+
+  tongtuo-technology:
+    official_cn: 通拓科技
+    tier: tier_2
+    nicknames: ["Tongtuo", "通拓"]
+
+  saiwei-commerce:
+    official_cn: 赛维时代
+    tier: tier_2
+    nicknames: ["Saiwei", "赛维"]
+
+  aoji-technology:
+    official_cn: 傲基科技
+    tier: tier_2
+    nicknames: ["Aoji", "傲基"]
+
+  global-easy-buy:
+    official_cn: 环球易购
+    tier: tier_2
+    nicknames: ["Global Easy Buy", "GLOBALEGROW"]
+
+  ogilvy-cn:
+    official_cn: 奥美广告中国
+    tier: tier_2
+    nicknames: ["奥美", "Ogilvy", "Ogilvy China", "奥美公关"]
+
+  bluefocus:
+    official_cn: 蓝色光标
+    tier: tier_2
+    nicknames: ["BlueFocus", "蓝标"]
+
+  liou-digital:
+    official_cn: 利欧数字
+    tier: tier_2
+    nicknames: ["Liou Digital", "利欧"]
+
+  huayang-lianzhong:
+    official_cn: 华扬联众
+    tier: tier_2
+    nicknames: ["Huayang Lianzhong", "华扬"]
+
+  shengguang-group:
+    official_cn: 省广集团
+    tier: tier_2
+    nicknames: ["Shengguang Group", "省广"]
+
+  hakuhodo-cn:
+    official_cn: 博报堂中国
+    tier: tier_2
+    nicknames: ["博报堂", "Hakuhodo", "Hakuhodo China"]
+
+  navinfo:
+    official_cn: 四维图新
+    tier: tier_2
+    nicknames: ["NavInfo", "四维", "高精地图"]
+
+  thundersoft:
+    official_cn: 中科创达
+    tier: tier_2
+    nicknames: ["ThunderSoft", "创达", "OS平台"]
+
+  arcsoft:
+    official_cn: 虹软科技
+    tier: tier_2
+    nicknames: ["ArcSoft", "虹软", "相机算法"]
+
+  inovance:
+    official_cn: 汇川技术
+    tier: tier_2
+    nicknames: ["Inovance", "汇川", "工业自动化"]
+
+  hans-laser:
+    official_cn: 大族激光
+    tier: tier_2
+    nicknames: ["Hans Laser", "大族", "激光设备"]
+
+  lead-intelligent:
+    official_cn: 先导智能
+    tier: tier_2
+    nicknames: ["Lead Intelligent", "先导", "锂电设备"]
+
+  jereh-group:
+    official_cn: 杰瑞股份
+    tier: tier_2
+    nicknames: ["Jereh Group", "杰瑞"]
+
+  supcon:
+    official_cn: 中控技术
+    tier: tier_2
+    nicknames: ["Supcon", "中控", "工业自动化DCS"]
+
+  siasun-robot:
+    official_cn: 新松机器人
+    tier: tier_2
+    nicknames: ["SIASUN Robot", "新松", "工业机器人"]
+
+  estun:
+    official_cn: 埃斯顿
+    tier: tier_2
+    nicknames: ["Estun", "埃斯顿机器人"]
+
+  goodix:
+    official_cn: 汇顶科技
+    tier: tier_2
+    nicknames: ["Goodix", "汇顶", "指纹芯片"]
+
+  gigadevice:
+    official_cn: 兆易创新
+    tier: tier_2
+    nicknames: ["GigaDevice", "兆易", "GD32", "Flash芯片"]
+
+  unisoc:
+    official_cn: 紫光展锐
+    tier: tier_2
+    nicknames: ["UNISOC", "展锐", "紫光展讯"]
+
+  asr-micro:
+    official_cn: 翱捷科技
+    tier: tier_2
+    nicknames: ["ASR Microelectronics", "翱捷", "ASR"]
+
+  shopify-cn:
+    official_cn: Shopify中国区
+    tier: tier_2
+    nicknames: ["Shopify", "Shopify中国", "独立站平台"]
+
+  stripe-cn:
+    official_cn: Stripe中国区
+    tier: tier_2
+    nicknames: ["Stripe", "Stripe中国", "支付基础设施"]
+
+  databricks-cn:
+    official_cn: Databricks中国区
+    tier: tier_2
+    nicknames: ["Databricks", "Databricks中国", "Delta Lake", "数据湖"]
+
+  snowflake-cn:
+    official_cn: Snowflake中国区
+    tier: tier_2
+    nicknames: ["Snowflake", "Snowflake中国", "数据仓库云"]
+
+  confluent-cn:
+    official_cn: Confluent中国区
+    tier: tier_2
+    nicknames: ["Confluent", "Confluent中国", "Kafka商业版"]
+
+  hashicorp-cn:
+    official_cn: HashiCorp中国区
+    tier: tier_2
+    nicknames: ["HashiCorp", "HashiCorp中国", "Terraform", "Vault"]
+
+  gitlab-cn:
+    official_cn: GitLab中国区
+    tier: tier_2
+    nicknames: ["GitLab", "GitLab中国", "代码托管", "DevSecOps"]
+
+  jetbrains-cn:
+    official_cn: JetBrains中国区
+    tier: tier_2
+    nicknames: ["JetBrains", "JetBrains中国", "IntelliJ IDEA", "IDE工具"]
+
+  atlassian-cn:
+    official_cn: Atlassian中国区
+    tier: tier_2
+    nicknames: ["Atlassian", "Atlassian中国", "Jira", "Confluence工具"]
+
+  zoom-cn:
+    official_cn: Zoom中国区
+    tier: tier_2
+    nicknames: ["Zoom", "Zoom中国", "Zoom视频会议"]
+
+  salesforce-cn:
+    official_cn: Salesforce中国区
+    tier: tier_2
+    nicknames: ["Salesforce", "Salesforce中国", "CRM云"]
+
+  servicenow-cn:
+    official_cn: ServiceNow中国区
+    tier: tier_2
+    nicknames: ["ServiceNow", "ServiceNow中国", "IT服务管理"]
+
+  workday-cn:
+    official_cn: Workday中国区
+    tier: tier_2
+    nicknames: ["Workday", "Workday中国", "HR云", "财务云"]
+
+  adobe-cn:
+    official_cn: Adobe中国区
+    tier: tier_2
+    nicknames: ["Adobe", "Adobe中国", "Creative Cloud", "PDF"]
+
+  autodesk-cn:
+    official_cn: Autodesk中国区
+    tier: tier_2
+    nicknames: ["Autodesk", "Autodesk中国", "AutoCAD", "Maya", "3ds Max"]
+
+  state-grid-tech:
+    official_cn: 国家电网信息通信产业集团
+    tier: tier_2
+    nicknames: ["国家电网科技", "国网信产", "国网科技", "国电信息"]
+
+  aecc:
+    official_cn: 中国航空发动机集团
+    tier: tier_2
+    nicknames: ["中国航发", "AECC", "航空发动机", "中航发"]
+
+  cetc:
+    official_cn: 中国电子科技集团
+    tier: tier_2
+    nicknames: ["中国电科", "CETC", "中电科", "电科集团"]
+
+  norinco:
+    official_cn: 中国兵器工业集团
+    tier: tier_2
+    nicknames: ["中国兵器", "NORINCO Group", "兵器集团", "中北集团"]
+
+  casic:
+    official_cn: 中国航天科工集团
+    tier: tier_2
+    nicknames: ["航天科工", "CASIC", "航科工", "中国航天科工"]
+
+  cnnc:
+    official_cn: 中国核工业集团
+    tier: tier_2
+    nicknames: ["中核集团", "CNNC", "中国核电", "中核"]
+
+  cgnpc:
+    official_cn: 中国广核集团
+    tier: tier_2
+    nicknames: ["中广核", "CGNPC", "广核", "中广核电力"]
+
+  crrc:
+    official_cn: 中国中车
+    tier: tier_2
+    nicknames: ["CRRC", "中车", "高铁列车"]
+
+  cccc:
+    official_cn: 中国交通建设集团
+    tier: tier_2
+    nicknames: ["中国交建", "CCCC", "中交", "港珠澳大桥建设方"]
+
+  crcc:
+    official_cn: 中国铁建股份
+    tier: tier_2
+    nicknames: ["中国铁建", "CRCC", "铁建", "中铁"]
+
+  chemchina:
+    official_cn: 中国化工集团
+    tier: tier_2
+    nicknames: ["中国化工", "ChemChina", "中化集团", "先正达"]
+
+  cofco-group:
+    official_cn: 中粮集团
+    tier: tier_2
+    nicknames: ["COFCO", "中粮", "中粮食品"]
+
+  vipshop:
+    official_cn: 唯品会
+    tier: tier_2
+    nicknames: ["VIP.com", "特卖平台", "唯品仓"]
+
+  58-wuba:
+    official_cn: 58同城
+    tier: tier_2
+    nicknames: ["58.com", "赶集网", "安居客"]
+
+  autohome:
+    official_cn: 汽车之家
+    tier: tier_2
+    nicknames: ["Autohome", "汽车之家网"]
+
+  huya:
+    official_cn: 虎牙直播
+    tier: tier_2
+    nicknames: ["虎牙", "Huya", "HUYA Inc"]
+
+  douyu:
+    official_cn: 斗鱼直播
+    tier: tier_2
+    nicknames: ["斗鱼", "DouYu", "斗鱼TV"]
+
+  trip-cn:
+    official_cn: 携程集团
+    tier: tier_2
+    nicknames: ["携程", "Trip.com Group", "携程旅游", "Ctrip"]
+
+  liepin:
+    official_cn: 猎聘网
+    tier: tier_2
+    nicknames: ["猎聘", "Liepin", "中高端招聘"]
+
+  qianxin:
+    official_cn: 奇安信科技
+    tier: tier_2
+    nicknames: ["奇安信", "QianXin", "360分拆", "网络安全"]
+
+  sangfor:
+    official_cn: 深信服科技
+    tier: tier_2
+    nicknames: ["深信服", "Sangfor", "SANGFOR Technologies"]
+
+  nsfocus:
+    official_cn: 绿盟科技
+    tier: tier_2
+    nicknames: ["NSFOCUS", "绿盟", "网络安全"]
+
+  venustech:
+    official_cn: 启明星辰
+    tier: tier_2
+    nicknames: ["VenusTech", "启明", "网络安全"]
+
+  hikvision:
+    official_cn: 海康威视
+    tier: tier_2
+    nicknames: ["Hikvision", "海康", "安防视频"]
+
+  dahua-tech:
+    official_cn: 大华技术
+    tier: tier_2
+    nicknames: ["Dahua Technology", "大华", "安防摄像头"]
+
+  chint-group:
+    official_cn: 正泰集团
+    tier: tier_2
+    nicknames: ["CHINT Group", "正泰", "光伏电气"]
+
+  abb-cn:
+    official_cn: ABB中国
+    tier: tier_2
+    nicknames: ["ABB", "工业自动化ABB", "ABB机器人"]
+
+  honeywell-cn:
+    official_cn: 霍尼韦尔中国
+    tier: tier_2
+    nicknames: ["霍尼韦尔", "Honeywell", "Honeywell China"]
+
+  schneider-cn:
+    official_cn: 施耐德电气中国
+    tier: tier_2
+    nicknames: ["施耐德", "Schneider Electric", "Schneider China"]
+
+  emerson-cn:
+    official_cn: 艾默生电气中国
+    tier: tier_2
+    nicknames: ["艾默生", "Emerson Electric", "Emerson China"]
+
+  michelin-cn:
+    official_cn: 米其林中国
+    tier: tier_2
+    nicknames: ["米其林", "Michelin", "Michelin China"]
+
+  ucloud:
+    official_cn: 优刻得UCloud
+    tier: tier_2
+    nicknames: ["优刻得", "UCloud", "UCloud云计算"]
+
+  bilibili-games:
+    official_cn: 哔哩哔哩游戏
+    tier: tier_2
+    nicknames: ["B站游戏", "Bilibili Games", "BLG"]
+
+  baishan-cloud:
+    official_cn: 白山云科技
+    tier: tier_2
+    nicknames: ["白山云", "Baishan Cloud", "CDN云服务"]
+
+  tuniu:
+    official_cn: 途牛旅游
+    tier: tier_2
+    nicknames: ["途牛", "Tuniu", "途牛旅游网"]
+
+  meituan-dianping:
+    official_cn: 美团平台（大众点评已并入）
+    tier: tier_2
+    nicknames: ["美团商家", "美团平台", "美团SaaS"]
+
+  sf-holding-tech:
+    official_cn: 顺丰科技
+    tier: tier_2
+    nicknames: ["SF Technology", "顺丰技术", "SF-Tech"]
+
+  shixiseng:
+    official_cn: 实习僧
+    tier: tier_2
+    nicknames: ["Shixiseng", "大学生实习"]
+
+  dongche-cn:
+    official_cn: 懂车帝
+    tier: tier_2
+    nicknames: ["DongChe", "字节汽车媒体"]
+
+  ernst-young-cn:
+    official_cn: 安永中国
+    tier: tier_2
+    nicknames: ["安永", "EY", "Ernst & Young China", "大四安永"]
+
+  perfectworld-games:
+    official_cn: 完美世界游戏
+    tier: tier_2
+    nicknames: ["完美世界", "Perfect World", "完美游戏"]
+
+  grant-thornton-cn:
+    official_cn: 致同会计师事务所
+    tier: tier_2
+    nicknames: ["致同", "Grant Thornton China", "致同中国", "中审众环"]
+
+  zhongsoftware-chengdu:
+    official_cn: 中软国际成都
+    tier: tier_3
+    nicknames: ["中软国际", "中软成都"]
+
+  ufoto-chengdu:
+    official_cn: 互影科技
+    tier: tier_3
+    nicknames: ["Ufoto"]
+
+  guanyu-tech:
+    official_cn: 观远数据
+    tier: tier_3
+    nicknames: ["观远", "Guandata"]
+
+  chengdu-xinchao:
+    official_cn: 新潮传媒
+    tier: tier_3
+    nicknames: ["电梯广告"]
+
+  seewo-tech:
+    official_cn: 希沃科技
+    tier: tier_3
+    nicknames: ["希沃", "Seewo", "视源股份旗下"]
+
+  sichuan-changhong:
+    official_cn: 四川长虹
+    tier: tier_3
+    nicknames: ["长虹电视", "长虹集团"]
+
+  chengdu-yitu:
+    official_cn: 依图科技成都
+    tier: tier_3
+    nicknames: ["依图科技", "依图成都"]
+
+  pixelworks-cd:
+    official_cn: 矽力杰成都
+    tier: tier_3
+    nicknames: ["Pixelworks成都"]
+
+  lianhua-tech-cd:
+    official_cn: 联华科技成都
+    tier: tier_3
+    nicknames: ["联华科技", "联华成都"]
+
+  dacheng-cloud-cd:
+    official_cn: 大成云网
+    tier: tier_3
+    nicknames: ["大成科技"]
+
+  chengdu-huawei-bpo:
+    official_cn: 华为成都研发中心
+    tier: tier_3
+    nicknames: ["华为成都", "华为成都研发"]
+
+  anjiuyun:
+    official_cn: 安居云
+    tier: tier_3
+    nicknames: ["房产科技"]
+
+  dingdang-health:
+    official_cn: 叮当快药
+    tier: tier_3
+    nicknames: ["叮当健康"]
+
+  laobaixing-pharma:
+    official_cn: 老百姓大药房
+    tier: tier_3
+    nicknames: ["老百姓药房"]
+
+  muyuan-tech:
+    official_cn: 目源科技
+    tier: tier_3
+    nicknames: ["Muyuan"]
+
+  chengdu-iflytek:
+    official_cn: 科大讯飞成都
+    tier: tier_3
+    nicknames: ["讯飞成都"]
+
+  boxin-tech:
+    official_cn: 博欣科技
+    tier: tier_3
+    nicknames: ["BoXin"]
+
+  leifu-tech:
+    official_cn: 雷富科技
+    tier: tier_3
+    nicknames: ["Leifu"]
+
+  nongfenqi:
+    official_cn: 农分期
+    tier: tier_3
+    nicknames: ["NongFenQi", "涉农金融"]
+
+  chengdu-deepblue:
+    official_cn: 深蓝汽车成都
+    tier: tier_3
+    nicknames: ["深蓝成都研发"]
+
+  hisilicon-wuhan:
+    official_cn: 海思半导体武汉
+    tier: tier_3
+    nicknames: ["海思武汉", "HiSilicon武汉"]
+
+  wuhan-guide:
+    official_cn: 高德红外
+    tier: tier_3
+    nicknames: ["Guide Infrared"]
+
+  wuhan-douyu-tech:
+    official_cn: 斗鱼科技武汉总部
+    tier: tier_3
+    nicknames: ["斗鱼武汉", "武汉斗鱼"]
+
+  yangtze-memory:
+    official_cn: 长江存储
+    tier: tier_3
+    nicknames: ["YMTC", "武汉芯片"]
+
+  wuhan-tianyu:
+    official_cn: 天喻信息
+    tier: tier_3
+    nicknames: ["Wuhan Tianyu"]
+
+  wuhan-baidu-cloud:
+    official_cn: 百度武汉研发中心
+    tier: tier_3
+    nicknames: ["百度武汉", "百度武汉研发"]
+
+  wuhan-hci:
+    official_cn: 光谷人机交互研究院
+    tier: tier_3
+    nicknames: ["光谷人机交互", "HCI武汉"]
+
+  ewinwin-wuhan:
+    official_cn: 嬴彻科技武汉
+    tier: tier_3
+    nicknames: ["嬴彻科技", "Inceptio武汉"]
+
+  wuhan-transwarp:
+    official_cn: 星环科技武汉
+    tier: tier_3
+    nicknames: ["星环科技", "Transwarp武汉"]
+
+  wuhan-ecloud:
+    official_cn: 电信云武汉
+    tier: tier_3
+    nicknames: ["天翼云武汉", "电信云武汉基地"]
+
+  wuhan-fibrlink:
+    official_cn: 烽火通信
+    tier: tier_3
+    nicknames: ["FiberHome", "烽火"]
+
+  wuhan-greenland-tech:
+    official_cn: 绿地科技武汉
+    tier: tier_3
+    nicknames: ["绿地科技", "绿地数字"]
+
+  wuhan-gree-smart:
+    official_cn: 格力智能装备武汉
+    tier: tier_3
+    nicknames: ["格力装备武汉", "格力智能武汉"]
+
+  wuhan-whty:
+    official_cn: 武汉天远视科技
+    tier: tier_3
+    nicknames: ["天远视科技", "WHTY"]
+
+  wuhan-iflytek:
+    official_cn: 科大讯飞武汉分部
+    tier: tier_3
+    nicknames: ["讯飞武汉", "科大讯飞武汉"]
+
+  nanjing-tuhu:
+    official_cn: 途虎养车南京
+    tier: tier_3
+    nicknames: ["途虎养车", "Tuhu Car", "途虎南京"]
+
+  nanjing-jimu:
+    official_cn: 积目科技
+    tier: tier_3
+    nicknames: ["Jimu"]
+
+  nanjing-ztesoft:
+    official_cn: 中兴软创
+    tier: tier_3
+    nicknames: ["ZTEsoft", "中兴业务软件"]
+
+  nanjing-runhe:
+    official_cn: 润和软件
+    tier: tier_3
+    nicknames: ["HuaYun", "HYC"]
+
+  nanjing-nari-tech:
+    official_cn: 南瑞集团
+    tier: tier_3
+    nicknames: ["NARI Tech", "南瑞科技"]
+
+  nanjing-casco:
+    official_cn: 卡斯柯信号
+    tier: tier_3
+    nicknames: ["CASCO Signal"]
+
+  nanjing-codewave:
+    official_cn: 网易云音乐南京
+    tier: tier_3
+    nicknames: ["网易南京研发"]
+
+  nanjing-wangsu:
+    official_cn: 网宿科技南京
+    tier: tier_3
+    nicknames: ["网宿科技", "Wangsu南京", "CDN南京"]
+
+  nanjing-fiberhome:
+    official_cn: 南京烽火
+    tier: tier_3
+    nicknames: ["FiberHome南京"]
+
+  nanjing-dahua:
+    official_cn: 大华技术南京研发
+    tier: tier_3
+    nicknames: ["大华南京", "大华南京研发"]
+
+  nanjing-neusoft:
+    official_cn: 东软集团南京
+    tier: tier_3
+    nicknames: ["东软南京", "Neusoft南京"]
+
+  nanjing-wenjie:
+    official_cn: 文杰信息
+    tier: tier_3
+    nicknames: ["Wenjie Info"]
+
+  nanjing-suning-tech:
+    official_cn: 苏宁科技南京
+    tier: tier_3
+    nicknames: ["苏宁科技", "苏宁技术中心"]
+
+  nanjing-liuliang:
+    official_cn: 六量科技
+    tier: tier_3
+    nicknames: ["LiuLiang"]
+
+  nanjing-sanweichuan:
+    official_cn: 三维传
+    tier: tier_3
+    nicknames: ["SanWeiChuan"]
+
+  xian-casicloud:
+    official_cn: 中国航天云网西安
+    tier: tier_3
+    nicknames: ["航天云网西安", "CASICLOUD西安"]
+
+  xian-dahua:
+    official_cn: 大华技术西安研发
+    tier: tier_3
+    nicknames: ["大华西安", "大华西安研发"]
+
+  xian-tongchan:
+    official_cn: 通产信息
+    tier: tier_3
+    nicknames: ["TongChan"]
+
+  xian-heli:
+    official_cn: 西安合力亿捷
+    tier: tier_3
+    nicknames: ["合力亿捷", "客服系统西安"]
+
+  xian-thunisoft:
+    official_cn: 清华同方软件西安
+    tier: tier_3
+    nicknames: ["同方软件西安", "清华同方西安"]
+
+  xian-360-rd:
+    official_cn: 360西安研发
+    tier: tier_3
+    nicknames: ["360西安", "奇安信西安"]
+
+  xian-aero-engine:
+    official_cn: 航发西控
+    tier: tier_3
+    nicknames: ["航空发动机西安"]
+
+  xian-meituan:
+    official_cn: 美团西安研发
+    tier: tier_3
+    nicknames: ["美团西安", "美团西安中心"]
+
+  xian-yunda:
+    official_cn: 韵达科技西安
+    tier: tier_3
+    nicknames: ["韵达西安"]
+
+  xian-lewei:
+    official_cn: 乐威科技
+    tier: tier_3
+    nicknames: ["LeWei西安"]
+
+  xian-datang:
+    official_cn: 大唐电信西安
+    tier: tier_3
+    nicknames: ["大唐西安研发"]
+
+  xian-primus:
+    official_cn: 铂睿科技
+    tier: tier_3
+    nicknames: ["Primus西安"]
+
+  xian-beyond-limit:
+    official_cn: 超越极限
+    tier: tier_3
+    nicknames: ["Beyond Limit"]
+
+  xian-nvxiu:
+    official_cn: 西安诺维雪
+    tier: tier_3
+    nicknames: ["诺维雪", "Nvxiu西安"]
+
+  xian-huanqiu:
+    official_cn: 环球数科西安
+    tier: tier_3
+    nicknames: ["环球数科", "环球西安"]
+
+  changsha-meituan:
+    official_cn: 美团长沙研发
+    tier: tier_3
+    nicknames: ["美团长沙"]
+
+  changsha-didi:
+    official_cn: 滴滴长沙研发
+    tier: tier_3
+    nicknames: ["滴滴长沙"]
+
+  hengsheng-digi:
+    official_cn: 恒生电子长沙
+    tier: tier_3
+    nicknames: ["恒生电子", "恒生长沙", "金融IT"]
+
+  changsha-keda:
+    official_cn: 科达制造
+    tier: tier_3
+    nicknames: ["KEDA Smart"]
+
+  changsha-cscec-tech:
+    official_cn: 中建科技长沙
+    tier: tier_3
+    nicknames: ["中建长沙研发"]
+
+  changsha-hunan-tv-tech:
+    official_cn: 芒果超媒技术部门
+    tier: tier_3
+    nicknames: ["芒果超媒技术", "芒果TV技术", "湖南卫视科技"]
+
+  changsha-sany-heavy:
+    official_cn: 三一重工IT
+    tier: tier_3
+    nicknames: ["三一智能IT"]
+
+  changsha-zoomlion-tech:
+    official_cn: 中联重科IT
+    tier: tier_3
+    nicknames: ["中联数字"]
+
+  changsha-vivo-dev:
+    official_cn: vivo长沙研发
+    tier: tier_3
+    nicknames: ["vivo长沙"]
+
+  changsha-deepblue-cs:
+    official_cn: 深蓝汽车长沙基地
+    tier: tier_3
+    nicknames: ["深蓝汽车长沙", "深蓝长沙研发"]
+
+  zhengzhou-yuanchen:
+    official_cn: 元辰科技
+    tier: tier_3
+    nicknames: ["YuanChen郑州"]
+
+  zhengzhou-yusys:
+    official_cn: 宇信科技郑州
+    tier: tier_3
+    nicknames: ["宇信科技", "宇信郑州"]
+
+  zhengzhou-boyuan:
+    official_cn: 博苑网络
+    tier: tier_3
+    nicknames: ["BoyuanNet"]
+
+  zhengzhou-zhongzhi:
+    official_cn: 中知数字
+    tier: tier_3
+    nicknames: ["ZhongZhi Digital"]
+
+  hefei-iflexion:
+    official_cn: 科大国创
+    tier: tier_3
+    nicknames: ["iFlexion合肥"]
+
+  hefei-ustc-tech:
+    official_cn: 中科类脑
+    tier: tier_3
+    nicknames: ["科大类脑智能"]
+
+  hefei-rongsheng:
+    official_cn: 荣胜科技合肥
+    tier: tier_3
+    nicknames: ["荣胜科技", "Rongsheng合肥"]
+
+  hefei-boe-cloud:
+    official_cn: 京东方云合肥
+    tier: tier_3
+    nicknames: ["京东方云", "BOE Cloud合肥"]
+
+  hefei-bitauto:
+    official_cn: 易鑫集团合肥
+    tier: tier_3
+    nicknames: ["易鑫集团", "Bitauto合肥"]
+
+  hefei-shengda-electric:
+    official_cn: 盛达电气
+    tier: tier_3
+    nicknames: ["ShengDa Electric"]
+
+  nongxin-tech:
+    official_cn: 农信互联
+    tier: tier_3
+    nicknames: ["NongXin", "猪联网"]
+
+  dabeigou-agri:
+    official_cn: 大北农科技
+    tier: tier_3
+    nicknames: ["DBN Tech"]
+
+  jd-agtech:
+    official_cn: 京东农场
+    tier: tier_3
+    nicknames: ["JD AgTech", "京东农业"]
+
+  alibaba-agtech:
+    official_cn: 阿里巴巴农业
+    tier: tier_3
+    nicknames: ["阿里农业", "盒马农业", "数字农业阿里"]
+
+  xinjuwang-agri:
+    official_cn: 新巨网
+    tier: tier_3
+    nicknames: ["XinJuWang", "农业互联网"]
+
+  zhongnong-bigdata:
+    official_cn: 中农大数据
+    tier: tier_3
+    nicknames: ["ZhongNong BigData"]
+
+  greenland-agri-iot:
+    official_cn: 绿农IoT
+    tier: tier_3
+    nicknames: ["农业物联网"]
+
+  pinduoduo-agri:
+    official_cn: 多多买菜农业
+    tier: tier_3
+    nicknames: ["多多农研", "拼多多农业", "多多农业"]
+
+  cainiao-tech:
+    official_cn: 菜鸟科技
+    tier: tier_3
+    nicknames: ["Cainiao Tech", "菜鸟网络"]
+
+  shansong-tech:
+    official_cn: 闪送科技
+    tier: tier_3
+    nicknames: ["闪送", "Shansong", "即时配送"]
+
+  yundaex-tech:
+    official_cn: 韵达科技
+    tier: tier_3
+    nicknames: ["Yundaex Tech"]
+
+  zhongtong-tech:
+    official_cn: 中通科技
+    tier: tier_3
+    nicknames: ["ZTO Tech", "中通技术"]
+
+  yto-tech:
+    official_cn: 圆通科技
+    tier: tier_3
+    nicknames: ["YTO Express Tech"]
+
+  g7-networks:
+    official_cn: G7易流
+    tier: tier_3
+    nicknames: ["G7", "商用车物联网"]
+
+  manbang-tech:
+    official_cn: 满帮科技
+    tier: tier_3
+    nicknames: ["满帮", "Full Truck Alliance", "运满满货车帮"]
+
+  shukun-tech:
+    official_cn: 树根互联
+    tier: tier_3
+    nicknames: ["ShuGen", "工业互联网"]
+
+  lawtime-tech:
+    official_cn: 法天使
+    tier: tier_3
+    nicknames: ["LawTime", "法律AI"]
+
+  lvfa-tech:
+    official_cn: 律法科技
+    tier: tier_3
+    nicknames: ["LvFa Tech", "合同AI"]
+
+  numlaw-ai:
+    official_cn: 数律科技
+    tier: tier_3
+    nicknames: ["NumLaw AI"]
+
+  juzheng-law:
+    official_cn: 聚正法律科技
+    tier: tier_3
+    nicknames: ["聚正法律", "JuZheng Law"]
+
+  wolawyer:
+    official_cn: 无讼科技
+    tier: tier_3
+    nicknames: ["无讼", "WoLawyer", "无讼法务云"]
+
+  zhangmen-edu:
+    official_cn: 掌门教育
+    tier: tier_3
+    nicknames: ["掌门1对1", "ZhangMen"]
+
+  ixuetang-tech:
+    official_cn: 爱学堂科技
+    tier: tier_3
+    nicknames: ["爱学堂", "iXuetang"]
+
+  speakfit-en:
+    official_cn: 流利说
+    tier: tier_3
+    nicknames: ["Liulishuo", "AI英语"]
+
+  gaotu-tech:
+    official_cn: 高途教育
+    tier: tier_3
+    nicknames: ["高途", "Gaotu", "跟谁学"]
+
+  onlineschool-cn:
+    official_cn: 网校通科技
+    tier: tier_3
+    nicknames: ["网校通", "OnlineSchool"]
+
+  kaipusen-edu:
+    official_cn: 开普森教育
+    tier: tier_3
+    nicknames: ["开普森", "KaiPuSen"]
+
+  ulearning-tech:
+    official_cn: 优学院
+    tier: tier_3
+    nicknames: ["ULearning", "企业培训"]
+
+  laowai-edu:
+    official_cn: 老外网教育
+    tier: tier_3
+    nicknames: ["老外网", "LaowaiEdu", "外教平台"]
+
+  zhipuai-tech:
+    official_cn: 智谱AI
+    tier: tier_3
+    nicknames: ["ZhiPu AI", "GLM大模型"]
+
+  minimax-ai:
+    official_cn: MiniMax
+    tier: tier_3
+    nicknames: ["MiniMax AI", "Talkie"]
+
+  stepfun-ai:
+    official_cn: 阶跃星辰
+    tier: tier_3
+    nicknames: ["Step Fun", "阶跃AI"]
+
+  baichuan-ai:
+    official_cn: 百川智能
+    tier: tier_3
+    nicknames: ["Baichuan AI", "百川大模型"]
+
+  moonshot-ai:
+    official_cn: 月之暗面
+    tier: tier_3
+    nicknames: ["Moonshot AI", "Kimi"]
+
+  lingxin-ai:
+    official_cn: 零一万物
+    tier: tier_3
+    nicknames: ["01.AI", "Yi大模型"]
+
+  midu-ai:
+    official_cn: 秘塔AI
+    tier: tier_3
+    nicknames: ["Midu AI", "秘塔搜索"]
+
+  deepseek-tech:
+    official_cn: 深度求索
+    tier: tier_3
+    nicknames: ["DeepSeek", "DeepSeek AI"]
+
+  tiangong-ai:
+    official_cn: 天工AI
+    tier: tier_3
+    nicknames: ["TianGong", "昆仑万维旗下AI"]
+
+  xloop-ai:
+    official_cn: 循环智能
+    tier: tier_3
+    nicknames: ["XLoop AI", "对话AI"]
+
+  biren-tech:
+    official_cn: 壁仞科技
+    tier: tier_3
+    nicknames: ["Biren Tech", "AI芯片"]
+
+  mthreads-gpu:
+    official_cn: 摩尔线程
+    tier: tier_3
+    nicknames: ["Moore Threads", "国产GPU"]
+
+  suiyuan-tech:
+    official_cn: 燧原科技
+    tier: tier_3
+    nicknames: ["Suiyuan Tech", "AI训练芯片"]
+
+  ninebot-ai:
+    official_cn: 九号公司
+    tier: tier_3
+    nicknames: ["Ninebot", "九号机器人"]
+
+  cowarobot:
+    official_cn: 科沃斯机器人
+    tier: tier_3
+    nicknames: ["科沃斯", "ECOVACS", "扫地机器人"]
+
+  elastic-cn:
+    official_cn: Elastic中国区
+    tier: tier_3
+    nicknames: ["Elastic", "Elasticsearch中国", "ELK Stack"]
+
+  mongodb-cn:
+    official_cn: MongoDB中国区
+    tier: tier_3
+    nicknames: ["MongoDB", "MongoDB中国", "文档数据库"]
+
+  huggingface-cn:
+    official_cn: Hugging Face中国区
+    tier: tier_3
+    nicknames: ["Hugging Face", "HuggingFace中国", "AI模型社区"]
+
+  cloudera-cn:
+    official_cn: Cloudera中国区
+    tier: tier_3
+    nicknames: ["Cloudera", "Cloudera中国", "大数据平台"]
+
+  teradata-cn:
+    official_cn: Teradata中国区
+    tier: tier_3
+    nicknames: ["Teradata", "Teradata中国", "数据仓库"]
+
+  zendesk-cn:
+    official_cn: Zendesk中国区
+    tier: tier_3
+    nicknames: ["Zendesk", "Zendesk中国", "客服SaaS"]
+
+  freshworks-cn:
+    official_cn: Freshworks中国区
+    tier: tier_3
+    nicknames: ["Freshworks", "Freshworks中国", "客服CRM"]
+
+  hubspot-cn:
+    official_cn: HubSpot中国区
+    tier: tier_3
+    nicknames: ["HubSpot", "HubSpot中国", "营销CRM"]
+
+  docusign-cn:
+    official_cn: DocuSign中国区
+    tier: tier_3
+    nicknames: ["DocuSign", "DocuSign中国", "电子签约"]
+
+  paloalto-cn:
+    official_cn: Palo Alto Networks中国区
+    tier: tier_3
+    nicknames: ["Palo Alto Networks", "PAN中国", "下一代防火墙"]
+
+  fortinet-cn:
+    official_cn: Fortinet中国区
+    tier: tier_3
+    nicknames: ["Fortinet", "Fortinet中国", "FortiGate安全"]
+
+  crowdstrike-cn:
+    official_cn: CrowdStrike中国区
+    tier: tier_3
+    nicknames: ["CrowdStrike", "CrowdStrike中国", "端点安全"]
+
+  vmware-cn:
+    official_cn: VMware中国区
+    tier: tier_3
+    nicknames: ["VMware", "VMware中国", "Broadcom虚拟化"]
+
+  nutanix-cn:
+    official_cn: Nutanix中国区
+    tier: tier_3
+    nicknames: ["Nutanix", "Nutanix中国", "超融合基础设施"]
+
+  netapp-cn:
+    official_cn: NetApp中国区
+    tier: tier_3
+    nicknames: ["NetApp", "NetApp中国", "数据存储管理"]
+
+  okta-cn:
+    official_cn: Okta中国区
+    tier: tier_3
+    nicknames: ["Okta", "Okta中国", "身份管理"]
+
+  figma-cn:
+    official_cn: Figma中国区
+    tier: tier_3
+    nicknames: ["Figma", "Figma中国", "UI设计工具"]
+
+  retool-cn:
+    official_cn: Retool中国区
+    tier: tier_3
+    nicknames: ["Retool", "Retool中国", "低代码内部工具"]
+
+  palantir-cn:
+    official_cn: Palantir中国区
+    tier: tier_3
+    nicknames: ["Palantir", "Palantir中国", "数据分析AI"]
+
+  scale-ai-cn:
+    official_cn: Scale AI中国区
+    tier: tier_3
+    nicknames: ["Scale AI", "Scale AI中国", "AI数据标注"]
+
+  guomei-tech:
+    official_cn: 国美零售科技
+    tier: tier_3
+    nicknames: ["国美科技", "GuoMei Tech"]
+
+  pconline-tech:
+    official_cn: 太平洋电脑网
+    tier: tier_3
+    nicknames: ["太平洋电脑", "PCOnline"]
+
+  zol-tech:
+    official_cn: 中关村在线
+    tier: tier_3
+    nicknames: ["ZOL", "IT媒体"]
+
+  smzdm-cn:
+    official_cn: 什么值得买
+    tier: tier_3
+    nicknames: ["SMZDM", "导购社区"]
+
+  guazi-used-car:
+    official_cn: 瓜子二手车
+    tier: tier_3
+    nicknames: ["GuaZi", "瓜子网"]
+
+  uxin-group:
+    official_cn: 优信集团
+    tier: tier_3
+    nicknames: ["优信", "Uxin", "优信二手车"]
+
+  lvmama-travel:
+    official_cn: 驴妈妈旅游
+    tier: tier_3
+    nicknames: ["驴妈妈", "LvMama", "驴妈妈旅游网"]
+
+  qyer-travel:
+    official_cn: 穷游网
+    tier: tier_3
+    nicknames: ["穷游", "Qyer", "穷游自由行"]
+
+  tujia-vacation:
+    official_cn: 途家民宿
+    tier: tier_3
+    nicknames: ["途家", "Tujia"]
+
+  moji-weather:
+    official_cn: 墨迹天气
+    tier: tier_3
+    nicknames: ["MoJi Weather", "天气App"]
+
+  coocaa-tv:
+    official_cn: 酷开科技
+    tier: tier_3
+    nicknames: ["Coocaa TV", "创维旗下OTT"]
+
+  yanxuan-tech:
+    official_cn: 网易严选技术
+    tier: tier_3
+    nicknames: ["网易严选", "Yanxuan Tech"]
+
+  wangyi-cloudmusic:
+    official_cn: 网易云音乐
+    tier: tier_3
+    nicknames: ["CloudMusic", "云音乐"]
+
+  kugou-music:
+    official_cn: 酷狗音乐
+    tier: tier_3
+    nicknames: ["KuGou Music", "酷狗"]
+
+  kuwo-music:
+    official_cn: 酷我音乐
+    tier: tier_3
+    nicknames: ["KuWo Music", "酷我"]
+
+  lizhi-podcast:
+    official_cn: 荔枝FM
+    tier: tier_3
+    nicknames: ["Lizhi Podcast", "荔枝播客"]
+
+  jiemian-news:
+    official_cn: 界面新闻
+    tier: tier_3
+    nicknames: ["JieMian", "界面财经"]
+
+  xueqiu-finance:
+    official_cn: 雪球网
+    tier: tier_3
+    nicknames: ["Xueqiu", "雪球投资"]
+
+  maoyan-group:
+    official_cn: 猫眼娱乐
+    tier: tier_3
+    nicknames: ["MaoYan", "猫眼电影"]
+
+  cango-finance:
+    official_cn: 灿谷集团
+    tier: tier_3
+    nicknames: ["灿谷", "Cango Finance", "汽车金融"]
+
+  qudian-finance:
+    official_cn: 趣店金融
+    tier: tier_3
+    nicknames: ["趣店", "QuDian", "趣分期"]
+
+  shouqianba:
+    official_cn: 收钱吧
+    tier: tier_3
+    nicknames: ["ShouQianBa", "聚合收款"]
+
+  xinyebao:
+    official_cn: 信也科技
+    tier: tier_3
+    nicknames: ["XinYeBao", "PPmoney"]
+
+  91jinrong:
+    official_cn: 91金融
+    tier: tier_3
+    nicknames: ["91JinRong", "互联网金融"]
+
+  51job-group:
+    official_cn: 前程无忧
+    tier: tier_3
+    nicknames: ["51Job", "无忧精英"]
+
+  zhaopin-hr:
+    official_cn: 智联招聘
+    tier: tier_3
+    nicknames: ["ZhaoPin", "智联HR"]
+
+  growing-io:
+    official_cn: GrowingIO
+    tier: tier_3
+    nicknames: ["增长分析", "用户行为分析"]
+
+  sensors-data:
+    official_cn: 神策数据
+    tier: tier_3
+    nicknames: ["Sensors Data", "私有化数据分析"]
+
+  datarangers-cn:
+    official_cn: 数数科技DataRangers
+    tier: tier_3
+    nicknames: ["数数科技", "DataRangers", "游戏数据分析"]
+
+  posthog-cn:
+    official_cn: PostHog中国区
+    tier: tier_3
+    nicknames: ["PostHog", "PostHog中国", "开源产品分析"]
+
+  metabase-cn:
+    official_cn: Metabase中国区
+    tier: tier_3
+    nicknames: ["Metabase", "Metabase中国", "开源BI"]
+
+  zhuque-satellite:
+    official_cn: 朱雀空间
+    tier: tier_3
+    nicknames: ["ZhuQue Space", "商业航天"]
+
+  gelonghui-finance:
+    official_cn: 格隆汇
+    tier: tier_3
+    nicknames: ["GeLongHui", "港股财经"]
+
+  tiantian-fund-app:
+    official_cn: 天天基金网
+    tier: tier_3
+    nicknames: ["天天基金", "TianTian Fund", "天天基金APP"]
+
+  yixin-group-fin:
+    official_cn: 易鑫集团
+    tier: tier_3
+    nicknames: ["YiXin Group", "汽车贷款"]
+
+  workplus-oa:
+    official_cn: WorkPlus协同
+    tier: tier_3
+    nicknames: ["WorkPlus", "企业IM"]
+
+  shimo-docs-plus:
+    official_cn: 轻流平台
+    tier: tier_3
+    nicknames: ["轻流", "QingLiu", "无代码平台"]
+
+  petmart-cn:
+    official_cn: 宠物家
+    tier: tier_3
+    nicknames: ["PetMart", "宠物零售科技"]
+
+  moji-agri:
+    official_cn: 摩吉科技
+    tier: tier_3
+    nicknames: ["MoJi Agri", "农业大数据"]
+
+  yihua-timber:
+    official_cn: 宜华生活科技
+    tier: tier_3
+    nicknames: ["宜华生活", "YiHua Timber", "家居科技"]
+
+  xiaxia-beauty:
+    official_cn: 小葫芦美妆
+    tier: tier_3
+    nicknames: ["XiaXia Beauty", "美妆直播"]
+
+  fengniao-agtech:
+    official_cn: 丰鸟农业科技
+    tier: tier_3
+    nicknames: ["丰鸟农业", "FengNiao AgTech"]
+
+  polysign-hr:
+    official_cn: 博睿人力科技
+    tier: tier_3
+    nicknames: ["博睿人力", "PolySign HR", "HR SaaS"]
+
+  shengda-sports:
+    official_cn: 盛大体育科技
+    tier: tier_3
+    nicknames: ["盛大体育", "ShengDa Sports"]
+
+  yuanpeng-vr:
+    official_cn: 元鹏VR科技
+    tier: tier_3
+    nicknames: ["元鹏VR", "YuanPeng VR"]
+
+  midu-search:
+    official_cn: 秘塔搜索
+    tier: tier_3
+    nicknames: ["Midu Search", "AI搜索引擎"]
+
+  jina-ai-cn:
+    official_cn: Jina AI中国区
+    tier: tier_3
+    nicknames: ["Jina AI", "Jina AI中国", "嵌入模型"]
+
+  wandb-cn:
+    official_cn: Weights and Biases中国区
+    tier: tier_3
+    nicknames: ["WandB", "Weights and Biases中国", "ML实验追踪"]
+
+  labelbox-cn:
+    official_cn: Labelbox中国区
+    tier: tier_3
+    nicknames: ["Labelbox", "Labelbox中国", "数据标注平台"]
+
+  roboflow-cn:
+    official_cn: Roboflow中国区
+    tier: tier_3
+    nicknames: ["Roboflow", "Roboflow中国", "计算机视觉数据"]
+
+  chongqing-changan-digital:
+    official_cn: 长安数字科技
+    tier: tier_3
+    nicknames: ["长安数字", "长安汽车IT"]
+
+  chongqing-zhongyuan-net:
+    official_cn: 中原网视
+    tier: tier_3
+    nicknames: ["重庆中原"]
+
+  chongqing-caeri-tech:
+    official_cn: 重庆汽研技术
+    tier: tier_3
+    nicknames: ["汽研技术", "重庆汽研IT"]
+
+  chongqing-liangjiang-ai:
+    official_cn: 两江人工智能研究院
+    tier: tier_3
+    nicknames: ["两江AI", "重庆两江AI"]
+
+  chongqing-gome-rd:
+    official_cn: 国美重庆研发中心
+    tier: tier_3
+    nicknames: ["国美重庆", "国美重庆研发"]
+
+  chongqing-xiaomi-mfg:
+    official_cn: 小米重庆制造
+    tier: tier_3
+    nicknames: ["小米重庆", "小米工厂重庆"]
+
+  chongqing-bosch-cn:
+    official_cn: 博世重庆研发
+    tier: tier_3
+    nicknames: ["博世重庆", "Bosch重庆研发"]
+
+  chongqing-vivo-mfg:
+    official_cn: vivo重庆制造
+    tier: tier_3
+    nicknames: ["vivo重庆", "vivo重庆工厂"]
+
+  chongqing-zhongruan:
+    official_cn: 中软国际重庆
+    tier: tier_3
+    nicknames: ["中软重庆"]
+
+  chongqing-aikea-tech:
+    official_cn: 爱客科技
+    tier: tier_3
+    nicknames: ["AiKea重庆"]
+
+  hangzhou-zhiyao:
+    official_cn: 执要科技
+    tier: tier_3
+    nicknames: ["ZhiYao Tech"]
+
+  hangzhou-mofang:
+    official_cn: 魔方格科技
+    tier: tier_3
+    nicknames: ["魔方格", "MoFangGe"]
+
+  hangzhou-lianhua-cloud:
+    official_cn: 联花云科技
+    tier: tier_3
+    nicknames: ["联花云", "LianHua Cloud"]
+
+  hangzhou-wanzhi:
+    official_cn: 万治科技
+    tier: tier_3
+    nicknames: ["WanZhi Tech"]
+
+  hangzhou-qilin-data:
+    official_cn: 麒麟数据
+    tier: tier_3
+    nicknames: ["QiLin Data"]
+
+  hangzhou-shengbo:
+    official_cn: 盛搏科技
+    tier: tier_3
+    nicknames: ["ShengBo Tech"]
+
+  hangzhou-youzan-dev:
+    official_cn: 有赞技术
+    tier: tier_3
+    nicknames: ["Youzan Tech", "微商城技术"]
+
+  hangzhou-ruixing-tech:
+    official_cn: 瑞星科技杭州
+    tier: tier_3
+    nicknames: ["瑞星科技", "Ruixing Tech杭州"]
+
+  hangzhou-xunyou-net:
+    official_cn: 寻游网络
+    tier: tier_3
+    nicknames: ["XunYou Net"]
+
+  hangzhou-meiya-pico:
+    official_cn: 美亚柏科杭州
+    tier: tier_3
+    nicknames: ["美亚柏科", "MeiYa Pico杭州", "电子取证"]
+
+  guangzhou-yealink:
+    official_cn: 亿联网络
+    tier: tier_3
+    nicknames: ["Yealink", "IP话机"]
+
+  guangzhou-wesion:
+    official_cn: 威信科技
+    tier: tier_3
+    nicknames: ["Wesion广州"]
+
+  guangzhou-lianluo:
+    official_cn: 联络互动
+    tier: tier_3
+    nicknames: ["LianLuo Tech"]
+
+  guangzhou-cmge-dev:
+    official_cn: 中手游开发部
+    tier: tier_3
+    nicknames: ["中手游技术", "CMGE Dev"]
+
+  guangzhou-igexin:
+    official_cn: 个推广州
+    tier: tier_3
+    nicknames: ["iGetui广州", "移动推送广州"]
+
+  guangzhou-teligen:
+    official_cn: 泰联科技
+    tier: tier_3
+    nicknames: ["Teligen广州"]
+
+  guangzhou-ruijin:
+    official_cn: 睿金科技
+    tier: tier_3
+    nicknames: ["RuiJin Tech广州"]
+
+  guangzhou-gzric:
+    official_cn: 广州智能制造研究院
+    tier: tier_3
+    nicknames: ["广州智能制造", "GZRIC"]
+
+  guangzhou-topwise:
+    official_cn: 卓智科技
+    tier: tier_3
+    nicknames: ["Topwise广州"]
+
+  guangzhou-aispeech:
+    official_cn: 思必驰广州
+    tier: tier_3
+    nicknames: ["AISpeech广州", "语音AI广州"]
+
+  shenzhen-gosuncn:
+    official_cn: 高新兴科技
+    tier: tier_3
+    nicknames: ["高新兴", "GoSuncn", "智慧城市"]
+
+  shenzhen-nantian-it:
+    official_cn: 南天信息
+    tier: tier_3
+    nicknames: ["NanTian IT"]
+
+  shenzhen-pax-tech:
+    official_cn: 百富计算机
+    tier: tier_3
+    nicknames: ["PAX Technology", "收款终端"]
+
+  shenzhen-winfo:
+    official_cn: 维信诺科技
+    tier: tier_3
+    nicknames: ["维信诺", "Winfo OLED"]
+
+  shenzhen-yovole:
+    official_cn: 优沃科技
+    tier: tier_3
+    nicknames: ["YoVole深圳"]
+
+  shenzhen-shenyi:
+    official_cn: 深一智能
+    tier: tier_3
+    nicknames: ["ShenYi AI"]
+
+  shenzhen-byd-cloud:
+    official_cn: 比亚迪云服务
+    tier: tier_3
+    nicknames: ["比亚迪云", "BYD Cloud"]
+
+  shenzhen-bota-robotics:
+    official_cn: 柏惟机器人
+    tier: tier_3
+    nicknames: ["Bota Robotics深圳"]
+
+  shenzhen-kaadas:
+    official_cn: 凯迪仕智能锁
+    tier: tier_3
+    nicknames: ["凯迪仕", "Kaadas", "智能锁IoT"]
+
+  shenzhen-shijue-ai:
+    official_cn: 视觉AI深圳
+    tier: tier_3
+    nicknames: ["ShiJue AI"]
+
+  beijing-lzlabs:
+    official_cn: 联至实验室
+    tier: tier_3
+    nicknames: ["LZLabs北京"]
+
+  beijing-chinasoft-rd:
+    official_cn: 中国软件研发中心
+    tier: tier_3
+    nicknames: ["中软研发中心", "中国软件研发"]
+
+  beijing-eastmoney-tech:
+    official_cn: 东方财富技术部
+    tier: tier_3
+    nicknames: ["东方财富技术", "东方财富Tech", "Choice金融终端技术"]
+
+  beijing-wisdomtree:
+    official_cn: 智树科技
+    tier: tier_3
+    nicknames: ["WisdomTree北京"]
+
+  beijing-shizhan:
+    official_cn: 实战科技
+    tier: tier_3
+    nicknames: ["ShiZhan Tech"]
+
+  beijing-moshanghua:
+    official_cn: 末上花科技
+    tier: tier_3
+    nicknames: ["末上花", "MoShangHua"]
+
+  beijing-caac-tech:
+    official_cn: 中国航信技术
+    tier: tier_3
+    nicknames: ["中国航信", "TravelSky Tech", "航信IT"]
+
+  beijing-cncert:
+    official_cn: 国家互联网应急中心
+    tier: tier_3
+    nicknames: ["CNCERT"]
+
+  beijing-beike-tech:
+    official_cn: 贝壳找房技术
+    tier: tier_3
+    nicknames: ["贝壳技术", "链家技术", "贝壳IT"]
+
+  beijing-qianxin-sec:
+    official_cn: 奇安信安全
+    tier: tier_3
+    nicknames: ["奇安信", "QiAnXin", "网络安全奇安信"]
+
+  shanghai-shunfeng-tech:
+    official_cn: 顺丰科技上海
+    tier: tier_3
+    nicknames: ["SF Tech上海"]
+
+  shanghai-lufax-tech:
+    official_cn: 陆金所技术
+    tier: tier_3
+    nicknames: ["陆金所", "Lufax Tech", "平安金融壹账通"]
+
+  shanghai-moxian:
+    official_cn: 陌现科技
+    tier: tier_3
+    nicknames: ["MoXian Tech"]
+
+  shanghai-ksyun-edge:
+    official_cn: 金山云上海
+    tier: tier_3
+    nicknames: ["Ksyun上海"]
+
+  shanghai-lalamove-cn:
+    official_cn: 货拉拉中国
+    tier: tier_3
+    nicknames: ["货拉拉", "Lalamove中国", "同城货运"]
+
+  shanghai-newrank:
+    official_cn: 新榜科技
+    tier: tier_3
+    nicknames: ["新榜", "NewRank", "内容营销SaaS"]
+
+  shanghai-taqu-tech:
+    official_cn: 他趣科技
+    tier: tier_3
+    nicknames: ["他趣", "TaQu社交"]
+
+  shanghai-yundong-tech:
+    official_cn: 云动科技
+    tier: tier_3
+    nicknames: ["YunDong Tech"]
+
+  shanghai-suning-fin:
+    official_cn: 苏宁金融上海
+    tier: tier_3
+    nicknames: ["苏宁银行上海分部"]
+
+  shanghai-ztgame:
+    official_cn: 中手游上海
+    tier: tier_3
+    nicknames: ["ZT Game上海"]
+
+  weiyikang-health:
+    official_cn: 微医康科技
+    tier: tier_3
+    nicknames: ["微医康", "WeiYiKang"]
+
+  jinhe-health:
+    official_cn: 锦合健康
+    tier: tier_3
+    nicknames: ["JinHe Health"]
+
+  yijia-health:
+    official_cn: 医家汇
+    tier: tier_3
+    nicknames: ["YiJia Health", "连锁诊所平台"]
+
+  zhongjian-health-tech:
+    official_cn: 中检健康科技
+    tier: tier_3
+    nicknames: ["中检健康", "CCIC Health Tech"]
+
+  pusheng-biotech:
+    official_cn: 溥盛生物
+    tier: tier_3
+    nicknames: ["PuSheng Biotech"]
+
+  qiming-med:
+    official_cn: 启明医疗
+    tier: tier_3
+    nicknames: ["QiMing Med", "心脏瓣膜"]
+
+  xiangshi-pharma:
+    official_cn: 象石药业
+    tier: tier_3
+    nicknames: ["XiangShi Pharma"]
+
+  zhiwei-health:
+    official_cn: 智为健康
+    tier: tier_3
+    nicknames: ["ZhiWei Health AI"]
+
+  carevision-ai:
+    official_cn: 景行科技
+    tier: tier_3
+    nicknames: ["CareVision AI", "医疗影像AI"]
+
+  anxin-insurance-tech:
+    official_cn: 安心险科技
+    tier: tier_3
+    nicknames: ["AnXin Insurance Tech"]
+
+  miku-health:
+    official_cn: 米库健康
+    tier: tier_3
+    nicknames: ["Miku Health", "儿童健康监测"]
+
+  leapmotor-tech:
+    official_cn: 零跑汽车技术
+    tier: tier_3
+    nicknames: ["零跑技术", "Leapmotor Tech", "零跑汽车IT"]
+
+  zeekr-tech:
+    official_cn: 极氪技术
+    tier: tier_3
+    nicknames: ["ZEEKR Tech", "极氪IT"]
+
+  hozon-aito:
+    official_cn: 哪吒汽车技术
+    tier: tier_3
+    nicknames: ["哪吒技术", "Hozon Auto Tech"]
+
+  faw-jiefang-ev:
+    official_cn: 一汽解放新能源
+    tier: tier_3
+    nicknames: ["一汽解放EV", "FAW Jiefang EV"]
+
+  svolt-energy:
+    official_cn: 蜂巢能源
+    tier: tier_3
+    nicknames: ["SVOLT Energy", "动力电池"]
+
+  capotech-ev:
+    official_cn: 远景动力
+    tier: tier_3
+    nicknames: ["CapoTech EV", "Envision Power"]
+
+  sinoev-batteries:
+    official_cn: 中创新航
+    tier: tier_3
+    nicknames: ["SinoEV Batteries", "CALB"]
+
+  eve-energy:
+    official_cn: 亿纬锂能
+    tier: tier_3
+    nicknames: ["EVE Energy", "锂电池"]
+
+  coslight-tech:
+    official_cn: 科士达
+    tier: tier_3
+    nicknames: ["Coslight Tech", "储能逆变器"]
+
+  heijin-tech:
+    official_cn: 黑晶科技
+    tier: tier_3
+    nicknames: ["HeiJin Tech", "光伏组件"]
+
+  pacvue-cn:
+    official_cn: Pacvue中国
+    tier: tier_3
+    nicknames: ["Pacvue", "亚马逊广告SaaS"]
+
+  datafini-tech:
+    official_cn: 数舶科技
+    tier: tier_3
+    nicknames: ["DataFini", "跨境数据分析"]
+
+  dtgo-tech:
+    official_cn: 大途科技
+    tier: tier_3
+    nicknames: ["DTGO", "出海营销工具"]
+
+  akulaku-tech:
+    official_cn: Akulaku科技
+    tier: tier_3
+    nicknames: ["Akulaku", "阿库拉库", "东南亚金融科技"]
+
+  raysync-cross:
+    official_cn: 镭速传输
+    tier: tier_3
+    nicknames: ["RaySync", "大文件跨境传输"]
+
+  kwaiads-global:
+    official_cn: 快手海外广告
+    tier: tier_3
+    nicknames: ["SnackVideo广告", "Kwai Ads"]
+
+  cloudwalk-overseas:
+    official_cn: 云从科技海外
+    tier: tier_3
+    nicknames: ["CloudWalk Overseas"]
+
+  tencentglobal-tech:
+    official_cn: 腾讯国际化技术
+    tier: tier_3
+    nicknames: ["腾讯国际技术", "Tencent Global Tech"]
+
+  bixin-crypto:
+    official_cn: 币信
+    tier: tier_3
+    nicknames: ["BixinCrypto", "加密货币钱包"]
+
+  lianlian-global:
+    official_cn: 连连支付国际
+    tier: tier_3
+    nicknames: ["连连支付", "LianLian Global", "跨境支付"]
+
+  brandlink-cn:
+    official_cn: 品牌连接
+    tier: tier_3
+    nicknames: ["BrandLink", "KOL营销SaaS"]
+
+  admaster-cn:
+    official_cn: AdMaster
+    tier: tier_3
+    nicknames: ["精硕科技", "广告监测"]
+
+  miaozhen-systems:
+    official_cn: 秒针系统
+    tier: tier_3
+    nicknames: ["Miaozhen Systems", "数字营销监测"]
+
+  xingyuzhao:
+    official_cn: 行云招网络
+    tier: tier_3
+    nicknames: ["行云招", "XingYuZhao", "精准招募"]
+
+  mediav-cn:
+    official_cn: MediaV易传媒
+    tier: tier_3
+    nicknames: ["MediaV", "易传媒", "程序化广告"]
+
+  dable-cn:
+    official_cn: Dable中国区
+    tier: tier_3
+    nicknames: ["Dable", "Dable中国", "内容推荐广告"]
+
+  tanx-alibaba:
+    official_cn: 淘宝联盟技术
+    tier: tier_3
+    nicknames: ["TanX广告", "阿里妈妈广告技术"]
+
+  mgtv-ads:
+    official_cn: 芒果TV广告技术
+    tier: tier_3
+    nicknames: ["芒果TV广告", "MGTV Ads Tech"]
+
+  blue-cursor-tech:
+    official_cn: 蓝标传媒科技
+    tier: tier_3
+    nicknames: ["蓝标传媒", "Blue Cursor", "BlueFocus技术"]
+
+  roia-marketing:
+    official_cn: 行者营销
+    tier: tier_3
+    nicknames: ["Roia Marketing", "效果营销"]
