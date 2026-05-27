@@ -15,7 +15,7 @@ HR 包含两个产品层：
 | 层 | 产品 | 形态 | 状态 |
 |----|------|------|------|
 | **Coach Web App** | AI 求职教练 | NestJS + Next.js 全栈 Web 应用 | Production |
-| **Career Skills Marketplace** | 求职主理人 + 可调用 skill | Claude Code / Codex Plugin | Phase 1 Complete |
+| **Career Skills Marketplace** | 求职主理人 + 可调用 skill | Claude Code / Codex Plugin | v1 Alpha RC ([PASS_WITH_RISKS](career-skills-marketplace/KNOWN_LIMITATIONS.md)) |
 
 ---
 
@@ -23,7 +23,13 @@ HR 包含两个产品层：
 
 **开箱即用的求职判断系统。** 安装后在 Claude Code / Codex 中直接对话使用。
 
-### 6 个 MVP Skills
+### 37 Skills (v1 Alpha RC)
+
+5 层架构：Core Reasoning (6) + Career Execution (7) + Interview (8) + Market Intelligence (8) + Career Strategy (8)。
+
+审计文档: [FINAL-CODEX-AUDIT.md](docs/codex-handoff/career-skills-v1-rc/FINAL-CODEX-AUDIT.md) | [Known Limitations](career-skills-marketplace/KNOWN_LIMITATIONS.md)
+
+#### Core Skills (Layer 1)
 
 | Skill | 作用 |
 |-------|------|
@@ -36,9 +42,9 @@ HR 包含两个产品层：
 
 ### 内置中国求职知识
 
-- **50 家公司** seed（大厂/中厂/外企/国企/AI初创/出海/金融等 12 类）
+- **155 家公司**（50 Tier 1 深度画像 + 105 Tier 2 基础画像）
 - **12 岗位大类**，30 个子岗位（技术/产品/运营/设计/数据等）
-- **18 条求职黑话**（泡池子/开奖/HC/OD/三方协议/SP/SSP 等）
+- **30 条求职黑话**（泡池子/开奖/HC/OD/三方协议/SP/SSP/大小周/996/竞业 等）
 - **评分 Rubrics**（简历/JD/匹配/Offer/来源质量）
 
 ### 安装
@@ -168,13 +174,11 @@ HR/
 ## Roadmap
 
 ```
-Phase 1  ✅  Skills Marketplace skeleton + 6 MVP skills
-Phase 2  ⏳  Local evidence store + interview skills
-Phase 3  ⏳  CLI / npm packaging + market intelligence
-Phase 4  ⏳  Offer/salary + career strategy skills
-Phase 5  ⏳  Knowledge graph expansion (300 → 600 companies)
-Phase 6  ⏳  Multi-environment adapters
-Phase 7  ⏳  Evaluation benchmark
+v1 Alpha RC  ✅  37 skills + KG 155 companies + installer (PASS_WITH_RISKS)
+Phase next   ⏳  Hallucination-guard full validation + KG Tier 3 + eval runner
+Phase next+1 ⏳  CLI / npm packaging
+Phase next+2 ⏳  Live adapters (XHS/牛客/公众号)
+Phase next+3 ⏳  Multi-environment (Gemini CLI / Cursor)
 ```
 
 ---
