@@ -26,34 +26,46 @@
   },
   "assertions": [
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "jd-analyzer"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "jd-analyzer",
+      "description": "必须调用jd-analyzer"
     },
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "match-diagnosis"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "match-diagnosis",
+      "description": "必须调用match-diagnosis"
     },
     {
       "type": "contains",
       "path": "jd_analyzer.mapped_fields.core_skills",
-      "expected": "SQL"
+      "operator": "contains",
+      "value": "SQL",
+      "description": "JD分析核心技能必须包含SQL"
     },
     {
       "type": "contains",
       "path": "match_diagnosis.matched_skills",
-      "expected": "A/B 测试"
+      "operator": "contains",
+      "value": "A/B 测试",
+      "description": "匹配诊断中已匹配技能必须包含A/B测试"
     },
     {
       "type": "contains",
       "path": "match_diagnosis.gaps",
-      "expected": "机器学习"
+      "operator": "contains",
+      "value": "机器学习",
+      "description": "差距分析必须包含机器学习"
     },
     {
-      "type": "equals",
+      "type": "field_check",
       "path": "output.language",
-      "expected": "zh-CN"
+      "operator": "eq",
+      "value": "zh-CN",
+      "description": "输出语言必须为zh-CN"
     }
   ]
 }

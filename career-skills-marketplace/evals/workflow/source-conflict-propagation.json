@@ -34,34 +34,46 @@
   },
   "assertions": [
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "source-quality-auditor"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "source-quality-auditor",
+      "description": "必须调用source-quality-auditor"
     },
     {
       "type": "contains",
       "path": "output.conflict_report.description",
-      "expected": "信息冲突"
+      "operator": "contains",
+      "value": "信息冲突",
+      "description": "冲突报告必须说明信息冲突"
     },
     {
-      "type": "equals",
+      "type": "field_check",
       "path": "output.conflict_report.conflict_present",
-      "expected": true
+      "operator": "eq",
+      "value": true,
+      "description": "必须标记冲突存在"
     },
     {
-      "type": "source_cited",
+      "type": "contains",
       "path": "output.sources",
-      "expected": "朋友口述"
+      "operator": "contains",
+      "value": "朋友口述",
+      "description": "来源必须引用朋友口述"
     },
     {
-      "type": "source_cited",
+      "type": "contains",
       "path": "output.sources",
-      "expected": "脉脉帖子"
+      "operator": "contains",
+      "value": "脉脉帖子",
+      "description": "来源必须引用脉脉帖子"
     },
     {
-      "type": "confidence_below",
-      "path": "output.confidence_score",
-      "expected": 0.45
+      "type": "confidence_check",
+      "path": "output.confidence",
+      "operator": "lte",
+      "value": 0.45,
+      "description": "置信度应低于0.45"
     }
   ]
 }

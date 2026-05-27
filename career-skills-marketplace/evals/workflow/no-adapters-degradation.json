@@ -22,29 +22,39 @@
   },
   "assertions": [
     {
-      "type": "skill_not_invoked",
-      "path": "execution_trace",
-      "expected": "jd-analyzer"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "not_contains",
+      "value": "jd-analyzer",
+      "description": "不得调用jd-analyzer"
     },
     {
-      "type": "skill_not_invoked",
-      "path": "execution_trace",
-      "expected": "resume-tailor"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "not_contains",
+      "value": "resume-tailor",
+      "description": "不得调用resume-tailor"
     },
     {
       "type": "contains",
       "path": "output.degradation_notice",
-      "expected": "工具不可用"
+      "operator": "contains",
+      "value": "工具不可用",
+      "description": "降级通知必须说明工具不可用"
     },
     {
       "type": "contains",
       "path": "output.user_guidance",
-      "expected": "当前环境缺少"
+      "operator": "contains",
+      "value": "当前环境缺少",
+      "description": "用户指引必须说明当前环境缺少工具"
     },
     {
-      "type": "equals",
+      "type": "field_check",
       "path": "output.degraded_mode",
-      "expected": true
+      "operator": "eq",
+      "value": true,
+      "description": "必须标记为降级模式"
     }
   ]
 }

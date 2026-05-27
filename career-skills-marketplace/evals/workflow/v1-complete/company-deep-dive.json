@@ -1,5 +1,5 @@
 {
-  "name": "company-risk-auditor + company-interview-playbook chain",
+  "name": "company-risk-auditor-company-interview-playbook-chain",
   "description": "Tests that company-risk-auditor provides a risk profile for a company and company-interview-playbook leverages it along with interview intelligence to produce a complete preparation playbook.",
   "input": {
     "user_message": "我收到了快手的面试邀请，是电商业务线后端岗位，终面下周。帮我了解一下这家公司现在的状况，以及他们的面试套路。",

@@ -21,29 +21,39 @@
   },
   "assertions": [
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "jd-analyzer"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "jd-analyzer",
+      "description": "必须调用jd-analyzer"
     },
     {
-      "type": "skill_not_invoked",
-      "path": "execution_trace",
-      "expected": "resume-tailor"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "not_contains",
+      "value": "resume-tailor",
+      "description": "不得调用resume-tailor"
     },
     {
       "type": "contains",
       "path": "jd_analyzer.warnings",
-      "expected": "JD 内容不足"
+      "operator": "contains",
+      "value": "JD 内容不足",
+      "description": "JD分析警告必须包含内容不足提示"
     },
     {
-      "type": "confidence_below",
-      "path": "output.confidence_score",
-      "expected": 0.40
+      "type": "confidence_check",
+      "path": "output.confidence",
+      "operator": "lte",
+      "value": 0.40,
+      "description": "置信度应低于0.40"
     },
     {
       "type": "contains",
       "path": "output.user_guidance",
-      "expected": "请提供更完整的职位描述"
+      "operator": "contains",
+      "value": "请提供更完整的职位描述",
+      "description": "用户指引必须建议提供更完整的职位描述"
     }
   ]
 }

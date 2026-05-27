@@ -1,5 +1,5 @@
 {
-  "name": "salary-radar with no live data produces low-confidence output",
+  "name": "salary-radar-no-live-data-low-confidence",
   "description": "Tests that salary-radar correctly reports low confidence and refuses to state precise salary ranges when no live data sources are available and the role is outside the knowledge graph.",
   "input": {
     "user_message": "我想知道湖南长沙的中小型民营企业里，工业互联网方向的产品经理，3年经验，薪资大概是多少？",

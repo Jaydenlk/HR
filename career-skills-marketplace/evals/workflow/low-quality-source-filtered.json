@@ -29,34 +29,46 @@
   },
   "assertions": [
     {
-      "type": "skill_invoked",
-      "path": "execution_trace",
-      "expected": "source-quality-auditor"
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "source-quality-auditor",
+      "description": "必须调用source-quality-auditor"
     },
     {
-      "type": "equals",
+      "type": "field_check",
       "path": "source_quality_auditor.grade",
-      "expected": "D"
+      "operator": "eq",
+      "value": "D",
+      "description": "来源必须被评为D级"
     },
     {
-      "type": "equals",
+      "type": "field_check",
       "path": "source_quality_auditor.filtered",
-      "expected": true
+      "operator": "eq",
+      "value": true,
+      "description": "来源必须被过滤"
     },
     {
       "type": "contains",
       "path": "output.explanation",
-      "expected": "来源质量不足"
+      "operator": "contains",
+      "value": "来源质量不足",
+      "description": "说明必须包含来源质量不足"
     },
     {
-      "type": "not_present",
+      "type": "field_check",
       "path": "output.reasoning_used_source",
-      "expected": "source_a"
+      "operator": "not_contains",
+      "value": "source_a",
+      "description": "推理中不得使用source_a"
     },
     {
-      "type": "confidence_below",
-      "path": "output.confidence_score",
-      "expected": 0.30
+      "type": "confidence_check",
+      "path": "output.confidence",
+      "operator": "lte",
+      "value": 0.30,
+      "description": "置信度应低于0.30"
     }
   ]
 }

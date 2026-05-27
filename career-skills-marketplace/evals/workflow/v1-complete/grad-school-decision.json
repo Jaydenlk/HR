@@ -1,5 +1,5 @@
 {
-  "name": "graduate-school-vs-job-advisor full analysis",
+  "name": "graduate-school-vs-job-advisor-full-analysis",
   "description": "Tests that graduate-school-vs-job-advisor conducts a multi-dimensional analysis covering financial, career, personal, and opportunity-cost factors, and resists giving a simple yes/no answer.",
   "input": {
     "user_message": "我是985高校CS大四，保研到了本校读研，同时拿到了腾讯IEG测试开发offer（base 22k）。家里希望我读研，我自己纠结。帮我分析一下怎么选。",

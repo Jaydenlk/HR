@@ -1,5 +1,5 @@
 {
-  "name": "opportunity-intelligence → application-strategist chain",
+  "name": "opportunity-intelligence-application-strategist-chain",
   "description": "Tests that opportunity-intelligence feeds structured opportunity data into application-strategist, which produces a prioritized application plan with timeline and rationale.",
   "input": {
     "user_message": "我收集了三个岗位：字节飞书后端P6、美团基础架构P6、拼多多后端P7。帮我分析这些机会并制定投递顺序和策略。",

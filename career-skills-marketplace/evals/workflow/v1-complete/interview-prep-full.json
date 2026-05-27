@@ -1,5 +1,5 @@
 {
-  "name": "interview-intelligence → mock-interviewer → interview-debrief chain",
+  "name": "interview-intelligence-mock-interviewer-interview-debrief-chain",
   "description": "Tests the full interview preparation loop: gathering company intelligence, conducting a mock interview session, then debriefing performance with actionable improvements.",
   "input": {
     "user_message": "我下周三有阿里巴巴淘天集团产品经理的终面（总监轮），帮我从头到尾准备，包括模拟面试和复盘。",

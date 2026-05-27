@@ -1,5 +1,5 @@
 {
-  "name": "market-radar degradation with no live adapters",
+  "name": "market-radar-degradation-with-no-live-adapters",
   "description": "Tests that market-radar correctly degrades to an insufficient confidence state when no live data adapters are available, rather than fabricating market data.",
   "input": {
     "user_message": "现在互联网大厂后端工程师的招聘热度怎么样？哪些公司还在扩招？",
