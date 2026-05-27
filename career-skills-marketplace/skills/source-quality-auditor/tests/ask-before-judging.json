@@ -1,0 +1,56 @@
+{
+  "name": "ask-before-judging-unverifiable-xhs-source",
+  "description": "单条小红书帖子声称月薪8万，无发布日期、无原始 URL，无法核实，不得采信为可靠数据",
+  "input": {
+    "sources": [
+      {
+        "platform": "XHS",
+        "content": "我在某大厂做产品，月薪8万，年终3个月，感觉还行",
+        "date": null,
+        "url": null,
+        "author_verified": false
+      }
+    ]
+  },
+  "product_principle": "ask-before-judging",
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度不能高于 low"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须指出无法验证来源的真实性和时效性"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须询问来源 URL、发布日期或作者认证信息"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出可执行下一步，如提供原帖链接或补充多源交叉验证"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "强烈推荐|非常匹配|完美契合",
+      "reason": "信息不足时不能给强结论"
+    },
+    {
+      "pattern": "\\b(9[0-9]|100)\\s*分",
+      "reason": "信息不足时不能给高分"
+    }
+  ]
+}

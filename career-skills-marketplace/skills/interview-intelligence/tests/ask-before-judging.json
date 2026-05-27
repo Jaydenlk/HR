@@ -1,0 +1,48 @@
+{
+  "name": "ask-before-judging-no-role-no-round",
+  "description": "用户仅说要准备字节面试，无具体岗位、无面试轮次，无法生成针对性题库",
+  "input": {
+    "user_message": "我要准备字节面试"
+  },
+  "product_principle": "ask-before-judging",
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度不能高于 low"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须指出缺少岗位方向和面试轮次无法定向备考"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须追问目标岗位、面试轮次、候选人背景"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出可执行下一步，如填写岗位信息后生成专项题库"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "强烈推荐|非常匹配|完美契合",
+      "reason": "信息不足时不能给强结论"
+    },
+    {
+      "pattern": "\\b(9[0-9]|100)\\s*分",
+      "reason": "信息不足时不能给高分"
+    }
+  ]
+}

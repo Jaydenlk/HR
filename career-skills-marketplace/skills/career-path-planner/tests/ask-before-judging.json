@@ -1,0 +1,50 @@
+{
+  "name": "ask-before-judging-profile-name-only",
+  "description": "用户 profile 仅有姓名，无技能、无经验、无教育背景，无法规划职业路径",
+  "input": {
+    "user_profile": {
+      "name": "李华"
+    }
+  },
+  "product_principle": "ask-before-judging",
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度不能高于 low"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须指出缺少技能、经验、教育背景无法规划路径"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须询问当前技能、工作经验、学历和职业目标"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出可执行下一步，如完善 profile 或上传简历"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "强烈推荐|非常匹配|完美契合",
+      "reason": "信息不足时不能给强结论"
+    },
+    {
+      "pattern": "\\b(9[0-9]|100)\\s*分",
+      "reason": "信息不足时不能给高分"
+    }
+  ]
+}

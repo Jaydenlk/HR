@@ -1,0 +1,48 @@
+{
+  "name": "ask-before-judging-no-jd-no-resume",
+  "description": "用户仅提供学校背景和目标公司，无 JD、无简历、无专业信息，principal 不得给出强结论",
+  "input": {
+    "user_message": "我是985本科，想投字节产品，但简历一般"
+  },
+  "product_principle": "ask-before-judging",
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度不能高于 low"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须列出无法判断的事项"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须追问缺失信息"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出可执行下一步"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "强烈推荐|非常匹配|完美契合",
+      "reason": "信息不足时不能给强结论"
+    },
+    {
+      "pattern": "\\b(9[0-9]|100)\\s*分",
+      "reason": "信息不足时不能给高分"
+    }
+  ]
+}
