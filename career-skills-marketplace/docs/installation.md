@@ -8,11 +8,13 @@
 
 ## 支持范围
 
-| 环境 | Phase 1 支持 | 安装方式 |
-|------|-------------|---------|
+| 环境 | 支持状态 | 安装方式 |
+|------|---------|---------|
 | Claude Code | ✅ 全自动 | `bash install.sh` 或 `.\install.ps1` |
-| Codex | ✅ installer 支持 | `bash install.sh --target codex` 或 `.\install.ps1 -Target codex` |
-| Gemini CLI / Cursor 等 | ⏳ Phase 6 | 手动复制 skill 目录（见下方手动安装） |
+| Codex | ✅ 支持 | `bash install.sh --target codex` 或 `.\install.ps1 -Target codex` |
+| Gemini CLI / Cursor 等 | 手动安装 | 手动复制 skill 目录（见下方手动安装） |
+
+> 注意：Career Skills Marketplace 是 Claude Code / Codex skill 插件集，不是 CLI 工具、npm 包或 Web 应用。无需 `npx`、`npm install` 或任何包管理器操作。
 
 ---
 
@@ -34,7 +36,7 @@ cd career-skills-marketplace
 .\install.ps1
 ```
 
-安装后目录结构：
+安装后目录结构（示例，installer 动态发现所有 skill，共 37 个）：
 
 ```
 ~/.claude/skills/
@@ -44,6 +46,10 @@ cd career-skills-marketplace
   resume-tailor/SKILL.md
   match-diagnosis/SKILL.md
   source-quality-auditor/SKILL.md
+  salary-radar/SKILL.md
+  offer-comparator/SKILL.md
+  market-radar/SKILL.md
+  ... (共 37 个 skill 目录)
   _career-skills-shared/
 ```
 
