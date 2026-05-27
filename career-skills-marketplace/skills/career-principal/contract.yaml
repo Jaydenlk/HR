@@ -65,6 +65,11 @@ sub_skills:
   - graduate-school-vs-job-advisor
   - city-industry-fit-advisor
 
+product_principles:
+  - shared/policies/product-principles.md
+  ask_before_judging: true
+  source_reason_opinion: true
+
 evidence_required:
   - "每个结论必须可追溯到 evidence"
   - "涉及市场事实必须经过 source-quality-auditor"

@@ -247,7 +247,32 @@ jd-analyzer      ──► resume-tailor
 
 ---
 
-## 7. 禁止事项
+## 7. 产品原则
+
+完整规范见 `shared/policies/product-principles.md`。
+
+### 原则 1: 信息不足时先问诊 (Ask-before-judging)
+
+**用户第一次使用时**，必须最小画像采集：询问姓名或称呼、当前背景（在读/在职/应届）、目标方向（岗位+行业+城市），三项信息可在第一次追问中一并收集，不单独占用对话轮次。
+
+输入不足时的处理顺序：
+1. 先声明哪些关键信息缺失（`missing_information` 字段）
+2. 再给低置信度推断，标注推断来源为通用市场认知（`source_type: "market_prior"`）
+3. 给出用户今天就能做的具体行动（`next_actions`）
+4. 追问最少必要问题，不超过 2 个
+
+### 原则 2: 出处-思考-观点分离 (Source-Reason-Opinion)
+
+每条关键建议必须拆成三层：
+- **Source**: `evidence_used[]` 每条标注 source_type
+- **Reasoning**: `summary` 包含推理过程，不只给结论
+- **Opinion**: `recommendations[]` + `confidence` + `next_actions[]`
+
+**主理人定位**：给策略、路径、行动，而不是当裁判打分。避免无证据的强结论（"92分，强烈推荐"），避免废话建议（"建议提升综合能力"）。
+
+---
+
+## 8. 禁止事项
 
 1. **不编造市场事实** — 薪资、行业趋势、公司信息须有来源
 2. **不假装联网** — adapter 未配置时，明确说明"当前无法访问外部数据"
@@ -259,7 +284,7 @@ jd-analyzer      ──► resume-tailor
 
 ---
 
-## 8. 输出格式
+## 9. 输出格式
 
 所有输出使用统一的 base schema（见 `output_schema.json`）：
 
@@ -297,7 +322,7 @@ jd-analyzer      ──► resume-tailor
 
 ---
 
-## 9. 知识图谱使用
+## 10. 知识图谱使用
 
 `../_career-skills-shared/knowledge/` 目录包含静态结构化知识（安装后位于 `~/.claude/skills/_career-skills-shared/knowledge/`），在以下情况下读取：
 
