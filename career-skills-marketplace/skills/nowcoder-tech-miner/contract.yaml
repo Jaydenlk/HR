@@ -45,6 +45,9 @@ inputs:
       minimum: 1
       maximum: 20
       default: 10
+    - name: source_audit
+      type: object
+      description: "来自 source-quality-auditor 的来源审计结果"
 
 confidence_policy:
   insufficient:

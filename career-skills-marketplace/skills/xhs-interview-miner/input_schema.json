@@ -20,6 +20,10 @@
       "maximum": 20,
       "default": 10,
       "description": "最多返回帖子数量"
+    },
+    "source_audit": {
+      "type": "object",
+      "description": "来源审计结果（来自 source-quality-auditor），用于动态调整数据置信度上限"
     }
   },
   "additionalProperties": false

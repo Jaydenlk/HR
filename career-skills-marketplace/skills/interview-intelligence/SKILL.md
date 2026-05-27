@@ -77,6 +77,14 @@ allowed-tools: [Read, Grep]
 
 见 `output_schema.json`。输出语言为中文（字段名保持英文）。
 
+## source_audit 动态置信度调整
+
+当调用方传入 `source_audit`（来自 `source-quality-auditor` 的审计结果）时，
+本 skill 以审计结果中的 `credibility_ceiling` 作为置信度上限，替代内置的固定上限（默认 B 级）。
+
+- **有 source_audit 时**：读取 `source_audit.credibility_ceiling`，将其作为本次输出的最高允许置信度等级。
+- **无 source_audit 时**：回退到硬编码上限 B 级（`confidence` 最高为 `medium`）。
+
 ## 知识图谱引用
 
 本 skill 使用以下知识文件辅助判断：

@@ -33,6 +33,14 @@ allowed-tools: [Read, Grep, WebSearch, WebFetch]
 2. `mined_posts` 和 `technical_questions` 返回空数组
 3. `next_actions` 引导用户手动访问牛客网
 
+## source_audit 动态置信度调整
+
+当调用方传入 `source_audit`（来自 `source-quality-auditor` 的审计结果）时，
+本 skill 以审计结果中的 `credibility_ceiling` 动态调整本次输出的可信度上限。
+
+- **有 source_audit 时**：读取 `source_audit.credibility_ceiling`，以该等级作为本次输出的最高允许 `credibility_grade`。
+- **无 source_audit 时**：回退到硬编码上限 B 级（牛客网技术社区内容可信度固定上限）。
+
 ## 输出字段说明
 
 ### mined_posts[]

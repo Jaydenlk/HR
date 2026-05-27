@@ -33,6 +33,9 @@ optional_context:
   - name: interview_date
     type: string
     description: "面试日期（ISO 8601），用于时间紧迫度评估"
+  - name: source_audit
+    type: object
+    description: "来自 source-quality-auditor 的来源审计结果"
 
 depends_on:
   - source-quality-auditor
