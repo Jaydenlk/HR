@@ -3089,3 +3089,18 @@ aliases:
     official_cn: 行者营销
     tier: tier_3
     nicknames: ["Roia Marketing", "效果营销"]
+
+  insta360:
+    official_cn: 影石创新
+    tier: tier_3
+    nicknames: ["影石", "Insta360", "影石科技", "影石创新科技"]
+
+  tuhu-auto:
+    official_cn: 途虎养车
+    tier: tier_3
+    nicknames: ["途虎", "Tuhu", "途虎科技", "途虎养车网"]
+
+  hellobike:
+    official_cn: 哈啰出行
+    tier: tier_3
+    nicknames: ["哈啰", "Hello", "哈罗单车", "哈啰单车", "哈啰出行科技"]

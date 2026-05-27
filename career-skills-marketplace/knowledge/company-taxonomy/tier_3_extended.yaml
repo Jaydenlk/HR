@@ -2979,3 +2979,33 @@ companies:
     needs_verification: true
     source_policy: "低置信度，待社区验证"
 
+  - id: insta360
+    canonical_name: 影石创新
+    aliases: ["影石", "Insta360", "影石科技", "影石创新科技"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["深圳"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: tuhu-auto
+    canonical_name: 途虎养车
+    aliases: ["途虎", "Tuhu", "途虎科技", "途虎养车网"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
+  - id: hellobike
+    canonical_name: 哈啰出行
+    aliases: ["哈啰", "Hello", "哈罗单车", "哈啰单车", "哈啰出行科技"]
+    company_type: stable_mid_tech
+    tier: tier_3
+    cities: ["上海"]
+    confidence: low
+    needs_verification: true
+    source_policy: "低置信度，待社区验证"
+
