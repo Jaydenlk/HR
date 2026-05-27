@@ -1,189 +1,164 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" alt="Next.js" />
-  <img src="https://img.shields.io/badge/NestJS-11-e0234e?logo=nestjs" alt="NestJS" />
-  <img src="https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/AI-Pluggable-blueviolet" alt="AI" />
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
-</p>
+# Coach — AI 求职教练
 
-# HR - AI Career Intelligence Platform
-
-> 让每一个求职判断都可追溯、可测试、可降级。
-
-HR 包含两个产品层：
-
-| 层 | 产品 | 形态 | 状态 |
-|----|------|------|------|
-| **Coach Web App** | AI 求职教练 | NestJS + Next.js 全栈 Web 应用 | Production |
-| **Career Skills Marketplace** | 求职主理人 + 可调用 skill | Claude Code / Codex Plugin | v1 Alpha RC ([PASS_WITH_RISKS](career-skills-marketplace/KNOWN_LIMITATIONS.md)) |
+> 我花了三个月准备秋招，投了 200 份简历，拿了 5 个面试，最后发现自己连 JD 都没读懂。
+>
+> 所以我做了这个。
+>
+> 它不会替你做决定。但它会告诉你：**依据是什么、为什么这么想、下一步该做什么。**
 
 ---
 
-## Career Skills Marketplace
+## 你能用它做什么
 
-**开箱即用的求职判断系统。** 安装后在 Claude Code / Codex 中直接对话使用。
+**你粘贴一个 JD，它会告诉你：**
+- 这个岗位真正要什么（不是 JD 上写的那些）
+- "抗压能力强"其实是什么意思
+- 你的简历和这个岗位差在哪
+- 怎么改简历才能提高匹配度（不编造你没有的经历）
+- 这个 offer 值不值得接、时薪算下来到底多少
 
-### 37 Skills (v1 Alpha RC)
+**它不会做的事：**
+- 不会给你 92 分然后说"强烈推荐"——信息不够就不打分
+- 不会编造你没有的工作经历
+- 不会把小红书上一条帖子当成薪资真相
+- 不会假装联网了（没配置数据源就诚实说"我不知道"）
 
-5 层架构：Core Reasoning (6) + Career Execution (7) + Interview (8) + Market Intelligence (8) + Career Strategy (8)。
+---
 
-审计文档: [FINAL-CODEX-AUDIT.md](docs/codex-handoff/career-skills-v1-rc/FINAL-CODEX-AUDIT.md) | [Known Limitations](career-skills-marketplace/KNOWN_LIMITATIONS.md)
+## 两个产品，一个目标
 
-#### Core Skills (Layer 1)
+### Career Skills Marketplace — 求职主理人
 
-| Skill | 作用 |
-|-------|------|
-| `career-principal` | 求职主理人：识别意图，编排下游 skill，汇总输出 |
-| `profile-builder` | 从简历或对话中提取结构化能力画像 |
-| `jd-analyzer` | 解析 JD 为结构化字段，标注风险信号和中国求职黑话 |
-| `match-diagnosis` | 对比画像与 JD，输出多维匹配度评分（分数有区分度，不全是 60-80%） |
-| `resume-tailor` | 基于 JD 重组简历表达，不编造经历（zero-fabrication policy） |
-| `source-quality-auditor` | 评估信息来源的可信度和时效性（A/B/C/D 四级分级） |
-
-### 内置中国求职知识
-
-- **155 家公司**（50 Tier 1 深度画像 + 105 Tier 2 基础画像）
-- **12 岗位大类**，30 个子岗位（技术/产品/运营/设计/数据等）
-- **30 条求职黑话**（泡池子/开奖/HC/OD/三方协议/SP/SSP/大小周/996/竞业 等）
-- **评分 Rubrics**（简历/JD/匹配/Offer/来源质量）
-
-### 安装
+安装到 Claude Code / Codex，在对话中直接使用。像有一个懂中国求职市场的顾问坐在你旁边。
 
 ```bash
-# Claude Code
 git clone https://github.com/Jaydenlk/HR.git
 cd HR/career-skills-marketplace
-bash install.sh
-
-# Codex
-bash install.sh --target codex
+bash install.sh            # macOS / Linux
+.\install.ps1              # Windows
+# 或者指定 Codex：bash install.sh --target codex
 ```
 
-安装后在 Claude Code 中说：「帮我分析一个 JD」
+装完后打开 Claude Code，说：
 
-详细文档：[career-skills-marketplace/README.zh-CN.md](career-skills-marketplace/README.zh-CN.md)
+> "帮我看看这个 JD 值不值得投"
 
----
+主理人会问你要简历、分析 JD、诊断匹配度、改写简历，全程标注依据和置信度。
 
-## Coach Web App
+**37 个 skills，5 层架构：**
 
-面向应届生和早期求职者的 AI 求职操作系统。基于**真实用户数据**给出个性化建议。
+| 层 | 做什么 | 举例 |
+|----|--------|------|
+| 核心推理 | 简历画像、JD 解析、匹配诊断、改写、来源审计 | "这个 JD 有什么隐性要求？" |
+| 求职执行 | 投递策略、每日计划、内推路径、跟进消息 | "秋招应该每天做什么？" |
+| 面试准备 | 面经情报、模拟面试、复盘、STAR 故事库 | "腾讯产品一面怎么准备？" |
+| 市场情报 | 薪资雷达、offer 对比、公司风险、行业趋势 | "这个 offer 值不值得接？" |
+| 职业规划 | 路径规划、转岗分析、技能差距、学习路线 | "文科转产品现实吗？" |
 
-### 核心能力
+**600 家公司知识图谱：**
+50 家深度画像 + 250 家标准画像 + 300 家轻量标注。覆盖大厂、中厂、外企、国企、AI 初创、新能源、金融、咨询、出海、游戏。
 
-| 模块 | 功能 | AI 能力 |
-|------|------|--------|
-| **今天** | 每日个性化任务清单 | AI 根据求职进度生成 5 个行动项 |
-| **机会中心** | JD 评估 + 投递决策 | 三维评分（匹配/价值/可信度）+ 风险检测 |
-| **简历馆** | 多版本简历管理 | AI 解析 + JD 匹配诊断 + 改写建议 |
-| **投递追踪** | 看板式申请管理 | 状态流转 + 漏斗统计 |
-| **面试复盘** | 面试记录分析 | AI 逐题评估 + 维度评分 |
-| **模拟面试** | AI 面试官练习 | 题目生成 + 实时评分 + 综合报告 |
-| **月刊/面经** | 市场情报聚合 | 多源采集 + AI 分类（小红书/牛客/公众号）|
-| **问 Coach** | AI 对话教练 | 读取 10 个核心数据模块的个性化建议 |
-| **求职信** | 针对性求职信 | 基于简历 + JD 生成，无数据不编造 |
-| **薪资雷达** | 市场薪资参考 | 公司/岗位/城市维度统计 |
+### Coach Web App — 全栈求职操作系统
 
-### AI 设计原则
-
-- **Evidence Layer** — 聚合 10 个数据模块的结构化证据，每个判断标注来源和置信度
-- **不编造** — 缺数据时拒绝生成，不凭空编造简历经历/薪资数据/面经内容
-- **风险检测** — 识别 OD/外包、培训引流、薪资虚高、公司信息冲突
-- **来源分级** — 小红书/牛客/公众号/脉脉各有不同可信度等级
-
-### 技术栈
-
-```
-Next.js 16 + React 19 (前端)
-NestJS 11 + TypeORM (后端)
-SQLite (dev) / PostgreSQL (prod)
-AI Provider: 可插拔 (CloudDreamAI / DeepSeek / OpenAI / Ollama)
-```
-
-### 快速开始
+如果你需要一个完整的 Web 界面来管理求职全流程：
 
 ```bash
-git clone https://github.com/Jaydenlk/HR.git
-cd HR
 pnpm install
-
 cp packages/api/.env.example packages/api/.env
 # 编辑 .env，填入 AI API Key
-
 .\start-dev.ps1
-# API: http://localhost:3002
-# Web: http://localhost:3001
-# 邀请码: COACH2026
+# 访问 http://localhost:3001  邀请码: COACH2026
 ```
 
-### 运行测试
-
-```bash
-cd packages/api
-npx jest --config ./test/jest-e2e.json --runInBand --forceExit
-```
+简历馆、JD 诊断、投递看板、面试复盘、模拟面试、月刊雷达、薪资参考、求职信、问 Coach——一个界面搞定。
 
 ---
 
-## 项目结构
+## 它凭什么可信
 
-```
-HR/
-├── packages/
-│   ├── api/                        # NestJS 后端 (18 个模块)
-│   └── web/                        # Next.js 前端 (26 个页面)
-├── career-skills-marketplace/      # Claude Code / Codex Plugin
-│   ├── skills/                     # 6 个 MVP skills
-│   ├── shared/                     # 证据 schema + 来源策略 + rubrics
-│   ├── knowledge/                  # 中国求职知识图谱 (50 公司 seed)
-│   ├── evals/                      # 40 个测试 fixtures
-│   ├── install.sh / install.ps1    # 安装脚本
-│   └── docs/                       # 安装/使用/隐私/贡献文档
-└── docs/
-    ├── codex-handoff/              # 交接文档 + 审计日志 + 设计审计
-    └── superpowers/                # 设计 spec + 实施计划
-```
+不是因为它用了 AI。是因为它不乱说。
+
+**信息不够时：**
+> "你只告诉了我学校和目标公司，我没法给你匹配分。但基于市场通用数据，985 本科投字节产品的通过率大约 30-40%——这不是针对你的评估。你能把 JD 和简历发给我吗？"
+
+**给建议时：**
+每条建议拆成三层：
+- **出处**：这个判断基于什么（你的简历？JD？知识图谱？市场数据？）
+- **推理**：为什么这些依据支持这个结论
+- **建议**：下一步做什么，置信度多少
+
+**遇到垃圾来源时：**
+小红书面经最高 C 级信任，不能当薪资事实。牛客面经 B 级，偏技术岗。公众号是认知补给，不是个案判断依据。没有两个 B 级以上来源，不给高置信结论。
 
 ---
 
-## 质量标准
+## 诚实的局限
 
-| 层 | 检查 | 标准 |
-|----|------|------|
-| Coach 后端 | 类型检查 | `tsc --noEmit` 0 errors |
-| Coach 后端 | 测试 | 36 mock + 6 AI 场景 E2E |
-| Coach 前端 | Lint | `eslint src/` 0 errors |
-| Coach 前端 | 构建 | `next build` PASS |
-| Marketplace | 文件完整性 | 6 skill x 14 required files |
-| Marketplace | Schema 合规 | 54 JSON + 20 YAML 全部可解析 |
-| Marketplace | 输出统一 | 6 skill 统一 10 个 base required fields |
-| Marketplace | 不编造 | 每个 skill 有 hallucination-guard 测试 |
+这不是一个完成品。这是 v1.0.0-beta.1。
+
+**现在能做的：**
+- 37 个 skill 可安装可调用
+- 600 家公司知识图谱可查询
+- 信息不足时会说"我不知道"
+- 每个判断标注来源和置信度
+
+**现在不能做的：**
+- 不会自动联网抓取小红书/牛客/公众号（需要手动粘贴）
+- 没有 CLI 工具或 npm 包（需要 clone + 安装脚本）
+- 知识图谱 Tier 2/3 还需要社区帮忙校验
+- 不能替代专业的法律/劳动咨询
+
+**第一次用不会很好。** 就像新来的 HR 同事，前两天需要了解你的背景才能给有用的建议。给它你的简历、告诉它你的目标，它会越来越准。
+
+→ [完整已知限制](career-skills-marketplace/KNOWN_LIMITATIONS.md)
 
 ---
 
-## 开发原则
+## 技术栈
 
-1. **单一职责** — 每个 service/skill 只管一件事
-2. **最简代码** — 不做向后兼容，宁愿破坏性更新
-3. **类型严格** — 不用 `any`，不用 `as unknown as`
-4. **证据优先** — 没有来源就没有高置信结论
-5. **诚实降级** — 缺数据时说"我不能判断"，不编造
+```
+前端    Next.js 16 · React 19 · Tailwind CSS
+后端    NestJS 11 · TypeORM · JWT
+数据库  SQLite (dev) · PostgreSQL (prod)
+AI     可插拔 (CloudDreamAI · DeepSeek · OpenAI · Ollama)
+Skills  YAML · JSON · Markdown · Anthropic SKILL.md 规范
+```
 
 ---
 
 ## Roadmap
 
 ```
-v1 Alpha RC  ✅  37 skills + KG 155 companies + installer (PASS_WITH_RISKS)
-Phase next   ⏳  Hallucination-guard full validation + KG Tier 3 + eval runner
-Phase next+1 ⏳  CLI / npm packaging
-Phase next+2 ⏳  Live adapters (XHS/牛客/公众号)
-Phase next+3 ⏳  Multi-environment (Gemini CLI / Cursor)
+v1.0.0-beta.1  ✅  37 skills + 600 KG + 产品原则 (PASS_WITH_RISKS)
+下一步         ⏳  Eval runner + KG 社区贡献 + Tier 2/3 校验
+再下一步       ⏳  CLI / npm 包
+更远           ⏳  联网 adapters (小红书/牛客/公众号)
 ```
+
+---
+
+## 贡献
+
+最需要帮助的：
+- **公司知识图谱**：你了解的公司，帮我们补充或纠正
+- **岗位 taxonomy**：新兴岗位、细分行业
+- **面经来源策略**：哪些来源可信、哪些不可信
+- **Workflow eval**：真实求职场景的测试用例
+
+→ [贡献指南](career-skills-marketplace/CONTRIBUTING.md)
+
+---
+
+## 关于
+
+这个项目始于一个简单的想法：求职不该只是信息差、焦虑和碰运气。
+
+如果每个判断都能说清"为什么"，如果每个建议都标注"来自哪里"，如果信息不够就诚实说"我不确定"——那求职至少可以不那么盲目。
+
+用了这个工具拿到了 offer？或者发现了什么问题？[分享你的故事](https://github.com/Jaydenlk/HR/issues)。
 
 ---
 
 ## License
 
-- **Code**: [MIT](LICENSE)
-- **Knowledge Data**: [CC BY 4.0](career-skills-marketplace/LICENSE-KNOWLEDGE)
+代码：[MIT](LICENSE) · 知识数据：[CC BY 4.0](career-skills-marketplace/LICENSE-KNOWLEDGE)
