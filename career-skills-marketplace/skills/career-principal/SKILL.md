@@ -153,10 +153,12 @@ jd-analyzer      ──► resume-tailor
 - `technical-interview-coach` — 技术面试的知识点和算法专项辅导
 - `case-interview-coach` — 案例面试的框架和练习辅导
 
-**Pack C — 市场情报（6种）**
-- `market-radar` — 实时市场行情查询和薪资基准
+**Pack C — 市场情报（8种）**
+- `market-radar` — 实时市场行情查询和招聘趋势
+- `salary-radar` — 岗位/公司/城市维度薪资数据聚合（需四要素：年份+城市+岗位+来源）
 - `xhs-interview-miner` — 从小红书提取面经和求职真实反馈
 - `nowcoder-tech-miner` — 从牛客提取技术面经和真题
+- `wechat-insight-reader` — 从公众号提取行业洞察和方法论
 - `offer-comparator` — 多维度横向对比多个 offer
 - `company-risk-auditor` — 评估目标公司的经营风险和稳定性
 - `industry-trend-analyst` — 分析特定行业的发展趋势和就业前景

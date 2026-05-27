@@ -194,14 +194,12 @@ intents:
       - jd_text
     missing_input_questions:
       user_message: "请提供岗位名称、城市和你的经验年限，薪资判断需要这些基本参数"
-    primary_skill: source-quality-auditor
+    primary_skill: salary-radar
     secondary_skills:
-      - jd-analyzer
+      - source-quality-auditor
       - market-radar
-      - xhs-interview-miner
-      - nowcoder-tech-miner
-    confidence_gate: "user_message 包含岗位信息 或 jd_text 字符数 >= 30"
-    fallback: "岗位信息不足，薪资判断可信度较低 (confidence: low)"
+    confidence_gate: "user_message 包含岗位+城市信息 或 jd_text 字符数 >= 30"
+    fallback: "岗位/城市信息不足，薪资判断可信度较低 (confidence: low)"
 
   - name: find_interview_experience
     label: "寻找面经"

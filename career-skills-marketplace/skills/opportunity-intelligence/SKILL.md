@@ -28,6 +28,22 @@ allowed-tools:
 
 综合分 = 匹配分×0.4 + 市场分×0.35 + (100−风险分)×0.25，结果取整至 0-100。
 
+**风险分计算规则：**
+- 每个 red severity 信号：+30 分
+- 每个 yellow severity 信号：+15 分
+- 每个 notice severity 信号：+5 分
+- 上限 100，超过时截断
+- 无风险信号时：风险分 = 0
+
+**市场分计算规则：**
+- 公司 tier_1 且 hiring_relevance: high → 基础分 80
+- 公司 tier_1 且 hiring_relevance: medium → 基础分 60
+- 公司不在知识图谱 → 基础分 50（标注 confidence 降级）
+- 有薪资数据且高于市场中位数 → +10
+- 无薪资数据 → 不加分，标注 cannot_determine
+
+**匹配分来源：** 直接使用 match-diagnosis 的 overall_match_pct。无 user_profile 时设为 null，公式中该维度权重分摊到市场分。
+
 ### 推荐结论逻辑
 
 | 综合分 | 推荐结论 |

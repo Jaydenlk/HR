@@ -24,7 +24,7 @@
   "confidence": "high",
   "evidence_used": [
     { "source": "BOSS直聘搜索结果", "date": "2026-05-20", "grade": "B" },
-    { "source": "猎聘行业报告", "date": "2026-05-15", "grade": "A" },
+    { "source": "猎聘行业报告", "date": "2026-05-15", "grade": "B" },
     { "source": "拉勾网 JD 聚合", "date": "2026-05-18", "grade": "B" }
   ],
   "recommendations": [
