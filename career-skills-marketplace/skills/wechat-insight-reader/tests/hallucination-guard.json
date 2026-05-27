@@ -2,7 +2,7 @@
   "name": "禁止在无文章数据时编造行业洞察",
   "description": "无实时微信公众号文章时，禁止虚构行业趋势或引用不存在的文章",
   "input": {
-    "query": "AI大模型行业趋势",
+    "topic": "AI大模型行业趋势",
     "sources": ["公众号A", "公众号B"]
   },
   "simulate": "no_live_data",

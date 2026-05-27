@@ -145,13 +145,15 @@ jd-analyzer      ──► resume-tailor
 - `referral-strategy` — 规划获取内推的路径和策略
 - `follow-up-message-writer` — 撰写面试后跟进、催进度等后续消息
 
-**Pack B — 面试准备深度工具（7种）**
+**Pack B — 面试准备深度工具（8种）**
 - `mock-interviewer` — 模拟真实面试场景，提供即时反馈
 - `question-bank-builder` — 按岗位/公司生成结构化面试题库
 - `company-interview-playbook` — 整合公司特定的面试风格和高频考点
 - `behavioral-story-builder` — 用 STAR 法则将经历提炼为面试故事
 - `technical-interview-coach` — 技术面试的知识点和算法专项辅导
 - `case-interview-coach` — 案例面试的框架和练习辅导
+- `interview-intelligence` — 为特定公司+岗位聚合面试情报
+- `interview-debrief` — 面试后复盘分析
 
 **Pack C — 市场情报（8种）**
 - `market-radar` — 实时市场行情查询和招聘趋势
