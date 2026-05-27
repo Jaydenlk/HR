@@ -20,15 +20,61 @@
     "has_next_prep_priorities": true
   },
   "assertions": [
-    "interview-intelligence provides information about Alibaba product manager interview style and common question types",
-    "mock-interviewer gives structured feedback on the candidate's answer about the retention project",
-    "interview-debrief identifies the specific weakness: inability to recall supporting data under pressure",
-    "debrief output includes at least 2 concrete preparation actions before the real interview",
-    "output acknowledges the director-level interviewer context and adjusts expectations accordingly"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "interview-intelligence",
+      "description": "面试情报必须被调用以提供阿里巴巴产品经理面试风格和常见题型"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "mock-interviewer",
+      "description": "模拟面试官必须被调用并对留存项目回答给出结构化反馈"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "interview-debrief",
+      "description": "面试复盘必须被调用"
+    },
+    {
+      "type": "field_check",
+      "path": "output.debrief.weaknesses[*]",
+      "operator": "exists",
+      "value": true,
+      "description": "复盘必须识别具体弱点：在压力下无法回忆支撑数据"
+    },
+    {
+      "type": "field_check",
+      "path": "output.debrief.action_items",
+      "operator": "gte",
+      "value": 2,
+      "description": "复盘输出必须包含至少2个正式面试前的具体准备行动"
+    },
+    {
+      "type": "field_check",
+      "path": "output.interviewer_level_context",
+      "operator": "exists",
+      "value": true,
+      "description": "输出必须说明总监轮面试的特殊背景并调整期望"
+    }
   ],
   "must_not_contain": [
-    "fabricated interview questions claimed to be from real past sessions without source",
-    "guaranteed prediction of interview outcome",
-    "advice contradicting the actual transcript (e.g., praising data recall when it failed)"
+    {
+      "pattern": "真实面试题.*来自|actual questions from|历史真题",
+      "reason": "不能将无来源的面试题声称为真实历史题目"
+    },
+    {
+      "pattern": "一定能过|保证通过|guaranteed to pass|必然成功",
+      "reason": "不能对面试结果做出保证性预测"
+    },
+    {
+      "pattern": "数据回忆.*很好|recall.*excellent|数字记得很清楚",
+      "reason": "不能与转录事实矛盾（转录显示候选人数据回忆失败）"
+    }
   ]
 }

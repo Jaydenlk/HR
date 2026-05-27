@@ -29,17 +29,86 @@
     "roadmap_respects_time_constraint": true
   },
   "assertions": [
-    "role-transition-advisor identifies supply chain experience as partially transferable to operations/growth product roles",
-    "skill-gap-planner produces a prioritized list of missing skills with estimated acquisition difficulty",
-    "learning-roadmap-builder generates a phased plan that fits within 10 hours per week constraint",
-    "roadmap includes specific resource types (courses, projects, community) not vague categories",
-    "output acknowledges the realistic timeline for the transition (likely 6-18 months) without false encouragement",
-    "output distinguishes between skills that can be learned vs. those requiring real project experience"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "role-transition-advisor",
+      "description": "职业转型顾问必须被调用"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "skill-gap-planner",
+      "description": "技能差距规划器必须被调用"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "learning-roadmap-builder",
+      "description": "学习路线图构建器必须被调用"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "供应链",
+      "description": "职业转型顾问必须识别供应链经验对运营/增长产品岗位的可迁移性"
+    },
+    {
+      "type": "field_check",
+      "path": "output.skill_gaps[*].priority",
+      "operator": "exists",
+      "value": true,
+      "description": "技能差距规划器必须产出带优先级排序和获取难度评估的缺失技能列表"
+    },
+    {
+      "type": "field_check",
+      "path": "output.roadmap.weekly_hours_required",
+      "operator": "lte",
+      "value": 10,
+      "description": "学习路线图每周所需时间不能超过候选人声明的10小时约束"
+    },
+    {
+      "type": "field_check",
+      "path": "output.roadmap.phases[*].resources",
+      "operator": "exists",
+      "value": true,
+      "description": "路线图必须包含具体资源类型（课程、项目、社群），而非模糊分类"
+    },
+    {
+      "type": "field_check",
+      "path": "output.transition_timeline_months",
+      "operator": "exists",
+      "value": true,
+      "description": "必须说明现实转型时间线（可能6-18个月），不夸大鼓励"
+    },
+    {
+      "type": "field_check",
+      "path": "output.skill_gaps[*].requires_real_experience",
+      "operator": "exists",
+      "value": true,
+      "description": "必须区分可学习的技能与需要真实项目经验才能获得的技能"
+    }
   ],
   "must_not_contain": [
-    "guarantee of successful transition if roadmap is followed",
-    "invented salary numbers for target role without source",
-    "roadmap that exceeds stated available time without flagging the constraint violation",
-    "dismissal of the transition as impossible without evidence"
+    {
+      "pattern": "保证成功转型|guaranteed.*transition|一定能转型成功",
+      "reason": "不能对按路线图执行后的转型结果做保证"
+    },
+    {
+      "pattern": "产品经理薪资.*[0-9]+[kK万]",
+      "reason": "不能在无来源支撑情况下给出目标岗位薪资数字"
+    },
+    {
+      "pattern": "每周.*超过10小时|每天.*超过",
+      "reason": "路线图不能超过候选人声明的时间约束而不予标注"
+    },
+    {
+      "pattern": "不可能转型|impossible.*transition|完全没有可能",
+      "reason": "不能在无证据情况下断言转型不可能"
+    }
   ]
 }

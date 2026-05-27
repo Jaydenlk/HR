@@ -22,16 +22,72 @@
     "has_preparation_recommendations": true
   },
   "assertions": [
-    "company-risk-auditor produces a structured risk assessment covering financial health, layoff history, and employer brand signals",
-    "risk assessment distinguishes between verified signals and uncertain areas, with confidence levels per dimension",
-    "company-interview-playbook provides the typical interview process stages at Kuaishou for backend engineers",
-    "playbook includes at least 3 preparation recommendations specific to the e-commerce business unit context",
-    "output acknowledges that interview formats can vary by team and that this is based on available data"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "company-risk-auditor",
+      "description": "公司风险审查器必须被调用"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "company-interview-playbook",
+      "description": "公司面试手册必须被调用"
+    },
+    {
+      "type": "field_check",
+      "path": "output.risk_assessment.dimensions",
+      "operator": "exists",
+      "value": true,
+      "description": "风险评估必须有覆盖财务健康、裁员历史和雇主品牌的结构化多维度结果"
+    },
+    {
+      "type": "field_check",
+      "path": "output.risk_assessment.confidence_per_dimension",
+      "operator": "exists",
+      "value": true,
+      "description": "风险评估必须区分已验证信号和不确定领域，并为每个维度标注置信度"
+    },
+    {
+      "type": "field_check",
+      "path": "output.interview_playbook.stages",
+      "operator": "exists",
+      "value": true,
+      "description": "面试手册必须提供快手后端工程师的典型面试流程阶段"
+    },
+    {
+      "type": "field_check",
+      "path": "output.interview_playbook.preparation_recommendations",
+      "operator": "gte",
+      "value": 3,
+      "description": "手册必须包含至少3个针对电商业务线背景的具体准备建议"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "可能",
+      "description": "输出必须说明面试形式可能因团队而异，结论基于现有数据"
+    }
   ],
   "must_not_contain": [
-    "definitive claims about company financial health without citing a source or date",
-    "invented internal culture details presented as fact",
-    "prediction of interview outcome",
-    "advice to withdraw from the process based on risk signals without candidate input"
+    {
+      "pattern": "财务状况.*良好|financial.*confirmed|盈利状况.*稳定",
+      "reason": "不能在无日期来源情况下对公司财务健康做确定性声明"
+    },
+    {
+      "pattern": "内部文化.*是|企业文化确实|culture.*definitely",
+      "reason": "不能将无来源的内部文化细节作为事实陈述"
+    },
+    {
+      "pattern": "一定能通过|guaranteed.*pass|必然录用",
+      "reason": "不能预测面试结果"
+    },
+    {
+      "pattern": "建议放弃.*面试|withdraw.*application|不建议参加",
+      "reason": "不能在未征求候选人意见的情况下建议放弃面试流程"
+    }
   ]
 }

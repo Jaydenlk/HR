@@ -20,16 +20,68 @@
     "has_suggested_data_sources": true
   },
   "assertions": [
-    "salary-radar explicitly states that Changsha SME industrial internet roles are outside the knowledge graph coverage",
-    "output confidence is marked as low or insufficient",
-    "output does not state a precise salary range (e.g., does not say '18k-25k' as if it were reliable)",
-    "output acknowledges that regional salary data for non-major cities requires local sources",
-    "output suggests at least 2 alternative sources for the candidate to research (e.g., 猎聘、BOSS直聘薪资报告、51job行情)",
-    "source-quality-auditor flags the absence of any grounding data for this specific query"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "salary-radar",
+      "description": "薪资雷达必须被调用"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "source-quality-auditor",
+      "description": "数据源质量审查器必须被调用以标记无数据情况"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "长沙",
+      "description": "输出必须明确说明长沙中小型民营企业工业互联网岗位不在知识图谱覆盖范围内"
+    },
+    {
+      "type": "field_check",
+      "path": "output.confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度必须标注为低或不足，不能是中或高"
+    },
+    {
+      "type": "not_contains",
+      "path": "output.text",
+      "operator": "not_contains",
+      "value": "18k-25k",
+      "description": "不能给出具体薪资区间（如18k-25k）作为可靠数据"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "本地",
+      "description": "输出必须说明区域性薪资数据需要本地来源"
+    },
+    {
+      "type": "field_check",
+      "path": "output.suggested_sources",
+      "operator": "gte",
+      "value": 2,
+      "description": "输出必须提供至少2个替代数据来源（如猎聘、BOSS直聘薪资报告、51job行情）"
+    }
   ],
   "must_not_contain": [
-    "specific salary range stated with medium or high confidence",
-    "any implied knowledge of Changsha industrial internet market without a source",
-    "hallucinated salary benchmarks"
+    {
+      "pattern": "confidence.*medium|confidence.*high|置信度.*中|置信度.*高",
+      "reason": "无数据时置信度不能为中或高"
+    },
+    {
+      "pattern": "长沙.*工业互联网.*[0-9]+[kK万].*[0-9]+[kK万]",
+      "reason": "不能在无数据支撑的情况下给出具体薪资区间"
+    },
+    {
+      "pattern": "根据市场行情.*长沙|市场普遍水平.*长沙",
+      "reason": "不能在无来源情况下暗示掌握长沙工业互联网市场数据"
+    }
   ]
 }

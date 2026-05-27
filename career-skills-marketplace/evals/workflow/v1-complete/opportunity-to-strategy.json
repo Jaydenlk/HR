@@ -21,15 +21,68 @@
     "confidence_level": "medium_or_high"
   },
   "assertions": [
-    "opportunity-intelligence produces a structured score or assessment for each of the three companies",
-    "application-strategist receives the opportunity assessment as input and produces a ranked application order",
-    "output includes specific timing recommendations (e.g., which to apply first and why)",
-    "output references profile alignment for at least one company",
-    "confidence level is stated for each opportunity assessment"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "opportunity-intelligence",
+      "description": "机会情报必须被调用以对三家公司进行结构化评分或评估"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "application-strategist",
+      "description": "投递策略师必须被调用，接收机会评估结果并产出优先级排名"
+    },
+    {
+      "type": "field_check",
+      "path": "output.opportunity_scores",
+      "operator": "exists",
+      "value": true,
+      "description": "opportunity-intelligence必须为三家公司各产出结构化评分或评估"
+    },
+    {
+      "type": "field_check",
+      "path": "output.application_ranking",
+      "operator": "exists",
+      "value": true,
+      "description": "application-strategist必须产出投递优先顺序排名"
+    },
+    {
+      "type": "field_check",
+      "path": "output.timeline",
+      "operator": "exists",
+      "value": true,
+      "description": "输出必须包含具体时间建议（如先投哪家及原因）"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "分布式",
+      "description": "输出必须至少针对一家公司说明候选人profile与岗位的匹配度"
+    },
+    {
+      "type": "field_check",
+      "path": "output.opportunity_scores[*].confidence",
+      "operator": "exists",
+      "value": true,
+      "description": "每个机会评估必须标注置信度"
+    }
   ],
   "must_not_contain": [
-    "invented salary figures not grounded in salary-radar data",
-    "definitive claims about company headcount or hiring quota without source",
-    "recommendation without stated rationale"
+    {
+      "pattern": "薪资.*[0-9]+[kK万].*[0-9]+[kK万]",
+      "reason": "不能给出无薪资雷达数据支撑的捏造薪资数字"
+    },
+    {
+      "pattern": "招聘名额.*[0-9]+|headcount quota.*[0-9]+|HC.*[0-9]+个",
+      "reason": "不能在无来源情况下声称公司具体招聘名额"
+    },
+    {
+      "pattern": "建议.*投递$|推荐投递$",
+      "reason": "每条推荐必须附有明确理由，不能无理由裸推"
+    }
   ]
 }

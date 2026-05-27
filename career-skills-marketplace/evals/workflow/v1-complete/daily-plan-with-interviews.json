@@ -27,16 +27,82 @@
     "has_follow_up_actions_for_pending_applications": true
   },
   "assertions": [
-    "today's plan prioritizes Tencent interview preparation (tomorrow 10:00)",
-    "tomorrow's plan allocates significant time to JD final interview preparation (March 12 14:00)",
-    "plan includes a follow-up action for Meituan which has been waiting since March 7",
-    "total planned hours do not exceed 6 hours today and 8 hours tomorrow",
-    "tasks are specific and actionable, not generic (e.g., 'review JD for Tencent PM role' not just 'prepare')",
-    "plan acknowledges Didi application has had no response for 5+ days and suggests follow-up or deprioritization"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "daily-plan-generator",
+      "description": "每日计划生成器必须被调用"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "application-tracker",
+      "description": "投递追踪器必须被调用以获取当前状态"
+    },
+    {
+      "type": "contains",
+      "path": "output.today_plan.text",
+      "operator": "contains",
+      "value": "腾讯",
+      "description": "今日计划必须优先安排腾讯面试准备（明日10:00面试）"
+    },
+    {
+      "type": "contains",
+      "path": "output.tomorrow_plan.text",
+      "operator": "contains",
+      "value": "京东",
+      "description": "明日计划必须为京东终面（3月12日14:00）分配大量时间"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "美团",
+      "description": "必须包含对美团的跟进行动（已等待自3月7日）"
+    },
+    {
+      "type": "field_check",
+      "path": "output.today_plan.total_hours",
+      "operator": "lte",
+      "value": 6,
+      "description": "今日计划总时间不超过6小时"
+    },
+    {
+      "type": "field_check",
+      "path": "output.tomorrow_plan.total_hours",
+      "operator": "lte",
+      "value": 8,
+      "description": "明日计划总时间不超过8小时"
+    },
+    {
+      "type": "not_contains",
+      "path": "output.today_plan.text",
+      "operator": "not_contains",
+      "value": "通用准备",
+      "description": "任务必须具体可执行，不能是通用建议（如应具体到'研究腾讯PM岗位JD'而非'准备'）"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "滴滴",
+      "description": "必须说明滴滴投递已5天以上无回应，建议跟进或降低优先级"
+    }
   ],
   "must_not_contain": [
-    "tasks scheduled for times that conflict with the interview slots",
-    "more hours of tasks than available hours",
-    "generic advice not tied to the specific companies and stages in the tracker"
+    {
+      "pattern": "面试当天.*安排任务|interview.*same.*time|10:00.*任务安排",
+      "reason": "任务不能与面试时间冲突"
+    },
+    {
+      "pattern": "今日.*超过6小时|明日.*超过8小时",
+      "reason": "计划总时间不能超过可用时间"
+    },
+    {
+      "pattern": "通用建议|一般性准备|generic.*advice",
+      "reason": "所有建议必须与追踪器中的具体公司和阶段挂钩"
+    }
   ]
 }
