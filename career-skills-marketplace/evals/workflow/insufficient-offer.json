@@ -1,0 +1,49 @@
+{
+  "name": "insufficient-offer",
+  "description": "只有一个offer且信息不全 — 不能做比较，不能给推荐，只能列出缺失信息",
+  "input": {
+    "user_message": "拿了一个offer，月薪25k，值得接吗？",
+    "offer_details": { "base_monthly": 25000 }
+  },
+  "expected_skills_invoked": ["career-principal"],
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "eq",
+      "value": "insufficient",
+      "description": "信息严重不足"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 3,
+      "description": "必须列出公司/岗位/福利/工时等缺失"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 3,
+      "description": "追问公司/岗位/城市/福利/工时"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "给出信息收集行动"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "建议接受|建议拒绝|推荐接受",
+      "reason": "信息不足不能给接受/拒绝建议"
+    },
+    {
+      "pattern": "综合评分|offer评分",
+      "reason": "信息不足不能给评分"
+    }
+  ]
+}

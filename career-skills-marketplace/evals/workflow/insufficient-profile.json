@@ -1,0 +1,50 @@
+{
+  "name": "insufficient-profile",
+  "description": "有JD无简历/画像 — 只能做JD分析，不能做匹配诊断，不能给投递建议分数",
+  "input": {
+    "user_message": "帮我分析这个JD值不值得投",
+    "jd_text": "字节跳动-后端开发工程师，3年以上Go/Java经验，熟悉分布式系统，有大规模系统设计经验优先。base 25-50k，14薪，弹性工作。"
+  },
+  "expected_skills_invoked": ["jd-analyzer", "source-quality-auditor"],
+  "expected_skills_not_invoked": ["match-diagnosis", "resume-tailor"],
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "无画像时置信度不能高"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "必须列出匹配度和改写建议为无法判断"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须追问简历/背景"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "必须给出至少2个可执行行动"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "匹配度.*[0-9]+%",
+      "reason": "无简历不能给匹配度分数"
+    },
+    {
+      "pattern": "强烈推荐投递|非常适合",
+      "reason": "无画像不能给投递建议"
+    }
+  ]
+}
