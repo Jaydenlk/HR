@@ -55,3 +55,12 @@ allowed-tools: [Read, Grep, WebSearch, WebFetch]
 - 股权缩水或融资停止
 - 管理层频繁变动
 - 工商异常（法院被执行、经营异常名单）
+
+## 知识图谱引用
+
+本 skill 使用以下知识文件辅助判断：
+
+| 文件 | 用途 | 何时使用 | 不可用时降级 |
+|------|------|---------|------------|
+| `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 已知公司的已知风险信号（known_risk_signals）、公司类型和历史记录 | 查询目标公司已知历史风险时（无实时数据降级场景） | 仅输出"无已知历史记录"，不补充推断，confidence: insufficient |
+| `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型与典型风险模式的关联（如初创公司资金链风险、国企稳定性） | 按公司类型推断通用风险模式时 | 不做类型推断，仅呈现实时数据中的直接信号 |

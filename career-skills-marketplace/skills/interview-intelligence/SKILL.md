@@ -76,3 +76,13 @@ allowed-tools: [Read, Grep]
 ## 输出格式
 
 见 `output_schema.json`。输出语言为中文（字段名保持英文）。
+
+## 知识图谱引用
+
+本 skill 使用以下知识文件辅助判断：
+
+| 文件 | 用途 | 何时使用 | 不可用时降级 |
+|------|------|---------|------------|
+| `../_career-skills-shared/knowledge/interview-question-taxonomy.yaml` | 面试题类型分类和通用高频题库，用于在无实时面经时生成备考优先项 | 无实时面经数据（confidence: insufficient）时降级使用 | 输出仅含通用面试知识，confidence 置为 low，cannot_determine 说明缺失的定向情报 |
+| `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 已知公司的面试风格（interview_style）和流程特征 | 查询目标公司的面试流程类型时 | 面试风格标注为 unknown，仅给出岗位通用流程框架 |
+| `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型与典型面试流程的映射（如大厂/国企/外企的流程差异） | 无公司精确数据时按公司类型推断流程 | 仅输出通用面试流程，不做公司类型推断 |

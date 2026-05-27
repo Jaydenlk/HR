@@ -104,3 +104,13 @@ allowed-tools: [Read, Grep]
 ## 输出格式
 
 见 `output_schema.json`。输出语言为中文（字段名保持英文）。
+
+## 知识图谱引用
+
+本 skill 使用以下知识文件辅助判断：
+
+| 文件 | 用途 | 何时使用 | 不可用时降级 |
+|------|------|---------|------------|
+| `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 已知公司的类型、发展阶段、已知风险信号 | 解析 `company_context` 字段时 | `company_context.stage` 置为 `unknown`，不补充知识图谱信息 |
+| `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型分类（互联网/传统/外企等）辅助阶段判断 | JD 中公司信息不足时 | 仅依赖 JD 原文判断 |
+| `../_career-skills-shared/knowledge/market-vocabulary/china-job-search-terms.yaml` | 中国求职黑话词汇表（大小周/996/虚拟股等）用于风险信号识别 | 解析 `risk_signals` 时 | 使用内置术语表，覆盖范围可能较窄 |

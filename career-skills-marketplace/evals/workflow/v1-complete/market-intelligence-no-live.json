@@ -16,17 +16,72 @@
     "refuses_to_state_current_headcount": true
   },
   "assertions": [
-    "market-radar explicitly states that no live data sources are available",
-    "output confidence is marked as low or insufficient, not medium or high",
-    "system does not fabricate current hiring numbers or company-specific HC status",
-    "output provides fallback guidance: suggests where user can find current data (e.g., 牛客、脉脉、Boss直聘)",
-    "source-quality-auditor flags the knowledge graph staleness given the 2024-Q1 update date",
-    "any historical trends from knowledge graph are clearly labeled as historical, not current"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "market-radar",
+      "description": "市场雷达必须被调用"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "source-quality-auditor",
+      "description": "数据源质量审查器必须被调用以标记知识图谱陈旧"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "无实时数据",
+      "description": "market-radar必须明确说明没有可用的实时数据来源"
+    },
+    {
+      "type": "field_check",
+      "path": "output.confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "置信度必须标注为低或不足，不能为中或高"
+    },
+    {
+      "type": "not_contains",
+      "path": "output.text",
+      "operator": "not_contains",
+      "value": "正在扩招",
+      "description": "不能在无日期来源的情况下声称某公司正在扩招"
+    },
+    {
+      "type": "field_check",
+      "path": "output.fallback_sources",
+      "operator": "exists",
+      "value": true,
+      "description": "必须提供替代方案指引：用户可以从哪里查到当前数据（如牛客、脉脉、Boss直聘）"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "2024",
+      "description": "知识图谱中的历史趋势数据必须明确标注为历史数据，不能作为当前数据呈现"
+    }
   ],
   "must_not_contain": [
-    "specific company hiring numbers presented as current",
-    "claims that any particular company 'is expanding' without a dated, cited source",
-    "confidence level of medium or high",
-    "fabricated recruiter activity data"
+    {
+      "pattern": "[0-9]+人.*招聘|HC.*[0-9]+|headcount.*[0-9]+",
+      "reason": "不能给出以当前数据呈现的具体公司招聘人数"
+    },
+    {
+      "pattern": "目前.*正在大量招聘|现在.*扩招中",
+      "reason": "不能在无日期来源情况下声称特定公司当前正在扩招"
+    },
+    {
+      "pattern": "confidence.*medium|confidence.*high|置信度.*中|置信度.*高",
+      "reason": "无实时数据时置信度不能为中或高"
+    },
+    {
+      "pattern": "招聘热度.*高涨|市场火热",
+      "reason": "不能在无数据情况下杜撰招聘活跃度数据"
+    }
   ]
 }

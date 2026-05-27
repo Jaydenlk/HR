@@ -22,8 +22,9 @@
     ]
   },
   "assertions": [
-    { "path": "comparison_table", "operator": "length_gte", "value": 2 },
-    { "path": "comparison_table[0].missing_fields", "operator": "contains", "value": "equity_value_annual" }
+    { "path": "comparison", "operator": "length_gte", "value": 2 },
+    { "path": "missing_info", "operator": "contains", "value": "equity_value_annual" },
+    { "path": "confidence", "operator": "in", "value": ["medium", "low", "insufficient"] }
   ],
   "must_not_contain": [
     "股权价值约",

@@ -80,3 +80,13 @@ dependencies:
   knowledge:
     - _career-skills-shared/knowledge/role-taxonomy/
     - _career-skills-shared/knowledge/company-taxonomy/
+
+knowledge_dependencies:
+  - path: knowledge/career-path-patterns.yaml
+    usage: "中国市场已验证的职业转型路径模式，评估横向/行业切换路径的可行性（feasibility）和典型里程碑"
+    required: false
+    degradation: "不输出横向转型路径，仅输出纵向晋升路径，confidence 降为 low"
+  - path: knowledge/role-taxonomy/roles.yaml
+    usage: "目标岗位标准技能要求，用于计算适配度（fit_pct）的技能覆盖率维度（40%权重）"
+    required: false
+    degradation: "仅依赖 profile.skills 与路径目标岗位名称的文字匹配，技能覆盖率评估精度降低"

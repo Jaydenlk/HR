@@ -141,3 +141,12 @@ allowed-tools: [Read, Grep]
 - **工作制**：JD 要求接受 996 或弹性工时，而用户有明确限制 → 标注
 
 这些约束往往比技能差距更影响录用决策，必须如实呈现。
+
+## 知识图谱引用
+
+本 skill 使用以下知识文件辅助判断：
+
+| 文件 | 用途 | 何时使用 | 不可用时降级 |
+|------|------|---------|------------|
+| `../_career-skills-shared/knowledge/role-taxonomy/roles.yaml` | 目标岗位的标准技能要求列表，用于补充 JD 中未明确列出的隐性要求 | 评估技能匹配维度（30%权重）时，JD 要求不完整时参考 | 仅对比 JD 显性要求，不补充隐性标准 |
+| `../_career-skills-shared/knowledge/role-taxonomy/role-categories.yaml` | 岗位大类分类，用于判断角色目标维度（role）的匹配合理性 | 评估岗位目标维度（15%权重）时 | 仅使用 JD 职位名称判断，不参考类别映射 |

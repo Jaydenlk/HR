@@ -9,7 +9,7 @@
   "simulate": "no_live_data",
   "assertions": [
     { "path": "confidence", "operator": "eq", "value": "insufficient" },
-    { "path": "questions", "operator": "length_eq", "value": 0 },
+    { "path": "technical_questions", "operator": "length_eq", "value": 0 },
     { "path": "cannot_determine", "operator": "length_gte", "value": 1 }
   ],
   "must_not_contain": [

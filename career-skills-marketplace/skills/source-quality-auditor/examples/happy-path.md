@@ -71,10 +71,11 @@
       "source_id": "src-003",
       "grade": "C",
       "freshness": "fresh",
-      "verification_status": "verified",
+      "verification_status": "unverifiable",
       "issues": [
         "小红书来源不计入薪资事实，仅作用户声音参考",
-        "内容为间接转述（'我朋友'），非亲历"
+        "内容为间接转述（'我朋友'），非亲历",
+        "小红书 URL 无法通过 API 验证内容真实性"
       ],
       "recommendation": "use_with_caution"
     }

@@ -346,13 +346,6 @@ aliases:
     sub_brands: ["丰巢（快递柜）", "顺丰科技", "顺丰国际", "嘿客（历史）"]
     biz_units: ["快递（标快/特惠）", "冷链", "同城配送", "供应链"]
 
-  ningde-times:
-    official_cn: 宁德时代
-    official_en: CATL
-    nicknames: ["宁王", "CATL"]
-    sub_brands: ["麒麟电池", "神行电池", "EVOGO换电", "时代新能源"]
-    biz_units: ["动力电池", "储能系统", "电池材料", "矿产资源"]
-
   xpeng:
     official_cn: 小鹏汽车
     official_en: XPENG Motors

@@ -28,17 +28,79 @@
     "surfaces_clarifying_questions": true
   },
   "assertions": [
-    "output calculates the financial opportunity cost of 2-3 years of graduate school vs. immediate employment",
-    "career-path-planner produces trajectories for both: postgrad → senior researcher/PhD path vs. direct employment → senior engineer path",
-    "output discusses the specific role context: testing at Tencent IEG may have different long-term ceiling than dev roles",
-    "output surfaces at least 2 clarifying questions the candidate should answer before deciding (e.g., PhD vs. master's, career goal clarity)",
-    "output does not simply validate family preference or dismiss it",
-    "output presents both paths' advantages and disadvantages without pushing a single answer"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "graduate-school-vs-job-advisor",
+      "description": "读研vs就业顾问必须被调用"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "career-path-planner",
+      "description": "职业路径规划器必须被调用"
+    },
+    {
+      "type": "field_check",
+      "path": "output.financial_analysis.opportunity_cost_years",
+      "operator": "exists",
+      "value": true,
+      "description": "必须计算2-3年读研的财务机会成本（相对于立即就业）"
+    },
+    {
+      "type": "field_check",
+      "path": "output.trajectories",
+      "operator": "exists",
+      "value": true,
+      "description": "career-path-planner必须为两条路径各产出轨迹：读研→高级研究员/博士路径 vs 直接就业→高级工程师路径"
+    },
+    {
+      "type": "contains",
+      "path": "output.text",
+      "operator": "contains",
+      "value": "测试",
+      "description": "必须讨论腾讯IEG测试岗位相比开发岗的长期天花板差异"
+    },
+    {
+      "type": "field_check",
+      "path": "output.clarifying_questions",
+      "operator": "gte",
+      "value": 2,
+      "description": "必须提出至少2个候选人在决策前应回答的关键问题（如直博vs硕士、职业目标清晰度）"
+    },
+    {
+      "type": "not_contains",
+      "path": "output.text",
+      "operator": "not_contains",
+      "value": "家里希望读研",
+      "description": "输出不能单纯顺从家庭偏好，也不能否定家庭偏好"
+    },
+    {
+      "type": "field_check",
+      "path": "output.paths[*].advantages",
+      "operator": "exists",
+      "value": true,
+      "description": "两条路径都必须有优缺点分析，不推单一答案"
+    }
   ],
   "must_not_contain": [
-    "a simple 'you should work' or 'you should study' recommendation without conditions",
-    "invented salary projections for either path stated as reliable",
-    "dismissal of the candidate's emotional/family context",
-    "advice that ignores the testing vs. development role distinction"
+    {
+      "pattern": "应该去工作|应该读研|you should work|you should study",
+      "reason": "不能给出无条件的简单推荐"
+    },
+    {
+      "pattern": "毕业后薪资.*[0-9]+[kK万].*可靠|salary projection.*reliable",
+      "reason": "不能将任何路径的薪资预测标注为可靠数据"
+    },
+    {
+      "pattern": "家庭因素不重要|ignore.*family|情感因素忽略",
+      "reason": "不能忽视候选人的情感和家庭背景"
+    },
+    {
+      "pattern": "测试开发.*和开发.*一样|测试岗.*无差别",
+      "reason": "不能忽视测试开发与研发岗位的职业天花板差异"
+    }
   ]
 }

@@ -82,3 +82,9 @@ dependencies:
     - _career-skills-shared/output-schema/skill-output-base.schema.json
   references:
     - references/salary-data-sources.md
+
+knowledge_dependencies:
+  - path: knowledge/offer-comparison-factors.yaml
+    usage: "中国薪资结构标准组成要素定义，用于解析和标准化薪资数据的 breakdown 字段"
+    required: false
+    degradation: "使用内置薪资结构定义，特殊条款（如虚拟股、项目奖金）可能缺失说明"

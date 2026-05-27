@@ -41,18 +41,89 @@
     "messages_are_concise": true
   },
   "assertions": [
-    "referral-strategy recommends contact_b (team lead with mutual connection) as the higher-priority target",
-    "strategy includes the tactic of mentioning the mutual former colleague Wang in the message to contact_b",
-    "networking-message-writer produces two distinct messages tailored to each contact's relationship type",
-    "message to contact_a leverages the alumni connection without being presumptuous",
-    "message to contact_b references the mutual connection by name as the opening hook",
-    "both messages are under 200 characters for the opening line (WeChat/LinkedIn norm)",
-    "messages do not make demands — they ask for a brief conversation or referral consideration"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "referral-strategy",
+      "description": "内推策略必须被调用"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "networking-message-writer",
+      "description": "人脉消息撰写器必须被调用"
+    },
+    {
+      "type": "field_check",
+      "path": "output.strategy.priority_contact",
+      "operator": "eq",
+      "value": "contact_b",
+      "description": "内推策略必须推荐contact_b（有共同前同事的组长）为优先联系对象"
+    },
+    {
+      "type": "contains",
+      "path": "output.strategy.contact_b_approach",
+      "operator": "contains",
+      "value": "王",
+      "description": "策略必须包含在给contact_b的消息中提及共同前同事王某的战术"
+    },
+    {
+      "type": "field_check",
+      "path": "output.messages",
+      "operator": "exists",
+      "value": true,
+      "description": "人脉消息撰写器必须为每位联系人产出各自不同的个性化消息"
+    },
+    {
+      "type": "contains",
+      "path": "output.messages.contact_a",
+      "operator": "contains",
+      "value": "浙江大学",
+      "description": "给contact_a的消息必须利用校友关系，但不过度假设亲密程度"
+    },
+    {
+      "type": "contains",
+      "path": "output.messages.contact_b",
+      "operator": "contains",
+      "value": "王",
+      "description": "给contact_b的消息必须以共同前同事为开篇钩子"
+    },
+    {
+      "type": "length_gte",
+      "path": "output.messages.contact_a.opening_line",
+      "operator": "lte",
+      "value": 200,
+      "description": "消息开篇行不超过200字（符合微信/领英范式）"
+    },
+    {
+      "type": "not_contains",
+      "path": "output.messages.contact_a",
+      "operator": "not_contains",
+      "value": "能否帮我内推",
+      "description": "消息不能在第一句就提出内推请求"
+    },
+    {
+      "type": "not_contains",
+      "path": "output.messages.contact_b",
+      "operator": "not_contains",
+      "value": "能否帮我内推",
+      "description": "消息不能在第一句就提出内推请求"
+    }
   ],
   "must_not_contain": [
-    "a single generic message sent to both contacts",
-    "messages that immediately ask for a referral in the first sentence without context",
-    "invented details about the candidate's relationship with the contacts",
-    "messages longer than what is appropriate for a cold LinkedIn/WeChat reach-out"
+    {
+      "pattern": "统一模板|同一条消息.*两位|both contacts.*same message",
+      "reason": "不能对两位联系人发同一条消息"
+    },
+    {
+      "pattern": "第一句.*请帮我内推|第一句.*能否内推|opening.*ask.*referral",
+      "reason": "冷联消息不能在第一句就直接要求内推"
+    },
+    {
+      "pattern": "我们曾经.*合作|我们见过面|我认识你",
+      "reason": "不能捏造候选人与联系人的关系细节"
+    }
   ]
 }

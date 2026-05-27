@@ -1,5 +1,5 @@
 meta:
-  total: 18
+  total: 30
   language: zh-CN
   note: 中国求职市场特有术语，帮助求职者理解潜在风险和机会
 
@@ -10,6 +10,7 @@ terms:
     risk: none
     when_it_matters: 求职初期广泛探索阶段，不确定目标岗位时
     example: "秋招第一周先泡池子，把所有想去的公司都投一遍，看哪些给面试机会。"
+    source_policy: "求职者社区通用俗语，无官方定义"
 
   - id: kai_jiang
     term: 开奖
@@ -17,6 +18,7 @@ terms:
     risk: none
     when_it_matters: 面试结束等待offer阶段
     example: "今天终于开奖了，base 30k，年包大约40W，比预期好一些。"
+    source_policy: "求职者社区通用俗语，无官方定义"
 
   - id: hc
     term: HC
@@ -24,6 +26,7 @@ terms:
     risk: medium
     when_it_matters: 深入面试流程前，可礼貌询问HR该岗位当前HC状态
     example: "听说那家公司HC被冻结了，即使面试通过也可能发不了offer，小心白面。"
+    source_policy: "行业通用术语，以实际招聘部门确认为准"
 
   - id: base
     term: base
@@ -31,6 +34,7 @@ terms:
     risk: low
     when_it_matters: 谈薪时必须搞清楚base与总包的关系，避免被总包数字迷惑
     example: "他说年包60W，但base只有25K乘以12，剩下的全靠绩效奖金，风险很高。"
+    source_policy: "行业通用术语，以劳动合同约定条款为准"
 
   - id: bei_diao
     term: 背调
@@ -38,6 +42,7 @@ terms:
     risk: high
     when_it_matters: offer下发后，入职前，必须确保简历内容与事实一致
     example: "背调发现他在简历上写了P7但实际只是P6，offer被撤销了。"
+    source_policy: "行业通用术语，以实际背调报告内容为准"
 
   - id: od
     term: OD
@@ -45,6 +50,7 @@ terms:
     risk: high
     when_it_matters: 投递大厂时，务必确认岗位是否为外包（通常在JD末尾标注或面试时询问）
     example: "我以为是字节的岗位，后来发现是OD外包，五险一金基数低很多，就拒了。"
+    source_policy: "依据《劳动合同法》劳务派遣相关规定；以实际签署合同主体为准"
 
   - id: wai_bao
     term: 外包
@@ -52,6 +58,7 @@ terms:
     risk: high
     when_it_matters: 任何看起来目标公司招聘但薪资或合同有异常的情况下
     example: "注意辨别是否是外包，简历投递时看清楚是目标公司招聘还是人力公司代招。"
+    source_policy: "依据《劳动合同法》劳务派遣相关规定；以实际签署合同主体为准"
 
   - id: shi_xi_zhuan_zheng
     term: 实习转正
@@ -59,6 +66,7 @@ terms:
     risk: low
     when_it_matters: 应届生大三/大四阶段通过长期实习（3个月以上）争取转正机会
     example: "他提前批直接通过实习转正进了字节，避开了秋招激烈竞争。"
+    source_policy: "来源于招聘平台用户分享和公司内部信息，以实际入职结果为准"
 
   - id: ti_qian_pi
     term: 提前批
@@ -66,6 +74,7 @@ terms:
     risk: medium
     when_it_matters: 大三下/大四上有明确目标公司时，主动关注提前批开放时间
     example: "腾讯提前批7月就开了，我朋友提前锁定了offer，秋招都不用投了。"
+    source_policy: "招聘季通用术语，以各公司官方招聘公告为准"
 
   - id: qiu_zhao
     term: 秋招
@@ -73,6 +82,7 @@ terms:
     risk: none
     when_it_matters: 大四学生/研三学生的核心求职周期，应提前3-6个月准备
     example: "秋招是应届生的黄金期，一定要充分准备，过了这个村就没这个店了。"
+    source_policy: "招聘季通用术语，以各公司官方招聘公告为准"
 
   - id: chun_zhao
     term: 春招
@@ -80,6 +90,7 @@ terms:
     risk: none
     when_it_matters: 秋招未成功的应届生，或在校学生寻找暑期实习机会
     example: "秋招没拿到满意offer，还可以等春招，但HC会少很多，要降低预期。"
+    source_policy: "招聘季通用术语，以各公司官方招聘公告为准"
 
   - id: bi_shi
     term: 笔试
@@ -87,6 +98,7 @@ terms:
     risk: none
     when_it_matters: 收到笔试邀约后，需提前刷题/训练，不可轻视
     example: "华为笔试出了很多机试题，提前没有练习的人基本都挂了。"
+    source_policy: "招聘流程通用术语，以实际笔试通知为准"
 
   - id: qun_mian
     term: 群面
@@ -94,6 +106,7 @@ terms:
     risk: none
     when_it_matters: 投递快消/外企/咨询管培生岗位时，必须专门练习群面技巧
     example: "宝洁群面很残酷，6人只取1-2人，一定要提前找人模拟练习。"
+    source_policy: "招聘流程通用术语，以实际面试邀约通知为准"
 
   - id: ye_wu_mian
     term: 业务面
@@ -101,6 +114,7 @@ terms:
     risk: none
     when_it_matters: 进入面试流程后，业务面决定是否发offer
     example: "通过笔试后，我经历了3轮业务面，都是团队leader和总监来面，比HR面重要得多。"
+    source_policy: "招聘流程通用术语，以实际面试邀约通知为准"
 
   - id: hr_mian
     term: HR面
@@ -108,6 +122,7 @@ terms:
     risk: low
     when_it_matters: 到达HR面阶段，需准备薪资谈判话术和离职原因的合理解释
     example: "HR面问了我期望薪资，我说了一个区间而不是具体数字，留了谈判空间。"
+    source_policy: "招聘流程通用术语，以实际面试邀约通知为准"
 
   - id: san_fang_xie_yi
     term: 三方协议
@@ -115,6 +130,7 @@ terms:
     risk: high
     when_it_matters: 收到offer需要签三方时，确认已确定不会继续观望其他offer
     example: "他草率签了三方，后来收到更好的offer，违约金加上损失的应届生身份，代价很大。"
+    source_policy: "依据教育部应届生就业相关政策；具体违约金以协议书面条款为准"
 
   - id: bai_cai_jia
     term: 白菜价
@@ -122,6 +138,7 @@ terms:
     risk: medium
     when_it_matters: 收到明显低于市场价的offer时，综合评估是否值得接受
     example: "那家公司给了我白菜价，后端工程师才18k，我直接拒了，不值得。"
+    source_policy: "求职者社区通用俗语，市场价参考来自Boss直聘等招聘平台薪资标注"
 
   - id: sp_ssp
     term: SP/SSP
@@ -129,3 +146,100 @@ terms:
     risk: none
     when_it_matters: 拥有多个offer或竞争激烈时，可尝试争取SP或用SP offer进行比价谈判
     example: "他同时收到字节和腾讯的offer，字节给了SSP，月薪直接高出标准包30%。"
+    source_policy: "用户社区广泛流传的标准术语，以offer内容书面条款为准"
+
+  - id: da_xiao_zhou
+    term: 大小周
+    meaning: 每隔一周上六天班的工作制度，即一周工作五天、下一周工作六天（周六上班）交替轮换。大小周本质上等同于年均26天额外工作日，但通常以固定月薪覆盖，不额外支付加班费。
+    risk: high
+    when_it_matters: 收到offer前务必确认是否为大小周；法律上应支付周六加班费但执行不一
+    example: "他入职后才发现是大小周，每个月实际工作时间比预期多出50小时，而薪资没有差别。"
+    source_policy: "行业通用术语，以劳动合同约定条款为准；法律依据参考《劳动法》加班规定"
+
+  - id: 996_995_1075
+    term: 996/995/1075
+    meaning: 描述工作时长的俗称缩写。996=早9点到晚9点每周6天；995=早9点到晚9点每周5天；1075=早10点到晚7点每周5天。实际工时因团队和项目周期波动，此类表述通常是员工对日常状态的估算而非正式制度。
+    risk: high
+    when_it_matters: 面试时了解团队实际工作文化；注意HR描述与业务团队实际可能存在差异
+    example: "面试官说弹性工作制，进去以后发现团队是标准996，周六必须到岗。"
+    source_policy: "行业俗称，无官方定义；需以面试时向团队成员直接询问为准"
+
+  - id: nian_zhong_jiang
+    term: 年终奖
+    meaning: 企业在年末（通常次年1-3月）发放的一次性绩效奖金，金额通常以月薪倍数计算。年终奖不属于法定义务，金额和发放条件完全取决于公司政策和个人绩效评定。春节前跳槽可能损失当年年终奖。
+    risk: medium
+    when_it_matters: 评估offer总包时，需区分固定月薪和年终奖；跳槽时机应考虑年终奖发放节点
+    example: "他年终奖6个月，但3月才发，2月底跳槽就全部损失了，相当于降薪了大半年。"
+    source_policy: "基于公开薪酬调研及招聘平台信息汇编；具体金额以公司薪酬政策文件为准"
+
+  - id: stock_rsu_option
+    term: 股票/RSU/期权
+    meaning: 企业股权激励的三种主要形式。股票指上市公司限制性股票（A股常见）；RSU（Restricted Stock Unit）指限制性股票单位，为互联网大厂及外企常见形式，按归属计划分批兑现；期权指非上市公司常用，需公司上市或被收购才可变现，存在归零风险。
+    risk: medium
+    when_it_matters: 计算total compensation时需将股权折算为年均价值；未上市公司期权应保守估值
+    example: "他的offer年包60W，其中RSU占了20W，但分4年归属，实际第一年只拿到15W的RSU。"
+    source_policy: "基于公开薪酬结构资料汇编；股权价值以公司实际股价和归属计划为准"
+
+  - id: zhuan_zheng_lv
+    term: 转正率
+    meaning: 实习生通过考核后成功获得正式offer的比例，通常以百分比表示。大厂转正率因团队和季节差异较大，校招旺季可能较低。转正率是评估实习价值的重要指标之一。
+    risk: low
+    when_it_matters: 接受实习offer前，可向HR或内部员工了解该团队历史转正率
+    example: "那个组去年只有30%转正率，10个实习生只留了3个，所以实习期要更努力。"
+    source_policy: "来源于招聘平台用户分享和公司内部信息，以实际入职结果为准"
+
+  - id: n_plus_1
+    term: N+1
+    meaning: 劳动法规定的经济补偿标准，N代表员工在该公司的工龄年数，补偿金额为N个月工资加1个月代通知金。公司合法裁员时须支付，违法解除合同则需支付2N+2的赔偿金。这是求职者评估裁员风险的法律基准。
+    risk: medium
+    when_it_matters: 评估公司裁员风险时，了解N+1是法定底线；实际谈判中可争取高于N+1的补偿
+    example: "公司裁员给了N+1，他做了5年就拿到了6个月工资，但有人谈到了N+2。"
+    source_policy: "依据《劳动合同法》第47条和第87条；具体金额以劳动合同和法院判决为准"
+
+  - id: jing_ye_xie_yi
+    term: 竞业协议
+    meaning: 离职后限制员工在竞争对手处任职的合同条款，通常持续1-2年。签署竞业协议的员工在协议期内每月应获得不低于离职前月薪25%-50%的补偿金（各地标准不同）。违反竞业协议需赔偿违约金，金额通常为数月至数年薪资。
+    risk: high
+    when_it_matters: 入职前仔细阅读竞业协议范围；离职前确认公司是否实际执行（书面通知为准）
+    example: "他离职后被前公司执行竞业协议，18个月无法加入同类公司，影响了整个职业规划。"
+    source_policy: "依据《劳动合同法》第23-24条；具体执行以劳动合同条款和法院判决为准"
+
+  - id: mo_wei_tao_tai
+    term: 末位淘汰
+    meaning: 强制排名机制，定期淘汰绩效评分最末的一定比例员工（通常5-10%）。在法律层面，末位淘汰本身不构成合法解雇理由，公司通常结合PIP或协商解除劳动关系。此机制在互联网大厂中较为普遍。
+    risk: high
+    when_it_matters: 了解公司绩效文化时的关键指标；末位淘汰制意味着每年都存在被迫离职风险
+    example: "那家公司实行强制5%末位淘汰，团队20人每年至少有1人被迫离开。"
+    source_policy: "行业通用术语；法律依据参考最高人民法院劳动争议司法解释相关判例"
+
+  - id: pip
+    term: PIP
+    meaning: Performance Improvement Plan（绩效改进计划），是公司向绩效不达标员工发出的正式书面通知，通常设定90天改进期。实际操作中，PIP经常被视为体面离职的前置步骤，而非真正的改进机会。收到PIP后应立即咨询劳动法律师评估权益。
+    risk: high
+    when_it_matters: 收到PIP时立即了解法律权益；避免在不了解后果的情况下签署任何文件
+    example: "他收到PIP后咨询了律师，最终谈到了N+3的离职补偿，远超公司最初提出的N+1。"
+    source_policy: "行业通用术语；建议参考当地劳动仲裁委裁决案例和劳动法律师意见"
+
+  - id: nei_tui_ma
+    term: 内推码
+    meaning: 内部员工推荐候选人时使用的专属码，被推荐人在投递时填写，可跳过初步简历筛选直接进入面试流程，同时推荐员工可获得奖金。内推比普通投递成功率显著更高，是求职者获取面试机会的高效路径。
+    risk: none
+    when_it_matters: 投递前尽量通过脉脉、校友或职场人脉获取内推码，可显著提升简历通过率
+    example: "他通过校友拿到了腾讯的内推码，直接跳过HR初筛进入业务面，节省了两周时间。"
+    source_policy: "招聘平台通用机制，以实际投递结果为准"
+
+  - id: gua_mian
+    term: 挂面
+    meaning: 面试过程中被中断或在面试后未获任何通知即视为淘汰，来自"挂掉电话"的比喻。广义上泛指面试失败。面试官态度明显冷淡、面试时间大幅缩短、面试官频繁看手机等，通常是挂面的信号。
+    risk: none
+    when_it_matters: 识别面试结果信号，合理安排后续求职时间；面试后超过一周无回复可视为挂面
+    example: "面了20分钟就让我走了，明显是挂面，我当天下午就继续投了其他公司。"
+    source_policy: "求职者社区通用俗语，无官方定义"
+
+  - id: yi_xiang_shu_qian_yue
+    term: 意向书/签约
+    meaning: 意向书（Offer Letter）是公司正式发出的录用意向文件，不具备劳动合同的法律效力；正式签约指签订劳动合同，产生法律约束。应届生还涉及三方协议签署。意向书阶段仍可继续谈判，签订劳动合同后违约成本显著上升。
+    risk: medium
+    when_it_matters: 收到意向书后确认所有细节（薪资结构、职位、入职日期）再决定是否签约；不要在未确认所有条款前草率签约
+    example: "他在确认了所有薪资细节并谈妥了落户指标后才签意向书，避免了后续争议。"
+    source_policy: "依据《劳动合同法》相关规定；具体条款以签署的书面文件为准"

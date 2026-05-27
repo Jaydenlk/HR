@@ -25,16 +25,68 @@
     "recommendation_is_conditional": true
   },
   "assertions": [
-    "salary-radar provides market benchmarks for P7-level backend engineers in Shanghai, Beijing, and Shenzhen",
-    "offer-comparator calculates estimated total annual compensation for each offer including equity",
-    "output applies city cost-of-living adjustment when comparing Shanghai vs Beijing vs Shenzhen offers",
-    "startup offer risk is assessed with reference to company stage (Series A) and equity dilution risk",
-    "final recommendation is framed as conditional on candidate's stated priorities, not absolute",
-    "output states data confidence level for salary benchmarks"
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "salary-radar",
+      "description": "薪资雷达必须被调用以提供P7级别后端工程师的市场基准"
+    },
+    {
+      "type": "skills_invoked",
+      "path": "skills_invoked",
+      "operator": "contains",
+      "value": "offer-comparator",
+      "description": "offer对比器必须被调用以综合多个维度进行对比"
+    },
+    {
+      "type": "field_check",
+      "path": "output.offers[*].total_annual_compensation",
+      "operator": "exists",
+      "value": true,
+      "description": "每个offer必须有含期权的年化总薪酬计算"
+    },
+    {
+      "type": "field_check",
+      "path": "comparison[*].city_adjustment",
+      "operator": "exists",
+      "value": true,
+      "description": "必须有城市生活成本调整（上海/北京/深圳对比）"
+    },
+    {
+      "type": "field_check",
+      "path": "output.offers[2].risk_assessment",
+      "operator": "exists",
+      "value": true,
+      "description": "A轮创业公司offer必须有风险评估，包含公司阶段和期权稀释风险"
+    },
+    {
+      "type": "field_check",
+      "path": "output.recommendation.is_conditional",
+      "operator": "eq",
+      "value": true,
+      "description": "最终推荐必须是有条件的，基于候选人优先级而非绝对结论"
+    },
+    {
+      "type": "field_check",
+      "path": "output.confidence",
+      "operator": "in",
+      "value": ["high", "medium", "low", "insufficient"],
+      "description": "薪资基准必须有置信度说明"
+    }
   ],
   "must_not_contain": [
-    "equity valuation stated as definite without discounting for startup risk",
-    "recommendation that ignores the candidate's Shanghai location preference",
-    "fabricated data about company financial health without source"
+    {
+      "pattern": "期权价值.*确定|equity.*definite|期权.*一定值",
+      "reason": "创业公司期权不能以确定价值陈述，必须包含风险折扣说明"
+    },
+    {
+      "pattern": "忽略.*上海|不考虑.*地点偏好|location.*ignored",
+      "reason": "候选人明确偏好上海，推荐不能忽略该约束"
+    },
+    {
+      "pattern": "公司财务状况.*良好|financial health.*confirmed",
+      "reason": "无来源的公司财务健康声明属于杜撰数据"
+    }
   ]
 }

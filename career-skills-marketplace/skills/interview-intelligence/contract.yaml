@@ -65,6 +65,20 @@ failure_modes:
     trigger: "company_name 为空"
     response: "返回 validation_error，说明需要公司名称"
 
+knowledge_dependencies:
+  - path: knowledge/interview-question-taxonomy.yaml
+    usage: "面试题类型分类和通用高频题库，无实时面经时生成备考优先项"
+    required: false
+    degradation: "无实时数据时仍可提供通用面试框架，confidence 置为 low"
+  - path: knowledge/company-taxonomy/companies.seed.yaml
+    usage: "已知公司的面试风格（interview_style）和面试流程特征"
+    required: false
+    degradation: "面试风格标注为 unknown，仅给出岗位通用流程框架"
+  - path: knowledge/company-taxonomy/company-types.yaml
+    usage: "公司类型与典型面试流程映射（大厂/国企/外企流程差异）"
+    required: false
+    degradation: "不做公司类型推断，输出通用面试流程"
+
 china_market_specificity: very_high
 
 live_research_required: true

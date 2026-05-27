@@ -121,3 +121,11 @@ allowed-tools: [Read, Grep]
 | 修改 2   | 用户画像 skills.technical | PASS |
 | 修改 3   | 原文第 2 段项目描述（推断扩展） | NEED_USER_CONFIRM |
 ```
+
+## 知识图谱引用
+
+本 skill 使用以下知识文件辅助判断：
+
+| 文件 | 用途 | 何时使用 | 不可用时降级 |
+|------|------|---------|------------|
+| `../_career-skills-shared/knowledge/role-taxonomy/roles.yaml` | 目标岗位的标准关键词（resume_keywords），指导改写时关键词嵌入优先级 | 有 JD 时，决定哪些技能词应在简历中强化 | 仅依赖 JD 原文关键词，不引用岗位标准关键词 |
