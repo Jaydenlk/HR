@@ -291,10 +291,11 @@ knowledge:
   market_sources: knowledge/market-sources/
 
 knowledge_stats:
-  companies: 50
-  company_stage: "A (seed)"
+  companies: 600
+  company_tiers: "T1=50 (deep) + T2=250 (standard) + T3=300 (lightweight)"
   role_categories: 12
-  market_terms: 18
+  roles: 30
+  market_terms: 30
   interview_question_types: 8
   offer_comparison_factors: 15
   city_industry_mappings: 20
