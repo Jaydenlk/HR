@@ -213,8 +213,9 @@ intents:
       - user_message
     missing_input_questions:
       user_message: "请提供公司名称和岗位，这样我才能查找相关面经信息"
-    primary_skill: source-quality-auditor
-    secondary_skills: []
+    primary_skill: interview-intelligence
+    secondary_skills:
+      - source-quality-auditor
     confidence_gate: "user_message 包含公司名称"
     fallback: "未提供公司和岗位信息，只能给出通用面试资源 (confidence: low)"
 
