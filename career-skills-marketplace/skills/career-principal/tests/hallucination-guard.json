@@ -36,7 +36,7 @@
       "description": "意图识别为 match_diagnosis"
     },
     {
-      "path": "aggregated_result.key_findings",
+      "path": "summary",
       "operator": "none_match_regex",
       "value": "\\d+\\s*/\\s*100|\\d+分|匹配度[：:][\\s]*\\d+",
       "description": "没有简历和 JD 时，不得输出精确分数（如 xx/100 或 xx分）"
