@@ -62,5 +62,5 @@ describe('AnalyzerService.analyzeAgainstPreset (AI live)', () => {
     }
     expect(res.total_score).toBeGreaterThanOrEqual(0);
     expect(res.total_score).toBeLessThanOrEqual(100);
-  }, 120000);
+  }, 200000);
 });
