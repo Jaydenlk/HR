@@ -10,7 +10,8 @@ export const productManagerCampusAnthropic: ProfessionPreset = {
   id: 'product-manager-campus-anthropic',
   profession: '互联网产品经理',
   stage: 'campus',
-  displayName: '产品经理 · 校招(Anthropic框架)',
+  tier: 'pressure',
+  displayName: '产品经理 · 校招(压力版 · 高标准)',
   dimensions: [
     {
       key: 'problem_user_insight',
