@@ -1,5 +1,26 @@
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api').trim();
 
+// 优先用后端响应体 JSON 的 message 字段(NestJS 错误形如 {statusCode, message, error}),
+// 给用户干净的中文提示,而非原样暴露 {"error":"Bad Request","statusCode":400}。
+async function errorMessage(res: Response): Promise<string> {
+  const text = await res.text();
+  try {
+    const body: unknown = JSON.parse(text);
+    if (body && typeof body === 'object' && 'message' in body) {
+      const message = (body as { message: unknown }).message;
+      if (typeof message === 'string' && message.length > 0) {
+        return message;
+      }
+      if (Array.isArray(message) && message.length > 0) {
+        return message.join('；');
+      }
+    }
+  } catch {
+    // 非 JSON 响应体,回退到原始文本
+  }
+  return `API ${res.status}: ${text}`;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token =
     typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -21,7 +42,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         window.location.href = '/login';
       }
     }
-    throw new Error(`API ${res.status}: ${await res.text()}`);
+    throw new Error(await errorMessage(res));
   }
   return res.json();
 }
