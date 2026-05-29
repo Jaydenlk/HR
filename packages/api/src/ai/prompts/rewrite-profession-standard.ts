@@ -1,0 +1,17 @@
+import { ProfessionPreset, ProfessionStandardResult } from '../../common/types';
+
+export function buildRewriteSystem(preset: ProfessionPreset): string {
+  return [
+    `你是「${preset.displayName}」简历改写专家。`,
+    `改写原则:${preset.rewriteGuidance}`,
+    `生成 3-5 条改写建议。每条:section、type、priority、original(简历原文一字不差)、suggested、reason(为什么这样改、对应哪个胜任力维度)。`,
+    `红线:严禁虚构经历或数字。缺数字用 [具体数字] 占位;简历无某经历时给"建议补充 X"而非编造。`,
+  ].join('\n');
+}
+
+export function buildRewritePrompt(
+  resumeText: string,
+  analysis: ProfessionStandardResult,
+): string {
+  return `简历原文:\n${resumeText}\n\n诊断结果(按此聚焦薄弱维度):\n${JSON.stringify(analysis)}`;
+}

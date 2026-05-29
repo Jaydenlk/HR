@@ -2,7 +2,8 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { SYSTEM, buildSuggestRewritesPrompt } from './prompts/suggest-rewrites';
 import { REWRITE_SUGGESTIONS_SCHEMA } from './schemas/rewrite-suggestion.schema';
-import { RewriteSuggestion } from '../common/types';
+import { ProfessionPreset, ProfessionStandardResult, RewriteSuggestion } from '../common/types';
+import { buildRewriteSystem, buildRewritePrompt } from './prompts/rewrite-profession-standard';
 
 @Injectable()
 export class RewriterService {
@@ -32,6 +33,24 @@ export class RewriterService {
       schema: REWRITE_SUGGESTIONS_SCHEMA,
     });
 
+    return result.suggestions;
+  }
+
+  async suggestAgainstPreset(
+    resumeText: string,
+    preset: ProfessionPreset,
+    analysis: ProfessionStandardResult,
+  ): Promise<RewriteSuggestion[]> {
+    if (resumeText.trim().length < 30) {
+      throw new BadRequestException('简历内容过短,无法改写');
+    }
+    const result = await this.ai.completeStructured<{ suggestions: RewriteSuggestion[] }>({
+      system: buildRewriteSystem(preset),
+      prompt: buildRewritePrompt(resumeText, analysis),
+      toolName: 'suggest_rewrites',
+      toolDescription: '基于简历原文与诊断给职业特化改写建议',
+      schema: REWRITE_SUGGESTIONS_SCHEMA,
+    });
     return result.suggestions;
   }
 }
