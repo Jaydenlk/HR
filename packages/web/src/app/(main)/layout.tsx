@@ -18,6 +18,7 @@ import {
   Send,
   Map,
   Target,
+  GraduationCap,
   Menu,
   X,
 } from 'lucide-react';
@@ -50,6 +51,7 @@ function buildToolNav(applicationCount: number): NavItem[] {
   return [
     { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
     { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} /> },
+    { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} /> },
     { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
     { id: 'salary', label: '薪资雷达', href: '/salary', icon: <BarChart2 size={16} /> },
     {

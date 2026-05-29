@@ -28,14 +28,22 @@ export interface ResumeVersion {
   created_at: string;
 }
 
+export type DiagnosisMode = 'jd_match' | 'profession_standard';
+
 export interface Diagnosis {
   id: string;
   resume_id: string;
-  jd_text: string;
+  jd_text: string | null;
   jd_company: string | null;
   jd_role: string | null;
+  // 'jd_match'(默认,JD 匹配诊断) 或 'profession_standard'(校招职业标尺诊断)
+  mode?: DiagnosisMode;
+  // 职业标尺模式下的目标职业,如 '互联网产品经理'
+  profession?: string | null;
   score: number;
-  dimensions: MatchDimensions;
+  // jd_match 模式为 MatchDimensions;profession_standard 模式为 ProfessionStandardResult。
+  // 渲染时按 diagnosis.mode 分支后再读取,避免 any/类型断言。
+  dimensions: MatchDimensions | ProfessionStandardResult;
   keywords_hit: string[];
   keywords_miss: string[];
   suggestions: RewriteSuggestion[];
@@ -128,6 +136,30 @@ export interface RewriteSuggestion {
   suggested: string;
   reason: string;
   jd_requirement?: string;
+}
+
+// ===== 职业预设引擎(校招职业标尺诊断)=====
+// 与后端 packages/api/src/common/types/index.ts 保持一致
+export interface ProfessionStandardDimension {
+  key: string;
+  name: string;
+  score: number;
+  max: number;
+  why: string;
+  evidenceFound: string[];
+  gap: string;
+}
+
+export interface ConventionCheck {
+  key: string;
+  status: 'ok' | 'warn' | 'missing';
+  note: string;
+}
+
+export interface ProfessionStandardResult {
+  total_score: number;
+  dimensions: ProfessionStandardDimension[];
+  conventionChecks: ConventionCheck[];
 }
 
 export interface ChatMessage {
