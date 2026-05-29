@@ -15,6 +15,7 @@ export function buildProfessionStandardSystem(preset: ProfessionPreset): string 
     `本土惯例核查:${preset.resumeConventions}`,
     ``,
     `严格基于简历内容评分,不臆测、不编造。每个维度必须给出 why、evidenceFound、gap。`,
+    `每个维度的 score 必须在 0 到该维度满分之间,绝不超过满分;total_score 为各维度分之和。`,
   ].join('\n');
 }
 

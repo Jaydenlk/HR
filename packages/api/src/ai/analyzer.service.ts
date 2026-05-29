@@ -45,12 +45,21 @@ export class AnalyzerService {
     if (resumeJson.trim().length < 30) {
       throw new BadRequestException('简历内容过短，无法分析。');
     }
-    return this.ai.completeStructured<ProfessionStandardResult>({
+    const result = await this.ai.completeStructured<ProfessionStandardResult>({
       system: buildProfessionStandardSystem(preset),
       prompt: buildProfessionStandardPrompt(resumeJson, jdJson),
       toolName: 'profession_standard_review',
       toolDescription: '按职业胜任力标尺输出分维度诊断(含 why)',
       schema: PROFESSION_STANDARD_SCHEMA,
     });
+    // 预设权重是权威满分:收敛每维 score 到 [0, max]、max 取预设权重、total 重算
+    const dimensions = result.dimensions.map((d) => {
+      const presetDim = preset.dimensions.find((pd) => pd.key === d.key);
+      const max = presetDim ? presetDim.weight : d.max;
+      const score = Math.min(Math.max(d.score, 0), max);
+      return { ...d, max, score };
+    });
+    const total_score = dimensions.reduce((sum, d) => sum + d.score, 0);
+    return { ...result, dimensions, total_score };
   }
 }

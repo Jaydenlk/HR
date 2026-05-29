@@ -51,6 +51,9 @@ export class RewriterService {
       toolDescription: '基于简历原文与诊断给职业特化改写建议',
       schema: REWRITE_SUGGESTIONS_SCHEMA,
     });
-    return result.suggestions;
+    // 禁编造兜底:original 非空但不在简历原文中,则归零(视为"新增"类建议)
+    return result.suggestions.map((s) =>
+      s.original && !resumeText.includes(s.original) ? { ...s, original: '' } : s,
+    );
   }
 }
