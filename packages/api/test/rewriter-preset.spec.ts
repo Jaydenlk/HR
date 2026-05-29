@@ -45,7 +45,9 @@ describe('RewriterService.suggestAgainstPreset (AI live)', () => {
     expect(out.length).toBeGreaterThan(0);
     for (const s of out) {
       expect(s.reason.trim().length).toBeGreaterThan(0);
-      if (s.type === 'rewrite') expect(RESUME_TEXT).toContain(s.original);
+      if (s.original && s.original.trim().length > 0) {
+        expect(RESUME_TEXT).toContain(s.original);
+      }
     }
   }, 120000);
 });

@@ -6,8 +6,8 @@ import { MatchDimensions, ProfessionPreset, ProfessionStandardResult } from '../
 import {
   buildProfessionStandardSystem,
   buildProfessionStandardPrompt,
-  PROFESSION_STANDARD_SCHEMA,
 } from './prompts/analyze-profession-standard';
+import { PROFESSION_STANDARD_SCHEMA } from './schemas/profession-standard.schema';
 
 @Injectable()
 export class AnalyzerService {
@@ -43,7 +43,7 @@ export class AnalyzerService {
     jdJson: string | null = null,
   ): Promise<ProfessionStandardResult> {
     if (resumeJson.trim().length < 30) {
-      throw new BadRequestException('简历内容过短,无法分析');
+      throw new BadRequestException('简历内容过短，无法分析。');
     }
     return this.ai.completeStructured<ProfessionStandardResult>({
       system: buildProfessionStandardSystem(preset),

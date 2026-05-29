@@ -57,7 +57,10 @@ describe('AnalyzerService.analyzeAgainstPreset (AI live)', () => {
     for (const d of res.dimensions) {
       expect(d.why.trim().length).toBeGreaterThan(0);
       expect(typeof d.score).toBe('number');
+      expect(d.score).toBeGreaterThanOrEqual(0);
+      expect(d.score).toBeLessThanOrEqual(d.max);
     }
     expect(res.total_score).toBeGreaterThanOrEqual(0);
+    expect(res.total_score).toBeLessThanOrEqual(100);
   }, 120000);
 });

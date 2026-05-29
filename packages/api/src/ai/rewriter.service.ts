@@ -42,7 +42,7 @@ export class RewriterService {
     analysis: ProfessionStandardResult,
   ): Promise<RewriteSuggestion[]> {
     if (resumeText.trim().length < 30) {
-      throw new BadRequestException('简历内容过短,无法改写');
+      throw new BadRequestException('简历内容过短，无法改写。');
     }
     const result = await this.ai.completeStructured<{ suggestions: RewriteSuggestion[] }>({
       system: buildRewriteSystem(preset),

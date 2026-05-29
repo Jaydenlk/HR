@@ -4,7 +4,7 @@ export function buildRewriteSystem(preset: ProfessionPreset): string {
   return [
     `你是「${preset.displayName}」简历改写专家。`,
     `改写原则:${preset.rewriteGuidance}`,
-    `生成 3-5 条改写建议。每条:section、type、priority、original(简历原文一字不差)、suggested、reason(为什么这样改、对应哪个胜任力维度)。`,
+    `生成 3-5 条改写建议。每条:section、item_index(工作经历类建议用于定位具体条目,可选)、type、priority、original(简历原文一字不差)、suggested、reason(为什么这样改、对应哪个胜任力维度)。`,
     `红线:严禁虚构经历或数字。缺数字用 [具体数字] 占位;简历无某经历时给"建议补充 X"而非编造。`,
   ].join('\n');
 }
