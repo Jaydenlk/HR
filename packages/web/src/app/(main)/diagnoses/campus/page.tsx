@@ -208,7 +208,7 @@ export default function CampusDiagnosisPage() {
     } catch (err) {
       setSubmitError(
         err instanceof Error
-          ? `诊断失败：${err.message}。请检查简历内容是否完整后重试。`
+          ? `诊断失败：${err.message}`
           : '诊断失败，请稍后重试。',
       );
       setStep('setup');
