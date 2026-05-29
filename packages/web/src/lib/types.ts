@@ -28,20 +28,37 @@ export interface ResumeVersion {
   created_at: string;
 }
 
-export interface Diagnosis {
+export type DiagnosisMode = 'jd_match' | 'profession_standard';
+
+interface DiagnosisBase {
   id: string;
   resume_id: string;
-  jd_text: string;
+  jd_text: string | null;
   jd_company: string | null;
   jd_role: string | null;
   score: number;
-  dimensions: MatchDimensions;
-  keywords_hit: string[];
-  keywords_miss: string[];
   suggestions: RewriteSuggestion[];
   created_at: string;
   resume?: Resume;
 }
+
+// JD 匹配诊断:dimensions 为 MatchDimensions,带命中/缺失关键词。
+interface JdMatchDiagnosis extends DiagnosisBase {
+  mode?: 'jd_match';
+  dimensions?: MatchDimensions;
+  keywords_hit: string[];
+  keywords_miss: string[];
+}
+
+// 校招职业标尺诊断:dimensions 为 ProfessionStandardResult,带目标职业。
+export interface ProfessionStandardDiagnosis extends DiagnosisBase {
+  mode: 'profession_standard';
+  dimensions: ProfessionStandardResult;
+  profession: string;
+}
+
+// mode 为判别字段:渲染时按 diagnosis.mode 收窄 dimensions,无需类型断言。
+export type Diagnosis = JdMatchDiagnosis | ProfessionStandardDiagnosis;
 
 export interface ParsedResume {
   basic_info: {
@@ -128,6 +145,30 @@ export interface RewriteSuggestion {
   suggested: string;
   reason: string;
   jd_requirement?: string;
+}
+
+// ===== 职业预设引擎(校招职业标尺诊断)=====
+// 与后端 packages/api/src/common/types/index.ts 保持一致
+export interface ProfessionStandardDimension {
+  key: string;
+  name: string;
+  score: number;
+  max: number;
+  why: string;
+  evidenceFound: string[];
+  gap: string;
+}
+
+export interface ConventionCheck {
+  key: string;
+  status: 'ok' | 'warn' | 'missing';
+  note: string;
+}
+
+export interface ProfessionStandardResult {
+  total_score: number;
+  dimensions: ProfessionStandardDimension[];
+  conventionChecks: ConventionCheck[];
 }
 
 export interface ChatMessage {

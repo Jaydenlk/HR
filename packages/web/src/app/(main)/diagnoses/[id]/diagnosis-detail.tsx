@@ -3,8 +3,26 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import type { Diagnosis, Conversation } from '@/lib/types';
-import { ArrowLeft, Building2, Calendar, Briefcase, MessageSquare, PlusCircle } from 'lucide-react';
+import type {
+  Diagnosis,
+  ProfessionStandardDiagnosis,
+  Conversation,
+  ProfessionStandardResult,
+  ProfessionStandardDimension,
+  ConventionCheck,
+} from '@/lib/types';
+import {
+  ArrowLeft,
+  Building2,
+  Calendar,
+  Briefcase,
+  MessageSquare,
+  PlusCircle,
+  GraduationCap,
+  Check,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import { getScoreColor } from '@/lib/score-utils';
 
 function LoadingState() {
@@ -79,6 +97,367 @@ function DimensionRow({ label, score, max }: { label: string; score: number; max
       >
         {score}/{max}
       </div>
+    </div>
+  );
+}
+
+// ── 职业标尺模式专用组件 ──────────────────────────────────────────
+
+// 单个能力维度卡片:维度名 + 得分条 + why(必显) + 命中证据(弱化) + 缺口
+function ProfessionDimensionCard({ dim }: { dim: ProfessionStandardDimension }) {
+  const pct = dim.max > 0 ? Math.round((dim.score / dim.max) * 100) : 0;
+  const { color } = getScoreColor(pct);
+  return (
+    <div
+      style={{
+        padding: '18px',
+        background: 'var(--color-surface-2)',
+        borderRadius: '12px',
+        border: '1px solid var(--color-line)',
+      }}
+    >
+      {/* 维度名 + 分数 + 进度条 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink)', flexShrink: 0 }}>
+          {dim.name}
+        </div>
+        <div
+          style={{
+            flex: 1,
+            height: '6px',
+            background: 'var(--color-surface-3)',
+            borderRadius: '99px',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '99px' }} />
+        </div>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '12.5px',
+            fontWeight: 600,
+            color: 'var(--color-ink-2)',
+            flexShrink: 0,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+          aria-label={`${dim.name}得分 ${dim.score} 分，满分 ${dim.max} 分`}
+        >
+          {dim.score}/{dim.max}
+        </div>
+      </div>
+
+      {/* why — 必显(信任铁律) */}
+      <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6, margin: '0 0 10px' }}>
+        {dim.why}
+      </p>
+
+      {/* 命中证据 — 弱化呈现 */}
+      {dim.evidenceFound.length > 0 && (
+        <div style={{ marginBottom: dim.gap ? '10px' : 0 }}>
+          <div
+            style={{
+              fontSize: '11.5px',
+              fontWeight: 600,
+              color: 'var(--color-ink-4)',
+              marginBottom: '6px',
+            }}
+          >
+            命中证据
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {dim.evidenceFound.map((ev, i) => (
+              <span
+                key={i}
+                style={{
+                  padding: '3px 8px',
+                  background: 'var(--color-surface-3)',
+                  color: 'var(--color-ink-3)',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                }}
+              >
+                {ev}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* gap — 缺口 + 如何补 */}
+      {dim.gap && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            padding: '10px 12px',
+            background: 'var(--color-warn-soft)',
+            borderRadius: '8px',
+          }}
+        >
+          <AlertTriangle size={14} color="var(--color-warn)" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.55 }}>
+            <span style={{ fontWeight: 600, color: 'var(--color-warn)' }}>待补强：</span>
+            {dim.gap}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 本土核查行:status 用 图标 + 文字 + 颜色 三者表达(不只靠颜色)
+function ConventionCheckRow({ check }: { check: ConventionCheck }) {
+  const config =
+    check.status === 'ok'
+      ? { icon: <Check size={15} />, color: 'var(--color-success)', bg: 'var(--color-success-soft)', label: '符合' }
+      : check.status === 'warn'
+        ? { icon: <AlertTriangle size={15} />, color: 'var(--color-warn)', bg: 'var(--color-warn-soft)', label: '注意' }
+        : { icon: <X size={15} />, color: 'var(--color-ink-3)', bg: 'var(--color-surface-3)', label: '缺失' };
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+      <span
+        aria-hidden="true"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '24px',
+          height: '24px',
+          borderRadius: '6px',
+          background: config.bg,
+          color: config.color,
+          flexShrink: 0,
+        }}
+      >
+        {config.icon}
+      </span>
+      <div style={{ flex: 1, minWidth: 0, paddingTop: '2px' }}>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: config.color, marginRight: '8px' }}>
+          {config.label}
+        </span>
+        <span style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.55 }}>{check.note}</span>
+      </div>
+    </div>
+  );
+}
+
+// 改写建议卡片(jd_match 与 profession_standard 共用)
+function SuggestionCard({
+  suggestion,
+}: {
+  suggestion: Diagnosis['suggestions'][number];
+}) {
+  const s = suggestion;
+  return (
+    <div
+      style={{
+        padding: '16px',
+        background: 'var(--color-surface-2)',
+        borderRadius: '10px',
+        border: '1px solid var(--color-line)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <span
+          style={{
+            padding: '2px 8px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: 600,
+            background:
+              s.priority === 'high'
+                ? 'var(--color-danger)'
+                : s.priority === 'medium'
+                  ? 'var(--color-warn)'
+                  : 'var(--color-ink-4)',
+            color: '#fff',
+          }}
+        >
+          {s.priority === 'high' ? '高优先' : s.priority === 'medium' ? '中优先' : '低优先'}
+        </span>
+        <span style={{ fontSize: '12.5px', color: 'var(--color-ink-3)', fontWeight: 500 }}>{s.section}</span>
+      </div>
+      {s.original && (
+        <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '6px' }}>
+          <span style={{ fontWeight: 600 }}>原文：</span>
+          {s.original}
+        </div>
+      )}
+      <div style={{ fontSize: '13px', color: 'var(--color-ink)', marginBottom: '6px' }}>
+        <span style={{ fontWeight: 600, color: 'var(--color-brand)' }}>建议：</span>
+        {s.suggested}
+      </div>
+      {s.reason && <div style={{ fontSize: '12px', color: 'var(--color-ink-4)' }}>{s.reason}</div>}
+    </div>
+  );
+}
+
+// 职业标尺模式结果页主体
+function ProfessionStandardView({
+  diagnosis,
+  result,
+  date,
+  onAskCoach,
+  chatLoading,
+}: {
+  diagnosis: ProfessionStandardDiagnosis;
+  result: ProfessionStandardResult;
+  date: string;
+  onAskCoach: () => void;
+  chatLoading: boolean;
+}) {
+  return (
+    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '48px 32px' }}>
+      {/* Back */}
+      {diagnosis.resume_id && (
+        <Link
+          href={`/resumes/${diagnosis.resume_id}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: 'var(--color-ink-3)',
+            fontSize: '13.5px',
+            fontWeight: 500,
+            textDecoration: 'none',
+            marginBottom: '24px',
+          }}
+        >
+          <ArrowLeft size={15} />
+          返回简历
+        </Link>
+      )}
+
+      {/* L0 概览:职业镜头 + 总分 */}
+      <div
+        style={{
+          background: 'var(--color-surface)',
+          borderRadius: '16px',
+          border: '1px solid var(--color-line)',
+          padding: '28px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '28px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <ScoreBadge score={result.total_score} />
+        <div style={{ flex: 1, minWidth: '200px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <GraduationCap size={18} color="var(--color-brand)" />
+            <h1
+              style={{
+                fontSize: '20px',
+                fontWeight: 700,
+                color: 'var(--color-ink)',
+                letterSpacing: '-0.3px',
+                margin: 0,
+              }}
+            >
+              {diagnosis.profession ?? '职业标尺'} · 校招
+            </h1>
+          </div>
+          <span
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: 'var(--color-ink-3)' }}
+          >
+            <Calendar size={13} />
+            {date}
+          </span>
+        </div>
+        <button
+          onClick={onAskCoach}
+          disabled={chatLoading}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            minHeight: '44px',
+            padding: '9px 16px',
+            background: 'var(--color-brand)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '10px',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            cursor: chatLoading ? 'not-allowed' : 'pointer',
+            opacity: chatLoading ? 0.7 : 1,
+            letterSpacing: '-0.005em',
+            transition: 'opacity 0.12s',
+            flexShrink: 0,
+          }}
+        >
+          <MessageSquare size={14} />
+          {chatLoading ? '跳转中…' : '问 Coach'}
+        </button>
+      </div>
+
+      {/* L1 细节:各维度(score/max + why + 证据 + 缺口) */}
+      {result.dimensions.length > 0 && (
+        <div
+          style={{
+            background: 'var(--color-surface)',
+            borderRadius: '14px',
+            border: '1px solid var(--color-line)',
+            padding: '24px',
+            marginBottom: '20px',
+          }}
+        >
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 16px' }}>
+            各维度评估（{result.dimensions.length}）
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {result.dimensions.map((dim) => (
+              <ProfessionDimensionCard key={dim.key} dim={dim} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 本土核查 */}
+      {result.conventionChecks.length > 0 && (
+        <div
+          style={{
+            background: 'var(--color-surface)',
+            borderRadius: '14px',
+            border: '1px solid var(--color-line)',
+            padding: '24px',
+            marginBottom: '20px',
+          }}
+        >
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 16px' }}>
+            本土简历核查
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {result.conventionChecks.map((check) => (
+              <ConventionCheckRow key={check.key} check={check} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 改写示范 */}
+      {diagnosis.suggestions.length > 0 && (
+        <div
+          style={{
+            background: 'var(--color-surface)',
+            borderRadius: '14px',
+            border: '1px solid var(--color-line)',
+            padding: '24px',
+          }}
+        >
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 16px' }}>
+            改写示范（{diagnosis.suggestions.length}）
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {diagnosis.suggestions.map((s, i) => (
+              <SuggestionCard key={i} suggestion={s} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -184,6 +563,21 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
     day: 'numeric',
   });
 
+  // 职业标尺模式:走独立渲染分支(L0 概览 + L1 维度 + 本土核查 + 改写示范)
+  if (diagnosis.mode === 'profession_standard') {
+    return (
+      <ProfessionStandardView
+        diagnosis={diagnosis}
+        result={diagnosis.dimensions}
+        date={date}
+        onAskCoach={handleAskCoach}
+        chatLoading={chatLoading}
+      />
+    );
+  }
+
+  // 以下为 JD 匹配模式(jd_match)原有渲染,保持不变。
+  // TS 按 mode 收窄后 dimensions 为 MatchDimensions | undefined。
   const dim = diagnosis.dimensions;
 
   return (

@@ -5,12 +5,14 @@ import { DiagnosesController } from './diagnoses.controller';
 import { DiagnosesService } from './diagnoses.service';
 import { ResumesModule } from '../resumes/resumes.module';
 import { AiModule } from '../ai/ai.module';
+import { ProfessionPresetsModule } from '../profession-presets/profession-presets.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Diagnosis]),
     ResumesModule,
     AiModule,
+    ProfessionPresetsModule,
   ],
   controllers: [DiagnosesController],
   providers: [DiagnosesService],

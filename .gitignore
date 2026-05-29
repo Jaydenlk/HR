@@ -6,9 +6,10 @@ out/
 *.env.local
 !ports.env
 .DS_Store
-coach-dev.db
+*.db
 .worktrees/
 .claude/worktrees/
+.claude/agent-memory/
 .clone/
 .tools/*
 !.tools/

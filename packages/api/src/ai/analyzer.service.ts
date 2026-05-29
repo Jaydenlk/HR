@@ -2,7 +2,12 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { SYSTEM, buildAnalyzeMatchPrompt } from './prompts/analyze-match';
 import { MATCH_RESULT_SCHEMA } from './schemas/match-result.schema';
-import { MatchDimensions } from '../common/types';
+import { MatchDimensions, ProfessionPreset, ProfessionStandardResult } from '../common/types';
+import {
+  buildProfessionStandardSystem,
+  buildProfessionStandardPrompt,
+} from './prompts/analyze-profession-standard';
+import { PROFESSION_STANDARD_SCHEMA } from './schemas/profession-standard.schema';
 
 @Injectable()
 export class AnalyzerService {
@@ -30,5 +35,31 @@ export class AnalyzerService {
       toolDescription: '对简历与 JD 进行多维度匹配评分分析',
       schema: MATCH_RESULT_SCHEMA,
     });
+  }
+
+  async analyzeAgainstPreset(
+    resumeJson: string,
+    preset: ProfessionPreset,
+    jdJson: string | null = null,
+  ): Promise<ProfessionStandardResult> {
+    if (resumeJson.trim().length < 30) {
+      throw new BadRequestException('简历内容过短，无法分析。');
+    }
+    const result = await this.ai.completeStructured<ProfessionStandardResult>({
+      system: buildProfessionStandardSystem(preset),
+      prompt: buildProfessionStandardPrompt(resumeJson, jdJson),
+      toolName: 'profession_standard_review',
+      toolDescription: '按职业胜任力标尺输出分维度诊断(含 why)',
+      schema: PROFESSION_STANDARD_SCHEMA,
+    });
+    // 预设权重是权威满分:收敛每维 score 到 [0, max]、max 取预设权重、total 重算
+    const dimensions = result.dimensions.map((d) => {
+      const presetDim = preset.dimensions.find((pd) => pd.key === d.key);
+      const max = presetDim ? presetDim.weight : d.max;
+      const score = Math.min(Math.max(d.score, 0), max);
+      return { ...d, max, score };
+    });
+    const total_score = dimensions.reduce((sum, d) => sum + d.score, 0);
+    return { ...result, dimensions, total_score };
   }
 }

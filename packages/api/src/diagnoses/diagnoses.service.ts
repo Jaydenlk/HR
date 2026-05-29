@@ -5,10 +5,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Diagnosis } from './entities/diagnosis.entity';
 import { CreateDiagnosisDto } from './dto/create-diagnosis.dto';
+import { CreateCampusDiagnosisDto } from './dto/create-campus-diagnosis.dto';
 import { ResumesService } from '../resumes/resumes.service';
 import { ParserService } from '../ai/parser.service';
 import { AnalyzerService } from '../ai/analyzer.service';
 import { RewriterService } from '../ai/rewriter.service';
+import { ProfessionPresetsService } from '../profession-presets/profession-presets.service';
 import type { ParsedJD } from '../common/types';
 
 @Injectable()
@@ -21,6 +23,7 @@ export class DiagnosesService {
     private readonly parser: ParserService,
     private readonly analyzer: AnalyzerService,
     private readonly rewriter: RewriterService,
+    private readonly presets: ProfessionPresetsService,
   ) {}
 
   async create(userId: string, dto: CreateDiagnosisDto): Promise<Diagnosis> {
@@ -87,6 +90,62 @@ export class DiagnosesService {
       dimensions: matchResult.dimensions,
       keywords_hit: keywordsHit,
       keywords_miss: keywordsMiss,
+      suggestions,
+    });
+
+    return this.repo.save(diagnosis) as Promise<Diagnosis>;
+  }
+
+  async createProfessionStandard(
+    userId: string,
+    dto: CreateCampusDiagnosisDto,
+  ): Promise<Diagnosis> {
+    const preset = this.presets.resolveByProfession(dto.profession);
+
+    const resume = await this.resumes.findOne(dto.resume_id, userId);
+
+    const resumeText = resume.raw_text?.trim() ?? '';
+    if (resumeText.length < 30) {
+      throw new BadRequestException(
+        '简历内容不足，请上传包含完整工作经历和技能的简历（至少 30 字）。',
+      );
+    }
+
+    const [parsedResume, jdJson] = await Promise.all([
+      (async () => {
+        if (resume.parsed_json) return resume.parsed_json;
+        const parsed = await this.parser.parseResume(resume.raw_text);
+        await this.resumes.updateParsedJson(resume.id, parsed);
+        return parsed;
+      })(),
+      dto.jd_text
+        ? this.parser.parseJD(dto.jd_text).then((jd) => JSON.stringify(jd))
+        : Promise.resolve(null),
+    ]);
+
+    const analysis = await this.analyzer.analyzeAgainstPreset(
+      JSON.stringify(parsedResume),
+      preset,
+      jdJson,
+    );
+
+    const suggestions = await this.rewriter.suggestAgainstPreset(
+      resume.raw_text,
+      preset,
+      analysis,
+    );
+
+    const diagnosis = this.repo.create({
+      user_id: userId,
+      resume_id: resume.id,
+      mode: 'profession_standard',
+      profession: preset.profession,
+      preset_id: preset.id,
+      jd_text: dto.jd_text,
+      score: analysis.total_score,
+      dimensions: analysis,
+      keywords_hit: [],
+      keywords_miss: [],
       suggestions,
     });
 
