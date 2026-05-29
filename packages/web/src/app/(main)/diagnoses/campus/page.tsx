@@ -9,7 +9,7 @@ import { FileText, Plus, ChevronRight, Sparkles, Target, Gauge } from 'lucide-re
 
 type Step = 'setup' | 'analyzing';
 
-function AnalyzingScreen() {
+function AnalyzingScreen({ profession }: { profession: string }) {
   const [dots, setDots] = useState('');
 
   useEffect(() => {
@@ -102,7 +102,7 @@ function AnalyzingScreen() {
           minWidth: '280px',
         }}
       >
-        {['正在解析简历…', '正在按产品经理校招标尺评估…', '正在生成改写建议…'].map((label, i) => (
+        {['正在解析简历…', `正在按${profession}校招标尺评估…`, '正在生成改写建议…'].map((label, i) => (
           <div
             key={label}
             style={{
@@ -244,7 +244,7 @@ export default function CampusDiagnosisPage() {
   }
 
   if (step === 'analyzing') {
-    return <AnalyzingScreen />;
+    return <AnalyzingScreen profession={profession} />;
   }
 
   return (
