@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { RewriterService } from '../src/ai/rewriter.service';
 import { AiService } from '../src/ai/ai.service';
 import { ProfessionStandardResult } from '../src/common/types';
@@ -15,10 +16,7 @@ describe('RewriterService.suggestAgainstPreset', () => {
   beforeAll(async () => {
     const mockAiService = { completeStructured: jest.fn() };
     const mod = await Test.createTestingModule({
-      providers: [
-        RewriterService,
-        { provide: AiService, useValue: mockAiService },
-      ],
+      providers: [RewriterService, { provide: AiService, useValue: mockAiService }],
     }).compile();
     svc = mod.get(RewriterService);
   });
@@ -30,25 +28,24 @@ describe('RewriterService.suggestAgainstPreset', () => {
   });
 });
 
-(process.env.CLOUDDREAM_API_KEY ? describe : describe.skip)(
-  'RewriterService.suggestAgainstPreset (AI live)',
-  () => {
-    let svc: RewriterService;
+// AI live:遵循项目惯例,ConfigModule.forRoot 加载 .env 的 key 后真跑;校验禁止编造(original 必在原文)
+describe('RewriterService.suggestAgainstPreset (AI live)', () => {
+  let svc: RewriterService;
 
-    beforeAll(async () => {
-      const mod = await Test.createTestingModule({
-        providers: [RewriterService, AiService],
-      }).compile();
-      svc = mod.get(RewriterService);
-    });
+  beforeAll(async () => {
+    const mod = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot({ isGlobal: true })],
+      providers: [RewriterService, AiService],
+    }).compile();
+    svc = mod.get(RewriterService);
+  });
 
-    it('each rewrite original appears verbatim in resume (no fabrication)', async () => {
-      const out = await svc.suggestAgainstPreset(RESUME_TEXT, productManagerCampus, ANALYSIS);
-      expect(out.length).toBeGreaterThan(0);
-      for (const s of out) {
-        expect(s.reason.trim().length).toBeGreaterThan(0);
-        if (s.type === 'rewrite') expect(RESUME_TEXT).toContain(s.original);
-      }
-    }, 60000);
-  },
-);
+  it('each rewrite original appears verbatim in resume (no fabrication)', async () => {
+    const out = await svc.suggestAgainstPreset(RESUME_TEXT, productManagerCampus, ANALYSIS);
+    expect(out.length).toBeGreaterThan(0);
+    for (const s of out) {
+      expect(s.reason.trim().length).toBeGreaterThan(0);
+      if (s.type === 'rewrite') expect(RESUME_TEXT).toContain(s.original);
+    }
+  }, 120000);
+});
