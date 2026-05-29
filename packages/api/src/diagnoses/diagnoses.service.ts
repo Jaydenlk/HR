@@ -100,13 +100,10 @@ export class DiagnosesService {
     userId: string,
     dto: CreateCampusDiagnosisDto,
   ): Promise<Diagnosis> {
-    // 1. Resolve profession preset (unknown → 404)
     const preset = this.presets.resolveByProfession(dto.profession);
 
-    // 2. Get resume and verify ownership
     const resume = await this.resumes.findOne(dto.resume_id, userId);
 
-    // 2.5 Validate resume has actual content
     const resumeText = resume.raw_text?.trim() ?? '';
     if (resumeText.length < 30) {
       throw new BadRequestException(
@@ -114,40 +111,37 @@ export class DiagnosesService {
       );
     }
 
-    // 3. Parse resume if not already parsed (lazy, write back)
-    let parsedResume = resume.parsed_json;
-    if (!parsedResume) {
-      parsedResume = await this.parser.parseResume(resume.raw_text);
-      await this.resumes.updateParsedJson(resume.id, parsedResume);
-    }
+    const [parsedResume, jdJson] = await Promise.all([
+      (async () => {
+        if (resume.parsed_json) return resume.parsed_json;
+        const parsed = await this.parser.parseResume(resume.raw_text);
+        await this.resumes.updateParsedJson(resume.id, parsed);
+        return parsed;
+      })(),
+      dto.jd_text
+        ? this.parser.parseJD(dto.jd_text).then((jd) => JSON.stringify(jd))
+        : Promise.resolve(null),
+    ]);
 
-    // 4. Optional JD context for the profession-standard analysis
-    const jdJson = dto.jd_text
-      ? JSON.stringify(await this.parser.parseJD(dto.jd_text))
-      : null;
-
-    // 5. Analyze resume against the profession competency rubric
     const analysis = await this.analyzer.analyzeAgainstPreset(
       JSON.stringify(parsedResume),
       preset,
       jdJson,
     );
 
-    // 6. Profession-specialized rewrite suggestions
     const suggestions = await this.rewriter.suggestAgainstPreset(
       resume.raw_text,
       preset,
       analysis,
     );
 
-    // 7. Save and return Diagnosis entity
     const diagnosis = this.repo.create({
       user_id: userId,
       resume_id: resume.id,
       mode: 'profession_standard',
       profession: preset.profession,
       preset_id: preset.id,
-      jd_text: dto.jd_text ?? undefined,
+      jd_text: dto.jd_text,
       score: analysis.total_score,
       dimensions: analysis,
       keywords_hit: [],
