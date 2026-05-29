@@ -30,26 +30,35 @@ export interface ResumeVersion {
 
 export type DiagnosisMode = 'jd_match' | 'profession_standard';
 
-export interface Diagnosis {
+interface DiagnosisBase {
   id: string;
   resume_id: string;
   jd_text: string | null;
   jd_company: string | null;
   jd_role: string | null;
-  // 'jd_match'(默认,JD 匹配诊断) 或 'profession_standard'(校招职业标尺诊断)
-  mode?: DiagnosisMode;
-  // 职业标尺模式下的目标职业,如 '互联网产品经理'
-  profession?: string | null;
   score: number;
-  // jd_match 模式为 MatchDimensions;profession_standard 模式为 ProfessionStandardResult。
-  // 渲染时按 diagnosis.mode 分支后再读取,避免 any/类型断言。
-  dimensions: MatchDimensions | ProfessionStandardResult;
-  keywords_hit: string[];
-  keywords_miss: string[];
   suggestions: RewriteSuggestion[];
   created_at: string;
   resume?: Resume;
 }
+
+// JD 匹配诊断:dimensions 为 MatchDimensions,带命中/缺失关键词。
+interface JdMatchDiagnosis extends DiagnosisBase {
+  mode?: 'jd_match';
+  dimensions?: MatchDimensions;
+  keywords_hit: string[];
+  keywords_miss: string[];
+}
+
+// 校招职业标尺诊断:dimensions 为 ProfessionStandardResult,带目标职业。
+export interface ProfessionStandardDiagnosis extends DiagnosisBase {
+  mode: 'profession_standard';
+  dimensions: ProfessionStandardResult;
+  profession: string;
+}
+
+// mode 为判别字段:渲染时按 diagnosis.mode 收窄 dimensions,无需类型断言。
+export type Diagnosis = JdMatchDiagnosis | ProfessionStandardDiagnosis;
 
 export interface ParsedResume {
   basic_info: {

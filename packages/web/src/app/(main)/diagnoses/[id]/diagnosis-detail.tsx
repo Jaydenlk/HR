@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import type {
   Diagnosis,
+  ProfessionStandardDiagnosis,
   Conversation,
-  MatchDimensions,
   ProfessionStandardResult,
   ProfessionStandardDimension,
   ConventionCheck,
@@ -99,14 +99,6 @@ function DimensionRow({ label, score, max }: { label: string; score: number; max
       </div>
     </div>
   );
-}
-
-// 职业标尺结果守卫:用 `in` 运算符按结构特征收窄,避免任何类型断言。
-// ProfessionStandardResult 独有 conventionChecks 字段;MatchDimensions 没有。
-function isProfessionStandard(
-  d: ProfessionStandardResult | MatchDimensions,
-): d is ProfessionStandardResult {
-  return 'conventionChecks' in d;
 }
 
 // ── 职业标尺模式专用组件 ──────────────────────────────────────────
@@ -287,10 +279,12 @@ function SuggestionCard({
         </span>
         <span style={{ fontSize: '12.5px', color: 'var(--color-ink-3)', fontWeight: 500 }}>{s.section}</span>
       </div>
-      <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '6px' }}>
-        <span style={{ fontWeight: 600 }}>原文：</span>
-        {s.original}
-      </div>
+      {s.original && (
+        <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '6px' }}>
+          <span style={{ fontWeight: 600 }}>原文：</span>
+          {s.original}
+        </div>
+      )}
       <div style={{ fontSize: '13px', color: 'var(--color-ink)', marginBottom: '6px' }}>
         <span style={{ fontWeight: 600, color: 'var(--color-brand)' }}>建议：</span>
         {s.suggested}
@@ -308,7 +302,7 @@ function ProfessionStandardView({
   onAskCoach,
   chatLoading,
 }: {
-  diagnosis: Diagnosis;
+  diagnosis: ProfessionStandardDiagnosis;
   result: ProfessionStandardResult;
   date: string;
   onAskCoach: () => void;
@@ -570,7 +564,7 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
   });
 
   // 职业标尺模式:走独立渲染分支(L0 概览 + L1 维度 + 本土核查 + 改写示范)
-  if (diagnosis.mode === 'profession_standard' && isProfessionStandard(diagnosis.dimensions)) {
+  if (diagnosis.mode === 'profession_standard') {
     return (
       <ProfessionStandardView
         diagnosis={diagnosis}
@@ -583,9 +577,8 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
   }
 
   // 以下为 JD 匹配模式(jd_match)原有渲染,保持不变。
-  // 经上面守卫排除后,dimensions 必为 MatchDimensions。
+  // TS 按 mode 收窄后 dimensions 为 MatchDimensions | undefined。
   const dim = diagnosis.dimensions;
-  if (isProfessionStandard(dim)) return null;
 
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto', padding: '48px 32px' }}>
