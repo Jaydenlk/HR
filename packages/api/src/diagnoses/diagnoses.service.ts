@@ -141,6 +141,7 @@ export class DiagnosesService {
       mode: 'profession_standard',
       profession: preset.profession,
       preset_id: preset.id,
+      tier: preset.tier,
       jd_text: dto.jd_text,
       score: analysis.total_score,
       dimensions: analysis,

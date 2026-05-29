@@ -1,7 +1,13 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Resume } from '../../resumes/entities/resume.entity';
-import type { ParsedJD, MatchDimensions, ProfessionStandardResult, RewriteSuggestion } from '../../common/types';
+import type {
+  ParsedJD,
+  MatchDimensions,
+  ProfessionStandardResult,
+  ProfessionTier,
+  RewriteSuggestion,
+} from '../../common/types';
 
 @Entity('diagnoses')
 export class Diagnosis {
@@ -33,6 +39,11 @@ export class Diagnosis {
 
   @Column({ type: 'varchar', nullable: true })
   preset_id?: string;
+
+  // 难度档:校招职业标尺诊断专用(standard/pressure);jd_match 模式为 null。
+  // 结果页凭此字段判定压力版标识,无需用 preset_id 字符串硬匹配。
+  @Column({ type: 'varchar', nullable: true })
+  tier?: ProfessionTier;
 
   @Column({ type: 'varchar', default: 'jd_match' })
   mode: 'jd_match' | 'profession_standard';
