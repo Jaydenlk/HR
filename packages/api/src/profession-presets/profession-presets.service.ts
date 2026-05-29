@@ -8,15 +8,15 @@ const PRESETS: ProfessionPreset[] = [productManagerCampus];
 export class ProfessionPresetsService {
   private readonly byId = new Map(PRESETS.map((p) => [p.id, p]));
   private readonly byProfession = new Map(PRESETS.map((p) => [p.profession, p]));
-  list(): ProfessionPreset[] { return [...this.byId.values()]; }
-  resolveById(id: string): ProfessionPreset {
-    const p = this.byId.get(id);
-    if (!p) throw new NotFoundException(`未知职业预设: ${id}`);
-    return p;
+  list(): ProfessionPreset[] {
+    return [...this.byId.values()];
   }
+
   resolveByProfession(profession: string): ProfessionPreset {
     const p = this.byProfession.get(profession);
-    if (!p) throw new NotFoundException(`暂不支持该职业的校招诊断: ${profession}`);
+    if (!p) {
+      throw new NotFoundException(`暂不支持该职业的校招诊断: ${profession}`);
+    }
     return p;
   }
 }

@@ -79,14 +79,14 @@ export interface ProfessionPresetDimension {
   key: string;
   name: string;
   weight: number;            // 满分占比,整数,所有维度之和 = 100
-  whatGoodLooksLike: string;
-  campusEvidence: string;
-  commonGaps: string;
+  whatGoodLooksLike: string; // 应届水平"好"的样子
+  campusEvidence: string;    // 该维度在应届简历靠什么体现:实习/项目/竞赛/课程
+  commonGaps: string;        // 应届常见缺失
 }
 export interface ProfessionPreset {
   id: string;
   profession: string;
-  stage: 'campus';
+  stage: 'campus';           // 校招;留字段为社招/转行铺路
   displayName: string;
   dimensions: ProfessionPresetDimension[];
   explanationRubric: string;
