@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { ProfessionTier } from '../../common/types';
 
 export class CreateCampusDiagnosisDto {
   @IsUUID()
@@ -6,6 +7,10 @@ export class CreateCampusDiagnosisDto {
 
   @IsString()
   profession: string;
+
+  @IsOptional()
+  @IsIn(['standard', 'pressure'])
+  tier?: ProfessionTier;
 
   @IsOptional()
   @IsString()
