@@ -62,21 +62,6 @@ function assertFiveDimsWithWhy(preset: ProfessionPreset, res: ProfessionStandard
   }
 }
 
-describe('Profession dual-tier resolution (非 AI)', () => {
-  let presets: ProfessionPresetsService;
-  beforeAll(async () => {
-    const mod = await Test.createTestingModule({ providers: [ProfessionPresetsService] }).compile();
-    presets = mod.get(ProfessionPresetsService);
-  });
-
-  it('standard → 融合版, pressure → Anthropic 高标准版', () => {
-    expect(presets.resolveByProfession('互联网产品经理', 'standard').id).toBe('product-manager-campus');
-    expect(presets.resolveByProfession('互联网产品经理', 'pressure').id).toBe(
-      'product-manager-campus-anthropic',
-    );
-  });
-});
-
 describe('Profession dual-tier analyze (AI live)', () => {
   let analyzer: AnalyzerService;
   let presets: ProfessionPresetsService;
@@ -102,7 +87,7 @@ describe('Profession dual-tier analyze (AI live)', () => {
     assertFiveDimsWithWhy(preset, res);
     // 融合版反模式风味:gap 里应出现方法论命名词之一
     const allGaps = res.dimensions.map((d) => `${d.gap ?? ''} ${d.why ?? ''}`).join(' ');
-    const flavor = ['方案先行', '虚荣指标', '盲目对标', 'Non-Goal', '样样P0', '优先级', '取舍', '产出'];
+    const flavor = ['方案先行', '虚荣指标', '盲目对标', 'Non-Goal', '样样P0'];
     expect(flavor.some((kw) => allGaps.includes(kw))).toBe(true);
   }, 200000);
 

@@ -83,7 +83,8 @@ export interface ProfessionPresetDimension {
   campusEvidence: string;    // 该维度在应届简历靠什么体现:实习/项目/竞赛/课程
   commonGaps: string;        // 应届常见缺失
 }
-export type ProfessionTier = 'standard' | 'pressure'; // standard=校招友好融合版;pressure=高标准压力版
+export const PROFESSION_TIERS = ['standard', 'pressure'] as const; // standard=校招友好融合版;pressure=高标准压力版
+export type ProfessionTier = (typeof PROFESSION_TIERS)[number];
 export interface ProfessionPreset {
   id: string;
   profession: string;

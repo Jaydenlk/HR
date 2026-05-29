@@ -586,6 +586,14 @@ export default function CampusDiagnosisPage() {
                 value={profession}
                 onChange={(e) => handleProfessionChange(e.target.value)}
                 aria-label="目标职业"
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-brand)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,132,255,0.12)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-line-2)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
                 style={{
                   width: '100%',
                   minHeight: '46px',
@@ -630,7 +638,6 @@ export default function CampusDiagnosisPage() {
             {hasPressureTier && (
               <fieldset
                 style={{
-                  marginTop: '20px',
                   border: 'none',
                   padding: 0,
                   margin: '20px 0 0',

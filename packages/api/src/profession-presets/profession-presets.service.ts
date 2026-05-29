@@ -14,7 +14,6 @@ export interface ProfessionOption {
 
 @Injectable()
 export class ProfessionPresetsService {
-  private readonly byId = new Map(PRESETS.map((p) => [p.id, p]));
   private readonly byProfessionTier = new Map(PRESETS.map((p) => [tierKey(p.profession, p.tier), p]));
 
   /** 去重的职业清单(每个职业含其可用难度档),供前端下拉/档位开关使用。 */
@@ -26,15 +25,6 @@ export class ProfessionPresetsService {
       grouped.set(p.profession, opt);
     }
     return [...grouped.values()];
-  }
-
-  /** 某职业可用的难度档(按注册顺序)。未知职业抛 NotFound。 */
-  tiersForProfession(profession: string): ProfessionTier[] {
-    const tiers = PRESETS.filter((p) => p.profession === profession).map((p) => p.tier);
-    if (tiers.length === 0) {
-      throw new NotFoundException(`暂不支持该职业的校招诊断: ${profession}`);
-    }
-    return tiers;
   }
 
   resolveByProfession(profession: string, tier: ProfessionTier = 'standard'): ProfessionPreset {

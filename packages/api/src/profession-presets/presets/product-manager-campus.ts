@@ -1,9 +1,5 @@
-// 融合版(tier:'standard',主力):保留校招友好的 5 维结构(产品思维/数据/主导权/沟通/基础匹配),
-// 把 anthropics/knowledge-work-plugins (Apache-2.0) product-management skills 的反模式注入各维 commonGaps
-// 与 explanationRubric,使诊断既校招友好又犀利、有方法论命名。反模式来源(英文概念仅作内部参照,字段一律中文):
-//   - solutioning before framing / feature parity trap —— product-brainstorming/SKILL.md
-//   - vanity metrics / output(activity) not outcome —— metrics-review/SKILL.md
-//   - 缺 Non-Goals / scope creep —— write-spec/SKILL.md
+// 融合版(standard,主力):校招友好的 5 维结构 + Anthropic product-management skills 的反模式词库
+// (来源 anthropics/knowledge-work-plugins,Apache-2.0)。英文概念仅内部参照,字段文本一律中文。
 import { ProfessionPreset } from '../../common/types';
 
 export const productManagerCampus: ProfessionPreset = {

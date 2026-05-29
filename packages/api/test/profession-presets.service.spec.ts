@@ -18,14 +18,6 @@ describe('ProfessionPresetsService', () => {
     expect(pm!.tiers.map((t) => t.tier).sort()).toEqual(['pressure', 'standard']);
   });
 
-  it('tiersForProfession lists both tiers for a known profession', () => {
-    expect(svc.tiersForProfession('互联网产品经理').sort()).toEqual(['pressure', 'standard']);
-  });
-
-  it('tiersForProfession throws NotFound for unknown profession', () => {
-    expect(() => svc.tiersForProfession('星际探险家')).toThrow(NotFoundException);
-  });
-
   it('defaults to standard tier (fusion preset) and weights sum to 100', () => {
     const p = svc.resolveByProfession('互联网产品经理');
     expect(p.id).toBe('product-manager-campus');

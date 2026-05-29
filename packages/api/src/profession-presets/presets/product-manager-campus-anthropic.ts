@@ -1,9 +1,5 @@
-// 改编自 anthropics/knowledge-work-plugins (Apache-2.0) product-management skills;已按校招+中文场景修改。
-// 维度与 what-good-looks-like 提炼自 write-spec / roadmap-update / synthesize-research /
-// competitive-brief / metrics-review / product-brainstorming / sprint-planning 各 SKILL.md;
-// commonGaps 取自这些 skill 的 anti-patterns(vanity metrics / solutioning before framing /
-// feature parity thinking / scope creep 等),翻译为招聘方视角的减分项。
-// 英文框架概念(JTBD/North Star/RICE/MoSCoW/Non-Goals 等)仅作内部参照,字段文本一律中文。
+// 压力版(pressure,高标准):改编自 anthropics/knowledge-work-plugins (Apache-2.0) product-management skills,
+// 按校招+中文场景修改;英文框架概念(JTBD/North Star/RICE/MoSCoW/Non-Goals 等)仅内部参照,字段文本一律中文。
 import { ProfessionPreset } from '../../common/types';
 
 export const productManagerCampusAnthropic: ProfessionPreset = {
