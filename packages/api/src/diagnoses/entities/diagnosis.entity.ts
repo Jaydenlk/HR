@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Resume } from '../../resumes/entities/resume.entity';
-import type { ParsedJD, MatchDimensions, RewriteSuggestion } from '../../common/types';
+import type { ParsedJD, MatchDimensions, ProfessionStandardResult, RewriteSuggestion } from '../../common/types';
 
 @Entity('diagnoses')
 export class Diagnosis {
@@ -22,11 +22,20 @@ export class Diagnosis {
   @JoinColumn({ name: 'resume_id' })
   resume: Resume;
 
-  @Column('text')
-  jd_text: string;
+  @Column({ type: 'text', nullable: true })
+  jd_text?: string;
 
   @Column('simple-json', { nullable: true })
   jd_parsed: ParsedJD | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  profession?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  preset_id?: string;
+
+  @Column({ type: 'varchar', default: 'jd_match' })
+  mode: 'jd_match' | 'profession_standard';
 
   @Column({ nullable: true })
   jd_company: string;
@@ -38,7 +47,7 @@ export class Diagnosis {
   score: number;
 
   @Column('simple-json', { nullable: true })
-  dimensions: MatchDimensions | null;
+  dimensions?: MatchDimensions | ProfessionStandardResult;
 
   @Column('simple-json', { nullable: true })
   keywords_hit: string[];
