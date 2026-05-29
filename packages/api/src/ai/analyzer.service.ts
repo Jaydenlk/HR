@@ -2,7 +2,12 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { SYSTEM, buildAnalyzeMatchPrompt } from './prompts/analyze-match';
 import { MATCH_RESULT_SCHEMA } from './schemas/match-result.schema';
-import { MatchDimensions } from '../common/types';
+import { MatchDimensions, ProfessionPreset, ProfessionStandardResult } from '../common/types';
+import {
+  buildProfessionStandardSystem,
+  buildProfessionStandardPrompt,
+  PROFESSION_STANDARD_SCHEMA,
+} from './prompts/analyze-profession-standard';
 
 @Injectable()
 export class AnalyzerService {
@@ -29,6 +34,23 @@ export class AnalyzerService {
       toolName: 'analyze_match',
       toolDescription: '对简历与 JD 进行多维度匹配评分分析',
       schema: MATCH_RESULT_SCHEMA,
+    });
+  }
+
+  async analyzeAgainstPreset(
+    resumeJson: string,
+    preset: ProfessionPreset,
+    jdJson: string | null = null,
+  ): Promise<ProfessionStandardResult> {
+    if (resumeJson.trim().length < 30) {
+      throw new BadRequestException('简历内容过短,无法分析');
+    }
+    return this.ai.completeStructured<ProfessionStandardResult>({
+      system: buildProfessionStandardSystem(preset),
+      prompt: buildProfessionStandardPrompt(resumeJson, jdJson),
+      toolName: 'profession_standard_review',
+      toolDescription: '按职业胜任力标尺输出分维度诊断(含 why)',
+      schema: PROFESSION_STANDARD_SCHEMA,
     });
   }
 }
