@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface CompleteParams {
@@ -78,19 +78,19 @@ export class AiService {
       tool_choice: { type: 'tool', name: toolName },
     };
 
-    // auto-v2 中转模型偶发返回空对象 {} 或无 tool_use,会毒化下游缓存。
-    // 校验非空对象;为空则重试一次,仍为空才抛错——绝不静默返回 {}。
-    const first = this.extractToolInput<T>(await this.client.messages.create(messageParams), toolName);
-    if (first !== null) {
-      return first;
+    // auto-v2 中转偶发对强制 tool_use 返回空块({} 或无 tool_use),概率个位数 %、与业务无关,
+    // 会毒化下游。视为瞬时故障:最多尝试 ATTEMPTS 次取非空;全空才抛 503(可重试),绝不静默返回空。
+    const ATTEMPTS = 3;
+    for (let i = 0; i < ATTEMPTS; i++) {
+      const input = this.extractToolInput<T>(await this.client.messages.create(messageParams), toolName);
+      if (input !== null) {
+        return input;
+      }
     }
 
-    const retry = this.extractToolInput<T>(await this.client.messages.create(messageParams), toolName);
-    if (retry !== null) {
-      return retry;
-    }
-
-    throw new Error(`CloudDreamAI 为工具 "${toolName}" 返回了空结果(重试后仍为空)`);
+    throw new ServiceUnavailableException(
+      `AI 服务暂时波动(为工具 "${toolName}" 多次返回空结果),请稍后重试。`,
+    );
   }
 
   private extractToolInput<T>(response: Anthropic.Message, toolName: string): T | null {
