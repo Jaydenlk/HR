@@ -4,13 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import type { Resume, Diagnosis } from '@/lib/types';
-import { FileText, Plus, ChevronRight, Sparkles, Target } from 'lucide-react';
-
-// MVP 暂用常量职业列表;未来从后端 /profession-presets 拉取可选职业。
-const PROFESSIONS: { value: string; label: string }[] = [
-  { value: '互联网产品经理', label: '产品经理 · 校招' },
-];
+import type { Resume, Diagnosis, ProfessionOption, ProfessionTier } from '@/lib/types';
+import { FileText, Plus, ChevronRight, Sparkles, Target, Gauge } from 'lucide-react';
 
 type Step = 'setup' | 'analyzing';
 
@@ -167,8 +162,13 @@ export default function CampusDiagnosisPage() {
   const [loadingResumes, setLoadingResumes] = useState(true);
   const [resumeError, setResumeError] = useState<string | null>(null);
 
+  const [professions, setProfessions] = useState<ProfessionOption[]>([]);
+  const [loadingProfessions, setLoadingProfessions] = useState(true);
+  const [professionError, setProfessionError] = useState<string | null>(null);
+
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
-  const [profession, setProfession] = useState<string>(PROFESSIONS[0].value);
+  const [profession, setProfession] = useState<string>('');
+  const [tier, setTier] = useState<ProfessionTier>('standard');
   const [jdText, setJdText] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -188,6 +188,33 @@ export default function CampusDiagnosisPage() {
       });
   }, []);
 
+  // 职业清单数据化:由后端 list() 决定可选职业及各自难度档,前端不再硬编码。
+  useEffect(() => {
+    api
+      .get<ProfessionOption[]>('/diagnoses/campus/professions')
+      .then((data) => {
+        setProfessions(data);
+        if (data.length > 0) setProfession(data[0].profession);
+        setLoadingProfessions(false);
+      })
+      .catch(() => {
+        setProfessionError('加载职业列表失败，请刷新重试');
+        setLoadingProfessions(false);
+      });
+  }, []);
+
+  const selectedOption = professions.find((p) => p.profession === profession) ?? null;
+  // 仅当该职业提供 pressure 档时显示难度开关;否则隐藏(单档职业无需选择)。
+  const hasPressureTier = !!selectedOption?.tiers.some((t) => t.tier === 'pressure');
+  // 提交时以是否支持 pressure 收敛档位:无 pressure 档则一律按 standard,避免提交无效档位。
+  const effectiveTier: ProfessionTier = hasPressureTier ? tier : 'standard';
+
+  // 切换职业:回到默认标准档,避免上一职业的压力版选择残留到不支持该档的职业。
+  function handleProfessionChange(next: string) {
+    setProfession(next);
+    setTier('standard');
+  }
+
   const trimmedJd = jdText.trim();
   // JD 可选;若填写则后端要求至少 50 字,故此处同步校验给出即时反馈。
   const jdTooShort = trimmedJd.length > 0 && trimmedJd.length < 50;
@@ -202,6 +229,7 @@ export default function CampusDiagnosisPage() {
       const diagnosis = await api.post<Diagnosis>('/diagnoses/campus', {
         resume_id: selectedResumeId,
         profession,
+        tier: effectiveTier,
         jd_text: trimmedJd || undefined,
       });
       router.push(`/diagnoses/${diagnosis.id}`);
@@ -499,61 +527,183 @@ export default function CampusDiagnosisPage() {
         >
           第二步：选择目标职业
         </h2>
-        <div style={{ position: 'relative' }}>
-          <Target
-            size={16}
-            color="var(--color-ink-3)"
+        {loadingProfessions ? (
+          <div
             style={{
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              pointerEvents: 'none',
-            }}
-          />
-          <select
-            value={profession}
-            onChange={(e) => setProfession(e.target.value)}
-            aria-label="目标职业"
-            style={{
-              width: '100%',
               minHeight: '46px',
-              padding: '12px 40px 12px 40px',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 16px',
               background: 'var(--color-surface)',
               border: '1.5px solid var(--color-line-2)',
               borderRadius: '12px',
+              color: 'var(--color-ink-4)',
               fontSize: '14px',
-              fontWeight: 500,
-              color: 'var(--color-ink)',
-              fontFamily: 'var(--font-sans)',
-              letterSpacing: '-0.003em',
-              outline: 'none',
-              cursor: 'pointer',
-              boxSizing: 'border-box',
-              appearance: 'none',
             }}
           >
-            {PROFESSIONS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-          <ChevronRight
-            size={16}
-            color="var(--color-ink-4)"
+            加载职业列表中…
+          </div>
+        ) : professionError ? (
+          <div
             style={{
-              position: 'absolute',
-              right: '14px',
-              top: '50%',
-              transform: 'translateY(-50%) rotate(90deg)',
-              pointerEvents: 'none',
+              padding: '14px 16px',
+              background: 'var(--color-danger-soft)',
+              borderRadius: '12px',
+              color: 'var(--color-danger)',
+              fontSize: '13.5px',
             }}
-          />
-        </div>
-        <p style={{ fontSize: '12.5px', color: 'var(--color-ink-4)', margin: '8px 0 0' }}>
-          将按该职业的校招通用能力标尺评估，目前开放产品经理，更多职业陆续上线
-        </p>
+          >
+            {professionError}
+          </div>
+        ) : professions.length === 0 ? (
+          <div
+            style={{
+              padding: '14px 16px',
+              background: 'var(--color-surface)',
+              border: '1px dashed var(--color-line-2)',
+              borderRadius: '12px',
+              color: 'var(--color-ink-3)',
+              fontSize: '13.5px',
+            }}
+          >
+            暂未开放可诊断职业，更多职业陆续上线
+          </div>
+        ) : (
+          <>
+            <div style={{ position: 'relative' }}>
+              <Target
+                size={16}
+                color="var(--color-ink-3)"
+                style={{
+                  position: 'absolute',
+                  left: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <select
+                value={profession}
+                onChange={(e) => handleProfessionChange(e.target.value)}
+                aria-label="目标职业"
+                style={{
+                  width: '100%',
+                  minHeight: '46px',
+                  padding: '12px 40px 12px 40px',
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid var(--color-line-2)',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: 'var(--color-ink)',
+                  fontFamily: 'var(--font-sans)',
+                  letterSpacing: '-0.003em',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  boxSizing: 'border-box',
+                  appearance: 'none',
+                }}
+              >
+                {professions.map((p) => (
+                  <option key={p.profession} value={p.profession}>
+                    {p.profession}
+                  </option>
+                ))}
+              </select>
+              <ChevronRight
+                size={16}
+                color="var(--color-ink-4)"
+                style={{
+                  position: 'absolute',
+                  right: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%) rotate(90deg)',
+                  pointerEvents: 'none',
+                }}
+              />
+            </div>
+            <p style={{ fontSize: '12.5px', color: 'var(--color-ink-4)', margin: '8px 0 0' }}>
+              将按该职业的校招通用能力标尺评估，更多职业陆续上线
+            </p>
+
+            {/* 难度档开关:仅当该职业提供压力版时显示;默认标准 */}
+            {hasPressureTier && (
+              <fieldset
+                style={{
+                  marginTop: '20px',
+                  border: 'none',
+                  padding: 0,
+                  margin: '20px 0 0',
+                }}
+              >
+                <legend
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '13.5px',
+                    fontWeight: 700,
+                    color: 'var(--color-ink)',
+                    padding: 0,
+                    marginBottom: '10px',
+                  }}
+                >
+                  <Gauge size={15} color="var(--color-ink-3)" />
+                  诊断强度
+                </legend>
+                <div
+                  role="radiogroup"
+                  aria-label="诊断强度"
+                  style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}
+                >
+                  {(
+                    [
+                      { value: 'standard', label: '标准' },
+                      { value: 'pressure', label: '压力版 · 高标准' },
+                    ] as const
+                  ).map((opt) => {
+                    const active = tier === opt.value;
+                    return (
+                      <label
+                        key={opt.value}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          minHeight: '44px',
+                          padding: '10px 16px',
+                          flex: '1 1 160px',
+                          background: active ? 'var(--color-brand-soft)' : 'var(--color-surface)',
+                          border: `2px solid ${active ? 'var(--color-brand)' : 'var(--color-line)'}`,
+                          borderRadius: '10px',
+                          cursor: 'pointer',
+                          fontSize: '13.5px',
+                          fontWeight: 600,
+                          color: active ? 'var(--color-brand-ink)' : 'var(--color-ink-2)',
+                          transition: 'border-color 0.15s, background 0.15s, color 0.15s',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="tier"
+                          value={opt.value}
+                          checked={active}
+                          onChange={() => setTier(opt.value)}
+                          style={{ accentColor: 'var(--color-brand)', cursor: 'pointer' }}
+                        />
+                        {opt.label}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p style={{ fontSize: '12.5px', color: 'var(--color-ink-4)', margin: '10px 0 0' }}>
+                  压力版按资深面试官的高标准评估，更严更犀利
+                </p>
+              </fieldset>
+            )}
+          </>
+        )}
       </div>
 
       {/* Step 3: Optional JD */}
