@@ -30,6 +30,15 @@ export interface ResumeVersion {
 
 export type DiagnosisMode = 'jd_match' | 'profession_standard';
 
+// 难度档:standard=校招友好融合版;pressure=高标准压力版。与后端 ProfessionTier 一致。
+export type ProfessionTier = 'standard' | 'pressure';
+
+// 校招职业清单项:与后端 ProfessionPresetsService.list() 的 ProfessionOption 一致。
+export interface ProfessionOption {
+  profession: string;
+  tiers: Array<{ tier: ProfessionTier; presetId: string; displayName: string }>;
+}
+
 interface DiagnosisBase {
   id: string;
   resume_id: string;
@@ -50,11 +59,12 @@ interface JdMatchDiagnosis extends DiagnosisBase {
   keywords_miss: string[];
 }
 
-// 校招职业标尺诊断:dimensions 为 ProfessionStandardResult,带目标职业。
+// 校招职业标尺诊断:dimensions 为 ProfessionStandardResult,带目标职业与难度档。
 export interface ProfessionStandardDiagnosis extends DiagnosisBase {
   mode: 'profession_standard';
   dimensions: ProfessionStandardResult;
   profession: string;
+  tier?: ProfessionTier;
 }
 
 // mode 为判别字段:渲染时按 diagnosis.mode 收窄 dimensions,无需类型断言。

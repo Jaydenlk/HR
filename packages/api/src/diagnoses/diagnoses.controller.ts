@@ -4,11 +4,23 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { DiagnosesService } from './diagnoses.service';
 import { CreateDiagnosisDto } from './dto/create-diagnosis.dto';
 import { CreateCampusDiagnosisDto } from './dto/create-campus-diagnosis.dto';
+import {
+  ProfessionPresetsService,
+  ProfessionOption,
+} from '../profession-presets/profession-presets.service';
 
 @Controller('diagnoses')
 @UseGuards(JwtAuthGuard)
 export class DiagnosesController {
-  constructor(private readonly diagnoses: DiagnosesService) {}
+  constructor(
+    private readonly diagnoses: DiagnosesService,
+    private readonly presets: ProfessionPresetsService,
+  ) {}
+
+  @Get('campus/professions')
+  campusProfessions(): ProfessionOption[] {
+    return this.presets.list();
+  }
 
   @Post()
   create(

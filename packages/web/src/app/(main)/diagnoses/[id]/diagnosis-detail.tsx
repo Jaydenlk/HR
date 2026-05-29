@@ -22,6 +22,7 @@ import {
   Check,
   AlertTriangle,
   X,
+  Gauge,
 } from 'lucide-react';
 import { getScoreColor } from '@/lib/score-utils';
 
@@ -346,7 +347,15 @@ function ProfessionStandardView({
       >
         <ScoreBadge score={result.total_score} />
         <div style={{ flex: 1, minWidth: '200px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: '10px',
+              flexWrap: 'wrap',
+            }}
+          >
             <GraduationCap size={18} color="var(--color-brand)" />
             <h1
               style={{
@@ -359,6 +368,26 @@ function ProfessionStandardView({
             >
               {diagnosis.profession ?? '职业标尺'} · 校招
             </h1>
+            {/* 难度档标识:凭后端持久化的 tier 字段判定,非 preset_id 字符串硬匹配 */}
+            {diagnosis.tier === 'pressure' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px 10px',
+                  borderRadius: '7px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--color-warn)',
+                  background: 'var(--color-warn-soft)',
+                  border: '1px solid var(--color-warn)',
+                }}
+              >
+                <Gauge size={12} aria-hidden="true" />
+                压力版 · 高标准
+              </span>
+            )}
           </div>
           <span
             style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', color: 'var(--color-ink-3)' }}

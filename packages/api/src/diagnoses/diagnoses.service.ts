@@ -100,7 +100,7 @@ export class DiagnosesService {
     userId: string,
     dto: CreateCampusDiagnosisDto,
   ): Promise<Diagnosis> {
-    const preset = this.presets.resolveByProfession(dto.profession);
+    const preset = this.presets.resolveByProfession(dto.profession, dto.tier ?? 'standard');
 
     const resume = await this.resumes.findOne(dto.resume_id, userId);
 
@@ -141,6 +141,7 @@ export class DiagnosesService {
       mode: 'profession_standard',
       profession: preset.profession,
       preset_id: preset.id,
+      tier: preset.tier,
       jd_text: dto.jd_text,
       score: analysis.total_score,
       dimensions: analysis,
