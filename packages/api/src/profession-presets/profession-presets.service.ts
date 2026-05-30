@@ -2,8 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ProfessionPreset, ProfessionTier } from '../common/types';
 import { productManagerCampus } from './presets/product-manager-campus';
 import { productManagerCampusAnthropic } from './presets/product-manager-campus-anthropic';
+import { financeManagementTraineeCampus } from './presets/finance-management-trainee-campus';
+import { auditorFirmCampus } from './presets/auditor-firm-campus';
+import { accountantGlCampus } from './presets/accountant-gl-campus';
+import { fpaAnalystCampus } from './presets/fpa-analyst-campus';
 
-const PRESETS: ProfessionPreset[] = [productManagerCampus, productManagerCampusAnthropic];
+const PRESETS: ProfessionPreset[] = [
+  productManagerCampus,
+  productManagerCampusAnthropic,
+  financeManagementTraineeCampus,
+  auditorFirmCampus,
+  accountantGlCampus,
+  fpaAnalystCampus,
+];
 
 const tierKey = (profession: string, tier: ProfessionTier): string => `${profession}::${tier}`;
 

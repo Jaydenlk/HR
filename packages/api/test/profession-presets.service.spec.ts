@@ -46,4 +46,26 @@ describe('ProfessionPresetsService', () => {
     // 已知职业但未注册的档位组合也应抛错(此处用未知职业的 pressure 验证组合键不串)
     expect(() => svc.resolveByProfession('星际探险家', 'pressure')).toThrow(NotFoundException);
   });
+
+  it('every registered preset has exactly 5 dimensions and weights summing to 100', () => {
+    for (const opt of svc.list()) {
+      for (const { tier } of opt.tiers) {
+        const p = svc.resolveByProfession(opt.profession, tier);
+        expect(p.dimensions).toHaveLength(5);
+        expect(p.dimensions.reduce((s, d) => s + d.weight, 0)).toBe(100);
+      }
+    }
+  });
+
+  it('exposes the finance 大类 professions (standard tier) in list()', () => {
+    const professions = svc.list().map((o) => o.profession);
+    expect(professions).toEqual(
+      expect.arrayContaining(['财务管培生', '审计(事务所)', '会计核算', '财务分析/FP&A']),
+    );
+    for (const prof of ['财务管培生', '审计(事务所)', '会计核算', '财务分析/FP&A']) {
+      const p = svc.resolveByProfession(prof);
+      expect(p.tier).toBe('standard');
+      expect(p.stage).toBe('campus');
+    }
+  });
 });

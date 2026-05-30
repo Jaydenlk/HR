@@ -52,12 +52,19 @@ export class AnalyzerService {
       toolDescription: '按职业胜任力标尺输出分维度诊断(含 why)',
       schema: PROFESSION_STANDARD_SCHEMA,
     });
-    // 预设权重是权威满分:收敛每维 score 到 [0, max]、max 取预设权重、total 重算
-    const dimensions = result.dimensions.map((d) => {
-      const presetDim = preset.dimensions.find((pd) => pd.key === d.key);
-      const max = presetDim ? presetDim.weight : d.max;
-      const score = Math.min(Math.max(d.score, 0), max);
-      return { ...d, max, score };
+    // 预设为权威:按顺序对齐 AI 维度,key/name/max 取自预设(消除英文 key 泄漏与结构漂移),
+    // AI 只贡献 score/why/evidenceFound/gap;score 收敛到 [0, 满分]、total 重算。
+    const dimensions = preset.dimensions.map((pd, i) => {
+      const d = result.dimensions[i];
+      return {
+        key: pd.key,
+        name: pd.name,
+        score: d ? Math.min(Math.max(d.score, 0), pd.weight) : 0,
+        max: pd.weight,
+        why: d?.why ?? '',
+        evidenceFound: d?.evidenceFound ?? [],
+        gap: d?.gap ?? '',
+      };
     });
     const total_score = dimensions.reduce((sum, d) => sum + d.score, 0);
     return { ...result, dimensions, total_score };
