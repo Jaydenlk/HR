@@ -1,4 +1,4 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException, Logger } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface CompleteParams {
@@ -16,10 +16,17 @@ interface CompleteStructuredParams {
   schema: Record<string, unknown>;
 }
 
+interface Provider {
+  name: string;
+  client: Anthropic;
+  model: string;
+}
+
 @Injectable()
 export class AiService {
-  private readonly client: Anthropic;
-  private readonly model: string;
+  private readonly logger = new Logger(AiService.name);
+  private readonly primary: Provider;
+  private readonly fallback: Provider | null;
 
   constructor() {
     const apiKey = process.env.CLOUDDREAM_API_KEY;
@@ -27,37 +34,57 @@ export class AiService {
       throw new Error('CLOUDDREAM_API_KEY is required but not set');
     }
 
-    this.client = new Anthropic({
-      apiKey,
-      baseURL: process.env.CLOUDDREAM_BASE_URL ?? 'https://api.tutorial.clouddreamai.com',
-    });
+    // 主通道:CloudDreamAI 中转(auto-v2)。超时即失败(maxRetries=0),交由降级逻辑切备用,
+    // 避免中转挂起时长时间阻塞。超时阈值可经 AI_PRIMARY_TIMEOUT_MS 调整。
+    const primaryModel = process.env.CLOUDDREAM_MODEL ?? 'auto-v2';
+    this.primary = {
+      name: primaryModel,
+      model: primaryModel,
+      client: new Anthropic({
+        apiKey,
+        baseURL: process.env.CLOUDDREAM_BASE_URL ?? 'https://api.tutorial.clouddreamai.com',
+        timeout: Number(process.env.AI_PRIMARY_TIMEOUT_MS ?? 60000),
+        maxRetries: 0,
+      }),
+    };
 
-    this.model = process.env.CLOUDDREAM_MODEL ?? 'auto-v2';
+    // 备用通道:DeepSeek(Anthropic 兼容端点)。仅当配置了 DEEPSEEK_API_KEY 时启用。
+    const fallbackKey = process.env.DEEPSEEK_API_KEY;
+    const fallbackModel = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat';
+    this.fallback = fallbackKey
+      ? {
+          name: fallbackModel,
+          model: fallbackModel,
+          client: new Anthropic({
+            apiKey: fallbackKey,
+            baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/anthropic',
+            timeout: Number(process.env.AI_FALLBACK_TIMEOUT_MS ?? 120000),
+            maxRetries: 1,
+          }),
+        }
+      : null;
   }
 
   async complete(params: CompleteParams): Promise<string> {
     const { system, prompt, tools, maxTokens = 4096 } = params;
-
-    const messageParams: Anthropic.MessageCreateParamsNonStreaming = {
-      model: this.model,
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: 'user', content: prompt }],
+    const build = (model: string): Anthropic.MessageCreateParamsNonStreaming => {
+      const p: Anthropic.MessageCreateParamsNonStreaming = {
+        model,
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: 'user', content: prompt }],
+      };
+      if (tools && tools.length > 0) p.tools = tools;
+      return p;
     };
 
-    if (tools && tools.length > 0) {
-      messageParams.tools = tools;
-    }
-
-    const response = await this.client.messages.create(messageParams);
-
-    for (const block of response.content) {
-      if (block.type === 'text') {
-        return block.text;
+    return this.withFailover('complete', async (provider) => {
+      const response = await provider.client.messages.create(build(provider.model));
+      for (const block of response.content) {
+        if (block.type === 'text') return block.text;
       }
-    }
-
-    return '';
+      return '';
+    });
   }
 
   async completeStructured<T>(params: CompleteStructuredParams): Promise<T> {
@@ -69,28 +96,67 @@ export class AiService {
       input_schema: schema as Anthropic.Tool['input_schema'],
     };
 
-    const messageParams: Anthropic.MessageCreateParamsNonStreaming = {
-      model: this.model,
+    const build = (model: string): Anthropic.MessageCreateParamsNonStreaming => ({
+      model,
       max_tokens: 4096,
       system,
       messages: [{ role: 'user', content: prompt }],
       tools: [tool],
       tool_choice: { type: 'tool', name: toolName },
-    };
+    });
 
-    // auto-v2 中转偶发对强制 tool_use 返回空块({} 或无 tool_use),概率个位数 %、与业务无关,
-    // 会毒化下游。视为瞬时故障:最多尝试 ATTEMPTS 次取非空;全空才抛 503(可重试),绝不静默返回空。
+    return this.withFailover('completeStructured', (provider) =>
+      this.attemptStructured<T>(provider, build(provider.model), toolName),
+    );
+  }
+
+  // 默认走主通道;主通道抛错(超时/连接/5xx/空块耗尽)即降级到备用通道;两者都失败才抛 503。
+  private async withFailover<T>(op: string, run: (provider: Provider) => Promise<T>): Promise<T> {
+    try {
+      return await run(this.primary);
+    } catch (primaryErr) {
+      if (!this.fallback) {
+        throw this.unavailable(op, primaryErr);
+      }
+      this.logger.warn(
+        `${op}: 主通道(${this.primary.name})失败,降级到备用(${this.fallback.name}) —— ${this.errMsg(primaryErr)}`,
+      );
+      try {
+        return await run(this.fallback);
+      } catch (fallbackErr) {
+        throw this.unavailable(op, fallbackErr);
+      }
+    }
+  }
+
+  private async attemptStructured<T>(
+    provider: Provider,
+    messageParams: Anthropic.MessageCreateParamsNonStreaming,
+    toolName: string,
+  ): Promise<T> {
+    // 中转偶发对强制 tool_use 返回空块({} 或无 tool_use),个位数概率、与业务无关:最多取 3 次非空。
+    // 全空视为该通道失败(抛错),交由 withFailover 决定是否降级。
     const ATTEMPTS = 3;
     for (let i = 0; i < ATTEMPTS; i++) {
-      const input = this.extractToolInput<T>(await this.client.messages.create(messageParams), toolName);
+      const input = this.extractToolInput<T>(
+        await provider.client.messages.create(messageParams),
+        toolName,
+      );
       if (input !== null) {
         return input;
       }
     }
+    throw new Error(`通道 ${provider.name} 对工具 "${toolName}" 连续 ${ATTEMPTS} 次返回空结果`);
+  }
 
-    throw new ServiceUnavailableException(
-      `AI 服务暂时波动(为工具 "${toolName}" 多次返回空结果),请稍后重试。`,
+  private unavailable(op: string, err: unknown): ServiceUnavailableException {
+    return new ServiceUnavailableException(
+      `AI 服务暂时不可用(${op} 主备通道均失败:${this.errMsg(err)}),请稍后重试。`,
     );
+  }
+
+  private errMsg(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
   }
 
   private extractToolInput<T>(response: Anthropic.Message, toolName: string): T | null {

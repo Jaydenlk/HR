@@ -33,6 +33,7 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
   beforeEach(() => {
     createMock.mockReset();
     process.env.CLOUDDREAM_API_KEY = 'test-key';
+    delete process.env.DEEPSEEK_API_KEY; // 本组只验主通道行为:无降级时与历史行为一致
   });
 
   it('首次空 {} → 重试拿到非空并返回', async () => {
@@ -83,6 +84,61 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
     const result = await new AiService().completeStructured<typeof payload>(STRUCTURED_PARAMS);
 
     expect(result).toEqual(payload);
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// 降级:默认主通道 autoV2;主通道抛错(超时/连接/5xx)或空块耗尽时,自动切到 DeepSeek 备用通道;主备都失败才抛 503。
+describe('AiService 主备降级(默认 autoV2,失败降级 DeepSeek)', () => {
+  beforeEach(() => {
+    createMock.mockReset();
+    process.env.CLOUDDREAM_API_KEY = 'primary-key';
+    process.env.DEEPSEEK_API_KEY = 'fallback-key';
+  });
+  afterEach(() => {
+    delete process.env.DEEPSEEK_API_KEY;
+  });
+
+  it('主通道抛错(超时/连接)→ 自动降级到 DeepSeek 并返回其结果', async () => {
+    createMock
+      .mockRejectedValueOnce(new Error('Request timed out.'))
+      .mockResolvedValueOnce(validToolUse({ ok: 'fallback' }));
+
+    const result = await new AiService().completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
+
+    // 拿到 fallback 专属载荷即证明走了备用通道(若无降级,主通道抛错会直接 503)
+    expect(result).toEqual({ ok: 'fallback' });
+    expect(createMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('主通道连续空块耗尽 → 降级到 DeepSeek 救回', async () => {
+    createMock
+      .mockResolvedValueOnce(emptyToolUse)
+      .mockResolvedValueOnce(emptyToolUse)
+      .mockResolvedValueOnce(emptyToolUse)
+      .mockResolvedValueOnce(validToolUse({ ok: 'fallback' }));
+
+    const result = await new AiService().completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
+
+    expect(result).toEqual({ ok: 'fallback' });
+    expect(createMock).toHaveBeenCalledTimes(4); // 主通道 3 次空 + 备用 1 次非空
+  });
+
+  it('主备都失败 → 抛 ServiceUnavailableException(503)', async () => {
+    createMock.mockRejectedValue(new Error('both down'));
+
+    await expect(new AiService().completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
+      ServiceUnavailableException,
+    );
+    expect(createMock).toHaveBeenCalledTimes(2); // 主 1 次抛 + 备 1 次抛
+  });
+
+  it('主通道成功 → 不触发降级(备用通道不被调用)', async () => {
+    createMock.mockResolvedValueOnce(validToolUse({ ok: 'primary' }));
+
+    const result = await new AiService().completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
+
+    expect(result).toEqual({ ok: 'primary' });
     expect(createMock).toHaveBeenCalledTimes(1);
   });
 });

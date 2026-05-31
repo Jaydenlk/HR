@@ -76,6 +76,90 @@ describe('RewriterService.suggestAgainstPreset 防编造兜底', () => {
     expect(out[0].original).toBe('撰写PRD');
     expect(out[0].type).toBe('quantify');
   });
+
+  // 进阶兜底:original 是真原句,但 suggested 注入简历里没有的"具体数字"(伪造量化指标)⇒ 降级 gap_advice
+  it('original 真实但 suggested 注入简历没有的具体数字 ⇒ 降级 gap_advice', async () => {
+    mockAiService.completeStructured.mockResolvedValue({
+      suggestions: [
+        { section: '实习', type: 'rewrite', priority: 'high', original: '参与某APP需求调研',
+          suggested: '主导某APP需求调研,发放问卷350份,回收率86%', reason: '量化' },
+      ],
+    });
+    const out = await svc.suggestAgainstPreset(RESUME_TEXT, productManagerCampus, ANALYSIS);
+    expect(out[0].type).toBe('gap_advice'); // 350、86 简历都没有 = 伪造数字
+    expect(out[0].original).toBe('');
+  });
+
+  it('suggested 仅含简历已有数字或 [具体数字] 占位符 ⇒ 保持改进型', async () => {
+    mockAiService.completeStructured.mockResolvedValue({
+      suggestions: [
+        { section: '实习', type: 'quantify', priority: 'medium', original: '次日留存提升15%',
+          suggested: '推动功能上线,次日留存提升15%,覆盖 [具体数字] 名用户', reason: '补充规模' },
+      ],
+    });
+    const out = await svc.suggestAgainstPreset(RESUME_TEXT, productManagerCampus, ANALYSIS);
+    expect(out[0].type).toBe('quantify'); // 15 在简历、[具体数字] 是占位符 ⇒ 不算编造
+    expect(out[0].original).toBe('次日留存提升15%');
+  });
+});
+
+// 自检修复层(女娲式,纯单测 mock AI):主调用产出后,再过一次 AI 防编造复核;
+// 被复核打回的"改进型"建议(suggested 注入简历没有的方法/能力,确定性数字规则抓不到的)降级 gap_advice。
+describe('RewriterService.suggestAgainstPreset 自检修复层', () => {
+  let svc: RewriterService;
+  let mockAiService: { completeStructured: jest.Mock };
+
+  beforeEach(async () => {
+    mockAiService = { completeStructured: jest.fn() };
+    const mod = await Test.createTestingModule({
+      providers: [RewriterService, { provide: AiService, useValue: mockAiService }],
+    }).compile();
+    svc = mod.get(RewriterService);
+  });
+
+  it('suggested 注入简历没有的方法(无数字、确定性规则抓不到)→ 被复核打回降级 gap_advice', async () => {
+    mockAiService.completeStructured
+      .mockResolvedValueOnce({
+        suggestions: [
+          { section: '实习', type: 'rewrite', priority: 'high', original: '撰写PRD',
+            suggested: '撰写PRD,并按周拆解WBS、跟踪待办事项闭环', reason: '细化' },
+        ],
+      }) // 主调用:original 真实、无伪造数字 → 确定性兜底放行
+      .mockResolvedValueOnce({ indices: [0] }); // 自检复核:第0条 suggested 注入简历没有的 WBS/待办闭环 → 打回
+    const out = await svc.suggestAgainstPreset(RESUME_TEXT, productManagerCampus, ANALYSIS);
+    expect(out[0].type).toBe('gap_advice');
+    expect(out[0].original).toBe('');
+  });
+
+  it('结构损坏的建议(reason 缺失 / suggested 混入 reason= 脚手架)被丢弃', async () => {
+    mockAiService.completeStructured
+      .mockResolvedValueOnce({
+        suggestions: [
+          { section: '自我评价', type: 'rewrite', priority: 'low', original: '撰写PRD',
+            suggested: "致力于长期深耕产品领域。', reason='原文空洞表白'" }, // reason 缺失 + suggested 混入脚手架
+          { section: '实习', type: 'quantify', priority: 'high', original: '撰写PRD',
+            suggested: '独立撰写 [具体数字] 篇 PRD', reason: '量化产出' }, // 正常
+        ],
+      })
+      .mockResolvedValueOnce({ indices: [] });
+    const out = await svc.suggestAgainstPreset(RESUME_TEXT, productManagerCampus, ANALYSIS);
+    expect(out).toHaveLength(1);
+    expect(out[0].section).toBe('实习');
+  });
+
+  it('改写无编造 → 复核不打回,保持原类型', async () => {
+    mockAiService.completeStructured
+      .mockResolvedValueOnce({
+        suggestions: [
+          { section: '实习', type: 'rewrite', priority: 'medium', original: '撰写PRD',
+            suggested: '独立撰写PRD并推动功能上线', reason: '措辞收紧' },
+        ],
+      })
+      .mockResolvedValueOnce({ indices: [] }); // 自检:无编造
+    const out = await svc.suggestAgainstPreset(RESUME_TEXT, productManagerCampus, ANALYSIS);
+    expect(out[0].type).toBe('rewrite');
+    expect(out[0].original).toBe('撰写PRD');
+  });
 });
 
 // AI live:遵循项目惯例,ConfigModule.forRoot 加载 .env 的 key 后真跑;校验禁止编造(original 必在原文)
