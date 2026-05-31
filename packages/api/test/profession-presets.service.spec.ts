@@ -54,7 +54,7 @@ describe('ProfessionPresetsService', () => {
     const all = groups.flatMap((g) => g.options.map((o) => o.profession));
     expect(new Set(all).size).toBe(all.length); // 无重复
     expect(groups.map((g) => g.category)).toEqual([
-      '技术研发', '产品 · 运营', '设计', '数据', '市场 · 销售', '金融', '财务', '人力资源',
+      '技术研发', '产品 · 运营', '设计', '数据', '市场 · 销售', '金融', '财务', '人力资源', '职能 · 法务',
     ]);
     for (const g of groups) expect(g.options.length).toBeGreaterThan(0);
   });

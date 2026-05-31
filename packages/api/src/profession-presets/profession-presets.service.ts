@@ -22,6 +22,11 @@ import { marketingCampus } from './presets/marketing-campus';
 import { recruiterCampus } from './presets/recruiter-campus';
 import { hrbpCampus } from './presets/hrbp-campus';
 import { compensationCampus } from './presets/compensation-campus';
+import { legalCampus } from './presets/legal-campus';
+import { supplyChainCampus } from './presets/supply-chain-campus';
+import { customerSuccessCampus } from './presets/customer-success-campus';
+import { adminCampus } from './presets/admin-campus';
+import { embeddedCampus } from './presets/embedded-campus';
 
 const PRESETS: ProfessionPreset[] = [
   productManagerCampus,
@@ -46,6 +51,11 @@ const PRESETS: ProfessionPreset[] = [
   recruiterCampus,
   hrbpCampus,
   compensationCampus,
+  legalCampus,
+  supplyChainCampus,
+  customerSuccessCampus,
+  adminCampus,
+  embeddedCampus,
 ];
 
 const tierKey = (profession: string, tier: ProfessionTier): string => `${profession}::${tier}`;
@@ -62,7 +72,7 @@ export interface ProfessionGroup {
 
 // 职业大类(数组顺序 = 前端展示顺序);新增职业时把其 profession 归入对应大类的 professions 即可。
 const CATEGORY_ORDER: ReadonlyArray<{ category: string; professions: readonly string[] }> = [
-  { category: '技术研发', professions: ['后端开发', '前端/客户端', '算法(含大模型)', '测试开发'] },
+  { category: '技术研发', professions: ['后端开发', '前端/客户端', '算法(含大模型)', '测试开发', '硬件开发/嵌入式'] },
   { category: '产品 · 运营', professions: ['互联网产品经理', '运营(含AIGC)'] },
   { category: '设计', professions: ['设计师(UI/UX)'] },
   { category: '数据', professions: ['数据分析师'] },
@@ -70,6 +80,7 @@ const CATEGORY_ORDER: ReadonlyArray<{ category: string; professions: readonly st
   { category: '金融', professions: ['证券研究/行业研究', '投行(IBD)', '风控/风险管理', '量化研究/交易'] },
   { category: '财务', professions: ['财务管培生', '审计(事务所)', '会计核算', '财务分析/FP&A'] },
   { category: '人力资源', professions: ['招聘/校园招聘', 'HRBP', '薪酬福利(C&B)'] },
+  { category: '职能 · 法务', professions: ['法务', '供应链/物流', '客服/客户成功', '行政'] },
 ];
 
 @Injectable()
