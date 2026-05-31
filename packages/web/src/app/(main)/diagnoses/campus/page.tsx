@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import type { Resume, Diagnosis, ProfessionOption, ProfessionTier } from '@/lib/types';
+import type { Resume, Diagnosis, ProfessionGroup, ProfessionTier } from '@/lib/types';
 import { FileText, Plus, ChevronRight, Sparkles, Target, Gauge } from 'lucide-react';
 
 type Step = 'setup' | 'analyzing';
@@ -162,7 +162,7 @@ export default function CampusDiagnosisPage() {
   const [loadingResumes, setLoadingResumes] = useState(true);
   const [resumeError, setResumeError] = useState<string | null>(null);
 
-  const [professions, setProfessions] = useState<ProfessionOption[]>([]);
+  const [groups, setGroups] = useState<ProfessionGroup[]>([]);
   const [loadingProfessions, setLoadingProfessions] = useState(true);
   const [professionError, setProfessionError] = useState<string | null>(null);
 
@@ -191,10 +191,11 @@ export default function CampusDiagnosisPage() {
   // 职业清单数据化:由后端 list() 决定可选职业及各自难度档,前端不再硬编码。
   useEffect(() => {
     api
-      .get<ProfessionOption[]>('/diagnoses/campus/professions')
+      .get<ProfessionGroup[]>('/diagnoses/campus/professions')
       .then((data) => {
-        setProfessions(data);
-        if (data.length > 0) setProfession(data[0].profession);
+        setGroups(data);
+        const first = data[0]?.options[0];
+        if (first) setProfession(first.profession);
         setLoadingProfessions(false);
       })
       .catch(() => {
@@ -203,6 +204,8 @@ export default function CampusDiagnosisPage() {
       });
   }, []);
 
+  // 扁平化分组,供选中项查找与计数(分组仅用于下拉 optgroup 展示)
+  const professions = groups.flatMap((g) => g.options);
   const selectedOption = professions.find((p) => p.profession === profession) ?? null;
   // 仅当该职业提供 pressure 档时显示难度开关;否则隐藏(单档职业无需选择)。
   const hasPressureTier = !!selectedOption?.tiers.some((t) => t.tier === 'pressure');
@@ -612,10 +615,14 @@ export default function CampusDiagnosisPage() {
                   appearance: 'none',
                 }}
               >
-                {professions.map((p) => (
-                  <option key={p.profession} value={p.profession}>
-                    {p.profession}
-                  </option>
+                {groups.map((g) => (
+                  <optgroup key={g.category} label={g.category}>
+                    {g.options.map((p) => (
+                      <option key={p.profession} value={p.profession}>
+                        {p.profession}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               <ChevronRight

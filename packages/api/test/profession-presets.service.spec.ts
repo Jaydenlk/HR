@@ -10,7 +10,7 @@ describe('ProfessionPresetsService', () => {
   });
 
   it('list() returns deduped professions with their available tiers', () => {
-    const list = svc.list();
+    const list = svc.list().flatMap((g) => g.options);
     const pm = list.find((o) => o.profession === '互联网产品经理');
     expect(pm).toBeDefined();
     // 同职业去重为一条,含两个难度档
@@ -47,8 +47,20 @@ describe('ProfessionPresetsService', () => {
     expect(() => svc.resolveByProfession('星际探险家', 'pressure')).toThrow(NotFoundException);
   });
 
+  it('list() 按大类分组:所有注册职业恰好归入一个大类(无"其他"兜底、无重复、大类有序)', () => {
+    const groups = svc.list();
+    // 出现"其他"说明有职业未在 CATEGORY_ORDER 归类或职业串写错 → 必须为 0
+    expect(groups.some((g) => g.category === '其他')).toBe(false);
+    const all = groups.flatMap((g) => g.options.map((o) => o.profession));
+    expect(new Set(all).size).toBe(all.length); // 无重复
+    expect(groups.map((g) => g.category)).toEqual([
+      '技术研发', '产品 · 运营', '设计', '数据', '市场 · 销售', '金融', '财务', '人力资源',
+    ]);
+    for (const g of groups) expect(g.options.length).toBeGreaterThan(0);
+  });
+
   it('every registered preset has exactly 5 dimensions and weights summing to 100', () => {
-    for (const opt of svc.list()) {
+    for (const opt of svc.list().flatMap((g) => g.options)) {
       for (const { tier } of opt.tiers) {
         const p = svc.resolveByProfession(opt.profession, tier);
         expect(p.dimensions).toHaveLength(5);
@@ -58,7 +70,7 @@ describe('ProfessionPresetsService', () => {
   });
 
   it('exposes the finance 大类 professions (standard tier) in list()', () => {
-    const professions = svc.list().map((o) => o.profession);
+    const professions = svc.list().flatMap((g) => g.options).map((o) => o.profession);
     expect(professions).toEqual(
       expect.arrayContaining(['财务管培生', '审计(事务所)', '会计核算', '财务分析/FP&A']),
     );
@@ -70,7 +82,7 @@ describe('ProfessionPresetsService', () => {
   });
 
   it('exposes the tech-cluster professions (standard tier) in list()', () => {
-    const professions = svc.list().map((o) => o.profession);
+    const professions = svc.list().flatMap((g) => g.options).map((o) => o.profession);
     expect(professions).toEqual(
       expect.arrayContaining(['后端开发', '算法(含大模型)', '前端/客户端', '测试开发', '运营(含AIGC)']),
     );
@@ -82,7 +94,7 @@ describe('ProfessionPresetsService', () => {
   });
 
   it('exposes the securities / P2 / HR cluster professions (standard tier) in list()', () => {
-    const professions = svc.list().map((o) => o.profession);
+    const professions = svc.list().flatMap((g) => g.options).map((o) => o.profession);
     const added = [
       '证券研究/行业研究', '投行(IBD)', '风控/风险管理', '量化研究/交易',
       '数据分析师', '销售', '设计师(UI/UX)', '市场营销',

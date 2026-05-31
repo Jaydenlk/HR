@@ -6,7 +6,7 @@ import { CreateDiagnosisDto } from './dto/create-diagnosis.dto';
 import { CreateCampusDiagnosisDto } from './dto/create-campus-diagnosis.dto';
 import {
   ProfessionPresetsService,
-  ProfessionOption,
+  ProfessionGroup,
 } from '../profession-presets/profession-presets.service';
 
 @Controller('diagnoses')
@@ -18,7 +18,7 @@ export class DiagnosesController {
   ) {}
 
   @Get('campus/professions')
-  campusProfessions(): ProfessionOption[] {
+  campusProfessions(): ProfessionGroup[] {
     return this.presets.list();
   }
 

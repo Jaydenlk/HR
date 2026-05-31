@@ -39,6 +39,12 @@ export interface ProfessionOption {
   tiers: Array<{ tier: ProfessionTier; presetId: string; displayName: string }>;
 }
 
+// 职业按大类分组(后端 /diagnoses/campus/professions 返回),供前端下拉 optgroup 渲染。
+export interface ProfessionGroup {
+  category: string;
+  options: ProfessionOption[];
+}
+
 interface DiagnosisBase {
   id: string;
   resume_id: string;
