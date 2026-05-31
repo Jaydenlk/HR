@@ -11,6 +11,17 @@ import { algorithmCampus } from './presets/algorithm-campus';
 import { frontendCampus } from './presets/frontend-campus';
 import { testDevCampus } from './presets/test-dev-campus';
 import { operationsCampus } from './presets/operations-campus';
+import { securitiesResearchCampus } from './presets/securities-research-campus';
+import { investmentBankingCampus } from './presets/investment-banking-campus';
+import { riskManagementCampus } from './presets/risk-management-campus';
+import { quantCampus } from './presets/quant-campus';
+import { dataAnalystCampus } from './presets/data-analyst-campus';
+import { salesCampus } from './presets/sales-campus';
+import { designerCampus } from './presets/designer-campus';
+import { marketingCampus } from './presets/marketing-campus';
+import { recruiterCampus } from './presets/recruiter-campus';
+import { hrbpCampus } from './presets/hrbp-campus';
+import { compensationCampus } from './presets/compensation-campus';
 
 const PRESETS: ProfessionPreset[] = [
   productManagerCampus,
@@ -24,6 +35,17 @@ const PRESETS: ProfessionPreset[] = [
   frontendCampus,
   testDevCampus,
   operationsCampus,
+  securitiesResearchCampus,
+  investmentBankingCampus,
+  riskManagementCampus,
+  quantCampus,
+  dataAnalystCampus,
+  salesCampus,
+  designerCampus,
+  marketingCampus,
+  recruiterCampus,
+  hrbpCampus,
+  compensationCampus,
 ];
 
 const tierKey = (profession: string, tier: ProfessionTier): string => `${profession}::${tier}`;
