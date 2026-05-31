@@ -251,13 +251,14 @@ function SuggestionCard({
   suggestion: Diagnosis['suggestions'][number];
 }) {
   const s = suggestion;
+  const isGap = s.type === 'gap_advice'; // 建议补充类:非现成简历句,警示样式且不可直接粘贴
   return (
     <div
       style={{
         padding: '16px',
-        background: 'var(--color-surface-2)',
+        background: isGap ? 'var(--color-warn-soft)' : 'var(--color-surface-2)',
         borderRadius: '10px',
-        border: '1px solid var(--color-line)',
+        border: isGap ? '1px solid var(--color-warn)' : '1px solid var(--color-line)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -287,7 +288,9 @@ function SuggestionCard({
         </div>
       )}
       <div style={{ fontSize: '13px', color: 'var(--color-ink)', marginBottom: '6px' }}>
-        <span style={{ fontWeight: 600, color: 'var(--color-brand)' }}>建议：</span>
+        <span style={{ fontWeight: 600, color: isGap ? 'var(--color-warn)' : 'var(--color-brand)' }}>
+          {isGap ? '⚠️ 建议补充（勿直接粘贴，需真实具备后再写入）：' : '建议：'}
+        </span>
         {s.suggested}
       </div>
       {s.reason && <div style={{ fontSize: '12px', color: 'var(--color-ink-4)' }}>{s.reason}</div>}
@@ -475,6 +478,7 @@ function ProfessionStandardView({
             borderRadius: '14px',
             border: '1px solid var(--color-line)',
             padding: '24px',
+            marginBottom: '20px',
           }}
         >
           <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 16px' }}>
@@ -483,6 +487,68 @@ function ProfessionStandardView({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {diagnosis.suggestions.map((s, i) => (
               <SuggestionCard key={i} suggestion={s} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 面试追问预演 */}
+      {result.interviewHooks && result.interviewHooks.length > 0 && (
+        <div
+          style={{
+            background: 'var(--color-surface)',
+            borderRadius: '14px',
+            border: '1px solid var(--color-line)',
+            padding: '24px',
+          }}
+        >
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 4px' }}>
+            面试追问预演（{result.interviewHooks.length}）
+          </h2>
+          <p style={{ fontSize: '12px', color: 'var(--color-ink-3)', margin: '0 0 16px' }}>
+            面试官大概率会就以下薄弱点追问，提前准备
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {result.interviewHooks.map((hook, i) => (
+              <div
+                key={i}
+                style={{
+                  background: 'var(--color-brand-soft)',
+                  borderRadius: '10px',
+                  border: '1px solid var(--color-line)',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-ink-2)', letterSpacing: '0.02em' }}>
+                    简历命中点
+                  </span>
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--color-ink)' }}>
+                    {hook.resumeHit}
+                  </p>
+                </div>
+                <div style={{ height: '1px', background: 'var(--color-line)' }} />
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-ink-2)', letterSpacing: '0.02em' }}>
+                    面试官很可能追问
+                  </span>
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--color-ink)', fontWeight: 600 }}>
+                    {hook.interviewQuestion}
+                  </p>
+                </div>
+                <div style={{ height: '1px', background: 'var(--color-line)' }} />
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-ink-2)', letterSpacing: '0.02em' }}>
+                    建议准备方向
+                  </span>
+                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--color-ink-3)' }}>
+                    {hook.prepDirection}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
         </div>

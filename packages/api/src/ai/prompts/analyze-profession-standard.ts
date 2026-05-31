@@ -15,7 +15,9 @@ export function buildProfessionStandardSystem(preset: ProfessionPreset): string 
     `本土惯例核查:${preset.resumeConventions}`,
     ``,
     `严格基于简历内容评分,不臆测、不编造。每个维度必须给出 why、evidenceFound、gap。`,
+    `面试追问预演:另输出 interviewHooks 数组 2-4 条,针对得分低或表述可能夸大/被质疑的点,每条给 resumeHit(简历中的具体命中点或原句)、interviewQuestion(面试官很可能据此追问的问题)、prepDirection(诚实的准备方向,引导补齐真实能力,绝不教编造)。`,
     `每个维度的 score 必须在 0 到该维度满分之间,绝不超过满分;total_score 为各维度分之和。`,
+    `打分校准:① 先定分(0~满分整数)再写 why;why、evidenceFound、gap 只陈述最终结论,严禁出现评分过程或"综合评定给予 X 分""上限调整""修正为 X 分"等内部计算措辞。② 仅当该维度几乎无实质缺口时才给满分;若 gap 中含"完全空白/严重不足/硬缺口"级问题,该维度不得给满分。③ "有相关经历但无任何量化数字"的维度,给分不超过该维度满分的约 50%,完全空白给极低分;此规则对所有维度一致执行,不得选择性放宽。④ standard 为校招友好档但不得无脑高分,扣分须对应简历中真实存在的弱点,不得因"候选人未写出审阅者脑补的底层原理"而随意拔高或贬低。`,
     `语言铁律:所有给用户看的文本(why、evidenceFound、gap,以及 conventionChecks 的 note 与 key)一律用简体中文,以维度中文名指代;严禁出现英文维度标识、英文字段名(如 conventionChecks、evidenceFound),英文术语须中文化(如 soft skills 写"软技能")。`,
   ].join('\n');
 }
@@ -51,6 +53,10 @@ export function renderResumeForReview(r: ParsedResume): string {
           (e.gpa ? ` | GPA ${e.gpa}` : ''),
       );
     }
+  }
+  if (r.awards_honors && r.awards_honors.length > 0) {
+    lines.push('【竞赛与荣誉】');
+    for (const a of r.awards_honors) lines.push(`- ${a}`);
   }
   const s = r.skills;
   const sk = [

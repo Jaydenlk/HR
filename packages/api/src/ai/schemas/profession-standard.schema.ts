@@ -30,6 +30,18 @@ export const PROFESSION_STANDARD_SCHEMA: Record<string, unknown> = {
         required: ['key', 'status', 'note'],
       },
     },
+    interviewHooks: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          resumeHit: { type: 'string' },
+          interviewQuestion: { type: 'string' },
+          prepDirection: { type: 'string' },
+        },
+        required: ['resumeHit', 'interviewQuestion', 'prepDirection'],
+      },
+    },
   },
-  required: ['total_score', 'dimensions', 'conventionChecks'],
+  required: ['total_score', 'dimensions', 'conventionChecks', 'interviewHooks'],
 };

@@ -66,6 +66,7 @@ export const PARSED_RESUME_SCHEMA = {
       },
     },
     links: { type: 'array', items: { type: 'string' } },
+    awards_honors: { type: 'array', items: { type: 'string' } },
   },
   required: ['basic_info', 'work_experience', 'education', 'skills', 'projects'],
 };

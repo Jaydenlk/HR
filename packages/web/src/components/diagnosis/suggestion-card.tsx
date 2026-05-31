@@ -10,6 +10,7 @@ const TYPE_LABELS: Record<RewriteSuggestion['type'], string> = {
   add_keywords: '补充关键词',
   restructure: '结构调整',
   quantify: '量化成果',
+  gap_advice: '建议补充',
 };
 
 const PRIORITY_COLOR: Record<RewriteSuggestion['priority'], { color: string; bg: string; label: string }> = {

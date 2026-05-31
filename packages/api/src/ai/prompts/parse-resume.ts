@@ -8,7 +8,8 @@ export const SYSTEM = `你是一名专业的简历结构化解析助手。
 4. 技能分类：technical 为技术技能（编程语言、框架、工具等），soft 为软技能，languages 为语言能力，certifications 为证书
 5. 工作经历中的 achievements 提取具体的成就和量化数据，如无明确成就则留空数组
 6. 忠实提取原文信息，不要补充或推断未在简历中明确提及的内容
-7. links：提取简历中出现的所有作品集/个人主页/GitHub/Behance/站酷/技术博客等 URL 链接（包括正文中出现的链接），无则空数组 []`;
+7. links：提取简历中出现的所有作品集/个人主页/GitHub/Behance/站酷/技术博客等 URL 链接（包括正文中出现的链接），无则空数组 []
+8. awards_honors：提取所有竞赛获奖、荣誉称号、奖学金（如 ACM-ICPC/数学建模/各类学科竞赛及名次、国家奖学金、优秀学生标兵等），忠实保留原文名次与年份，无则空数组 []`;
 
 export function buildParseResumePrompt(resumeText: string): string {
   return `请将以下简历文本解析为结构化 JSON。
@@ -63,6 +64,7 @@ ${resumeText}
       "role": "担任角色（可选）"
     }
   ],
-  "links": ["作品集/GitHub/Behance/站酷/个人主页等 URL（提取正文中所有链接，无则 []）"]
+  "links": ["作品集/GitHub/Behance/站酷/个人主页等 URL（提取正文中所有链接，无则 []）"],
+  "awards_honors": ["竞赛获奖/荣誉/奖学金原文（如 ACM-ICPC 亚洲区域赛银牌、国家奖学金，无则 []）"]
 }`;
 }
