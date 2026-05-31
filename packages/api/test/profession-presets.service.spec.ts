@@ -68,4 +68,16 @@ describe('ProfessionPresetsService', () => {
       expect(p.stage).toBe('campus');
     }
   });
+
+  it('exposes the tech-cluster professions (standard tier) in list()', () => {
+    const professions = svc.list().map((o) => o.profession);
+    expect(professions).toEqual(
+      expect.arrayContaining(['后端开发', '算法(含大模型)', '前端/客户端', '测试开发', '运营(含AIGC)']),
+    );
+    for (const prof of ['后端开发', '算法(含大模型)', '前端/客户端', '测试开发', '运营(含AIGC)']) {
+      const p = svc.resolveByProfession(prof);
+      expect(p.tier).toBe('standard');
+      expect(p.stage).toBe('campus');
+    }
+  });
 });
