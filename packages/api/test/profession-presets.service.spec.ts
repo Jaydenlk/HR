@@ -80,4 +80,19 @@ describe('ProfessionPresetsService', () => {
       expect(p.stage).toBe('campus');
     }
   });
+
+  it('exposes the securities / P2 / HR cluster professions (standard tier) in list()', () => {
+    const professions = svc.list().map((o) => o.profession);
+    const added = [
+      '证券研究/行业研究', '投行(IBD)', '风控/风险管理', '量化研究/交易',
+      '数据分析师', '销售', '设计师(UI/UX)', '市场营销',
+      '招聘/校园招聘', 'HRBP', '薪酬福利(C&B)',
+    ];
+    expect(professions).toEqual(expect.arrayContaining(added));
+    for (const prof of added) {
+      const p = svc.resolveByProfession(prof);
+      expect(p.tier).toBe('standard');
+      expect(p.stage).toBe('campus');
+    }
+  });
 });
