@@ -11,6 +11,7 @@ import { ParserService } from '../ai/parser.service';
 import { AnalyzerService } from '../ai/analyzer.service';
 import { RewriterService } from '../ai/rewriter.service';
 import { ProfessionPresetsService } from '../profession-presets/profession-presets.service';
+import { renderResumeForReview } from '../ai/prompts/analyze-profession-standard';
 import type { ParsedJD } from '../common/types';
 
 @Injectable()
@@ -124,7 +125,7 @@ export class DiagnosesService {
     ]);
 
     const analysis = await this.analyzer.analyzeAgainstPreset(
-      JSON.stringify(parsedResume),
+      renderResumeForReview(parsedResume),
       preset,
       jdJson,
     );
