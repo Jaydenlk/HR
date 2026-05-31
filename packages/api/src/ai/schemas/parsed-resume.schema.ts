@@ -65,6 +65,7 @@ export const PARSED_RESUME_SCHEMA = {
         required: ['name', 'description', 'technologies'],
       },
     },
+    links: { type: 'array', items: { type: 'string' } },
   },
   required: ['basic_info', 'work_experience', 'education', 'skills', 'projects'],
 };

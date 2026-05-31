@@ -34,6 +34,7 @@ export interface ParsedResume {
     technologies: string[];
     role?: string;
   }>;
+  links?: string[];
 }
 
 export interface ParsedJD {
