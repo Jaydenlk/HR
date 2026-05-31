@@ -6,6 +6,11 @@ import { financeManagementTraineeCampus } from './presets/finance-management-tra
 import { auditorFirmCampus } from './presets/auditor-firm-campus';
 import { accountantGlCampus } from './presets/accountant-gl-campus';
 import { fpaAnalystCampus } from './presets/fpa-analyst-campus';
+import { backendCampus } from './presets/backend-campus';
+import { algorithmCampus } from './presets/algorithm-campus';
+import { frontendCampus } from './presets/frontend-campus';
+import { testDevCampus } from './presets/test-dev-campus';
+import { operationsCampus } from './presets/operations-campus';
 
 const PRESETS: ProfessionPreset[] = [
   productManagerCampus,
@@ -14,6 +19,11 @@ const PRESETS: ProfessionPreset[] = [
   auditorFirmCampus,
   accountantGlCampus,
   fpaAnalystCampus,
+  backendCampus,
+  algorithmCampus,
+  frontendCampus,
+  testDevCampus,
+  operationsCampus,
 ];
 
 const tierKey = (profession: string, tier: ProfessionTier): string => `${profession}::${tier}`;
