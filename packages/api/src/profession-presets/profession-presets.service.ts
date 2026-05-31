@@ -61,6 +61,36 @@ import { trainingDevelopmentCampus } from './presets/training-development-campus
 import { corporateStrategyCampus } from './presets/corporate-strategy-campus';
 import { realEstateCampus } from './presets/real-estate-campus';
 import { educationCampus } from './presets/education-campus';
+import { dataWarehouseDevCampus } from './presets/data-warehouse-dev-campus';
+import { biEngineerCampus } from './presets/bi-engineer-campus';
+import { digitalTransformationConsultingCampus } from './presets/digital-transformation-consulting-campus';
+import { riskAdvisoryCampus } from './presets/risk-advisory-campus';
+import { processEngineerCampus } from './presets/process-engineer-campus';
+import { qualityEngineerCampus } from './presets/quality-engineer-campus';
+import { craClinicalCampus } from './presets/cra-clinical-campus';
+import { storeManagerTraineeCampus } from './presets/store-manager-trainee-campus';
+import { recsysAdsAlgoCampus } from './presets/recsys-ads-algo-campus';
+import { multimediaDevCampus } from './presets/multimedia-dev-campus';
+import { infraMiddlewareCampus } from './presets/infra-middleware-campus';
+import { dataProductManagerCampus } from './presets/data-product-manager-campus';
+import { strategyProductManagerCampus } from './presets/strategy-product-manager-campus';
+import { userOperationsCampus } from './presets/user-operations-campus';
+import { motionDesignCampus } from './presets/motion-design-campus';
+import { uxResearchCampus } from './presets/ux-research-campus';
+import { threeDDesignCampus } from './presets/three-d-design-campus';
+import { salesOperationsCampus } from './presets/sales-operations-campus';
+import { crossBorderEcommerceCampus } from './presets/cross-border-ecommerce-campus';
+import { adOptimizerCampus } from './presets/ad-optimizer-campus';
+import { wealthManagementCampus } from './presets/wealth-management-campus';
+import { institutionalSalesCampus } from './presets/institutional-sales-campus';
+import { financeBpCampus } from './presets/finance-bp-campus';
+import { cashierCampus } from './presets/cashier-campus';
+import { treasuryCampus } from './presets/treasury-campus';
+import { hrSscCampus } from './presets/hr-ssc-campus';
+import { hrTraineeCampus } from './presets/hr-trainee-campus';
+import { recruitmentConsultantCampus } from './presets/recruitment-consultant-campus';
+import { compliancePrivacyCampus } from './presets/compliance-privacy-campus';
+import { ipPatentCampus } from './presets/ip-patent-campus';
 
 const PRESETS: ProfessionPreset[] = [
   productManagerCampus,
@@ -124,6 +154,36 @@ const PRESETS: ProfessionPreset[] = [
   corporateStrategyCampus,
   realEstateCampus,
   educationCampus,
+  dataWarehouseDevCampus,
+  biEngineerCampus,
+  digitalTransformationConsultingCampus,
+  riskAdvisoryCampus,
+  processEngineerCampus,
+  qualityEngineerCampus,
+  craClinicalCampus,
+  storeManagerTraineeCampus,
+  recsysAdsAlgoCampus,
+  multimediaDevCampus,
+  infraMiddlewareCampus,
+  dataProductManagerCampus,
+  strategyProductManagerCampus,
+  userOperationsCampus,
+  motionDesignCampus,
+  uxResearchCampus,
+  threeDDesignCampus,
+  salesOperationsCampus,
+  crossBorderEcommerceCampus,
+  adOptimizerCampus,
+  wealthManagementCampus,
+  institutionalSalesCampus,
+  financeBpCampus,
+  cashierCampus,
+  treasuryCampus,
+  hrSscCampus,
+  hrTraineeCampus,
+  recruitmentConsultantCampus,
+  compliancePrivacyCampus,
+  ipPatentCampus,
 ];
 
 const tierKey = (profession: string, tier: ProfessionTier): string => `${profession}::${tier}`;
@@ -140,17 +200,17 @@ export interface ProfessionGroup {
 
 // 职业大类(数组顺序 = 前端展示顺序);新增职业时把其 profession 归入对应大类的 professions 即可。
 const CATEGORY_ORDER: ReadonlyArray<{ category: string; professions: readonly string[] }> = [
-  { category: "技术研发", professions: ["后端开发", "前端/客户端", "算法(含大模型)", "测试开发", "硬件开发/嵌入式", "运维/SRE", "大数据开发", "网络安全", "游戏开发"] },
-  { category: "产品 · 运营", professions: ["互联网产品经理", "运营(含AIGC)", "电商运营", "增长运营", "新媒体运营", "游戏策划"] },
-  { category: "设计", professions: ["设计师(UI/UX)", "视觉/平面设计", "交互设计", "工业设计", "游戏美术/原画"] },
-  { category: "数据", professions: ["数据分析师", "数据科学"] },
-  { category: "市场 · 销售", professions: ["市场营销", "销售", "品牌/公关(PR)", "市场研究/用户研究", "商务拓展(BD)"] },
-  { category: "金融", professions: ["证券研究/行业研究", "投行(IBD)", "风控/风险管理", "量化研究/交易", "银行(管培/综合岗)", "资产管理/资管", "精算", "信贷/信用分析"] },
-  { category: "财务", professions: ["财务管培生", "审计(事务所)", "会计核算", "财务分析/FP&A", "税务", "成本会计", "内审/内控"] },
-  { category: "人力资源", professions: ["招聘/校园招聘", "HRBP", "薪酬福利(C&B)", "组织发展(OD)", "培训发展(TD)"] },
-  { category: "职能 · 法务", professions: ["法务", "供应链/物流", "客服/客户成功", "行政", "采购", "项目管理(PMO)"] },
-  { category: "咨询 · 战略", professions: ["管理咨询", "商业分析(BA)", "企业战略"] },
-  { category: "行业 · 垂类", professions: ["快消管培生", "医药代表", "地产(营销策划)", "教育(教研/教师)"] },
+  { category: "技术研发", professions: ["后端开发", "前端/客户端", "算法(含大模型)", "测试开发", "硬件开发/嵌入式", "运维/SRE", "大数据开发", "网络安全", "游戏开发", "推荐/搜索/广告算法", "音视频/多媒体开发", "基础架构/中间件"] },
+  { category: "产品 · 运营", professions: ["互联网产品经理", "运营(含AIGC)", "电商运营", "增长运营", "新媒体运营", "游戏策划", "数据产品经理", "策略产品经理", "用户运营"] },
+  { category: "设计", professions: ["设计师(UI/UX)", "视觉/平面设计", "交互设计", "工业设计", "游戏美术/原画", "动效设计师", "用户研究(UXR)", "三维设计师(3D)"] },
+  { category: "数据", professions: ["数据分析师", "数据科学", "数据开发(数仓/ETL)", "BI工程师"] },
+  { category: "市场 · 销售", professions: ["市场营销", "销售", "品牌/公关(PR)", "市场研究/用户研究", "商务拓展(BD)", "销售运营", "跨境电商/海外销售", "广告投放/优化师"] },
+  { category: "金融", professions: ["证券研究/行业研究", "投行(IBD)", "风控/风险管理", "量化研究/交易", "银行(管培/综合岗)", "资产管理/资管", "精算", "信贷/信用分析", "财富管理/投顾", "机构销售/交易(FICC)"] },
+  { category: "财务", professions: ["财务管培生", "审计(事务所)", "会计核算", "财务分析/FP&A", "税务", "成本会计", "内审/内控", "财务BP(业财融合)", "出纳/资金", "资金管理/司库"] },
+  { category: "人力资源", professions: ["招聘/校园招聘", "HRBP", "薪酬福利(C&B)", "组织发展(OD)", "培训发展(TD)", "HR共享服务(SSC)", "HR管培生", "招聘顾问/猎头"] },
+  { category: "职能 · 法务", professions: ["法务", "供应链/物流", "客服/客户成功", "行政", "采购", "项目管理(PMO)", "合规/数据隐私", "知识产权/专利"] },
+  { category: "咨询 · 战略", professions: ["管理咨询", "商业分析(BA)", "企业战略", "数字化转型咨询(IT)", "风险咨询(内控/合规)"] },
+  { category: "行业 · 垂类", professions: ["快消管培生", "医药代表", "地产(营销策划)", "教育(教研/教师)", "工艺工程师(制造/半导体)", "质量工程师(SQE/QE)", "临床监查员(CRA)", "门店管培/储备店长"] },
 ];
 
 @Injectable()
