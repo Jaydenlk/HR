@@ -51,9 +51,13 @@ export class RewriterService {
       toolDescription: '基于简历原文与诊断给职业特化改写建议',
       schema: REWRITE_SUGGESTIONS_SCHEMA,
     });
-    // 禁编造兜底:original 非空但不在简历原文中,则归零(视为"新增"类建议)
+    // 禁编造兜底:original 必须是简历原文中真实存在的原句。
+    // 不满足(为空或不在原文)的建议不是"改进已有句子"而是"建议补充",
+    // 归类为 gap_advice 并清空 original,防止被当成可直接粘贴的现成简历句。
     return result.suggestions.map((s) =>
-      s.original && !resumeText.includes(s.original) ? { ...s, original: '' } : s,
+      s.original && resumeText.includes(s.original)
+        ? s
+        : { ...s, original: '', type: 'gap_advice' as const },
     );
   }
 }

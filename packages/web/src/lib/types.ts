@@ -149,7 +149,7 @@ export interface MatchDimensions {
 export interface RewriteSuggestion {
   section: string;
   item_index?: number;
-  type: 'rewrite' | 'add_keywords' | 'restructure' | 'quantify';
+  type: 'rewrite' | 'add_keywords' | 'restructure' | 'quantify' | 'gap_advice';
   priority: 'high' | 'medium' | 'low';
   original: string;
   suggested: string;
@@ -175,10 +175,17 @@ export interface ConventionCheck {
   note: string;
 }
 
+export interface InterviewHook {
+  resumeHit: string; // 简历中的具体命中点/原句
+  interviewQuestion: string; // 面试官很可能据此追问的问题
+  prepDirection: string; // 诚实的准备方向,不教编造
+}
+
 export interface ProfessionStandardResult {
   total_score: number;
   dimensions: ProfessionStandardDimension[];
   conventionChecks: ConventionCheck[];
+  interviewHooks?: InterviewHook[]; // 旧诊断无此字段,故可选
 }
 
 export interface ChatMessage {

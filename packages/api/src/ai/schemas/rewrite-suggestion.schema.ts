@@ -10,7 +10,7 @@ export const REWRITE_SUGGESTIONS_SCHEMA = {
           item_index: { type: 'number' },
           type: {
             type: 'string',
-            enum: ['rewrite', 'add_keywords', 'restructure', 'quantify'],
+            enum: ['rewrite', 'add_keywords', 'restructure', 'quantify', 'gap_advice'],
           },
           priority: {
             type: 'string',
