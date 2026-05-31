@@ -11,6 +11,7 @@ out/
 .claude/worktrees/
 .claude/agent-memory/
 .clone/
+.audit/
 .tools/*
 !.tools/
 !.tools/xhs-bridge.mjs
