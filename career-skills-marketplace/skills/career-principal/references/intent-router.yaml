@@ -65,6 +65,26 @@ intents:
     confidence_gate: "resume_text 字符数 >= 100 且 jd_text 字符数 >= 50"
     fallback: "缺少简历或 JD，只能给出框架性评估 (confidence: low)"
 
+  - name: campus_diagnosis
+    label: "校招简历诊断"
+    trigger_examples:
+      - "帮我看看我的校招简历"
+      - "我应届想投后端，简历怎么样"
+      - "按校招标准诊断一下我的简历"
+      - "我的简历投这个岗位能打几分"
+      - "应届生简历诊断 / 改写"
+      - "校招简历怎么改"
+    required_inputs:
+      - resume_text
+      - target_profession
+    missing_input_questions:
+      resume_text: "请贴上你的简历正文（经历/项目/技能/竞赛都带上），校招诊断要按你的真实内容逐维打分"
+      target_profession: "你想投哪个职业？（如「后端开发」「投行(IBD)」「HRBP」）不确定的话我可以从你简历里推断 1-2 个候选让你选"
+    primary_skill: campus-recruitment-diagnosis
+    secondary_skills: []
+    confidence_gate: "resume_text 字符数 >= 30 且 target_profession 已确定（缺职业则先从简历推断候选并确认）"
+    fallback: "缺简历先索要；职业不明先推断候选确认后再评 (confidence: low)"
+
   - name: career_direction
     label: "职业方向规划"
     trigger_examples:
