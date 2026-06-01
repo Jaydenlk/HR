@@ -76,7 +76,11 @@
 
 ### 3.8 职业标尺融合(解 G7:两套并行职业体系)
 现状两套并行:`knowledge/role-taxonomy/`(roles.yaml 30 角色 / 12 大类,含 hidden_preferences / common_red_flags / interview_focus 权重 / resume_keywords / salary_range_reference)与 `knowledge/campus-recruitment-rubrics/`(91 职业 / 11 大类,5 维评分 + 反模式 + 应届证据 + 本土惯例,全仓最厚)。问题:大类划分不一致、职业覆盖重叠、互不打通,且 91 标尺只被 campus_diagnosis 消费,其余意图(match-diagnosis/jd-analyzer/面试/简历)拿不到职业专属标尺。
-决定:**以 91 campus 标尺为канон主干**,把 role-taxonomy 的增量字段(hidden_preferences/common_red_flags/interview_focus 权重)融进对应职业标尺(无对应的映射或补建),统一大类(以 campus 11 大类为准,role 12 大类做映射表);并把融合后的职业标尺升级为**跨意图共享知识**——career-principal 在 match_diagnosis/analyze_jd/interview_prep/tailor_resume 等意图也按目标职业拉对应标尺,使全流程职业校准一致,而非只在校招诊断里用。保留 campus 的"应届/校招"特化档,社招/通用场景用融合标尺的通用层;索引统一到一处。
+决定(用户 2026-06-01 细化):
+- **质量基准 = 91 campus 标尺(基于 Anthropic 仓库 fork,质量更高),它是канон。** role-taxonomy 质量较次,**只取精华去糟粕**——经质量审视后,选择性把 role 里确有增量价值的内容(hidden_preferences/common_red_flags/interview_focus 中值得的部分)融进对应 91 标尺,**不照单全收**;低质/冗余丢弃。统一大类(以 campus 11 大类为准,role 12 大类做映射)。
+- **范围 = 仅学生场景(校招 + 实习 + 一切学生相关),暂不含社招/通用。** 91 标尺本就是校招标尺(id 皆 `*-campus`),其跨意图共享天然限定在学生求职语境。
+- **跨意图共享(限学生场景)**:career-principal 于 match_diagnosis/analyze_jd/interview_prep/tailor_resume 等意图也按目标职业拉同一套(融合后的)标尺,全流程口径一致,而非只在校招诊断里用。
+- **两难度档 = 用户可选**(机制已存在,本轮强化为代表层显式选择):**严格档**≈几乎直接用 Anthropic 高标准(适合冲大厂);**融合版**稍温柔(适合中小厂/实习)。代表按用户目标(大厂 vs 中小厂·实习)主动建议档位,**选择权交用户**。
 
 ## 4. 实施计划(三批,step→verify)
 
@@ -94,10 +98,10 @@
 9. schema/examples 同步 + 端到端续接 example(campus→提议模拟面试→确认→mock 接 interviewHooks) → **verify**:全 examples 过 schema;validate-all.mjs 全绿。
 
 ### 批3:职业标尺融合(批2 落地后做;先摸两套系统再融)
-10. 深摸 role-taxonomy(30)与 campus-rubrics(91):职业/大类重叠映射、字段差异 → **verify**:产出映射表(role→campus 对应/缺口)+ 11 vs 12 大类对齐方案。
-11. 融合:把 role-taxonomy 增量字段(hidden_preferences/common_red_flags/interview_focus)融进对应 campus 标尺;统一大类;统一索引 → **verify**:每个标尺含融合字段;validate-all 标尺计数/结构校验过;无职业丢失。
-12. 跨意图启用:career-principal 在 match_diagnosis/analyze_jd/interview_prep/tailor_resume 按目标职业拉融合标尺(经 next-intent/coverage 调度)→ **verify**:eval 同一职业在诊断与匹配里用同一套标尺、口径一致。
-13. role-taxonomy 旧引用迁移到融合标尺,清双轨 → **verify**:validate-resource-paths/validate-all 全绿;grep 确认无遗留双轨引用。
+10. 深摸两套 + **质量判定**:摸 role-taxonomy(30)与 campus-rubrics(91)的职业/大类重叠、字段差异;逐项判 role 内容**精华 vs 糟粕**(91 为 Anthropic-fork 质量更高=канон)→ **verify**:产出 role→campus 映射表 + role 精华清单(值得融入)+ 糟粕清单(丢弃)+ 11 vs 12 大类对齐方案。
+11. 选择性融合 + 两难度档:把 role **精华**(非全部)融进对应 91 标尺,统一大类与索引;确保每职业标尺**两难度档清晰可选**(严格≈Anthropic 直用 / 融合稍温柔)→ **verify**:标尺含融入的精华字段且两档齐;validate-all 标尺计数/结构过;无职业丢失;严格档对齐 Anthropic 高标准。
+12. 跨意图启用(限学生场景):career-principal 于 match_diagnosis/analyze_jd/interview_prep/tailor_resume 按目标职业拉同套融合标尺(经 next-intent/coverage 调度),范围限校招+实习+学生相关 → **verify**:eval 同一职业在诊断与匹配用同套标尺、口径一致;非学生场景不误用 campus 标尺。
+13. 难度档用户选择 + 清双轨:代表按用户目标(大厂→严格 / 中小厂·实习→融合)主动建议档位、选择权交用户;role-taxonomy 旧引用迁到融合标尺清双轨 → **verify**:eval 代表会建议/询问难度档;validate-resource-paths/validate-all 全绿;无遗留双轨引用。
 
 ## 5. 验收(evals,质量门)
 - **可安装**:模拟 install 布局后,campus 与各 skill 的资源路径全 resolve(validate-resource-paths.mjs 绿)。
