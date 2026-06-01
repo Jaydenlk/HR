@@ -11,6 +11,7 @@
     "evidence_used",
     "recommendations",
     "risks",
+    "next_actions",
     "cannot_determine"
   ],
   "properties": {
@@ -34,8 +35,61 @@
     },
     "evidence_used": {
       "type": "array",
-      "items": { "type": "object" },
-      "description": "使用的证据列表，每项符合 SkillEvidence 结构"
+      "items": {
+        "type": "object",
+        "required": [
+          "source_type",
+          "source_name",
+          "source_url",
+          "content_excerpt",
+          "freshness",
+          "reason"
+        ],
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "user_resume",
+              "user_input",
+              "jd_text",
+              "jd_url",
+              "knowledge_graph",
+              "market_prior",
+              "web_search",
+              "xhs",
+              "nowcoder",
+              "wechat",
+              "ai_inference",
+              "peer_review"
+            ],
+            "description": "证据来源类型，与 evidence-schema/evidence.schema.json 的 source_type enum 对齐"
+          },
+          "source_name": {
+            "type": "string",
+            "description": "如 '用户简历.pdf'、'Boss直聘'"
+          },
+          "source_url": {
+            "type": ["string", "null"],
+            "description": "可追溯链接，无则 null"
+          },
+          "content_excerpt": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "原文摘录，最多 500 字符"
+          },
+          "freshness": {
+            "type": "string",
+            "enum": ["current", "recent", "stale"],
+            "description": "current: <7天, recent: 7-30天, stale: >30天"
+          },
+          "reason": {
+            "type": "string",
+            "description": "为什么采用这条证据"
+          }
+        },
+        "additionalProperties": true
+      },
+      "description": "使用的证据列表，每项至少含 evidence.schema.json 核心子集 (source_type/source_name/source_url/content_excerpt/freshness/reason)；可携带 SkillEvidence 完整字段"
     },
     "recommendations": {
       "type": "array",
@@ -51,6 +105,35 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "推荐的后续行动步骤"
+    },
+    "suggested_next": {
+      "type": "array",
+      "description": "本意图完成后顺势提议的下一意图（分步、条件触发）；提议+用户确认才执行，默认不自动连跳",
+      "items": {
+        "type": "object",
+        "required": ["next_intent", "reason", "ready_inputs", "priority"],
+        "properties": {
+          "next_intent": {
+            "type": "string",
+            "description": "建议续接的下一意图名（与 router 意图集对齐）"
+          },
+          "reason": {
+            "type": "string",
+            "description": "为何此时提议该意图"
+          },
+          "ready_inputs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "已就绪、可直接复用的入参键（如 resume_text/jd_text/上一意图产出），续接时跳过重复追问"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["recommended", "optional"],
+            "description": "recommended=强相关建议优先;optional=可选续接"
+          }
+        },
+        "additionalProperties": false
+      }
     },
     "follow_up_questions": {
       "type": "array",

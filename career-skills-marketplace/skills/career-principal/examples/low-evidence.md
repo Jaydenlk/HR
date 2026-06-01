@@ -1,9 +1,8 @@
-# 示例：信息不足（低置信度路径）
+# 示例：信息不足（标出处即呈现 + 当场联网 + 收敛 cannot_determine）
 
 ## 场景描述
 
-用户提供了学历背景和目标公司+岗位，但没有 JD 原文、简历、专业、实习经历等关键信息。
-career-principal 按产品原则 1（Ask-before-judging）给出低置信度推断，同时提供今日可执行行动。
+用户给了学历背景和目标公司+岗位，但没有 JD 原文、简历、专业、实习经历。展示口径松绑后的正确做法：**先采集首次最小画像、当场联网核时效信息、标出处即呈现低置信推断（不动辄 cannot_determine）、cannot_determine 只留非人工不可核实项**。
 
 ---
 
@@ -13,16 +12,13 @@ career-principal 按产品原则 1（Ask-before-judging）给出低置信度推�
 
 ---
 
-## career-principal 响应
+## career-principal 响应（摘要）
 
-识别意图：`evaluate_opportunity` + `daily_planning`（复合意图，以 evaluate_opportunity 为主）
-
-检查 required_inputs：
-- `jd_text`：缺失（用户未粘贴 JD 原文）
-- `resume_text`：缺失
-- `user_profile`：部分（仅知道 985 本科，缺专业/实习/毕业时间/城市偏好）
-
-触发产品原则 1（Ask-before-judging）：信息不足，不给精确分数，先声明缺失信息，再给低置信度普适推断，同时给今日行动。
+- **意图**：`evaluate_opportunity`（主）+ `daily_planning`（次）。
+- **首次最小画像**：已知背景=985本科应届、目标=字节产品岗；缺称呼+专业+城市，合并进一次追问（不占多轮）。
+- **缺 JD/简历**：不给精确分数；按"标出处即呈现"给低置信普适推断，**标 market_prior**，不一律塞 cannot_determine。
+- **当场联网**：字节产品岗当季招聘窗口/竞争度属时效信息 → WebSearch（本例假设命中一条社区帖，标 `[实时·未核实·URL·日期]`）。
+- **主动盘点**：按"准备投递"情境点出 ①时间窗、③内推（高价值盲区），写进 next_actions。
 
 ---
 
@@ -30,52 +26,58 @@ career-principal 按产品原则 1（Ask-before-judging）给出低置信度推�
 
 ```json
 {
+  "skill_name": "career-principal",
+  "skill_version": "1.0.0",
   "status": "partial",
   "intent_detected": "evaluate_opportunity",
   "confidence": "low",
-  "skills_invoked": [],
-  "missing_information": [
-    "JD 原文（无法评估这个职位是否值得投）",
-    "简历文本（无法诊断竞争力）",
-    "专业方向（不同专业在字节产品岗的优势差异明显）",
-    "实习经历（是否有互联网/产品相关经验）",
-    "毕业时间（影响岗位层级和薪资区间判断）",
-    "城市偏好（字节各城市 HC 和产品方向不同）"
+  "summary": "[据CV]你 985 本科应届想投字节产品。缺 JD 原文和简历，无法做个性化匹配诊断；以下为标了出处的普适推断 + 今日可执行行动，等你补 JD/简历后再升级为个性化评估。",
+  "dimension_level_visibility": [
+    { "dimension": "字节产品岗通过率", "confidence": "low", "source_type": "market_prior", "basis": "[行业惯例]985本科产品岗通过率约30-40%，普适非个性化" },
+    { "dimension": "当季招聘窗口/竞争度", "confidence": "medium", "source_type": "web_search", "basis": "[实时·未核实·https://example-community/bytedance-2026·2026-06-01]本轮检索社区口径" }
   ],
-  "cannot_determine": [
-    "这个 JD 是否值得投（没有 JD 原文，无法判断）",
-    "用户简历与字节产品岗的匹配度（没有简历）",
-    "精确的通过率或竞争力评分"
+  "skills_invoked": [
+    { "skill_name": "opportunity-intelligence", "status": "skipped", "result_summary": "缺 JD 原文，无法做机会评估，待用户补充", "confidence": "low" }
   ],
-  "aggregated_result": {
-    "summary": "当前信息不足以给出个性化判断。以下为基于通用市场认知的普适推断，非针对你的个性化评估，请参考时注意边界。",
-    "key_findings": [
-      "985 本科在字节产品岗的一般通过率约 30-40%（基于市场通用认知，非个性化评估）",
-      "字节产品岗竞争激烈，通常要求有互联网实习或产品相关项目经验",
-      "简历一般不是绝对障碍，但需要有能体现产品思维的亮点经历"
-    ],
-    "evidence_used": [
-      {
-        "source_type": "market_prior",
-        "content": "985本科在字节产品岗的一般通过率约30-40%（基于市场通用认知，非个性化评估）",
-        "note": "此为普适市场数据，不代表你的个人情况"
-      }
-    ],
-    "recommendations": [
-      "今天先找到目标 JD 原文，粘贴给我做具体分析",
-      "整理你的简历初稿（即使不完整也可以先给我看），帮你诊断差距"
-    ]
-  },
+  "evidence_used": [
+    {
+      "source_type": "market_prior", "source_name": "行业惯例：校招产品岗通过率",
+      "source_url": null, "content_excerpt": "985本科在头部互联网产品岗一般通过率约30-40%（普适认知，非个性化）",
+      "freshness": "stale", "reason": "缺个性化数据时给普适锚点，标明非针对本人"
+    },
+    {
+      "source_type": "web_search", "source_name": "社区招聘讨论帖",
+      "source_url": "https://example-community/bytedance-2026", "content_excerpt": "字节2026校招产品岗竞争较激烈，多要求互联网实习/产品项目",
+      "freshness": "current", "reason": "招聘窗口/竞争度为时效信息，本轮当场联网核实（示例 URL）"
+    }
+  ],
+  "recommendations": [
+    "[行业惯例]字节产品岗通常要求互联网实习或产品相关项目，建议先盘点你简历里能体现产品思维的经历",
+    "[推断]「简历一般」未必是硬障碍，关键看有无可讲的亮点经历——补给我看才能判断"
+  ],
+  "risks": [
+    "[推断]以上通过率为普适数据，依赖「无个性化信息」前提，补 JD/简历后可能大幅偏移"
+  ],
   "next_actions": [
-    "找到目标 JD 原文，复制完整文本",
-    "准备简历初稿（框架即可，不需要完整）",
-    "在牛客搜索"字节 产品经理 面经"，了解近期面试流程"
+    "今天找到目标 JD 原文，完整复制给我做具体分析",
+    "准备简历初稿（框架即可），帮你诊断差距",
+    "顺手核①字节本届产品岗招聘窗口（提前批是否已开）与③有无可靠内推渠道——这两项错过损失最大"
+  ],
+  "suggested_next": [
+    { "next_intent": "match_diagnosis", "reason": "补上 JD 与简历后，把通过率从普适推断升级为个性化匹配诊断", "ready_inputs": ["user_profile"], "priority": "recommended" },
+    { "next_intent": "find_referral_path", "reason": "字节产品岗内推可显著提通过率，值得投递前先找渠道", "ready_inputs": [], "priority": "optional" }
   ],
   "follow_up_questions": [
-    "能粘贴你目标的那个 JD 吗？",
-    "你的专业和实习经历是什么？"
+    "能粘贴你目标的那个 JD 吗？你的专业和实习经历是什么？"
   ],
-  "why_no_precise_score": "缺少 JD 原文和简历，无法做个性化匹配诊断，给精确分数会误导判断"
+  "cannot_determine": [
+    "你简历里的真实实习/项目细节（只有你本人知道，简历未提供前无法评估）"
+  ],
+  "missing_information": [
+    "JD 原文（无法评估这个职位是否值得冲）",
+    "简历文本（无法诊断个人竞争力）",
+    "专业方向 / 城市偏好（影响字节产品岗优势判断）"
+  ]
 }
 ```
 
@@ -83,19 +85,7 @@ career-principal 按产品原则 1（Ask-before-judging）给出低置信度推�
 
 ## 说明
 
-confidence 为 `low` 的原因：
-- 没有 JD 原文，无法评估"这个 JD 值不值得投"
-- 没有简历，无法评估个人竞争力
-- 仅有 985 本科这一项背景信息，推断依赖市场通用认知（market_prior），非个性化数据
-
-next_actions 的设计原则：
-- 三个行动今天都可以完成，不依赖外部等待
-- 第三个行动（牛客面经）不需要等简历或 JD，用户现在就能做
-- 不给用户压力，给的是"即使简历不完整也可以先给我看"
-
-follow_up_questions 限制在 2 个：
-- 优先问 JD（最影响判断的信息）
-- 同时问专业+实习（合并为一个问题，减少打扰）
-- 不追问毕业时间/城市偏好等次要信息，等用户粘贴 JD 后再补充
-
-status 为 `partial`：核心分析（个性化匹配诊断）未完成，但给出了可执行的今日行动。
+- **标出处即呈现**：通过率推断标 `market_prior`、当季竞争标 `web_search`，按出处正常输出，**不因是推断就一律压进 cannot_determine**——这是口径松绑的核心。
+- **cannot_determine 收敛**：只留「简历里的真实实习/项目细节」这类**非人工不可核实**项；"这个 JD 值不值得投""精确通过率"不再塞进去，而是落进 `missing_information`（补输入即可解）。
+- **当场联网**：招聘窗口/竞争度是时效信息，先 WebSearch 再说，标 `[实时·未核实·URL·日期]`，无网才降级。
+- **追问合并**：JD + 专业/实习合并为一个问题，不超过2项，不占多轮。

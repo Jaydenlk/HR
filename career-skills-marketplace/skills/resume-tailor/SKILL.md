@@ -29,6 +29,45 @@ allowed-tools: [Read, Grep]
 
 ---
 
+## 改写二分模型（决定何时标 PASS、何时才要用户确认）
+
+借用 campus 校招诊断的同一套二分，**杜绝把所有合理扩写都推给用户确认**（那是过度人工核实，违背"句句有源"底线 2）。每条改写只能落入下面两类之一：
+
+- **改进型（可逐字 / 逐事实溯源 → 标出处即 `PASS`，绝不标 NEED_USER_CONFIRM）**
+  `type` ∈ `rewrite` / `quantify` / `restructure` / `add_keywords`。只对简历**已有原句**做表达、结构、关键词或量化的优化。
+  - `original` **必须是简历原文一字不差的子串**（区分空白）；
+  - `modified` **不得加入原句没有体现的能力 / 动作 / 技术名词 / 变量**（「做了缓存」≠「布隆过滤器 / 多级缓存」；「参与尽调」≠「独立负责尽调」）；
+  - **数字铁律**：`modified` 里每个具体数字都要能在简历原文**逐字找到**；简历没有的数字一律写 `[具体数字]` 占位，**绝不填具体数值**（反例：「回收约300份」不得改成「发放350份、回收率86%」）；
+  - 满足以上即 **`fabrication_check: PASS`**，`source` 标 `[据CV]`（`source_type: user_resume`）。语序重组、关键词强化、措辞优化、STAR 化等只要能逐字 / 逐事实回到原文，都是 PASS，**不需要任何用户确认**。
+
+- **建议补充型（原材料没有、非用户本人不可核实 → 才走确认）**
+  `type` 必须用 `gap_advice`。凡简历**没有**、且不是你能替用户核实的内容——新数字、没做过的技术 / 项目 / 实习、未发生的成果——一律走此类，**绝不混进改进型当作已具备补进 `modified`**。
+  - `original` **必须为空字符串** `''`；
+  - `modified` 写成**给候选人的行动建议**（「若你确实做过 X，可这样描述…；否则先补齐 X 再写入」），**绝不写成可直接粘贴的成品句**；
+  - `reason` 必须标注「**面试穿帮风险：高——需你真实具备后再写入**」；
+  - 标 **`fabrication_check: NEED_USER_CONFIRM`**。
+
+**收敛红线**：`NEED_USER_CONFIRM` 只能出现在 `gap_advice` 上。任何能在原材料里逐字 / 逐事实溯源的改写都必须是 `PASS`——把可溯源的优化句标成 NEED_USER_CONFIRM 即为违规（过度人工核实）。
+
+---
+
+## 固定标源标签（内联，生成时即绑定来源）
+
+每处改写的来源在**生成那一刻就内联标注**（优于事后补标），用下面这套固定标签，与全仓口径统一：
+
+| 标签 | source_type | 何时用 |
+|------|-------------|--------|
+| `[据JD]` | `jd_text` | 改写理由引用了目标 JD 的要求 |
+| `[据CV]` | `user_resume` | 改写内容溯源到用户简历 / 画像原文（改进型几乎全是这个） |
+| `[据知识库]` | `knowledge_graph` | 引用了岗位标准关键词等知识文件 |
+| `[行业惯例]` | `market_prior` | 依据中国简历通行写法（如 STAR、动词开头） |
+| `[推断]` | `ai_inference` | 基于原文的合理推断（仍须能指回原文依据） |
+| `[实时·未核实·URL·日期]` | `web_search` | 本轮真 WebFetch 过的时效信息（本 skill 一般不涉及） |
+
+`source` 字段用 `[据CV]` / `[据JD]` 标出处即可，**不得编造**：标 `[据CV]/[据JD]` 的必须能定位到原文片段；标 `[实时·URL]` 的 URL 必须本轮真访问过。
+
+---
+
 ## 输入要求
 
 | 参数 | 必须 | 说明 |
@@ -42,23 +81,23 @@ allowed-tools: [Read, Grep]
 
 ## 输出格式
 
-每处修改以如下结构输出：
+每处修改以如下结构输出（`source` 用固定标源标签内联标注）：
 
 ```
 ## 修改 N：[section 名称]
 
-- **原文（original）**：[原始内容]
-- **改写（modified）**：[改写后内容]
+- **原文（original）**：[原始内容，改进型为原文一字不差子串；gap_advice 为空]
+- **改写（modified）**：[改写后内容；gap_advice 写成行动建议而非成品句]
 - **修改理由（reason）**：[说明为何这样改，关联 JD 的哪项要求]
-- **来源追溯（source）**：[指向原始画像或简历中的哪条信息]
-- **fabrication_check**：PASS / NEED_USER_CONFIRM
+- **来源追溯（source）**：[据CV]/[据JD]/[据知识库]/[行业惯例]/[推断] —— 指向原始材料的哪条信息
+- **fabrication_check**：PASS（改进型，可溯源）/ NEED_USER_CONFIRM（仅 gap_advice）
 
 ---
 ```
 
-`fabrication_check` 取值规则：
-- `PASS`：改写内容 100% 来自原始材料，无任何推断或补充
-- `NEED_USER_CONFIRM`：涉及合理推断（如将"项目经验"扩展为具体职责描述），需用户确认
+`fabrication_check` 取值规则（严格对应改写二分模型）：
+- `PASS`：改进型——`original` 是简历原文逐字子串、`modified` 未引入原句没有的能力 / 数字。**所有能逐字 / 逐事实溯源的优化都标 PASS，不推给用户确认**。
+- `NEED_USER_CONFIRM`：**仅** `gap_advice`——简历没有、非用户本人不可核实的新数字 / 没做过的技术 / 未发生的经历，需用户真实具备后再写入。
 
 ---
 
@@ -108,6 +147,25 @@ allowed-tools: [Read, Grep]
 
 ---
 
+## 交付前 verify（确定性兜底，交付给用户之前必须过）
+
+把所有改写建议交付前，先接**确定性防编造校验脚本**做机械兜底（子串 + 数字校验，不调 AI、可复现）：
+
+1. **确定性兜底**：有 `Bash` 工具时跑 `../_career-skills-shared/scripts/check_fabrication.mjs`，传入简历原文 + 改写建议 JSON。它对改进型逐条机械校验「`original` 是否是简历逐字子串」「`modified` 里的 `\d{2,}` 数字是否都在简历中出现」「`gap_advice` 的 `original` 是否为空」。
+   - 调用（两种皆可）：
+     ```bash
+     node ../_career-skills-shared/scripts/check_fabrication.mjs <resume.txt> <candidates.json>
+     # 或 stdin：字段名兼容 resumeText/resume_text、suggestions/candidates，候选项含 original/suggested(或 modified→映射为 suggested)/type
+     ```
+   - 退出码 `0` = 全过；`1` = 有违规（stdout 给出违规下标数组 `{"violations":[...]}`）。**任何一条不过 → 该条降级为 `gap_advice` 或把数字改回 `[具体数字]` 占位后重交付**，不得带违规交付。
+   - 无 `Bash` 工具时，按下面人工二招逐条过。
+2. **逐条引语回溯**：脚本只抓「伪造数字」和「凭空原句」，**抓不到无数字的能力 / 动词夸大**（「参与」→「主导」、「用了缓存」→「设计多级缓存」）。对每条改进型，把 `modified` 相对原文**新增的实质内容**列出来，凡原文无支撑 → 打回降级为 `gap_advice`。把握不准从严。
+3. **二分红线复查**：每条 `gap_advice` 的 `original` 为空且带「面试穿帮风险：高」标注；`NEED_USER_CONFIRM` 只出现在 `gap_advice` 上，没有把可溯源优化句误标确认的。
+
+- **verify**：脚本退出码 `0`（或无 Bash 时人工二招过）✅；可溯源改写一律 `PASS` 未被误推确认 ✅；每条 `gap_advice` 结构合规 ✅。
+
+---
+
 ## 证据链保留
 
 每次改写任务结束后，输出**证据链摘要**：
@@ -117,9 +175,9 @@ allowed-tools: [Read, Grep]
 
 | 改写编号 | 原始证据位置 | fabrication_check |
 |----------|-------------|-------------------|
-| 修改 1   | 原文第 3 段工作经历 | PASS |
-| 修改 2   | 用户画像 skills.technical | PASS |
-| 修改 3   | 原文第 2 段项目描述（推断扩展） | NEED_USER_CONFIRM |
+| 修改 1   | [据CV] 原文第 3 段工作经历 | PASS |
+| 修改 2   | [据CV] 用户画像 skills.technical | PASS |
+| 修改 3   | [gap_advice] 简历无此经历，需用户真实具备 | NEED_USER_CONFIRM |
 ```
 
 ## 知识图谱引用
@@ -141,6 +199,6 @@ allowed-tools: [Read, Grep]
 - 追问：「请提供目标职位的 JD，以便为您做针对特定岗位的改写」
 
 ### 出处-思考-观点 (Source-Reason-Opinion)
-- Source: 每处改写的 `source` 字段必须指向用户原始简历或画像中的具体位置（如「原文第3段工作经历」）
+- Source: 每处改写的 `source` 字段用固定标源标签（`[据CV]`/`[据JD]` 等）内联指向用户原始简历或画像中的具体位置（如「[据CV] 原文第3段工作经历」）
 - Reasoning: `reason` 字段体现「原文表述 X → 关联 JD 要求 Y → 改写为 Z」的完整推理链
-- Opinion: `fabrication_check` 标注改写可信度（PASS 为事实，NEED_USER_CONFIRM 为推断），`overall_assessment.honest_gaps` 诚实列出无法通过改写弥补的差距
+- Opinion: `fabrication_check` 标注改写归类——`PASS` 为可逐字 / 逐事实溯源的改进型（**不推用户确认**），`NEED_USER_CONFIRM` 仅用于 `gap_advice`（简历没有、非用户不可核实，需其真实具备后再写入）；`overall_assessment.honest_gaps` 诚实列出无法通过改写弥补的差距

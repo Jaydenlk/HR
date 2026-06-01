@@ -138,6 +138,56 @@ if (unrouted.length > 0) console.log(`  Unrouted: ${unrouted.join(', ')}`);
 const intentCount = (routerContent.match(/^  - name:/gm) || []).length;
 console.log(`  Intents: ${intentCount}`);
 
+// === 6b. Intent / Schema Consistency (spec §3.7) ===
+// router 意图集 == career-principal output_schema.json intent_detected enum 集。
+// `unknown` 是 schema 侧的兜底哨兵（非可路由意图），允许它作为 enum 额外项；
+// 其余任何差集即不一致 → FAIL，并打印 router-only / enum-only 差集。
+console.log('\n=== Intent / Schema Consistency ===');
+const routerIntents = new Set(
+  [...routerContent.matchAll(/^  - name:\s*(\S+)/gm)].map(m => m[1])
+);
+const cpSchema = JSON.parse(
+  readFileSync(join(skillsDir, 'career-principal', 'output_schema.json'), 'utf-8')
+);
+const intentEnum = new Set(cpSchema.properties?.intent_detected?.enum || []);
+const ENUM_SENTINELS = new Set(['unknown']); // 非可路由的兜底哨兵
+const routerOnly = [...routerIntents].filter(i => !intentEnum.has(i));
+const enumOnly = [...intentEnum].filter(i => !routerIntents.has(i) && !ENUM_SENTINELS.has(i));
+const consistencyOk = routerOnly.length === 0 && enumOnly.length === 0;
+console.log(`  Router intents: ${routerIntents.size}  |  enum: ${intentEnum.size} (含哨兵 ${[...intentEnum].filter(i => ENUM_SENTINELS.has(i)).join(',') || 'none'})`);
+if (routerOnly.length > 0) console.log(`  ROUTER-ONLY (enum 缺): ${routerOnly.join(', ')}`);
+if (enumOnly.length > 0) console.log(`  ENUM-ONLY (router 缺): ${enumOnly.join(', ')}`);
+check('Intent set == intent_detected enum (sentinel `unknown` exempt)', consistencyOk);
+
+// === 6c. Output Schema Structure (spec §3.7) ===
+// career-principal output_schema.json 含合法 suggested_next；
+// base schema 含 suggested_next 且 next_actions 进 required。
+console.log('\n=== Output Schema Structure ===');
+function suggestedNextOk(schema) {
+  const sn = schema.properties?.suggested_next;
+  if (!sn || sn.type !== 'array') return false;
+  const item = sn.items;
+  if (!item || item.type !== 'object') return false;
+  const req = new Set(item.required || []);
+  const props = new Set(Object.keys(item.properties || {}));
+  const fields = ['next_intent', 'reason', 'ready_inputs', 'priority'];
+  return fields.every(f => req.has(f) && props.has(f));
+}
+const cpSnOk = suggestedNextOk(cpSchema);
+if (!cpSnOk) console.log('  CP FAIL: suggested_next missing/invalid (need next_intent/reason/ready_inputs/priority)');
+check('career-principal: suggested_next 结构合法', cpSnOk);
+
+const baseSchema = JSON.parse(
+  readFileSync(join(root, 'shared', 'output-schema', 'skill-output-base.schema.json'), 'utf-8')
+);
+const baseReq = new Set(baseSchema.required || []);
+const baseHasSn = !!baseSchema.properties?.suggested_next;
+const baseNextActionsReq = baseReq.has('next_actions');
+if (!baseHasSn) console.log('  BASE FAIL: suggested_next field missing');
+if (!baseNextActionsReq) console.log('  BASE FAIL: next_actions not in required');
+check('base schema: suggested_next 字段存在', baseHasSn);
+check('base schema: next_actions ∈ required', baseNextActionsReq);
+
 // === 7. Knowledge Graph ===
 console.log('\n=== Knowledge Graph ===');
 let t1 = 0, t2 = 0, t3 = 0;

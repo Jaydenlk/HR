@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "CareerPrincipalOutput",
+  "description": "求职主理人统一输出。扁平结构，复用 shared/output-schema/skill-output-base.schema.json 顶层字段，并承载意图识别 / 编排过程 / 跨意图续接（suggested_next）。每条主张内联固定标源标签：[据JD]/[据CV]/[据知识库]/[行业惯例]/[推断]/[实时·未核实·URL·日期]。",
   "type": "object",
   "required": [
     "skill_name", "skill_version", "summary", "confidence",
@@ -11,41 +12,136 @@
   "properties": {
     "skill_name": { "const": "career-principal" },
     "skill_version": { "type": "string", "default": "1.0.0" },
-    "summary": { "type": "string", "description": "综合结论（中文，200字以内）" },
+    "summary": {
+      "type": "string",
+      "description": "综合结论（中文）。反映最关键维度的置信，而非全局最低值；每条主张内联标源标签。"
+    },
     "confidence": {
       "type": "string",
       "enum": ["high", "medium", "low", "insufficient"],
-      "description": "综合置信度，取所有 sub-skill 置信度的最低值"
+      "description": "主结论置信度 = 最关键维度的置信度（不再用全局 min() 连坐）。分维度置信见 dimension_level_visibility。"
+    },
+    "dimension_level_visibility": {
+      "type": "array",
+      "description": "分维度标源标置信（启用项，强制）：综合结论按维度/子结论分别给 confidence + 来源，只在确有跨维度依赖时局部降级。",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "confidence", "source_type", "basis"],
+        "properties": {
+          "dimension": { "type": "string", "description": "维度/子结论名（如「硬性要求匹配」「薪资合理性」）" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low", "insufficient"] },
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "user_resume", "user_input", "jd_text", "jd_url", "knowledge_graph",
+              "market_prior", "web_search", "xhs", "nowcoder", "wechat",
+              "ai_inference", "peer_review"
+            ],
+            "description": "该维度结论的主要证据来源类型，对应内联标源标签"
+          },
+          "basis": { "type": "string", "description": "该维度置信的依据（落到具体证据/原文片段）" }
+        },
+        "additionalProperties": false
+      }
     },
     "evidence_used": {
       "type": "array",
-      "items": { "type": "object" },
-      "description": "所有 sub-skill 的证据合并去重"
+      "description": "使用的证据列表，每项至少含 evidence.schema.json 来源子集（source_type/source_name/source_url/content_excerpt/freshness/reason）；可携带 SkillEvidence 完整字段。所有 sub-skill 证据合并去重。",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_type", "source_name", "source_url",
+          "content_excerpt", "freshness", "reason"
+        ],
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "user_resume", "user_input", "jd_text", "jd_url", "knowledge_graph",
+              "market_prior", "web_search", "xhs", "nowcoder", "wechat",
+              "ai_inference", "peer_review"
+            ],
+            "description": "证据来源类型，与 evidence-schema/evidence.schema.json 的 source_type enum 对齐"
+          },
+          "source_name": {
+            "type": "string",
+            "description": "如 '用户简历'、'JD原文'、'company-taxonomy/companies.seed.yaml#tencent'"
+          },
+          "source_url": {
+            "type": ["string", "null"],
+            "description": "可追溯链接，无则 null；标 web_search 的 URL 必须本轮真 WebFetch 过"
+          },
+          "content_excerpt": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "原文摘录，最多 500 字符"
+          },
+          "freshness": {
+            "type": "string",
+            "enum": ["current", "recent", "stale"],
+            "description": "current: <7天, recent: 7-30天, stale: >30天"
+          },
+          "reason": {
+            "type": "string",
+            "description": "为什么采用这条证据"
+          }
+        },
+        "additionalProperties": true
+      }
     },
     "recommendations": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "行动建议列表"
+      "description": "行动建议列表（给策略/路径/行动，不当裁判打分）"
     },
     "risks": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "风险提醒"
+      "description": "风险提醒（含推断所依赖前提的边界）"
     },
     "next_actions": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "建议用户采取的下一步行动"
+      "description": "建议用户今天就能采取的下一步行动"
+    },
+    "suggested_next": {
+      "type": "array",
+      "description": "本意图完成后顺势提议的下一意图（分步、条件触发）。续接=提议+用户确认才执行，默认不自动连跳。候选与触发条件见 references/next-intent-graph.yaml。",
+      "items": {
+        "type": "object",
+        "required": ["next_intent", "reason", "ready_inputs", "priority"],
+        "properties": {
+          "next_intent": {
+            "type": "string",
+            "description": "建议续接的下一意图名（必须在 intent_detected enum 内）"
+          },
+          "reason": {
+            "type": "string",
+            "description": "为何此时提议该意图（讲对用户的价值）"
+          },
+          "ready_inputs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "已就绪、可直接复用的入参键（如 resume_text/jd_text/interviewHooks/上一意图产出），续接时跳过重复追问"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["recommended", "optional"],
+            "description": "recommended=情境强相关、应主动点出；optional=锦上添花、用户问起或顺带提一句"
+          }
+        },
+        "additionalProperties": false
+      }
     },
     "follow_up_questions": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "追问问题列表"
+      "description": "追问问题列表（最多2个/轮；会话级输入复用，已得入参不重复追问）"
     },
     "cannot_determine": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "因信息不足无法判断的事项"
+      "description": "仅含「非人工不可核实」项（用户本人才知道的真实经历/GPA/未公开内部薪资档）；其余标出处即可，不动辄 cannot_determine。无则 []。"
     },
     "status": {
       "type": "string",
@@ -53,10 +149,22 @@
     },
     "intent_detected": {
       "type": "string",
+      "description": "识别到的主意图，必须与 references/intent-router.yaml 的意图集一致（含 campus_diagnosis + Pack A/B/C/D）。",
       "enum": [
-        "analyze_jd", "tailor_resume", "match_diagnosis", "career_direction",
-        "interview_prep", "interview_debrief", "offer_evaluation", "company_check",
-        "salary_check", "find_interview_experience", "write_message", "daily_planning",
+        "analyze_jd", "tailor_resume", "match_diagnosis", "campus_diagnosis",
+        "career_direction", "interview_prep", "interview_debrief",
+        "offer_evaluation", "company_check", "salary_check",
+        "find_interview_experience", "write_message", "daily_planning",
+        "evaluate_opportunity", "plan_application_strategy", "track_applications",
+        "plan_today", "write_networking_message", "find_referral_path",
+        "write_follow_up",
+        "mock_interview", "build_question_bank", "get_company_playbook",
+        "build_stories", "prepare_technical", "prepare_case",
+        "check_market", "find_xhs_interview", "find_nowcoder_interview",
+        "compare_offers", "audit_company_risk", "analyze_industry",
+        "plan_career", "evaluate_transition", "identify_skill_gaps",
+        "build_learning_roadmap", "build_personal_brand", "suggest_portfolio",
+        "grad_school_vs_job", "find_city_industry_fit",
         "unknown"
       ]
     },
@@ -79,6 +187,7 @@
     },
     "conflict_markers": {
       "type": "array",
+      "description": "多源冲突时显式并列多方 + 标各自口径，不判 cannot_determine、不取中位数硬编。",
       "items": {
         "type": "object",
         "properties": {
@@ -90,5 +199,6 @@
         }
       }
     }
-  }
+  },
+  "additionalProperties": true
 }

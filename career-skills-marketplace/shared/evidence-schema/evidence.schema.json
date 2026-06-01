@@ -28,6 +28,7 @@
         "jd_text",
         "jd_url",
         "knowledge_graph",
+        "market_prior",
         "web_search",
         "xhs",
         "nowcoder",
@@ -35,7 +36,7 @@
         "ai_inference",
         "peer_review"
       ],
-      "description": "证据来源类型"
+      "description": "证据来源类型（market_prior=行业惯例/市场先验，标签 [行业惯例]）"
     },
     "source_name": {
       "type": "string",

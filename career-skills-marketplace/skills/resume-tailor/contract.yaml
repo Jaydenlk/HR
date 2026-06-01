@@ -28,7 +28,10 @@ inputs:
       allow_inference:
         type: boolean
         default: false
-        description: 是否允许合理推断（推断项标记 NEED_USER_CONFIRM）
+        description: >
+          是否允许基于原文的合理推断。注意：可逐字/逐事实溯源的改写一律标 PASS，
+          不因"推断"而推给用户确认；NEED_USER_CONFIRM 仅用于 gap_advice（简历没有、
+          非用户本人不可核实的新数字/技术/经历）。
 
 outputs:
   modifications:

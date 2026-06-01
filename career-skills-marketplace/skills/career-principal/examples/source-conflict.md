@@ -1,8 +1,8 @@
-# 示例：数据冲突（JD 信息与知识图谱不一致）
+# 示例：多源冲突（显式并列，不取中位数、不判 cannot_determine）
 
 ## 场景描述
 
-用户提供了一份 JD，其中的薪资范围与 knowledge/ 目录中的静态薪资数据存在明显差异。career-principal 标记冲突，不自动解决，由用户判断。
+用户的 JD 薪资范围与知识库静态薪资数据、本轮联网当季口径三方打架。career-principal **显式并列三方 + 标各自口径**（填 `conflict_markers`），不替用户硬编中位数，把判断权交还用户。
 
 ---
 
@@ -11,58 +11,16 @@
 **用户消息**：
 > 帮我分析这个数据分析师的 JD，尤其是薪资合不合理
 
-**jd_text**：
-```
-职位名称：数据分析师（用户行为方向）
-公司：某在线教育公司（已上市）
-工作地点：上海
-
-岗位职责：
-1. 负责用户行为数据的采集、清洗和分析
-2. 构建用户分层模型，支持精细化运营
-3. 设计数据报表体系，为业务团队提供决策支持
-4. 参与 A/B 测试设计和结果分析
-
-任职要求：
-1. 本科及以上，统计、数学、计算机相关专业优先
-2. 2年以上数据分析经验，熟练使用 SQL
-3. 熟悉 Python 数据分析（pandas、numpy）
-4. 了解用户行为分析方法（漏斗、留存、RFM等）
-
-薪资范围：12-18K，13薪
-```
+**jd_text**（节选）：数据分析师（用户行为方向），上海，已上市在线教育公司；要求2年以上、SQL/Python/用户行为分析；薪资 12-18K，13薪。
 
 ---
 
-## career-principal 执行过程
+## 执行过程（摘要）
 
-### 步骤1：调用 jd-analyzer
-
-jd-analyzer 正常解析 JD，输出：
-- 技能要求：SQL（必须）、Python（必须）、A/B测试（必须）、用户行为分析框架（必须）
-- 经验要求：2年以上
-- 薪资：12-18K，13薪（年薪 156K-234K）
-- 隐含信号：在线教育行业，上市公司，节奏可能不如纯互联网快
-
-### 步骤2：调用 source-quality-auditor（薪资核查）
-
-source-quality-auditor 查询 knowledge/ 目录：
-
-```
-knowledge/salary-data 中的记录（上海，数据分析师，2年经验，2024年）：
-  median: 22K
-  range: 18-30K
-  note: "上海互联网/在线教育行业，SQL+Python，2年经验，市场中位数约22K"
-```
-
-**发现冲突**：
-- JD 声称：12-18K
-- knowledge/ 数据：18-30K（中位数22K）
-- 差距：JD 上限（18K）等于 knowledge 下限（18K），整体偏低约 20-40%
-
-### 步骤3：标记冲突，不解决
-
-career-principal 填写 `conflict_markers`，不猜测哪个更准确。
+- `jd-analyzer` 解析：技能 SQL/Python/A-B测试/用户行为分析（漏斗/留存/RFM）必须；2年经验；薪资 12-18K，13薪（年薪约 156K-234K）。
+- 薪资核查：知识库 `salary-data`（上海数据分析师2年，stale）记录中位数 22K、区间 18-30K。
+- **当场联网**（薪资属时效信息）：WebSearch 命中一条当季招聘聚合，口径约 15-22K（标 `[实时·未核实·URL·日期]`）。
+- 三方口径不一致 → 显式并列，填 `conflict_markers`，不解决。
 
 ---
 
@@ -70,58 +28,65 @@ career-principal 填写 `conflict_markers`，不猜测哪个更准确。
 
 ```json
 {
+  "skill_name": "career-principal",
+  "skill_version": "1.0.0",
   "status": "success",
   "intent_detected": "analyze_jd",
   "confidence": "medium",
+  "summary": "[据JD]这个数据分析师 JD 要求清晰、技能栈标准；薪资 12-18K 与多个市场口径存在差距：[据知识库]中位数约22K(stale) / [实时·未核实·URL·2026-06-01]当季约15-22K。三方口径并列供你判断，建议面试时核实完整薪酬结构。",
+  "dimension_level_visibility": [
+    { "dimension": "岗位要求解析", "confidence": "high", "source_type": "jd_text", "basis": "[据JD]职责与任职要求原文清晰" },
+    { "dimension": "薪资合理性", "confidence": "medium", "source_type": "web_search", "basis": "三方口径冲突，已并列；本轮联网口径为当季但单源未交叉验证" }
+  ],
   "skills_invoked": [
+    { "skill_name": "jd-analyzer", "status": "completed", "result_summary": "解析技能/经验/薪资，上海数据分析师2年", "confidence": "high" },
+    { "skill_name": "source-quality-auditor", "status": "completed", "result_summary": "薪资三方口径冲突，已标记未解决", "confidence": "medium" }
+  ],
+  "evidence_used": [
     {
-      "skill_name": "jd-analyzer",
-      "status": "completed",
-      "result_summary": "JD解析完成：SQL+Python数据分析，用户行为方向，2年经验，上海，薪资12-18K",
-      "confidence": "high"
+      "source_type": "jd_text", "source_name": "JD原文",
+      "source_url": null, "content_excerpt": "薪资范围：12-18K，13薪",
+      "freshness": "current", "reason": "薪资判断的第一手口径（公司给定）"
     },
     {
-      "skill_name": "source-quality-auditor",
-      "status": "completed",
-      "result_summary": "薪资核查发现冲突：JD薪资范围与知识库数据存在明显差异，已标记，未解决",
-      "confidence": "medium"
+      "source_type": "knowledge_graph", "source_name": "knowledge/salary-data 上海数据分析师2年",
+      "source_url": null, "content_excerpt": "中位数约22K，区间18-30K（社区汇编，非官方）",
+      "freshness": "stale", "reason": "市场参考口径之一，已标 stale" 
+    },
+    {
+      "source_type": "web_search", "source_name": "当季招聘聚合（示例）",
+      "source_url": "https://example-jobs/sh-data-analyst-2026", "content_excerpt": "上海数据分析师2年经验当季约15-22K",
+      "freshness": "current", "reason": "薪资属时效信息，本轮当场联网核实当季口径"
     }
   ],
-  "aggregated_result": {
-    "summary": "这个 JD 的岗位要求清晰，技能栈标准，但薪资范围（12-18K）与参考数据（18-30K）存在明显差异，建议在面试中核实。以下分析已标注此冲突。",
-    "key_findings": [
-      "岗位要求：SQL必须、Python必须、A/B测试必须、用户行为分析框架（漏斗/留存/RFM）必须",
-      "上市公司在线教育背景，节奏通常比创业公司稳定",
-      "薪资范围12-18K与参考数据存在差距（见冲突标记）",
-      "13薪，实际年薪156K-234K范围"
-    ],
-    "recommendations": [
-      "如果有兴趣投递，建议在面试时主动询问薪资结构（是否有绩效奖金、期权等补充说明）",
-      "薪资谈判时可参考市场数据（18-30K区间），但需注意可能是公司政策约束",
-      "上市公司在线教育赛道的增长前景需独立评估，不在本次分析范围内"
-    ],
-    "evidence": [
-      "[jd-analyzer] JD原文：薪资范围 12-18K，13薪",
-      "[source-quality-auditor] knowledge/salary-data：上海数据分析师2年经验，参考范围18-30K，中位数22K"
-    ],
-    "conflict_markers": [
-      {
-        "field": "薪资范围",
-        "source_a": "JD原文",
-        "value_a": "12-18K（月薪），13薪，年薪约156K-234K",
-        "source_b": "knowledge/salary-data（静态参考数据）",
-        "value_b": "18-30K（月薪），中位数约22K，年薪约216K-360K"
-      }
-    ]
-  },
-  "missing_information": [],
-  "cannot_determine": [
-    "薪资差异的原因（是公司政策、地区调整、还是数据时效性问题）",
-    "该公司是否有额外的绩效奖金或股权补充"
+  "recommendations": [
+    "[据JD]岗位要求标准，若有兴趣可投；[行业惯例]面试时主动问清薪酬结构（绩效/年终/期权是否计入）",
+    "[推断]三方口径差距可能源于公司策略性压低或统计范围不同，不宜单凭某一口径下结论"
   ],
-  "next_steps": [
-    "如果决定投递，面试时询问完整薪酬结构（固定薪+绩效+其他补贴）",
-    "知识库薪资数据有时效性限制，建议通过 offer 阶段的市场调研进一步确认"
+  "risks": [
+    "[实时·未核实·URL·2026-06-01]联网口径为单一来源、未交叉验证，仅作参考",
+    "[据知识库]知识库薪资为 stale，可能滞后于当季行情"
+  ],
+  "next_actions": [
+    "若决定投递，面试时询问完整薪酬结构（固定薪+绩效+其他补贴）",
+    "拿到 offer 阶段再以多平台当季数据复核薪资水位"
+  ],
+  "suggested_next": [
+    { "next_intent": "salary_check", "reason": "把这个薪资逐项对照市场行情，判断该接、该谈、还是该等", "ready_inputs": ["jd_text"], "priority": "recommended" }
+  ],
+  "follow_up_questions": [],
+  "cannot_determine": [
+    "该公司是否有未写进 JD 的额外绩效/股权补充（属未公开内部信息，非人工不可核实）"
+  ],
+  "missing_information": [],
+  "conflict_markers": [
+    {
+      "field": "薪资范围（月薪，上海数据分析师2年）",
+      "source_a": "JD原文（jd_text）",
+      "value_a": "12-18K，13薪，年薪约156K-234K",
+      "source_b": "knowledge/salary-data（knowledge_graph, stale）",
+      "value_b": "中位数约22K，区间18-30K"
+    }
   ]
 }
 ```
@@ -130,9 +95,7 @@ career-principal 填写 `conflict_markers`，不猜测哪个更准确。
 
 ## 说明
 
-**冲突处理原则**：
-1. career-principal 只标记冲突，填写 `conflict_markers`，说明两个来源各自的数据
-2. 不猜测哪个数据更准确（knowledge/ 是静态数据，JD 是实时但可能有策略性压低）
-3. 不因冲突而拒绝输出，其他分析正常进行
-4. 将无法确定的原因列入 `cannot_determine`
-5. 在 `next_steps` 中给出用户可以主动验证的方式
+- **显式并列、不硬编中位数**：三方口径（JD / 知识库 stale / 当季联网）全摆出来并标各自来源，不取平均、不判 cannot_determine——`conflict_markers` 承载库 vs JD 口径，正文 summary 把第三方联网口径也并列。
+- **先联网再降级**：薪资为时效信息，先 WebSearch 拿当季口径（标 `[实时·未核实·URL·日期]`），而非直接用 stale 知识库冒充新鲜。
+- **不连坐**：薪资维度 medium，但岗位解析维度仍 high；主结论取整体 medium（薪资是本意图最关键维度，故主结论与之一致）。
+- **cannot_determine 收敛**：只留「未公开内部薪酬补充」这一非人工不可核实项。

@@ -31,12 +31,19 @@ allowed-tools: [Read, Grep, Bash]
 | 缺目标职业 | `Grep` 标尺索引从简历推断 1-2 个候选 → 让用户确认(见下) |
 | 难度档未提 | 默认 `standard`(校招友好档);**仅当**用户提「压力档/大厂卡人/想被狠批」才用 `pressure` |
 | 职业找不到精确项 | 取**最相近**职业,**显式告知**「未找到精确标尺,按最接近的 X 评估」,`confidence` 降为 `medium` |
+| 给了目标公司 `target_company`(可选) | 按 `../_career-skills-shared/protocols/company-lookup.md` 三级降级查公司画像:命中则记下 `interview_style.known_focus`(留给阶段3)与 `risk_signals`(留给第六节诚实边界);查不到则按通用校招标尺,并在 `honesty_boundary` 注明「未命中公司库/未联网,按通用标尺」。**只增强面试钩子与风险提示,绝不改标尺维度/满分。** |
 
 **从简历推断职业**:`Grep` 关键词到 `../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md`(如 Java/分布式→后端;Figma/交互稿→设计;尽调/估值→投行),取命中大类下 1-2 个候选,列给用户二选一。
 
 **追问纪律(绝不死循环)**:每轮 ≤2 问,每问附「为何需要」(如「想知道你主导还是参与,关系到能力维度评分」)。**最多 2 轮**;到顶仍缺,用现有信息出结论并把 `confidence` 标 `low`、缺口写进 `cannot_determine` 与 `follow_up_questions`。遵循 `../_career-skills-shared/policies/product-principles.md` 的 ask-before-judging。
 
 **Checkpoint 1**:把「确认的目标职业 + 难度档 + 选用的标尺文件」回报给用户确认后,才进入打分。
+
+**公司背景层(可选,仅当给了 `target_company`)**:按 `../_career-skills-shared/protocols/company-lookup.md` 查公司画像(① Grep `companies.seed.yaml` → ② 过 `aliases.yaml` 规范化昵称/子品牌再回查 → ③ 降 tier_2/tier_3 → ④ 全未命中或需当季信息则按需联网)。
+- 命中:留下 `interview_style.known_focus`(喂阶段3 `interviewHooks`,如「字节后端→分布式 + 三面技术深挖」)与 `risk_signals`(进第六节 `honesty_boundary` 风险提示);命中字段在 `evidence_used` 独立记一条 `source_type:knowledge_graph`、`freshness:stale`、`data_caveat:「社区汇编非官方,以实际 offer / 官方公告为准」`。
+- 需当季信息(招聘窗口/最新薪资/近期组织调整/当季面试流程):即便库命中也叠加一次 WebSearch,库口径标 `stale`、实时口径标 `[实时·未核实·URL·日期]`(URL 必须本轮真访问过),多源冲突显式并列。
+- 查不到:按通用校招标尺照常诊断,`honesty_boundary` 注明「未命中公司库/未联网,按通用标尺」,不阻塞主流程。
+- **红线:公司情报只增强 `interviewHooks` 与风险提示,绝不改变 5 维标尺的维度名与各维满分(locked rubric 防漂移)。**
 
 ---
 
@@ -65,7 +72,8 @@ allowed-tools: [Read, Grep, Bash]
   - `resumeHit`:简历中的具体命中点或原句;
   - `interviewQuestion`:面试官很可能据此追问的问题;
   - `prepDirection`:**诚实**的准备方向,引导补齐真实能力,**绝不教编造**。
-- verify: 每条都锚定简历真实存在的句子 ✅;prepDirection 无「这样回答就行」式话术诱导 ✅。
+- [ ] **公司考点贴合(仅当 Phase0 命中 `target_company`)**:把命中的 `interview_style.known_focus` 喂进追问设计,让 `interviewQuestion` 贴合该公司真实考点(如「字节后端→分布式系统设计 + 三面技术深挖」「腾讯后端→C++/Go 底层 + 项目深度拷问」)。要求:① 仍以简历真实命中点为锚,不凭空造经历;② 公司考点字段标 `[据知识库]`(`freshness:stale`);用了实时联网的标 `[实时·未核实·URL·日期]`;③ **仅影响追问内容,不改任何维度评分**。查不到公司则按通用校招高频追问。
+- verify: 每条都锚定简历真实存在的句子 ✅;prepDirection 无「这样回答就行」式话术诱导 ✅;命中公司时 `interviewQuestion` 含该公司 `known_focus` 且标源正确 ✅。
 
 ### 阶段 4 · 防编造改写(rewrite_suggestions)
 **前置 Checkpoint 2**:先把诊断结果展示给用户,**问是否需要改写**;不要未问就改。
@@ -114,6 +122,8 @@ allowed-tools: [Read, Grep, Bash]
 - 本次只做了:[已完成的阶段,如「按 standard 档 backend-campus 标尺打分 + 面试追问预演」];
 - 本次没做:[如「未做改写,因你未确认需要」/「未联网核实公司信息」];
 - 以下建议属「建议补充(gap_advice)」,需你真实具备相应能力后再写入简历,否则面试有穿帮风险:[逐条列 gap_advice 的能力];
+- [仅当给了目标公司] 目标公司风险提示([据知识库],freshness:stale,社区汇编非官方):[逐条列命中的 risk_signals,如「TikTok 海外政策风险」「部分业务方向调整」];
+- [仅当给了目标公司但未命中] 未命中公司库/未联网,本次按通用校招标尺评估,具体公司考点请以官方 JD 为准;
 - 标尺与判断基于截至模型知识更新日的中国校招通行做法,具体公司当季要求可能不同,以官方 JD 为准。
 ```
 
@@ -126,6 +136,7 @@ allowed-tools: [Read, Grep, Bash]
 | 标尺索引 | `../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md` | Phase 0 推断/定位职业 |
 | 职业标尺 | `../_career-skills-shared/knowledge/campus-recruitment-rubrics/professions/<id>.md` | 阶段 2,只读所选 1 个 |
 | 产品原则 | `../_career-skills-shared/policies/product-principles.md` | ask-before-judging + 出处-思考-观点 |
+| 公司查询协议 | `../_career-skills-shared/protocols/company-lookup.md` | 仅当给了 `target_company`:Phase0/阶段3 查公司画像(三级降级 + 按需联网) |
 | 证据结构 | `../_career-skills-shared/evidence-schema/evidence.schema.json` | `evidence_used[]` 每条字段 |
 | 输出基类 | `../_career-skills-shared/output-schema/skill-output-base.schema.json` | 顶层字段 |
 | 防编造脚本 | `scripts/check_fabrication.mjs` | 阶段 4 确定性兜底 |

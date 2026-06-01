@@ -118,17 +118,20 @@ jd-analyzer      ──依赖──► resume-tailor
 
 ## 4. 输出聚合规则
 
-### 4.1 confidence 聚合
+### 4.1 confidence 聚合（分维度标源标置信，不连坐）
 
-```
-最终 confidence = min(所有调用的 skill 的 confidence)
-```
+**废弃全局 `min()` 连坐**。改为：
+
+- **分维度/分子结论分别给 confidence + 来源**，写进产出的 `dimension_level_visibility`（强制启用）。
+- 主结论 `confidence` = **最关键维度的置信度**，而非全局最低值。
+- 只在**确有跨维度依赖**时局部降级（如下游维度直接依赖上游 failed 维度的输出，见 4.4）。
+- 只要标了来源（source_type + source_name + reason）就按"标出处即呈现"输出，**不因是推断就强制压 low**；反向也禁止——不无据给 high。
 
 示例：
-- jd-analyzer: high
-- profile-builder: high
-- match-diagnosis: medium
-- 最终 confidence: **medium**
+- jd-analyzer: high（[据JD] 硬性要求清晰）
+- match-diagnosis: high（[据CV] 逐条命中）
+- salary 维度: medium（[据知识库] 薪资参考为 stale）
+- 主结论 confidence: **high**（最关键维度=匹配度为 high；薪资维度单独标 medium，不连坐拖低主结论）
 
 ### 4.2 evidence 聚合
 
@@ -168,10 +171,10 @@ skills_invoked:
     result_summary: "服务暂时不可用，市场数据未经验证"
 ```
 
-此时：
-- 删除依赖该 skill 的声明（不替代）
-- 将受影响字段列入 `cannot_determine`
-- 主结论 confidence 降为 low
+此时（局部降级，不连坐全局）：
+- 删除**直接依赖**该 skill 的声明（不替代、不编造）
+- 将受影响维度的 `dimension_level_visibility` 该维度 confidence 降为 low（或列入 `cannot_determine`，若属"非人工不可核实"）
+- **不受影响的维度保持各自置信**；主结论 confidence 仍取最关键**可用**维度的置信，不因一个 failed 维度连坐拖低
 
 ---
 
@@ -327,15 +330,20 @@ Pack C skill 产出含以下任一类型时，强制调用 source-quality-audito
   - 城市行业聚集度描述
 ```
 
-**降级规则（实时研究不可用时）**：
+**降级规则（先联网搜，确无网才降级）**：
+
+宿主本就有 WebSearch/WebFetch。市场声明缺实时数据时，**先当场联网搜，不要直接降级到静态知识**：
 
 ```
-source-quality-auditor 返回 failed 或 skipped:
-  1. 删除所有含具体数字的市场声明
-  2. 将受影响字段改为定性描述（如"据行业观察，普遍认为..."）
-  3. 在输出中标注 data_freshness: "degraded"
-  4. confidence 自动降为 low
-  5. 明确告知用户："当前无法访问实时市场数据，以下为基于静态知识库的估算"
+市场声明缺实时数据（或 source-quality-auditor 返回 failed/skipped）:
+  1. 先 WebSearch/WebFetch 当场检索该声明（薪资/行业/公司动态/供需比等）
+        命中 → 附本轮真实抓取的 URL，标 [实时·未核实·URL·日期]，正常输出
+  2. 仅当确实无网（工具不可用 / 反复搜不到）才降级：
+        - 改用知识库 / 行业惯例（标 [据知识库,stale] / [行业惯例]）
+        - 该维度 confidence 标 low（仅此维度，不连坐主结论）
+        - 显式告知用户："已尝试联网检索未果，以下为训练知识/静态知识库估算，可能过时，建议自行核实"
+  3. 多源冲突（库口径 vs 实时口径打架）→ 显式并列两方 + 标各自口径（填 conflict_markers），不取中位数、不判 cannot_determine
+  4. 禁止伪造：标 [实时·URL] 的 URL 必须本轮真访问过；搜不到就老实写检索路径与空结果
 ```
 
 ### 完整市场情报链路
@@ -487,3 +495,52 @@ Pack D skill 调用前的必要条件：
 阶段 4:
   └── mock-interviewer(question-bank.output, playbook.style)  [Pack B 模拟]
 ```
+
+---
+
+## 12. 续接层（cross-intent continuation）
+
+前面 §2-§11 处理的是**单次调度内**的 sub-skill 编排（一锅端）。本节处理**意图与意图之间**的顺势续接——一个意图做完后，顺势提议最该接的下一个独立意图，让体验像跟懂行的人连贯聊天，而非每次都重新发问。
+
+数据源：`references/next-intent-graph.yaml`（每意图的 `on_complete` 候选 + 触发条件 + handoff_payload）。承载字段：`output_schema.json` 的 `suggested_next`。
+
+### 12.1 三条铁律（与 next-intent-graph.yaml 的 iron_rules 一致）
+
+1. **续接 = 提议 + 用户确认才执行，默认不自动连跳。** `on_complete` 候选只用于「提议」，写进本意图产出的 `suggested_next`，由用户点头才真正调度下一意图。代表绝不自动连跳整条链（防失控长链 / 防越权）。`priority` 仅表达建议强度：`recommended`=情境强相关、应主动点出；`optional`=锦上添花、顺带提一句。两者都不等于自动执行。
+2. **会话级输入复用：续接不重复追问。** 本会话已拿到的 `resume_text` / `jd_text` / `user_profile` / `target_company` / `target_profession` 及上一意图产出（如 `interviewHooks` / `gap` / `rewrite_suggestions`），续接时直接喂入、跳过 intent-router 的 `missing_input_questions`。这些就绪入参写进 `suggested_next[].ready_inputs`。仅当下一意图仍有真实缺口（既不在会话上下文、也不在上一意图 handoff_payload 里）时才追问缺口字段。
+3. **区分 `secondary_skills` 与 `suggested_next`。** `secondary_skills`（intent-router）= 本次同一调度内的辅助 worker，一锅端、立即执行；`suggested_next`（本图）= 本意图完成后顺势提议的下一个独立意图，分步、条件触发、需确认。
+
+### 12.2 续接执行流程
+
+```
+意图 X 完成产出
+  └── 读 next-intent-graph.yaml 的 X.on_complete 候选
+      └── 对每个候选，判定其 condition 是否命中（基于本次产出 + 会话上下文）
+          ├── 命中 → 写进 suggested_next：{ next_intent, reason, ready_inputs(=handoff_payload∩已就绪), priority }
+          └── 未命中 → 不写
+  └── 向用户提议（按 priority 排序，recommended 在前），等用户选择
+      ├── 用户确认某条 → 以该意图为新主意图，复用 ready_inputs，跳过已覆盖字段的追问，进入 §2-§11 编排
+      └── 用户不选 / 选别的 → 不执行，结束本轮
+```
+
+### 12.3 诊断 → 面试核心链（北极星样板）
+
+把 `match-diagnosis` 的 `gap` 与 `campus_diagnosis` 的 `interviewHooks` 定义为下游意图的**合法入参**：
+
+```
+campus_diagnosis 完成（产出 diagnosis.interviewHooks / diagnosis.dimensions[].gap / rewrite_suggestions）
+  ├── interviewHooks 非空 → 提议 mock_interview（recommended）
+  │       handoff_payload: [resume_text, target_profession, interviewHooks, jd_text]
+  │       用户确认 → mock-interviewer 直接拿 interviewHooks 当弹药出追问题（不重问背景）
+  ├── interviewHooks 非空 + 简历有可讲经历 → 提议 build_stories（recommended）
+  ├── dimensions[].gap 非空 → 提议 identify_skill_gaps（recommended）→（有时间窗）build_learning_roadmap（optional）
+  ├── rewrite_suggestions 非空 → 提议 tailor_resume 复核（recommended）
+  └── target_company 已知 → 提议 company_check / get_company_playbook（optional）
+
+match_diagnosis 完成
+  ├── 强匹配 → tailor_resume + plan_application_strategy（recommended）
+  ├── 有 gap → identify_skill_gaps（recommended，handoff gap）
+  └── 任意 → interview_prep（optional）
+```
+
+> 端到端样板见 `examples/continuation-campus-to-mock.md`：campus 诊断 → 代表提议模拟面试（带 interviewHooks 作 handoff_payload）→ 用户确认 → mock 接住。

@@ -20,6 +20,13 @@ inputs:
     type: string
     required: false
     description: 目标岗位 JD 正文(可选)。仅作背景参考,不改变职业标尺的维度与满分。
+  target_company:
+    type: string
+    required: false
+    description: >
+      目标公司名(可选,支持昵称/简称/子品牌,如「鹅厂」「字节」「Lark」)。命中公司库时把已知考点喂进阶段3 interviewHooks、
+      风险信号提示进 honesty_boundary;查询协议见 ../_career-skills-shared/protocols/company-lookup.md。
+      红线:公司情报只增强面试钩子与风险提示,绝不改变职业标尺的维度与满分(locked rubric 防漂移)。
 
 scoring_model:
   source: ../_career-skills-shared/knowledge/campus-recruitment-rubrics/professions/<id>.md
@@ -106,7 +113,16 @@ outputs:
   honesty_boundary:
     type: string
     required: true
-    description: "诚实边界声明:本次做了/没做什么、哪些 gap_advice 需真实具备后再写入、知识截止说明"
+    description: >
+      诚实边界声明:本次做了/没做什么、哪些 gap_advice 需真实具备后再写入、知识截止说明;
+      给了 target_company 且命中公司库时附 risk_signals 提示;未命中/未联网时注明「未命中公司库/未联网,按通用标尺」。
+  company_context:
+    type: object
+    required: false
+    description: >
+      可选。仅当给了 target_company 且命中公司库时产出,作为**独立背景增强**(不进打分、不改维度/满分)。
+      命中字段(known_focus/risk_signals/business_lines 等)在 evidence_used 里独立记一条 source_type:knowledge_graph、freshness:stale、
+      data_caveat:「社区汇编非官方,以实际 offer / 官方公告为准」;实时叠加时再追加一条 source_type:web_search、freshness:live。
 
 knowledge_dependencies:
   - path: ../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md
@@ -121,6 +137,13 @@ knowledge_dependencies:
     usage: "阶段 4 改写的确定性兜底:对改进型逐条做 original 子串与 suggested 数字机械校验"
     required: false
     degradation: "无 Bash 时改用人工自校验三招(引语回溯 + 缺口铁律 + locked rubric 防漂移)"
+  - path: ../_career-skills-shared/protocols/company-lookup.md
+    usage: >
+      仅当用户给了 target_company 时,Phase0/阶段3 按此协议三级降级查公司画像:命中则 interview_style.known_focus
+      喂进阶段3 interviewHooks、risk_signals 提示进 honesty_boundary;需当季信息时按协议触发按需联网。
+      只增强面试钩子与风险提示,绝不改标尺维度与满分。
+    required: false
+    degradation: "未给 target_company / 库三层 + 联网均未命中 → 按通用校招标尺,在 honesty_boundary 注明「未命中公司库/未联网,按通用标尺」"
 
 product_principles:
   ask_before_judging: true
