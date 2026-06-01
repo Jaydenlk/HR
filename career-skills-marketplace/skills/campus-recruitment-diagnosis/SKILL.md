@@ -29,7 +29,7 @@ allowed-tools: [Read, Grep, Bash]
 |--------|--------|
 | 缺简历 | 追问「请贴上简历正文(经历/项目/技能/竞赛荣誉)」,无简历不诊断 |
 | 缺目标职业 | `Grep` 标尺索引从简历推断 1-2 个候选 → 让用户确认(见下) |
-| 难度档未提 | 默认 `standard`(校招友好档);**仅当**用户提「压力档/大厂卡人/想被狠批」才用 `pressure` |
+| 难度档未提 | 默认 `standard`(校招友好档);**仅当**用户提「压力档/大厂卡人/想被狠批」才用 `pressure`。**另:若 `target_company` 命中 `tier_1` 或 `interview_style.difficulty=非常高`,在 Checkpoint 1 主动建议倾向 `pressure` 档(仍默认 `standard`、待用户确认,不自动切换)** |
 | 职业找不到精确项 | 取**最相近**职业,**显式告知**「未找到精确标尺,按最接近的 X 评估」,`confidence` 降为 `medium` |
 | 给了目标公司 `target_company`(可选) | 按 `../_career-skills-shared/protocols/company-lookup.md` 三级降级查公司画像:命中则记下 `interview_style.known_focus`(留给阶段3)与 `risk_signals`(留给第六节诚实边界);查不到则按通用校招标尺,并在 `honesty_boundary` 注明「未命中公司库/未联网,按通用标尺」。**只增强面试钩子与风险提示,绝不改标尺维度/满分。** |
 
@@ -38,6 +38,7 @@ allowed-tools: [Read, Grep, Bash]
 **追问纪律(绝不死循环)**:每轮 ≤2 问,每问附「为何需要」(如「想知道你主导还是参与,关系到能力维度评分」)。**最多 2 轮**;到顶仍缺,用现有信息出结论并把 `confidence` 标 `low`、缺口写进 `cannot_determine` 与 `follow_up_questions`。遵循 `../_career-skills-shared/policies/product-principles.md` 的 ask-before-judging。
 
 **Checkpoint 1**:把「确认的目标职业 + 难度档 + 选用的标尺文件」回报给用户确认后,才进入打分。
+- **大厂难度档主动建议**:若公司背景层查得 `target_company` 命中 `tier_1`,或其 `interview_style.difficulty=非常高`(如字节/腾讯/阿里等顶级大厂),**默认仍写 `standard`,但要主动加一句建议倾向 `pressure` 档**,例如「检测到目标公司是大厂(面试难度非常高),建议用 `pressure` 压力档更贴近真实卡人强度——默认仍按 `standard`,你确认要切到 `pressure` 我再切」。**红线:选择权交用户,不自动切换;用户不确认就维持默认 `standard`。** 其余情形(未给公司 / 命中 tier_2、tier_3 / 难度非「非常高」)维持默认 `standard`,不主动建议压力档。
 
 **公司背景层(可选,仅当给了 `target_company`)**:按 `../_career-skills-shared/protocols/company-lookup.md` 查公司画像(① Grep `companies.seed.yaml` → ② 过 `aliases.yaml` 规范化昵称/子品牌再回查 → ③ 降 tier_2/tier_3 → ④ 全未命中或需当季信息则按需联网)。
 - 命中:留下 `interview_style.known_focus`(喂阶段3 `interviewHooks`,如「字节后端→分布式 + 三面技术深挖」)与 `risk_signals`(进第六节 `honesty_boundary` 风险提示);命中字段在 `evidence_used` 独立记一条 `source_type:knowledge_graph`、`freshness:stale`、`data_caveat:「社区汇编非官方,以实际 offer / 官方公告为准」`。
@@ -99,7 +100,7 @@ allowed-tools: [Read, Grep, Bash]
 
 ## 四、四个硬 Checkpoint(顺序不可跳)
 
-1. **职业 + 难度档确认**:Phase 0 末,确认目标职业与 `standard`/`pressure` 后才打分。
+1. **职业 + 难度档确认**:Phase 0 末,确认目标职业与 `standard`/`pressure` 后才打分。命中 `tier_1` 或 `interview_style.difficulty=非常高` 时**主动建议**倾向 `pressure`,但默认仍 `standard`、待用户确认,**不自动切换**。
 2. **诊断展示 → 问是否改写**:阶段 3 后,先给诊断,问用户要不要改写,再进阶段 4。
 3. **改写交付**:阶段 4 自校验三招全过,才交付改写。
 4. **诚实边界签字**:输出末尾必须有 `honesty_boundary` 段(模板见第六节)。

@@ -394,6 +394,7 @@ jd-analyzer      ──► resume-tailor
 - 主结论 `confidence` = **最关键维度的置信度**，**不再用全局 min() 连坐**。
 - 分维度置信写进 `dimension_level_visibility`（强制启用），只在确有跨维度依赖时局部降级。
 - 一个维度证据薄，不拖垮其它证据扎实的维度；只要标了来源就按"标出处即呈现"输出。
+- **追问轮（`status: "needs_input"`）顶层 `confidence` 必须显式填 `"insufficient"`，不得留空**——此时关键信息尚未到手、没有可下结论的根据，`insufficient` 如实表达"信息不足、无法判断"。与 `tests/ask-before-judging.json` 断言（`confidence ∈ ["low", "insufficient"]`）对齐。
 
 ---
 

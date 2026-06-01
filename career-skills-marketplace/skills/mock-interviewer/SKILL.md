@@ -28,6 +28,16 @@ allowed-tools: [Read, Grep]
 - `time_limit`：建议回答时长（分钟）
 - `evaluation_focus`：本题考察重点
 
+#### 强约束：interviewHooks 是强制题源（续接场景）
+
+当会话上下文已存在上游诊断（campus_diagnosis / match-diagnosis）产出的 `interviewHooks`（含 `resumeHit` / `interviewQuestion` / `prepDirection`）时：
+
+- **必须逐条把 `interviewHooks` 转为追问题，作为本轮出题的主题源**：每条 hook 至少产出 1 道题，`interviewQuestion` 直接作为题干基底、`resumeHit` 作为追问锚点、`prepDirection` 作为 `evaluation_focus`。
+- **通用题（岗位通用 behavioral / motivation）只能作补充**，数量不得超过 hook 衍生题；不得用通用题顶替任何一条 hook。
+- **缺 JD / 缺目标公司时，只降级"某公司真题风格"这一个维度**（无法贴某公司口味，改用通用面试风格），**其余照常基于 `interviewHooks` 出题**。
+- **严禁**以"无 JD / 无目标公司"为由脱离 `interviewHooks` 退化为纯通用题——这是续接断链的根因，明令禁止。
+- 在 `generate_questions` 产出中，每道 hook 衍生题须标注其来源 hook（`source_hook` 引用对应 `interviewHooks` 条目），便于核验未漏喂。
+
 ### Phase 2: 逐题评分 `answer_evaluations[]`
 
 每题评分含：

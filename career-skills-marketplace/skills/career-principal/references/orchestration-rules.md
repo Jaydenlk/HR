@@ -330,6 +330,13 @@ Pack C skill 产出含以下任一类型时，强制调用 source-quality-audito
   - 城市行业聚集度描述
 ```
 
+**来源分级显式标注（强制）**：Pack C 市场声明产出**末尾必须显式标注 source-quality-auditor 的来源分级**——单源 / 多源、权威度。规则：
+
+- 标明每条声明是**单源**还是**多源交叉**，并给出权威度（官方/数据集 > 行业报告 > 社区帖）。
+- **同一 URL 多次复用须标"同源"**，不得计作多源交叉。
+- **同源社区帖（同一帖子/同一作者搬运/转载）不计作独立交叉源**——多条同源贴仍是单源。
+- 仅当来自相互独立的多个来源时，才可声明"多源交叉验证"。
+
 **降级规则（先联网搜，确无网才降级）**：
 
 宿主本就有 WebSearch/WebFetch。市场声明缺实时数据时，**先当场联网搜，不要直接降级到静态知识**：
@@ -343,6 +350,9 @@ Pack C skill 产出含以下任一类型时，强制调用 source-quality-audito
         - 该维度 confidence 标 low（仅此维度，不连坐主结论）
         - 显式告知用户："已尝试联网检索未果，以下为训练知识/静态知识库估算，可能过时，建议自行核实"
   3. 多源冲突（库口径 vs 实时口径打架）→ 显式并列两方 + 标各自口径（填 conflict_markers），不取中位数、不判 cannot_determine
+        冲突并列不限薪资：当用户问某岗位、主动维度涉及竞争格局 / 供需（如"竞争激烈程度""供需比"）
+        且多源口径有差异时，同样按 conflict_markers 并列两方口径（与薪资口径处理一致），
+        不取中位数、不二选一替用户判断
   4. 禁止伪造：标 [实时·URL] 的 URL 必须本轮真访问过；搜不到就老实写检索路径与空结果
 ```
 
@@ -532,6 +542,8 @@ campus_diagnosis 完成（产出 diagnosis.interviewHooks / diagnosis.dimensions
   ├── interviewHooks 非空 → 提议 mock_interview（recommended）
   │       handoff_payload: [resume_text, target_profession, interviewHooks, jd_text]
   │       用户确认 → mock-interviewer 直接拿 interviewHooks 当弹药出追问题（不重问背景）
+  │       缺 JD / 缺目标公司不得退化为脱离 interviewHooks 的通用题——interviewHooks 是强制题源，
+  │       缺 JD / 目标公司只降级"某公司真题风格"这一维，其余题仍逐条由 interviewHooks 派生
   ├── interviewHooks 非空 + 简历有可讲经历 → 提议 build_stories（recommended）
   ├── dimensions[].gap 非空 → 提议 identify_skill_gaps（recommended）→（有时间窗）build_learning_roadmap（optional）
   ├── rewrite_suggestions 非空 → 提议 tailor_resume 复核（recommended）
