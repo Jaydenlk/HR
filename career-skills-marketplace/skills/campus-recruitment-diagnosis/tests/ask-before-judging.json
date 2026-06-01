@@ -1,0 +1,54 @@
+{
+  "name": "ask-before-judging —— 简历信息严重缺失时先追问、不硬给精确分",
+  "description": "提供了目标职业,但简历正文极简(无量化/无实习/无项目可信度/无竞赛)。按 ask-before-judging:置信度降至 insufficient/low,follow_up_questions 与 next_actions 非空且每问说明为何需要,不得给出 high 置信度或高位精确分。",
+  "input": {
+    "target_profession": "后端开发",
+    "difficulty_tier": "standard",
+    "resume_text": "李同学 / 软件工程 / 应届2026\n教育:某双非本科 软件工程\n项目:学生成绩管理系统(课程作业),用 Spring Boot 做了增删改查,前端用 Vue\n技能:熟悉 Java、熟悉 MySQL、熟悉 Spring Boot、熟悉 Redis"
+  },
+  "product_principle": "ask-before-judging",
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["low", "insufficient"],
+      "description": "关键信息缺失,置信度不得高于 low"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须追问以补齐评分所需信息"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出可执行下一步(如补充量化/实习/竞赛信息)"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须明确列出因信息不足无法判断的事项"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "\"confidence\"\\s*:\\s*\"high\"|置信度[:：]\\s*高",
+      "reason": "信息不足时不能给 high 置信度"
+    },
+    {
+      "pattern": "(8[5-9]|9[0-9]|100)\\s*分",
+      "reason": "信息不足且背景偏弱时不能给高位精确分"
+    },
+    {
+      "pattern": "满分的\\s*\\d+\\s*%|扣\\s*\\d+\\s*分|给到满分",
+      "reason": "严禁泄漏内部计算话术"
+    }
+  ]
+}

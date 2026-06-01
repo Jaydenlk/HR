@@ -39,6 +39,13 @@ skills:
     description: "匹配诊断：对比画像和 JD，输出多维匹配度"
     depends_on: [profile-builder, jd-analyzer]
     live_research_required: false
+  - name: campus-recruitment-diagnosis
+    path: skills/campus-recruitment-diagnosis
+    role: worker
+    layer: core_reasoning
+    description: "校招简历诊断：按目标职业的校招标尺(90职业/11大类)给5维打分+面试追问预演+防编造改写，应届/校招专用，自包含跑宿主模型"
+    depends_on: []
+    live_research_required: false
   - name: source-quality-auditor
     path: skills/source-quality-auditor
     role: worker

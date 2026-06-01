@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CampusRecruitmentDiagnosisInput",
+  "type": "object",
+  "required": ["resume_text", "target_profession"],
+  "properties": {
+    "resume_text": {
+      "type": "string",
+      "minLength": 1,
+      "description": "简历正文(原始文本)。须包含经历/项目/技能;竞赛荣誉/证书/语言成绩须连同原文具体名次与分数一并提供。缺失则无法诊断。"
+    },
+    "target_profession": {
+      "type": "string",
+      "minLength": 1,
+      "description": "目标职业。可为职业中文名(如「后端开发」「投行(IBD)」「HRBP」)或标尺预设ID(如「backend-campus」)。找不到精确项时取最相近职业并降置信度。缺失则先由简历推断 1-2 个候选让用户确认。"
+    },
+    "difficulty_tier": {
+      "type": "string",
+      "enum": ["standard", "pressure"],
+      "default": "standard",
+      "description": "难度档。standard=校招友好档(默认);pressure=压力档(大厂卡人/严苛批评),仅当用户明确要求时使用。"
+    },
+    "jd_text": {
+      "type": "string",
+      "description": "目标岗位 JD 正文(可选)。仅作背景参考,不改变职业标尺的评分维度与满分。"
+    }
+  },
+  "additionalProperties": false
+}

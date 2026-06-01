@@ -1,0 +1,66 @@
+{
+  "name": "low-evidence —— 弱背景据实给低档分并命中反模式,不臆造能力",
+  "description": "双非本科,项目全是课程作业增删改查、无实习、无 GitHub、无量化、无竞赛。职业可命中、简历可解析,故仍给分但落低档;系统设计/工程实践维度命中『CRUD仔』『课程仔』反模式;evidenceFound 极少、gap 据实;惯例核查体现技术栈分档与项目可信度问题。",
+  "input": {
+    "target_profession": "后端开发",
+    "difficulty_tier": "standard",
+    "resume_text": "李同学 / 软件工程 / 应届2026\n教育:某双非本科 软件工程\n项目:学生成绩管理系统(课程作业),用 Spring Boot 做了增删改查,前端用 Vue\n技能:熟悉 Java、熟悉 MySQL、熟悉 Spring Boot、熟悉 Redis"
+  },
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "diagnosis.dimensions",
+      "operator": "length_eq",
+      "value": 5,
+      "description": "维度数量与 backend-campus 标尺一致"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "信息薄弱时应追问以澄清真实工程深度"
+    },
+    {
+      "type": "field_check",
+      "path": "diagnosis.conventionChecks",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "本土惯例核查至少 1 条(技术栈分档/项目可信度应被点出)"
+    },
+    {
+      "type": "computed",
+      "id": "system_design_dimension_low",
+      "operator": "dimension_score_lte_by_name",
+      "path": "diagnosis.dimensions",
+      "dimension_name_contains": "系统设计",
+      "value": 8,
+      "description": "项目全是增删改查、无并发/缓存/分布式设计,系统设计与分布式维度应落低档(满分25,给分不超过8)"
+    },
+    {
+      "type": "computed",
+      "id": "total_equals_sum_of_dimensions",
+      "operator": "abs_diff_lte",
+      "left": "diagnosis.total_score",
+      "right_sum_of": "diagnosis.dimensions[].score",
+      "value": 1,
+      "description": "若给出 total_score,须等于各维之和(允许 ≤1 取整误差)"
+    }
+  ],
+  "must_contain": [
+    {
+      "pattern": "CRUD|增删改查|课程|反模式",
+      "reason": "应据实点名命中的反模式(CRUD仔/课程仔),而非空泛差评"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "满分的\\s*\\d+\\s*%|扣\\s*\\d+\\s*分|给到满分|上限调整",
+      "reason": "严禁泄漏内部计算话术"
+    },
+    {
+      "pattern": "ACM|区域赛|蓝桥|大厂实习经历|GitHub 项目有 Star",
+      "reason": "简历没有竞赛/实习/GitHub Star,不得臆造『应该有但没写』的能力或证据"
+    }
+  ]
+}

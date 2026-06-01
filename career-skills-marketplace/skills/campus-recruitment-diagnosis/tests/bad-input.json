@@ -1,0 +1,59 @@
+{
+  "name": "bad-input —— 简历过短 / 职业不存在时拒绝硬评分",
+  "description": "简历正文极短(无经历/项目/技能/竞赛)且目标职业为纯虚构词,既无精确项也无最相近标尺。验证:confidence=insufficient、不输出精确 total_score、cannot_determine 与 follow_up_questions 非空、不凭空套标尺打分。",
+  "input": {
+    "target_profession": "星际舰队指挥官",
+    "resume_text": "我想找后端工作,求诊断。"
+  },
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["insufficient"],
+      "description": "简历无可评分原料且职业无标尺可锁定,置信度必须为 insufficient"
+    },
+    {
+      "type": "field_check",
+      "path": "diagnosis.total_score",
+      "operator": "not_exists",
+      "value": true,
+      "description": "信息不足无法评分,不得输出精确 total_score"
+    },
+    {
+      "type": "field_check",
+      "path": "cannot_determine",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须列出无法判断的事项(简历不足 / 职业无标尺)"
+    },
+    {
+      "type": "field_check",
+      "path": "follow_up_questions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须索要完整简历并确认真实存在的目标职业"
+    },
+    {
+      "type": "field_check",
+      "path": "next_actions",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "必须给出可执行恢复路径"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "\"total_score\"\\s*:\\s*\\d+|总分[:：]\\s*\\d+",
+      "reason": "信息不足时不得给出精确总分"
+    },
+    {
+      "pattern": "\"confidence\"\\s*:\\s*\"(high|medium|low)\"",
+      "reason": "本例无可解析简历且职业纯虚构,置信度只能是 insufficient,不得为 high/medium/low"
+    },
+    {
+      "pattern": "星际舰队指挥官.{0,20}(标尺|维度|满分|打分)",
+      "reason": "不得为不存在的职业凭空套用或编造评分标尺"
+    }
+  ]
+}

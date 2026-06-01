@@ -1,0 +1,154 @@
+name: campus-recruitment-diagnosis
+version: "1.0"
+
+inputs:
+  resume_text:
+    type: string
+    required: true
+    description: 简历正文(原始文本,必须)。竞赛荣誉/证书/语言成绩须连同原文具体名次与分数提供。
+  target_profession:
+    type: string
+    required: true
+    description: 目标职业(中文名或标尺预设ID,必须)。找不到精确项时取最相近职业并降置信度;缺失时先由简历推断候选让用户确认。
+  difficulty_tier:
+    type: string
+    required: false
+    enum: [standard, pressure]
+    default: standard
+    description: 难度档。standard=校招友好档(默认);pressure=压力档(大厂卡人),仅用户明确要求时使用。
+  jd_text:
+    type: string
+    required: false
+    description: 目标岗位 JD 正文(可选)。仅作背景参考,不改变职业标尺的维度与满分。
+
+scoring_model:
+  source: knowledge/campus-recruitment-rubrics/professions/<id>.md
+  description: >
+    维度、各维满分、好的样子、应届证据、常见缺失/反模式均来自所选职业标尺文件(locked rubric);
+    本 skill 不内联标尺,单次诊断只读所选 1 个职业文件。维度数量/顺序/满分以标尺为准(各职业不同,权重之和=100)。
+  rules:
+    - "每维 score 封顶该维满分;total_score = 各维之和"
+    - "证据优先:逐维先抽简历原句进 evidenceFound,再对照标尺 commonGaps 列 gap,再落离散行为档"
+    - "有经历但完全无量化数字 → 低于及格的低档;完全空白 → 极低分;对所有维度一致执行"
+    - "why 与分数一致,命中反模式直接点名,禁止「给高分却 why 全是缺口」"
+
+calibration:
+  discrete_tiers:
+    high: "好的样子基本满足、gap 基本为空 → 可给高分/接近满分"
+    mid: "有相关经历且有量化,但 gap 指出非核心缺口 → 中档"
+    low: "有经历但完全无量化数字,或核心能力薄弱 → 明显低于及格"
+    minimal: "该维度完全空白/无任何佐证 → 极低分"
+  forbidden_phrasing:
+    - "满分的X% / 给到满分的约X%"
+    - "给分不超过… / 扣X分 / 上限调整 / 修正为X分 / 故给满分"
+    - "任何把评分过程或分数比例写进用户可见文本的措辞"
+
+rules:
+  language:
+    - "所有用户可见文本(why/evidenceFound/gap/conventionChecks.note/interviewHooks/rewrite)一律简体中文,以维度中文名指代"
+    - "严禁回显英文字段名(basic_info/work_experience/skills.soft 等),术语中文化(soft skills→软技能)"
+  faithful_reading:
+    - "简历含竞赛/荣誉/证书/语言成绩(如「六级480分」「ACM 区域赛银牌」)时,照抄原文具体分数/名次计入 evidenceFound"
+    - "严禁臆断「未标注分数/暗示不高」,严禁对已写明的奖项/成绩漏读"
+  anti_fabrication:
+    - "改进型(rewrite/quantify/restructure/add_keywords):original 为简历原文一字不差;suggested 不得新增原句没有的能力/动作/技术名词/分析变量"
+    - "数字铁律:suggested 中具体数字须能在简历原文逐字找到;简历没有的数字一律用 [具体数字] 占位,绝不填具体数值"
+    - "建议补充型(gap_advice):original 必为空字符串;suggested 写成给候选人的行动建议而非可粘贴成品句;reason 标注「面试穿帮风险:高——需你真实具备后再写入」"
+    - "缺口铁律:诊断 gap 列出的能力一定是简历没有的,绝不在改进型 suggested 里当作既有事实补出,只能进 gap_advice"
+  self_check:
+    - "有 Bash 时跑 scripts/check_fabrication.mjs 做确定性兜底(original 子串校验 + suggested 数字校验),不过则降级"
+    - "逐条引语回溯自证:列出 suggested 相对简历新增的实质内容,无支撑则打回(从严)"
+    - "locked rubric 防漂移:全程只用阶段 2 读入的那一个标尺文件,不凭记忆改维度/满分/反模式名"
+
+routing:
+  必要信息: [resume_text, target_profession]
+  缺职业: "Grep knowledge/campus-recruitment-rubrics/index.md 从简历推断 1-2 候选 → 让用户确认"
+  职业找不到: "取最相近 + 显式告知非精确 + confidence 降为 medium"
+  追问纪律: "每轮 ≤2 问,每问附「为何需要」;最多 2 轮;到顶用已有信息出结论标 confidence:low,绝不死循环"
+  checkpoints:
+    - "1. 确认目标职业 + 难度档,才打分"
+    - "2. 先展示诊断,问是否需要改写,再改写"
+    - "3. 改写自校验三招全过,才交付"
+    - "4. 输出末尾必须有 honesty_boundary"
+
+outputs:
+  diagnosis:
+    type: object
+    required: true
+    properties:
+      total_score: { type: number, minimum: 0, maximum: 100, description: "各维 score 之和;信息不足无法评分时省略" }
+      dimensions:
+        type: array
+        description: "维度数量/顺序/满分与所选标尺一致"
+        items:
+          type: object
+          required: [key, name, score, max, why, evidenceFound, gap]
+      conventionChecks:
+        type: array
+        items:
+          type: object
+          required: [key, status, note]
+        description: "status ∈ pass|warn|fail"
+      interviewHooks:
+        type: array
+        minItems: 2
+        maxItems: 4
+        items:
+          type: object
+          required: [resumeHit, interviewQuestion, prepDirection]
+  rewrite_suggestions:
+    type: array
+    required: false
+    description: "3-5 条,仅在用户确认需要改写后产出;type ∈ rewrite|quantify|restructure|add_keywords|gap_advice"
+    items:
+      type: object
+      required: [section, type, original, suggested, reason]
+  honesty_boundary:
+    type: string
+    required: true
+    description: "诚实边界声明:本次做了/没做什么、哪些 gap_advice 需真实具备后再写入、知识截止说明"
+
+knowledge_dependencies:
+  - path: knowledge/campus-recruitment-rubrics/index.md
+    usage: "Phase 0 由简历推断/定位目标职业,匹配精确或最相近的职业标尺文件"
+    required: true
+    degradation: "无索引时无法定位标尺,只能基于通用校招认知给低置信度定性评估,不产生精确 total_score"
+  - path: knowledge/campus-recruitment-rubrics/professions/<id>.md
+    usage: "阶段 2 的锁定标尺:维度/满分/好的样子/应届证据/常见缺失/反模式/本土惯例/改写指引"
+    required: true
+    degradation: "找不到精确职业时取最相近文件并显式告知非精确、confidence 降为 medium"
+  - path: scripts/check_fabrication.mjs
+    usage: "阶段 4 改写的确定性兜底:对改进型逐条做 original 子串与 suggested 数字机械校验"
+    required: false
+    degradation: "无 Bash 时改用人工自校验三招(引语回溯 + 缺口铁律 + locked rubric 防漂移)"
+
+product_principles:
+  ask_before_judging: true
+  source_reason_opinion: true
+  policy_reference: "shared/policies/product-principles.md"
+
+shared_schemas:
+  evidence: "shared/evidence-schema/evidence.schema.json"
+  output_base: "shared/output-schema/skill-output-base.schema.json"
+
+failure_modes:
+  - id: missing_resume
+    condition: resume_text 未提供
+    response: |
+      无法诊断,缺少简历正文。请贴上简历(经历/项目/技能/竞赛荣誉)后重新请求。
+  - id: missing_profession
+    condition: target_profession 未提供
+    response: |
+      Grep index.md 从简历推断 1-2 个候选职业,列给用户二选一确认,确认后再诊断。
+  - id: profession_not_found
+    condition: 目标职业在 index.md 无精确匹配
+    response: |
+      取最相近职业标尺,显式告知「未找到精确标尺,按最接近的 X 评估」,confidence 降为 medium。
+  - id: info_insufficient_after_2_rounds
+    condition: 追问 2 轮后关键信息仍缺
+    response: |
+      用已有信息出结论,confidence 标 low,缺口写进 cannot_determine 与 follow_up_questions,不再追问。
+  - id: fabrication_check_failed
+    condition: 改进型建议未通过 scripts/check_fabrication.mjs 或人工自证
+    response: |
+      该条降级为 gap_advice,或把无据数字改回 [具体数字] 占位;不对用户暴露此内部修正。

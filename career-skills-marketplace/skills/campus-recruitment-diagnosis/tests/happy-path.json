@@ -1,0 +1,97 @@
+{
+  "name": "happy-path —— 强简历对口职业必须给出完整五维高分诊断",
+  "description": "985 计算机 + 字节后端实习(日均10万订单) + GitHub 320 Star + ACM 银牌 + LeetCode 420题。职业精确命中 backend-campus,信息充足。验证:置信度 high、五维齐全且 max 与标尺一致、total_score=各维之和且落高位、面试钩子非空、不漏读竞赛/成绩、不泄漏内部计算话术。",
+  "input": {
+    "target_profession": "后端开发",
+    "difficulty_tier": "standard",
+    "resume_text": "张同学 / 计算机科学与技术 / 应届2026\n教育:某 985 高校 本科 计算机科学与技术,GPA 3.8/4.0,六级 552 分\n实习:字节跳动 后端开发实习(2025.06-2025.09)\n  - 负责广告投放系统订单模块,优化慢查询:EXPLAIN 定位全表扫描后加复合索引,接口耗时从 800ms 降到 30ms\n  - 用 Redis 分布式锁解决并发下单超卖,支撑日均 10 万订单处理\n项目:开源短链服务(GitHub 320 Star),设计发号器 + 布隆过滤器防穿透,README 完整,带 CI 流水线\n竞赛:ACM-ICPC 亚洲区域赛 银牌;LeetCode 已刷 420 题\n技能:精通 Java(JVM/GC/并发),熟悉 MySQL/Redis/Kafka,了解 Go"
+  },
+  "assertions": [
+    {
+      "type": "field_check",
+      "path": "confidence",
+      "operator": "in",
+      "value": ["high", "medium"],
+      "description": "职业精确命中且信息充足,置信度至少 medium,不应降级"
+    },
+    {
+      "type": "field_check",
+      "path": "diagnosis.total_score",
+      "operator": "exists",
+      "value": true,
+      "description": "信息充足,必须给出 total_score"
+    },
+    {
+      "type": "field_check",
+      "path": "diagnosis.dimensions",
+      "operator": "length_eq",
+      "value": 5,
+      "description": "backend-campus 标尺为五维,数量必须一致"
+    },
+    {
+      "type": "field_check",
+      "path": "diagnosis.interviewHooks",
+      "operator": "length_gte",
+      "value": 2,
+      "description": "面试追问预演至少 2 条"
+    },
+    {
+      "type": "field_check",
+      "path": "diagnosis.conventionChecks",
+      "operator": "length_gte",
+      "value": 1,
+      "description": "本土惯例核查至少 1 条"
+    },
+    {
+      "type": "field_check",
+      "path": "honesty_boundary",
+      "operator": "exists",
+      "value": true,
+      "description": "输出末尾必须有诚实边界声明"
+    },
+    {
+      "type": "computed",
+      "id": "total_equals_sum_of_dimensions",
+      "operator": "abs_diff_lte",
+      "left": "diagnosis.total_score",
+      "right_sum_of": "diagnosis.dimensions[].score",
+      "value": 1,
+      "description": "total_score = 各维 score 之和(允许 ≤1 取整误差)"
+    },
+    {
+      "type": "computed",
+      "id": "each_score_within_max",
+      "operator": "every_score_le_max",
+      "path": "diagnosis.dimensions",
+      "description": "每维 score 不得超过该维 max"
+    },
+    {
+      "type": "computed",
+      "id": "dimension_max_matches_rubric",
+      "operator": "dimension_max_equals",
+      "path": "diagnosis.dimensions",
+      "value": [20, 25, 25, 20, 10],
+      "description": "五维 max 必须与 backend-campus.md 标尺(20/25/25/20/10)逐项一致"
+    }
+  ],
+  "must_contain": [
+    {
+      "pattern": "银牌|ACM|区域赛",
+      "reason": "ACM 区域赛银牌是简历明文竞赛,必须被忠实读取计入算法维度证据,不得漏读"
+    },
+    {
+      "pattern": "420",
+      "reason": "LeetCode 420 题是简历明文数字,须照抄进证据,不得臆断"
+    }
+  ],
+  "must_not_contain": [
+    {
+      "pattern": "满分的\\s*\\d+\\s*%|给到满分|扣\\s*\\d+\\s*分|上限调整|修正为\\s*\\d+\\s*分|故给满分",
+      "reason": "用户可见文本严禁泄漏内部计算/比例话术"
+    },
+    {
+      "pattern": "basic_info|work_experience|skills\\.soft|evidenceFound 字段|interviewHooks 字段",
+      "reason": "严禁回显英文字段名"
+    }
+  ]
+}

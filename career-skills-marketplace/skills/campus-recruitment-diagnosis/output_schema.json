@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CampusRecruitmentDiagnosisOutput",
+  "description": "复用 shared/output-schema/skill-output-base.schema.json 顶层字段,并扩展校招诊断域载荷(diagnosis/rewrite_suggestions/honesty_boundary)。",
+  "type": "object",
+  "required": [
+    "skill_name",
+    "skill_version",
+    "summary",
+    "confidence",
+    "evidence_used",
+    "recommendations",
+    "risks",
+    "next_actions",
+    "follow_up_questions",
+    "cannot_determine",
+    "diagnosis",
+    "honesty_boundary"
+  ],
+  "properties": {
+    "skill_name": { "type": "string", "const": "campus-recruitment-diagnosis" },
+    "skill_version": { "type": "string", "default": "1.0.0" },
+    "summary": {
+      "type": "string",
+      "description": "一句话结论:目标职业 + 难度档 + 总分 + 最大短板。"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "insufficient"],
+      "description": "整体置信度。职业取最相近(非精确)→ 至多 medium;追问到顶仍缺关键信息 → low;无简历/无法评分 → insufficient。"
+    },
+    "evidence_used": {
+      "type": "array",
+      "description": "证据列表,每项符合 shared/evidence-schema/evidence.schema.json(简历→source_type:user_resume;职业标尺→knowledge_graph)。",
+      "items": { "type": "object" }
+    },
+    "recommendations": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+    "follow_up_questions": { "type": "array", "items": { "type": "string" } },
+    "cannot_determine": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "因信息不足无法判断的事项,无则 []。"
+    },
+    "diagnosis": {
+      "type": "object",
+      "required": ["total_score", "dimensions", "conventionChecks", "interviewHooks"],
+      "properties": {
+        "total_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "总分 = 各维度 score 之和。信息不足无法评分时省略此字段并将 confidence 置为 insufficient。"
+        },
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "description": "维度数量/顺序/满分必须与所选 professions/<id>.md 标尺完全一致。",
+          "items": {
+            "type": "object",
+            "required": ["key", "name", "score", "max", "why", "evidenceFound", "gap"],
+            "properties": {
+              "key": { "type": "string", "description": "维度英文标识(内部用,不展示给用户)" },
+              "name": { "type": "string", "description": "维度中文名(展示用)" },
+              "score": { "type": "number", "minimum": 0, "description": "该维度得分,封顶 max" },
+              "max": { "type": "number", "description": "该维度满分(来自标尺权重)" },
+              "why": {
+                "type": "string",
+                "minLength": 10,
+                "description": "评估理由,落到简历具体事实;命中反模式直接点名;严禁出现「满分的X%/给分不超过/扣X分」等内部计算话术。"
+              },
+              "evidenceFound": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "从简历抽取的支撑该维度的原句/事实(竞赛名次、成绩照抄原文),无则 []。"
+              },
+              "gap": {
+                "type": "string",
+                "description": "对照标尺常见缺失列出的简历缺口,无实质缺口则为空字符串。"
+              }
+            }
+          }
+        },
+        "conventionChecks": {
+          "type": "array",
+          "description": "本土校招惯例与硬规则核查结果(来自标尺「本土惯例与硬规则」)。",
+          "items": {
+            "type": "object",
+            "required": ["key", "status", "note"],
+            "properties": {
+              "key": { "type": "string", "description": "核查项中文名(如「技术栈分档」「项目可信度」)" },
+              "status": { "type": "string", "enum": ["pass", "warn", "fail"] },
+              "note": {
+                "type": "string",
+                "description": "核查说明,简体中文,严禁内部计算话术与英文字段名。"
+              }
+            }
+          }
+        },
+        "interviewHooks": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "description": "面试追问预演 2-4 条,针对低分或可能被质疑点。",
+          "items": {
+            "type": "object",
+            "required": ["resumeHit", "interviewQuestion", "prepDirection"],
+            "properties": {
+              "resumeHit": { "type": "string", "description": "简历中的具体命中点或原句" },
+              "interviewQuestion": { "type": "string", "description": "面试官很可能据此追问的问题" },
+              "prepDirection": { "type": "string", "description": "诚实的准备方向,引导补齐真实能力,绝不教编造" }
+            }
+          }
+        }
+      }
+    },
+    "rewrite_suggestions": {
+      "type": "array",
+      "description": "改写建议 3-5 条(仅在用户确认需要改写后产出)。改进型只优化原句;简历没有的能力一律走 gap_advice。",
+      "items": {
+        "type": "object",
+        "required": ["section", "type", "original", "suggested", "reason"],
+        "properties": {
+          "section": { "type": "string", "description": "定位简历的段落/条目(如「项目-订单系统」「技能栏」)" },
+          "type": {
+            "type": "string",
+            "enum": ["rewrite", "quantify", "restructure", "add_keywords", "gap_advice"],
+            "description": "改进型:rewrite/quantify/restructure/add_keywords;建议补充型:gap_advice。"
+          },
+          "original": {
+            "type": "string",
+            "description": "改进型必须是简历原文一字不差;gap_advice 必须为空字符串 ''。"
+          },
+          "suggested": {
+            "type": "string",
+            "description": "改进型不得新增原句没有的能力/动作/技术名词;新增数字一律用 [具体数字] 占位。gap_advice 写成给候选人的行动建议,非可直接粘贴的成品句。"
+          },
+          "reason": {
+            "type": "string",
+            "description": "理由。gap_advice 必须标注「面试穿帮风险:高——需你真实具备后再写入」。"
+          }
+        }
+      }
+    },
+    "honesty_boundary": {
+      "type": "string",
+      "description": "诚实边界声明:本次做了/没做什么、哪些 gap_advice 需真实具备后再写入、知识截止说明。"
+    }
+  },
+  "additionalProperties": true
+}
