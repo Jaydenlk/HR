@@ -148,8 +148,8 @@ allowed-tools: [Read, Grep]
 
 | 文件 | 用途 | 何时使用 | 不可用时降级 |
 |------|------|---------|------------|
-| `../_career-skills-shared/knowledge/role-taxonomy/roles.yaml` | 目标岗位的标准技能要求列表，用于补充 JD 中未明确列出的隐性要求 | 评估技能匹配维度（30%权重）时，JD 要求不完整时参考 | 仅对比 JD 显性要求，不补充隐性标准 |
-| `../_career-skills-shared/knowledge/role-taxonomy/role-categories.yaml` | 岗位大类分类，用于判断角色目标维度（role）的匹配合理性 | 评估岗位目标维度（15%权重）时 | 仅使用 JD 职位名称判断，不参考类别映射 |
+| `../_career-skills-shared/knowledge/campus-recruitment-rubrics/professions/<id>.md` | 目标职业的校招标尺（能力/考察维度），用于补充 JD 中未明确列出的隐性能力要求 | 评估技能匹配维度（30%权重）时，JD 要求不完整时参考对应职业标尺 | 仅对比 JD 显性要求，不补充隐性标准 |
+| `../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md` | 90 细分职业索引（含大类归属），用于判断角色目标维度（role）的匹配合理性 | 评估岗位目标维度（15%权重）时，定位/校验目标职业归属 | 仅使用 JD 职位名称判断，不参考职业索引 |
 
 ## 产品原则适用
 

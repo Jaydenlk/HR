@@ -76,4 +76,4 @@ dependencies:
     - _career-skills-shared/evidence-schema/evidence.schema.json
     - _career-skills-shared/output-schema/skill-output-base.schema.json
   knowledge:
-    - _career-skills-shared/knowledge/role-taxonomy/
+    - _career-skills-shared/knowledge/campus-recruitment-rubrics/

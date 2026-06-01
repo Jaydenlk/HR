@@ -78,7 +78,7 @@ confidence: high
 建议：面试前了解广告系统基本架构；简历中突出订单系统的 QPS 数字
 
 confidence: medium
-evidence_used: ["用户简历描述", "JD 原文", "role-taxonomy: backend-engineer"]
+evidence_used: ["用户简历描述", "JD 原文"]
 ```
 
 **置信度**：medium（领域知识差距判断基于用户输入，无法从外部核实）
@@ -287,7 +287,7 @@ verification: 建议搜索同期（2025 年）的 Go 后端字节面经做对比
 风险提示：纯 to-C 产品岗转型难度更高，建议先走 TP 路线积累背书。
 
 confidence: medium
-evidence_used: ["career-path-patterns: backend-to-pm", "role-taxonomy: product-manager"]
+evidence_used: ["career-path-patterns: backend-to-pm"]
 ```
 
 **置信度**：medium（路径规律有数据支撑，但个体差异影响实际结果）
@@ -333,7 +333,7 @@ fabrication_check: PASS（建议改写内容均基于简历原文）
 2. 面试前重点准备：to-B 场景设计题、飞书产品使用体验表达
 
 overall_confidence: medium
-evidence_chain: ["JD 原文", "用户简历", "knowledge-graph: 字节跳动 Tier 1", "role-taxonomy: product-manager"]
+evidence_chain: ["JD 原文", "用户简历", "knowledge-graph: 字节跳动 Tier 1"]
 ```
 
 **置信度**：medium（字节有 Tier 1 知识图谱记录，JD 解析完整；匹配分基于用户提供信息，差距判断透明可查）

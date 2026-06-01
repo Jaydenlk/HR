@@ -88,8 +88,8 @@ knowledge_dependencies:
     usage: "判断公司发展阶段（初创/成长/成熟）"
     required: false
     degradation: "company_context.stage 标注为 unknown"
-  - path: ../_career-skills-shared/knowledge/role-taxonomy/roles.yaml
-    usage: "岗位技能要求参考，辅助匹配诊断"
+  - path: ../_career-skills-shared/knowledge/interview-focus.yaml
+    usage: "岗位面试侧重点 / 校招标尺参考，辅助匹配诊断"
     required: false
     degradation: "仅依赖 JD 中的显性技能要求"
   - path: ../_career-skills-shared/knowledge/market-vocabulary/china-job-search-terms.yaml

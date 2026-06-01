@@ -91,10 +91,10 @@ outputs:
         description: 无法通过改写弥补、需要用户真实补充的差距
 
 knowledge_dependencies:
-  - path: ../_career-skills-shared/knowledge/role-taxonomy/roles.yaml
-    usage: "目标岗位标准关键词（resume_keywords），指导改写时哪些技能词应在简历中优先体现"
+  - path: ../_career-skills-shared/knowledge/campus-recruitment-rubrics/professions/<id>.md
+    usage: "目标职业的校招标尺：好的样子/应届证据/改写指引，指导改写时哪些技能词与亮点应在简历中优先体现"
     required: false
-    degradation: "仅依赖 JD 原文关键词指导改写，不引用岗位标准关键词库"
+    degradation: "仅依赖 JD 原文关键词指导改写，不引用职业标尺的标准关键词与改写指引"
 
 failure_modes:
   - id: no_input

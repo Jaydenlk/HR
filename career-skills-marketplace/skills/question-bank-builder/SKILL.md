@@ -14,6 +14,24 @@ allowed-tools: [Read, Grep]
 聚合特定公司和岗位的真实面试题，构建结构化题库，按维度分类，标注来源和频率。
 **所有题目必须来自真实面经或已知知识体系，禁止凭空生成"可能出现"的题目而不注明来源。**
 
+## 题型配比（按目标职业）
+
+构建题库前，先按目标职业从 `../_career-skills-shared/knowledge/interview-focus.yaml` 取该职业的题型配比，
+分配各类别的题量与题型权重。
+
+- `Read: ../_career-skills-shared/knowledge/interview-focus.yaml`，定位目标职业条目，取其四档权重
+  `{behavioral / case_study / technical / culture_fit}`（四项之和 = 100，单位为百分比）。
+- 按权重分配题量：某档题量 = `round(total_questions × 权重 / 100)`，权重越高该题型出题越多。
+- 配比到分类体系的映射（见下表「类别」）：
+  - `behavioral` → `behavioral`
+  - `case_study` → `case_product` / `case_business`（按职业属性归并：产品/运营走前者，咨询/策略走后者）
+  - `technical` → `technical_cs` / `technical_domain` / `system_design`（技术岗内部再按子方向细分）
+  - `culture_fit` → `cultural_fit`（`motivation` 求职动机题随 `culture_fit` 档一并分配）
+- 在 `coverage.by_category` 中体现按配比分配后的各类别题量，使其与目标职业的题型权重一致。
+
+**降级**：若 `interview-focus.yaml` 未命中目标职业，则按通用配比（behavioral / technical / case_study / culture_fit
+≈ 30 / 30 / 20 / 20）分配，并在 `gaps[]` 标注「未命中职业题型配比，按通用权重」。
+
 ## 题库结构
 
 ### 题目分类 `question_bank[]`

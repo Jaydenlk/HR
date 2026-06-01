@@ -181,13 +181,13 @@ allowed-tools: [Read, Grep]
 | 修改 3   | [gap_advice] 简历无此经历，需用户真实具备 | NEED_USER_CONFIRM |
 ```
 
-## 知识图谱引用
+## 知识库引用
 
 本 skill 使用以下知识文件辅助判断：
 
 | 文件 | 用途 | 何时使用 | 不可用时降级 |
 |------|------|---------|------------|
-| `../_career-skills-shared/knowledge/role-taxonomy/roles.yaml` | 目标岗位的标准关键词（resume_keywords），指导改写时关键词嵌入优先级 | 有 JD 时，决定哪些技能词应在简历中强化 | 仅依赖 JD 原文关键词，不引用岗位标准关键词 |
+| `../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md` | 校招职业标尺（各职业的能力/考察维度），指导改写时哪些能力关键词应在简历中优先体现 | 有 JD 时，结合 JD 与目标职业标尺决定强化哪些技能词 | 仅依赖 JD 原文关键词指导改写，不引用职业标尺 |
 
 ## 产品原则适用
 

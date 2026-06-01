@@ -28,6 +28,15 @@ allowed-tools: [Read, Grep]
 - `time_limit`：建议回答时长（分钟）
 - `evaluation_focus`：本题考察重点
 
+#### 题型配比：按目标职业从 interview-focus.yaml 取配比分配题量
+
+出题前，先按目标职业从 `../_career-skills-shared/knowledge/interview-focus.yaml` 取该职业的题型配比（四档 `{behavioral / case_study / technical / culture_fit}`，四档之和恒为 `100`）：
+
+- **以配比作为本轮各题型的题量/题型权重**：把配比百分比按本轮总题量折算到各题型的目标题数（如总 10 题、配比 `behavioral:40 / case_study:20 / technical:30 / culture_fit:10` → 行为 4 / 案例 2 / 技术 3 / 文化契合 1）。配比中的 `case_study` 对应本 skill 题型枚举的 `case`，`culture_fit` 对应 `cultural_fit`；`motivation` 题不占配比额度，作为通用补充少量穿插。
+- 折算后题数取整出现误差时，**以配比占比最高的题型吸收余数**，保证总题量不变、各档相对权重不被颠倒。
+- 命中目标职业配比后，**配比优先级低于上文 interviewHooks 强制题源**：续接场景下先按 interviewHooks 逐条出题，再用 interview-focus.yaml 配比调整「补充题」的题型分布，不得用配比挤掉任何一条 hook 衍生题。
+- **目标职业不在 `interview-focus.yaml` 中、或文件不可用时降级**：回退到岗位类型的通用均衡配比（behavioral / case / technical / cultural_fit 大致均分），并在产出中说明未命中该职业的专属配比。
+
 #### 强约束：interviewHooks 是强制题源（续接场景）
 
 当会话上下文已存在上游诊断（campus_diagnosis / match-diagnosis）产出的 `interviewHooks`（含 `resumeHit` / `interviewQuestion` / `prepDirection`）时：
@@ -82,6 +91,14 @@ allowed-tools: [Read, Grep]
 - 禁止对明显有缺陷的回答给出 8+ 分
 - 禁止在 `strengths` 中引用用户未说出的内容
 - 禁止跳过 Phase 2 直接输出 Phase 3 综合报告
+
+## 知识图谱引用
+
+本 skill 使用以下知识文件辅助出题：
+
+| 文件 | 用途 | 何时使用 | 不可用时降级 |
+|------|------|---------|------------|
+| `../_career-skills-shared/knowledge/interview-focus.yaml` | 各目标职业的题型配比（`{behavioral / case_study / technical / culture_fit}`，和=100），用于在 `generate_questions` 阶段分配题量与题型权重 | 已知目标职业、需要按职业特性分配各题型题数时 | 目标职业未命中或文件不可用时，回退到岗位类型的通用均衡配比，并在产出中说明未命中专属配比 |
 
 ## 输出格式
 

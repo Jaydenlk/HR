@@ -288,7 +288,8 @@ shared:
 
 knowledge:
   company_taxonomy: knowledge/company-taxonomy/
-  role_taxonomy: knowledge/role-taxonomy/
+  # role_taxonomy 已退役(roles.yaml / role-categories.yaml 删除,校招标尺改由 campus-recruitment-rubrics 承载)
+  interview_focus: knowledge/interview-focus.yaml
   market_vocabulary: knowledge/market-vocabulary/
   rubrics: knowledge/rubrics/
   interview_taxonomy: knowledge/interview-taxonomy/
@@ -300,8 +301,8 @@ knowledge:
 knowledge_stats:
   companies: 600
   company_tiers: "T1=50 (deep) + T2=250 (standard) + T3=300 (lightweight)"
-  role_categories: 12
-  roles: 30
+  # role_categories / roles 已退役(role-taxonomy 清退,改由 campus-recruitment-rubrics 的 90 职业承载)
+  interview_focus_professions: 90
   market_terms: 30
   interview_question_types: 8
   offer_comparison_factors: 15

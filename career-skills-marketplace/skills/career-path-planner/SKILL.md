@@ -78,7 +78,7 @@ allowed-tools: [Read, Grep]
 | 文件 | 用途 | 何时使用 | 不可用时降级 |
 |------|------|---------|------------|
 | `../_career-skills-shared/knowledge/career-path-patterns.yaml` | 中国市场已验证的职业转型路径模式（如开发→产品、运营→增长等），用于评估转型可行性（feasibility）和典型里程碑 | 生成横向转型路径和行业切换路径时 | 不输出横向路径，仅输出纵向晋升路径，并标注 confidence: low |
-| `../_career-skills-shared/knowledge/role-taxonomy/roles.yaml` | 目标岗位的标准技能要求，用于计算适配度（fit_pct）中的技能覆盖率维度（40%权重） | 计算每条路径的适配度分数时 | 仅依赖 profile.skills 与路径名称的文字匹配，技能覆盖率计算精度降低 |
+| `../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md` | 目标职业的校招能力标尺（90 细分职业的技能/胜任力要求），用于计算适配度（fit_pct）中的技能覆盖率维度（40%权重） | 计算每条路径的适配度分数时 | 仅依赖 profile.skills 与路径名称的文字匹配，技能覆盖率计算精度降低 |
 
 ## 产品原则适用
 

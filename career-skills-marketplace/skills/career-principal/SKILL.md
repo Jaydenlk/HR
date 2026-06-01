@@ -403,7 +403,7 @@ jd-analyzer      ──► resume-tailor
 `../_career-skills-shared/knowledge/` 目录包含静态结构化知识（安装后位于 `~/.claude/skills/_career-skills-shared/knowledge/`），在以下情况下读取：
 
 - **公司信息查询**：`../_career-skills-shared/knowledge/company-taxonomy/` 目录
-- **岗位要求参考**：`../_career-skills-shared/knowledge/role-taxonomy/` 目录
+- **岗位面试侧重 / 校招标尺参考**：`../_career-skills-shared/knowledge/interview-focus.yaml`（按目标职业的四维题型配比，锚定 `campus-recruitment-rubrics/index.md` 的校招标尺）
 - **求职黑话**：`../_career-skills-shared/knowledge/market-vocabulary/` 目录
 
 读取方式：
@@ -412,8 +412,9 @@ jd-analyzer      ──► resume-tailor
 # 查找公司信息
 Grep: ../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml 关键词搜索
 
-# 查找岗位知识
-Grep: ../_career-skills-shared/knowledge/role-taxonomy/roles.yaml 关键词搜索
+# 查找岗位面试侧重 / 校招标尺
+Read: ../_career-skills-shared/knowledge/interview-focus.yaml  # 目标职业的四维题型配比
+Grep: ../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md 关键词搜索  # 90 细分职业校招标尺
 
 # 查找求职黑话
 Read: ../_career-skills-shared/knowledge/market-vocabulary/china-job-search-terms.yaml

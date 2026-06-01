@@ -1,0 +1,669 @@
+# 校招面试题型配比表 (interview-focus)
+#
+# 用途:供 mock-interviewer / question-bank-builder / interview-intelligence
+#       按"目标职业"分配面试题量。每个职业一组四维题型配比
+#       {behavioral, case_study, technical, culture_fit}(四者之和=100)+ 一句 note。
+#
+# 配比含义:
+#   behavioral  — 行为面(STAR/经历追问/动机/抗压等过往行为类)
+#   case_study  — 案例/情景题(开放设计、商业/产品分析、估算、场景推演)
+#   technical   — 硬技术/专业知识(编码、算法、专业原理、工具实操、笔试)
+#   culture_fit — 文化/价值观/团队契合(动机、稳定性、价值观匹配、软素质)
+#
+# 锚点:以 role-taxonomy/roles.yaml 的 30 个 interview_focus 为基准,
+#       按 campus-recruitment-rubrics/index.md 的 90 细分职业做行业化调整。
+#       键用 profession 中文名(与标尺 index.md 一致),niche 职业用行业常识合理给。
+#
+# 使用方式:mock-interviewer 取目标职业的配比 × 计划总题数 = 各类型题量;
+#          question-bank-builder 按配比从题库抽题;
+#          interview-intelligence 据此提示候选人各环节准备重点。
+
+meta:
+  total: 90
+  sum_invariant: behavioral + case_study + technical + culture_fit = 100
+  anchor: role-taxonomy/roles.yaml (30 roles)
+  aligned_with: campus-recruitment-rubrics/index.md (90 professions)
+  note: 校招语境(应届/0年经验);相比社招更看重潜力与文化契合,technical 略降、culture_fit/behavioral 略升
+
+interview_focus:
+
+  # ── 技术研发(13)──────────────────────────────────────────────
+  后端开发:
+    behavioral: 10
+    case_study: 10
+    technical: 75
+    culture_fit: 5
+    note: 校招以编码+数据结构算法+系统设计为主轴;case 用于系统设计/排障推演,行为面占比低
+
+  前端/客户端:
+    behavioral: 10
+    case_study: 10
+    technical: 70
+    culture_fit: 10
+    note: JS/框架原理+手写题+工程化为核心;case 多为页面性能/还原场景,审美与产品感属 culture
+
+  算法(含大模型):
+    behavioral: 8
+    case_study: 22
+    technical: 65
+    culture_fit: 5
+    note: 比后端更偏 case(建模/方案设计/论文创新点追问)+ ML 理论;校招看科研潜力与实习落地
+
+  测试开发:
+    behavioral: 12
+    case_study: 28
+    technical: 50
+    culture_fit: 10
+    note: case 重(用例设计/边界场景/破坏性思维),technical 为自动化与编码;比纯研发更看协作意识
+
+  硬件开发/嵌入式:
+    behavioral: 10
+    case_study: 18
+    technical: 67
+    culture_fit: 5
+    note: C/C++/电路/RTOS 硬知识为主;case 为调试与功耗场景;严谨工程习惯属 culture
+
+  运维/SRE:
+    behavioral: 15
+    case_study: 22
+    technical: 58
+    culture_fit: 5
+    note: 故障排查/容量/可观测性 case 突出;technical 含 K8s/网络;oncall 抗压与责任心为隐性门槛
+
+  大数据开发:
+    behavioral: 10
+    case_study: 25
+    technical: 55
+    culture_fit: 10
+    note: 数仓分层/SQL 优化/Spark 等 technical 为主;case 偏数据建模与质量治理场景
+
+  网络安全:
+    behavioral: 10
+    case_study: 25
+    technical: 60
+    culture_fit: 5
+    note: 攻防/漏洞原理 technical 重;case 为渗透与应急响应推演;红线意识与合规属 culture
+
+  游戏开发:
+    behavioral: 10
+    case_study: 18
+    technical: 67
+    culture_fit: 5
+    note: 引擎(Unity/Unreal)+渲染优化 technical 极重;对游戏体验的理解属 culture/case
+
+  推荐/搜索/广告算法:
+    behavioral: 8
+    case_study: 30
+    technical: 57
+    culture_fit: 5
+    note: 业务建模 case 比纯算法更重(召回/排序/指标拆解);A/B 与在离线一致性是高频追问
+
+  音视频/多媒体开发:
+    behavioral: 10
+    case_study: 18
+    technical: 67
+    culture_fit: 5
+    note: 编解码/流媒体/音视频原理 technical 为核心;case 为弱网/延迟优化场景
+
+  基础架构/中间件:
+    behavioral: 10
+    case_study: 22
+    technical: 63
+    culture_fit: 5
+    note: 偏底层(并发/存储/分布式)technical+系统设计 case;比业务后端更看 trade-off 深度
+
+  # ── 产品 · 运营(9)──────────────────────────────────────────────
+  互联网产品经理:
+    behavioral: 22
+    case_study: 50
+    technical: 8
+    culture_fit: 20
+    note: 产品设计/分析 case 为绝对主轴;校招看产品感与用户感;technical 仅基础数据/技术理解
+
+  运营(含AIGC):
+    behavioral: 28
+    case_study: 42
+    technical: 5
+    culture_fit: 25
+    note: 活动策划/增长拆解 case 重;执行力与用户洞察属 behavioral/culture;AIGC 工具属轻 technical
+
+  电商运营:
+    behavioral: 25
+    case_study: 45
+    technical: 8
+    culture_fit: 22
+    note: GMV/转化漏斗/大促操盘 case 突出;数据敏感与抗压属 behavioral;平台规则理解为轻 technical
+
+  增长运营:
+    behavioral: 18
+    case_study: 47
+    technical: 18
+    culture_fit: 17
+    note: 漏斗优化/A-B 设计 case 最重;SQL 与统计显著性为 technical;假设-验证循环属 behavioral
+
+  新媒体运营:
+    behavioral: 22
+    case_study: 43
+    technical: 5
+    culture_fit: 30
+    note: 选题/爆款拆解 case 重;内容品味与平台敏锐度高度依赖 culture_fit;technical 极轻
+
+  游戏策划:
+    behavioral: 18
+    case_study: 52
+    technical: 8
+    culture_fit: 22
+    note: 数值/系统/关卡设计 case 为核心;对游戏的热爱与品味属 culture;technical 为数值表/工具
+
+  数据产品经理:
+    behavioral: 18
+    case_study: 48
+    technical: 18
+    culture_fit: 16
+    note: 数据需求转化/指标体系 case 重;比普通 PM 多一层数据/SQL technical 考察
+
+  策略产品经理:
+    behavioral: 15
+    case_study: 52
+    technical: 18
+    culture_fit: 15
+    note: 策略逻辑/规则设计/效果评估 case 最重;需懂算法与数据 technical;逻辑严密性是关键
+
+  用户运营:
+    behavioral: 30
+    case_study: 40
+    technical: 8
+    culture_fit: 22
+    note: 用户分层/留存提升 case+执行力 behavioral 并重;私域与用户洞察属 culture;数据为轻 technical
+
+  # ── 设计(8)──────────────────────────────────────────────
+  设计师(UI/UX):
+    behavioral: 18
+    case_study: 52
+    technical: 18
+    culture_fit: 12
+    note: 作品集讲解与设计思考过程 case 为主轴;工具与还原属 technical;审美品味属 culture
+
+  视觉/平面设计:
+    behavioral: 15
+    case_study: 55
+    technical: 18
+    culture_fit: 12
+    note: 作品集 case 极重(视觉表达/创意);软件实操 technical;风格契合属 culture
+
+  交互设计:
+    behavioral: 18
+    case_study: 52
+    technical: 18
+    culture_fit: 12
+    note: 交互方案/可用性 case 为核心;原型工具 technical;以用户为中心的思维属 culture
+
+  工业设计:
+    behavioral: 15
+    case_study: 55
+    technical: 18
+    culture_fit: 12
+    note: 作品集与结构/工艺推演 case 重;建模软件与制造约束属 technical
+
+  游戏美术/原画:
+    behavioral: 12
+    case_study: 60
+    technical: 18
+    culture_fit: 10
+    note: 作品集 case 占绝对主导(风格/质量/匹配度);绘画与软件功底属 technical
+
+  动效设计师:
+    behavioral: 15
+    case_study: 52
+    technical: 23
+    culture_fit: 10
+    note: Demo 作品 case 重;AE/动效工具与代码衔接 technical 比静态设计更高
+
+  用户研究(UXR):
+    behavioral: 20
+    case_study: 50
+    technical: 18
+    culture_fit: 12
+    note: 研究方法/案例设计 case 为主;定性定量方法与统计属 technical;同理心与洞察属 culture
+
+  三维设计师(3D):
+    behavioral: 12
+    case_study: 58
+    technical: 20
+    culture_fit: 10
+    note: 作品集 case 主导;建模/材质/渲染管线 technical 比 2D 美术更高
+
+  # ── 数据(4)──────────────────────────────────────────────
+  数据分析师:
+    behavioral: 12
+    case_study: 45
+    technical: 35
+    culture_fit: 8
+    note: 业务分析 case 最重(指标拆解/归因/给建议);SQL+统计为 technical;数据讲故事属 case
+
+  数据科学:
+    behavioral: 10
+    case_study: 35
+    technical: 50
+    culture_fit: 5
+    note: 业务 case(实验设计/因果/指标体系)与统计/ML technical 并重;数据讲故事能力属 case;校招看科研潜力与实习落地
+
+  数据开发(数仓/ETL):
+    behavioral: 10
+    case_study: 25
+    technical: 55
+    culture_fit: 10
+    note: 分层建模/SQL 深度优化/Spark technical 为主;case 为数据质量与血缘场景
+
+  BI工程师:
+    behavioral: 12
+    case_study: 28
+    technical: 50
+    culture_fit: 10
+    note: 数仓建模+BI 工具 technical 为主;case 偏需求转化与看板设计;与业务沟通属 behavioral
+
+  # ── 市场 · 销售(9)──────────────────────────────────────────────
+  市场营销:
+    behavioral: 28
+    case_study: 42
+    technical: 5
+    culture_fit: 25
+    note: campaign 策划/品牌定位 case 重;创意与商业结合属 culture;数字投放为轻 technical
+
+  销售:
+    behavioral: 42
+    case_study: 25
+    technical: 8
+    culture_fit: 25
+    note: 行为面(抗压/动机/人际)为主轴;模拟销售/情景 case;校招看韧性与目标感,业绩话术属 behavioral
+
+  品牌/公关(PR):
+    behavioral: 32
+    case_study: 42
+    technical: 5
+    culture_fit: 21
+    note: 危机处置/传播策略 case 重;高压判断与媒体关系属 behavioral;表达与价值观属 culture
+
+  市场研究/用户研究:
+    behavioral: 18
+    case_study: 50
+    technical: 20
+    culture_fit: 12
+    note: 研究设计/数据解读 case 为主;统计与调研方法 technical;逻辑严密属 behavioral
+
+  商务拓展(BD):
+    behavioral: 35
+    case_study: 30
+    technical: 8
+    culture_fit: 27
+    note: 谈判/资源/战略思维 behavioral 重;合作模式设计 case;长周期推进耐心与价值观属 culture
+
+  销售运营:
+    behavioral: 22
+    case_study: 40
+    technical: 20
+    culture_fit: 18
+    note: 销售流程/激励/数据分析 case 重;CRM 与 SQL 为 technical;协调与执行属 behavioral
+
+  跨境电商/海外销售:
+    behavioral: 28
+    case_study: 40
+    technical: 10
+    culture_fit: 22
+    note: 选品/市场拓展 case 重;跨文化沟通与适应外派属 culture;平台与数据为轻 technical
+
+  广告投放/优化师:
+    behavioral: 15
+    case_study: 45
+    technical: 25
+    culture_fit: 15
+    note: 投放策略/ROI 优化 case 最重;投放平台与数据分析 technical;数据敏感属 behavioral
+
+  # ── 金融(11)──────────────────────────────────────────────
+  证券研究/行业研究:
+    behavioral: 15
+    case_study: 45
+    technical: 30
+    culture_fit: 10
+    note: 行业/公司分析 case 为主轴;估值建模与财务 technical 重;研究热情与勤奋属 culture
+
+  投行(IBD):
+    behavioral: 18
+    case_study: 27
+    technical: 40
+    culture_fit: 15
+    note: 财务建模/估值 technical 偏重 + 文化/抗压 culture(高强度筛选);校招重财务功底与精英契合
+
+  风控/风险管理:
+    behavioral: 15
+    case_study: 35
+    technical: 40
+    culture_fit: 10
+    note: 风险模型/指标 technical 重;case 为风险场景判断;审慎与合规意识属 culture
+
+  量化研究/交易:
+    behavioral: 8
+    case_study: 22
+    technical: 65
+    culture_fit: 5
+    note: 数学/编程/概率 technical 极重(类算法岗);case 为策略与市场建模;脑筋急转弯属 case
+
+  银行(管培/综合岗):
+    behavioral: 40
+    case_study: 28
+    technical: 7
+    culture_fit: 25
+    note: 行为面+无领导小组为主;业务情景 case;稳定性与价值观契合属 culture;technical 极轻
+
+  资产管理/资管:
+    behavioral: 16
+    case_study: 40
+    technical: 32
+    culture_fit: 12
+    note: 投资分析/组合 case 重;财务与估值 technical;研究素养与价值观属 culture
+
+  精算:
+    behavioral: 10
+    case_study: 22
+    technical: 63
+    culture_fit: 5
+    note: 精算/概率统计 technical 极重(含考试科目);case 为产品定价场景;严谨属 culture
+
+  信贷/信用分析:
+    behavioral: 15
+    case_study: 38
+    technical: 35
+    culture_fit: 12
+    note: 信用评估 case 重;财务报表与风险 technical;审慎与责任心属 culture
+
+  财富管理/投顾:
+    behavioral: 35
+    case_study: 32
+    technical: 18
+    culture_fit: 15
+    note: 客户沟通/销售情景 behavioral 重;配置方案 case;金融产品知识为 technical
+
+  机构销售/交易(FICC):
+    behavioral: 30
+    case_study: 30
+    technical: 28
+    culture_fit: 12
+    note: 抗压/人际 behavioral + 市场与产品 technical 并重;交易情景 case;反应速度属 case
+
+  财务管培生:
+    behavioral: 30
+    case_study: 35
+    technical: 20
+    culture_fit: 15
+    note: 管培行为面+无领导 behavioral 重;财务情景 case;财务基础为 technical;潜力与价值观属 culture
+
+  # ── 财务(9,管培生已在金融段)──────────────────────────────────────────────
+  审计(事务所):
+    behavioral: 22
+    case_study: 30
+    technical: 35
+    culture_fit: 13
+    note: 审计准则/财务 technical 重;case 为审计实务场景;抗压与出差接受度属 behavioral/culture
+
+  会计核算:
+    behavioral: 18
+    case_study: 25
+    technical: 47
+    culture_fit: 10
+    note: 会计准则/分录/核算 technical 为主;case 为业务处理场景;细致严谨属 culture
+
+  财务分析/FP&A:
+    behavioral: 18
+    case_study: 38
+    technical: 34
+    culture_fit: 10
+    note: 财务建模/预算分析 case 重;Excel 与三表 technical;业务理解与沟通属 behavioral
+
+  税务:
+    behavioral: 15
+    case_study: 28
+    technical: 47
+    culture_fit: 10
+    note: 税法/税务处理 technical 为主;case 为税务筹划场景;合规意识属 culture
+
+  成本会计:
+    behavioral: 15
+    case_study: 28
+    technical: 47
+    culture_fit: 10
+    note: 成本核算方法 technical 为主;case 为成本管控场景;数字敏感属 culture
+
+  内审/内控:
+    behavioral: 20
+    case_study: 35
+    technical: 32
+    culture_fit: 13
+    note: 内控流程/风险 case 重;审计与财务 technical;独立性与原则性属 culture
+
+  财务BP(业财融合):
+    behavioral: 22
+    case_study: 42
+    technical: 24
+    culture_fit: 12
+    note: 业财结合 case 最重(用财务支持业务);财务建模 technical;跨部门沟通属 behavioral
+
+  出纳/资金:
+    behavioral: 20
+    case_study: 22
+    technical: 48
+    culture_fit: 10
+    note: 资金/票据/银行实务 technical 为主;case 为资金调度场景;责任心与廉洁属 culture
+
+  资金管理/司库:
+    behavioral: 18
+    case_study: 35
+    technical: 37
+    culture_fit: 10
+    note: 现金流/融资/汇率 technical 重;case 为资金规划场景;严谨与风险意识属 culture
+
+  # ── 人力资源(8)──────────────────────────────────────────────
+  招聘/校园招聘:
+    behavioral: 45
+    case_study: 25
+    technical: 12
+    culture_fit: 18
+    note: 行为面为绝对主轴(沟通/识人/抗压);case 为招聘场景;sourcing 与流程为 technical
+
+  HRBP:
+    behavioral: 45
+    case_study: 28
+    technical: 10
+    culture_fit: 17
+    note: 锚定 roles.yaml hr(behavioral 50);校招略降给 case;业务理解与情景判断为核心
+
+  薪酬福利(C&B):
+    behavioral: 22
+    case_study: 35
+    technical: 33
+    culture_fit: 10
+    note: 薪酬设计/数据建模 technical 比其他 HR 高;case 为薪酬方案场景;保密与严谨属 culture
+
+  组织发展(OD):
+    behavioral: 32
+    case_study: 43
+    technical: 8
+    culture_fit: 17
+    note: 组织诊断/变革方案 case 重;咨询式思维属 case;沟通与影响力属 behavioral
+
+  培训发展(TD):
+    behavioral: 35
+    case_study: 38
+    technical: 7
+    culture_fit: 20
+    note: 培训设计/落地 case 重;表达与感染力属 behavioral;学习理念契合属 culture
+
+  HR共享服务(SSC):
+    behavioral: 35
+    case_study: 28
+    technical: 22
+    culture_fit: 15
+    note: 流程/系统/效率 technical 比其他 HR 高;case 为流程优化场景;服务意识属 behavioral
+
+  HR管培生:
+    behavioral: 42
+    case_study: 33
+    technical: 5
+    culture_fit: 20
+    note: 管培行为面+无领导 behavioral 重;HR 模块情景 case;潜力与价值观属 culture;technical 极轻
+
+  招聘顾问/猎头:
+    behavioral: 45
+    case_study: 25
+    technical: 8
+    culture_fit: 22
+    note: 沟通/抗压/成交欲 behavioral 为核心(近销售);寻访情景 case;目标感与韧性属 culture
+
+  # ── 职能 · 法务(8)──────────────────────────────────────────────
+  法务:
+    behavioral: 18
+    case_study: 35
+    technical: 40
+    culture_fit: 7
+    note: 法律专业知识 technical 重;case 为合同/纠纷场景分析;严谨与原则性属 culture
+
+  供应链/物流:
+    behavioral: 22
+    case_study: 38
+    technical: 25
+    culture_fit: 15
+    note: 锚定 roles.yaml supply-chain;库存/预测 case 重;ERP 与数据为 technical;跨部门协调属 behavioral
+
+  客服/客户成功:
+    behavioral: 40
+    case_study: 30
+    technical: 8
+    culture_fit: 22
+    note: 沟通/情绪/抗压 behavioral 为核心;客户情景 case;服务意识与耐心属 culture
+
+  行政:
+    behavioral: 38
+    case_study: 25
+    technical: 7
+    culture_fit: 30
+    note: 行为面+细致执行 behavioral 重;事务处理 case;服务意识与稳定性属 culture;technical 极轻
+
+  采购:
+    behavioral: 28
+    case_study: 38
+    technical: 18
+    culture_fit: 16
+    note: 谈判/供应商管理 case+behavioral 并重;成本分析为 technical;廉洁与原则属 culture
+
+  项目管理(PMO):
+    behavioral: 35
+    case_study: 38
+    technical: 12
+    culture_fit: 15
+    note: 推进/协调/冲突处理 behavioral 重;项目情景 case;工具与方法论为轻 technical
+
+  合规/数据隐私:
+    behavioral: 18
+    case_study: 35
+    technical: 37
+    culture_fit: 10
+    note: 法规/隐私框架 technical 重;case 为合规场景判断;独立性与红线意识属 culture
+
+  知识产权/专利:
+    behavioral: 15
+    case_study: 28
+    technical: 47
+    culture_fit: 10
+    note: 专利法/技术理解 technical 为主(需理工+法律);case 为专利布局场景;严谨属 culture
+
+  # ── 咨询 · 战略(5)──────────────────────────────────────────────
+  管理咨询:
+    behavioral: 18
+    case_study: 62
+    technical: 8
+    culture_fit: 12
+    note: 锚定 roles.yaml consulting-analyst(case 60);MBB 核心考 case 能力;PEI 行为面占少量
+
+  商业分析(BA):
+    behavioral: 18
+    case_study: 52
+    technical: 20
+    culture_fit: 10
+    note: 业务问题拆解 case 为主;数据与建模 technical 比纯咨询高;结构化表达属 case
+
+  企业战略:
+    behavioral: 18
+    case_study: 58
+    technical: 12
+    culture_fit: 12
+    note: 战略分析/行业研究 case 为绝对主轴;数据为轻 technical;高度结构化思维是关键
+
+  数字化转型咨询(IT):
+    behavioral: 18
+    case_study: 48
+    technical: 24
+    culture_fit: 10
+    note: 转型方案 case 重;比一般咨询多技术架构 technical;业务+技术双理解为核心
+
+  风险咨询(内控/合规):
+    behavioral: 20
+    case_study: 45
+    technical: 25
+    culture_fit: 10
+    note: 内控/风险方案 case 重;审计与合规 technical;独立性与原则属 culture
+
+  # ── 行业 · 垂类(9)──────────────────────────────────────────────
+  快消管培生:
+    behavioral: 42
+    case_study: 35
+    technical: 3
+    culture_fit: 20
+    note: 锚定 roles.yaml management-trainee;无领导小组+行为面定生死;通过率极低,潜力与价值观属 culture
+
+  医药代表:
+    behavioral: 42
+    case_study: 28
+    technical: 12
+    culture_fit: 18
+    note: 沟通/抗压/学习力 behavioral 为核心;拜访情景 case;医药知识为 technical;合规与价值观属 culture
+
+  地产(营销策划):
+    behavioral: 28
+    case_study: 42
+    technical: 5
+    culture_fit: 25
+    note: 营销方案/操盘 case 重;抗压与执行属 behavioral;市场敏感与价值观属 culture
+
+  教育(教研/教师):
+    behavioral: 30
+    case_study: 35
+    technical: 18
+    culture_fit: 17
+    note: 试讲/教学设计 case 重;学科功底为 technical;表达感染力与育人价值观属 behavioral/culture
+
+  工艺工程师(制造/半导体):
+    behavioral: 12
+    case_study: 22
+    technical: 61
+    culture_fit: 5
+    note: 工艺/材料/制造原理 technical 为主;case 为良率与异常分析场景;严谨工程习惯属 culture
+
+  质量工程师(SQE/QE):
+    behavioral: 15
+    case_study: 30
+    technical: 47
+    culture_fit: 8
+    note: 质量工具(8D/SPC/FMEA)technical 重;case 为质量异常处理场景;原则性与细致属 culture
+
+  临床监查员(CRA):
+    behavioral: 30
+    case_study: 25
+    technical: 35
+    culture_fit: 10
+    note: GCP/临床法规 technical 重;沟通与抗压(频繁出差)属 behavioral;case 为监查场景;责任心属 culture
+
+  门店管培/储备店长:
+    behavioral: 42
+    case_study: 30
+    technical: 3
+    culture_fit: 25
+    note: 行为面+现场管理情景为主;case 为门店运营场景;吃苦耐劳与稳定性属 culture;technical 极轻

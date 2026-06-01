@@ -34,6 +34,20 @@ allowed-tools: [Read, Grep, WebSearch, WebFetch]
 - `frequency`：`"very_high"` / `"high"` / `"medium"`
 - `source_hint`：来源提示（如「牛客/看准近6个月高频」）
 
+#### 题型配比与出题逻辑
+
+按目标职业从 `../_career-skills-shared/knowledge/interview-focus.yaml` 取该职业的题型配比
+（`{behavioral, case_study, technical, culture_fit}`，四项之和 = 100），以此分配 `common_questions[]` 的
+题量与题型权重：
+
+- 将配比按比例换算为各 `category` 的目标题数（如某职业 `behavioral: 40 / case_study: 30 / technical: 20 / culture_fit: 10`，
+  则在 12 道题里大致出 5 / 4 / 2 / 1 道），高权重题型多出、低权重题型少出。
+- 配比中的字段映射到 `common_questions[].category`：`behavioral→behavioral`、`case_study→case`、
+  `technical→technical`、`culture_fit→cultural_fit`（`motivation` 不在配比内，按公司/岗位实际面经补充）。
+- 仍受「句句有源」约束：配比只决定**每类出几道**，每道题本身必须有 `source_hint`（真实面经或知识图谱通用题库），
+  无来源的具体题目不得为凑配比而编造。
+- 该职业不在 `interview-focus.yaml` 中、或文件不可用时降级使用均衡配比（四类等权），并在 `cannot_determine` 注明未取到定向题型配比。
+
 ### 备考优先项 `preparation_priorities[]`
 
 按优先级排序的备考建议，每项含：
@@ -95,6 +109,7 @@ allowed-tools: [Read, Grep, WebSearch, WebFetch]
 | `../_career-skills-shared/knowledge/interview-question-taxonomy.yaml` | 面试题类型分类和通用高频题库，用于在无实时面经时生成备考优先项 | 无实时面经数据（confidence: insufficient）时降级使用 | 输出仅含通用面试知识，confidence 置为 low，cannot_determine 说明缺失的定向情报 |
 | `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 已知公司的面试风格（interview_style）和流程特征 | 查询目标公司的面试流程类型时 | 面试风格标注为 unknown，仅给出岗位通用流程框架 |
 | `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型与典型面试流程的映射（如大厂/国企/外企的流程差异） | 无公司精确数据时按公司类型推断流程 | 仅输出通用面试流程，不做公司类型推断 |
+| `../_career-skills-shared/knowledge/interview-focus.yaml` | 各目标职业的题型配比（`{behavioral/case_study/technical/culture_fit}` 和 = 100），用于分配 `common_questions[]` 的题量与题型权重 | 生成 `common_questions[]` 时，按目标职业取配比换算各 `category` 目标题数 | 该职业缺配比或文件不可用时降级为四类均衡配比，`cannot_determine` 注明未取到定向题型配比 |
 
 ## 产品原则适用
 

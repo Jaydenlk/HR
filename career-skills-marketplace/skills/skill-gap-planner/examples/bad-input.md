@@ -32,7 +32,7 @@
       "gap_severity": "critical",
       "user_current": "profile.skills.technical 中无工程化工具记录",
       "target_required": "高级前端工程师通用要求：能配置构建工具、优化构建速度、搭建 Monorepo 体系",
-      "source_evidence": "基于 role-taxonomy 中高级前端工程师的通用要求（无具体JD，置信度 medium）"
+      "source_evidence": "基于 interview-focus.yaml（校招标尺）中高级前端工程师的通用要求（无具体JD，置信度 medium）"
     },
     {
       "skill_name": "性能优化（Core Web Vitals）",

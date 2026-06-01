@@ -172,14 +172,10 @@ outputs:
     description: 置信度为 insufficient 时，说明具体缺失的数据项（评分时此字段不存在）
 
 knowledge_dependencies:
-  - path: ../_career-skills-shared/knowledge/role-taxonomy/roles.yaml
-    usage: "目标岗位标准技能要求，补充 JD 未列出的隐性技能要求，用于技能匹配维度评分"
+  - path: ../_career-skills-shared/knowledge/interview-focus.yaml
+    usage: "目标职业的面试题型配比（technical/case/behavioral/culture_fit），反映该岗位的能力侧重；用于补充 JD 未列出的隐性能力要求，辅助技能匹配维度（skills）与岗位目标维度（role）评分。职业枚举与 ../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md 对齐"
     required: false
-    degradation: "仅比对 JD 中的显性技能要求，技能维度评分可能偏宽松"
-  - path: ../_career-skills-shared/knowledge/role-taxonomy/role-categories.yaml
-    usage: "岗位大类分类，辅助判断用户职业轨迹与目标岗位的一致性（role 维度）"
-    required: false
-    degradation: "仅依赖职位名称文字匹配，岗位目标维度评分准确度降低"
+    degradation: "仅比对 JD 中的显性技能要求并依赖职位名称文字匹配，技能/岗位目标维度评分可能偏宽松"
 
 product_principles:
   ask_before_judging: true
