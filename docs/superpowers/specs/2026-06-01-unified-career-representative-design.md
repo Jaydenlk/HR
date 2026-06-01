@@ -74,7 +74,11 @@
 - career-principal/output_schema.json:`intent_detected` enum 从 13 补到与 router 的 40 对齐(含 campus + Pack A/B/C/D);废弃 SKILL.md:291-313 的 `aggregated_result/key_findings/next_steps` 嵌套示范,改与 schema 一致;4 个 examples 同步改为可过 schema。
 - validate-all.mjs 扩展:校验 evidence_used.items 含来源子集 + intent_detected 在 enum 内 + suggested_next 结构合法 + "router 意图集 == output_schema enum 集"一致性 + 接入 validate-resource-paths.mjs。
 
-## 4. 实施计划(两批,step→verify)
+### 3.8 职业标尺融合(解 G7:两套并行职业体系)
+现状两套并行:`knowledge/role-taxonomy/`(roles.yaml 30 角色 / 12 大类,含 hidden_preferences / common_red_flags / interview_focus 权重 / resume_keywords / salary_range_reference)与 `knowledge/campus-recruitment-rubrics/`(91 职业 / 11 大类,5 维评分 + 反模式 + 应届证据 + 本土惯例,全仓最厚)。问题:大类划分不一致、职业覆盖重叠、互不打通,且 91 标尺只被 campus_diagnosis 消费,其余意图(match-diagnosis/jd-analyzer/面试/简历)拿不到职业专属标尺。
+决定:**以 91 campus 标尺为канон主干**,把 role-taxonomy 的增量字段(hidden_preferences/common_red_flags/interview_focus 权重)融进对应职业标尺(无对应的映射或补建),统一大类(以 campus 11 大类为准,role 12 大类做映射表);并把融合后的职业标尺升级为**跨意图共享知识**——career-principal 在 match_diagnosis/analyze_jd/interview_prep/tailor_resume 等意图也按目标职业拉对应标尺,使全流程职业校准一致,而非只在校招诊断里用。保留 campus 的"应届/校招"特化档,社招/通用场景用融合标尺的通用层;索引统一到一处。
+
+## 4. 实施计划(三批,step→verify)
 
 ### 批1:路径统一 + 联网姿态(纯 bug 修复,低风险先发)
 1. 全仓裸路径 → `../_career-skills-shared/...`(campus 全量 + ~13 contract.yaml 的 knowledge_dependencies/policy_reference + 各 SKILL.md 末尾裸 shared/);删 campus "路径以 marketplace 根为基准" → **verify**:`validate-resource-paths.mjs` 0 报错。
@@ -88,6 +92,12 @@
 7. 公司层:company-lookup.md + campus target_company + interviewHooks 注入 → **verify**:给"字节后端"诊断时 interviewHooks 含字节 known_focus;查不到的公司优雅降级;标尺维度/满分不变。
 8. 防编造全局化:shared/scripts/check_fabrication.mjs + resume-tailor 接线 + product-principles verify → **verify**:伪造数字 exit1、合规 exit0;resume-tailor 可溯源扩写不再误判 NEED_USER_CONFIRM。
 9. schema/examples 同步 + 端到端续接 example(campus→提议模拟面试→确认→mock 接 interviewHooks) → **verify**:全 examples 过 schema;validate-all.mjs 全绿。
+
+### 批3:职业标尺融合(批2 落地后做;先摸两套系统再融)
+10. 深摸 role-taxonomy(30)与 campus-rubrics(91):职业/大类重叠映射、字段差异 → **verify**:产出映射表(role→campus 对应/缺口)+ 11 vs 12 大类对齐方案。
+11. 融合:把 role-taxonomy 增量字段(hidden_preferences/common_red_flags/interview_focus)融进对应 campus 标尺;统一大类;统一索引 → **verify**:每个标尺含融合字段;validate-all 标尺计数/结构校验过;无职业丢失。
+12. 跨意图启用:career-principal 在 match_diagnosis/analyze_jd/interview_prep/tailor_resume 按目标职业拉融合标尺(经 next-intent/coverage 调度)→ **verify**:eval 同一职业在诊断与匹配里用同一套标尺、口径一致。
+13. role-taxonomy 旧引用迁移到融合标尺,清双轨 → **verify**:validate-resource-paths/validate-all 全绿;grep 确认无遗留双轨引用。
 
 ## 5. 验收(evals,质量门)
 - **可安装**:模拟 install 布局后,campus 与各 skill 的资源路径全 resolve(validate-resource-paths.mjs 绿)。
@@ -108,5 +118,5 @@
 
 ## 7. 不在本轮范围
 - SaaS(packages/)、仓库重构/hrbp 同步(用户"暂时只做 skills 层")。
-- role-taxonomy(30 角色)与 campus 91 职业两套体系映射对齐(记录为已知重叠,留后续)。
 - 付费意向探针(用户先前已搁置)。
+- (注:职业标尺融合曾被列为本轮不做,用户 2026-06-01 明确要做 → 已上移为 §3.8 + 批3)
