@@ -1,5 +1,14 @@
-# Changelog
+﻿# Changelog
 
+## v1.0.0-beta.2 (2026-06-02)
+
+### Architecture: repackaged as a single-skill Claude Code plugin
+
+- **Plugin install** (recommended): `/plugin marketplace add Jaydenlk/HR` then `/plugin install career-principal@career-skills`
+- **career-principal** is now the sole auto-triggered skill (`skills/career-principal/SKILL.md`); all 37 workers have been renamed from `SKILL.md` to `PLAYBOOK.md` — they are read and executed by career-principal, not auto-loaded
+- **Shared resources** (previously root `knowledge/` and `shared/`) consolidated into `skills/_career-skills-shared/`
+- Plugin manifests: `.claude-plugin/plugin.json` (plugin name: career-principal) and `.claude-plugin/marketplace.json` (market name: career-skills)
+- Install script updated to copy all `skills/` subdirectories (career-principal + 37 workers + _career-skills-shared) to `~/.claude/skills/`
 ## v1.0.0-beta.1 (2026-05-27)
 
 ### Skills

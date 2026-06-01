@@ -3,11 +3,12 @@ import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { listSkillDirs } from './skills-dir.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const skillsDir = join(root, 'skills');
-const skills = readdirSync(skillsDir, { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name);
+const skills = listSkillDirs(skillsDir);
 
 let totalFail = 0;
 function check(label, pass) {
@@ -178,7 +179,7 @@ if (!cpSnOk) console.log('  CP FAIL: suggested_next missing/invalid (need next_i
 check('career-principal: suggested_next 结构合法', cpSnOk);
 
 const baseSchema = JSON.parse(
-  readFileSync(join(root, 'shared', 'output-schema', 'skill-output-base.schema.json'), 'utf-8')
+  readFileSync(join(root, 'skills', '_career-skills-shared', 'output-schema', 'skill-output-base.schema.json'), 'utf-8')
 );
 const baseReq = new Set(baseSchema.required || []);
 const baseHasSn = !!baseSchema.properties?.suggested_next;
@@ -192,7 +193,7 @@ check('base schema: next_actions ∈ required', baseNextActionsReq);
 console.log('\n=== Knowledge Graph ===');
 let t1 = 0, t2 = 0, t3 = 0;
 try {
-  const pyScript = `import yaml;t1=yaml.safe_load(open('knowledge/company-taxonomy/companies.seed.yaml',encoding='utf-8'));t2=yaml.safe_load(open('knowledge/company-taxonomy/tier_2_companies.yaml',encoding='utf-8'));t3=yaml.safe_load(open('knowledge/company-taxonomy/tier_3_extended.yaml',encoding='utf-8'));c1=t1.get('companies',[]);c2=t2.get('companies',[]);c3=t3.get('companies',[]);ids=[c['id'] for c in c1+c2+c3];dupes=len(ids)-len(set(ids));print(len(c1),len(c2),len(c3),dupes)`;
+  const pyScript = `import yaml;t1=yaml.safe_load(open('skills/_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml',encoding='utf-8'));t2=yaml.safe_load(open('skills/_career-skills-shared/knowledge/company-taxonomy/tier_2_companies.yaml',encoding='utf-8'));t3=yaml.safe_load(open('skills/_career-skills-shared/knowledge/company-taxonomy/tier_3_extended.yaml',encoding='utf-8'));c1=t1.get('companies',[]);c2=t2.get('companies',[]);c3=t3.get('companies',[]);ids=[c['id'] for c in c1+c2+c3];dupes=len(ids)-len(set(ids));print(len(c1),len(c2),len(c3),dupes)`;
   const out = execSync(`python -c "${pyScript}"`, { encoding: 'utf-8', cwd: root }).trim();
   const [s1, s2, s3, dupes] = out.split(' ').map(Number);
   t1 = s1; t2 = s2; t3 = s3;

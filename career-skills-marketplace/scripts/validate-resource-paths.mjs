@@ -3,9 +3,10 @@
 // runtime convention `../_career-skills-shared/...`. Bare `knowledge/` or bare
 // `shared/<schema-dir>/` paths break after install (everything gets flattened into
 // `_career-skills-shared/`), so they are violations. See spec §3.1 / §4 batch1 step 2.
-import { readFileSync, readdirSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { listSkillDirs } from './skills-dir.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillsDir = join(__dirname, '..', 'skills');
@@ -55,10 +56,9 @@ function extractSnippet(line, idx) {
 
 function collectTargets() {
   const targets = [];
-  for (const e of readdirSync(skillsDir, { withFileTypes: true })) {
-    if (!e.isDirectory()) continue;
-    const skillDir = join(skillsDir, e.name);
-    for (const f of ['SKILL.md', 'contract.yaml']) {
+  for (const name of listSkillDirs(skillsDir)) {
+    const skillDir = join(skillsDir, name);
+    for (const f of ['SKILL.md', 'PLAYBOOK.md', 'contract.yaml']) {
       const p = join(skillDir, f);
       try {
         readFileSync(p, 'utf-8');

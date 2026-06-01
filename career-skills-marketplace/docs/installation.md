@@ -2,95 +2,85 @@
 
 ## 前提条件
 
-- **Claude Code**（推荐，installer 全自动支持）或 **Codex**（installer 支持 `--target codex`）
-- **Git** 已安装并可在命令行使用
-- **网络连接**：仅在 clone 时需要，安装完成后系统离线运行
-
-## 支持范围
-
-| 环境 | 支持状态 | 安装方式 |
-|------|---------|---------|
-| Claude Code | ✅ 全自动 | `bash install.sh` 或 `.\install.ps1` |
-| Codex | ✅ 支持 | `bash install.sh --target codex` 或 `.\install.ps1 -Target codex` |
-| Gemini CLI / Cursor 等 | 手动安装 | 手动复制 skill 目录（见下方手动安装） |
-
-> 注意：Career Skills Marketplace 是 Claude Code / Codex skill 插件集，不是 CLI 工具、npm 包或 Web 应用。无需 `npx`、`npm install` 或任何包管理器操作。
+- **Claude Code** 已安装并可在命令行使用
+- **网络连接**：仅在安装时需要
 
 ---
 
-## 方式 1：Claude Code（默认）
+## 推荐方式：Claude Code 插件安装
 
-### macOS / Linux
+```
+/plugin marketplace add Jaydenlk/HR
+/plugin install career-principal@career-skills
+```
+
+安装完成，无需 clone 仓库。
+
+---
+
+## 备选方式：clone 后运行安装脚本
+
+适用于离线环境或需要修改 skill 源码的场景。插件在仓库子目录 `career-skills-marketplace/` 中。
+
+**macOS / Linux**
 
 ```bash
-git clone https://github.com/career-skills/career-skills-marketplace.git
-cd career-skills-marketplace
+git clone https://github.com/Jaydenlk/HR
+cd HR/career-skills-marketplace
 bash install.sh
 ```
 
-### Windows
+**Windows**
 
 ```powershell
-git clone https://github.com/career-skills/career-skills-marketplace.git
-cd career-skills-marketplace
+git clone https://github.com/Jaydenlk/HR
+cd HR/career-skills-marketplace
 .\install.ps1
 ```
 
-安装后目录结构（示例，installer 动态发现所有 skill，共 37 个）：
+install 脚本会把 `skills/` 下所有子目录（career-principal、37 个 worker、\_career-skills-shared）复制到 `~/.claude/skills/`，无需手动合并任何目录。
+
+---
+
+## 安装后目录结构
 
 ```
 ~/.claude/skills/
-  career-principal/SKILL.md
-  profile-builder/SKILL.md
-  jd-analyzer/SKILL.md
-  resume-tailor/SKILL.md
-  match-diagnosis/SKILL.md
-  source-quality-auditor/SKILL.md
-  salary-radar/SKILL.md
-  offer-comparator/SKILL.md
-  market-radar/SKILL.md
-  ... (共 37 个 skill 目录)
+  career-principal/
+    SKILL.md              ← 唯一自动触发入口
+    contract.yaml
+    ...
+  profile-builder/
+    PLAYBOOK.md           ← worker：由 career-principal 读取后执行，不自动触发
+    contract.yaml
+    ...
+  jd-analyzer/PLAYBOOK.md
+  resume-tailor/PLAYBOOK.md
+  match-diagnosis/PLAYBOOK.md
+  ... (共 37 个 worker 目录)
   _career-skills-shared/
+    knowledge/
+    rubrics/
+    ...
 ```
 
-### 验证安装
+---
+
+## 验证安装
+
+**插件安装**：在 Claude Code 中运行 `/plugin`，确认列表中出现 `career-principal`。
+
+**脚本安装**：
 
 ```bash
+# 确认主理人入口存在
 ls ~/.claude/skills/career-principal/SKILL.md
-ls ~/.claude/skills/_career-skills-shared/marketplace.yaml
+
+# 确认共享知识库存在
+ls ~/.claude/skills/_career-skills-shared/knowledge/interview-focus.yaml
 ```
 
----
-
-## 方式 2：Codex
-
-### macOS / Linux
-
-```bash
-git clone https://github.com/career-skills/career-skills-marketplace.git
-cd career-skills-marketplace
-bash install.sh --target codex
-```
-
-### Windows
-
-```powershell
-git clone https://github.com/career-skills/career-skills-marketplace.git
-cd career-skills-marketplace
-.\install.ps1 -Target codex
-```
-
-默认安装到 `~/.codex/skills/`。如果设置了 `CODEX_HOME` 环境变量，则安装到 `$CODEX_HOME/skills/`。
-
----
-
-## 方式 3：手动安装（其他环境）
-
-如果使用 Gemini CLI、Cursor 或其他兼容 SKILL.md 的环境：
-
-1. 将 `skills/` 下的 6 个 skill 目录复制到你的 agent 的 skills 目录
-2. 将 `shared/` 和 `knowledge/` 合并复制为 `_career-skills-shared/`
-3. 确保 `_career-skills-shared/` 与 6 个 skill 目录位于同一父目录下
+两条命令均有输出即为安装成功。
 
 ---
 
@@ -98,7 +88,7 @@ cd career-skills-marketplace
 
 ### 目标目录已存在
 
-脚本会在检测到已有安装时中止，不会覆盖或删除任何已有文件。
+脚本检测到已有安装时会中止，不会覆盖或删除任何已有文件。
 
 如需重装：
 1. **备份**你可能修改过的文件
@@ -112,18 +102,12 @@ PowerShell 默认可能禁止运行本地脚本。解决方式：
 - 或在 PowerShell 中运行 `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`（仅当前终端生效）
 - 或使用 WSL
 
-### SKILL.md 缺失
+### 主理人未出现
 
-```bash
-ls ~/.claude/skills/career-principal/SKILL.md
-```
-
-如果文件不存在，重新运行安装脚本。
+检查 `~/.claude/skills/career-principal/SKILL.md` 是否存在，不存在则重新运行安装脚本。
 
 ---
 
 ## 卸载
 
-手动删除安装的目录。建议先确认路径正确，不要盲目复制粘贴删除命令。
-
-安装脚本不提供自动卸载功能。
+手动删除 `~/.claude/skills/` 下由安装脚本创建的目录。安装脚本不提供自动卸载功能。

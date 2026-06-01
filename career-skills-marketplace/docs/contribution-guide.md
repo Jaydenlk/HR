@@ -1,4 +1,4 @@
-# 贡献指南
+﻿# 贡献指南
 
 感谢你考虑为 Career Skills Marketplace 做出贡献。本指南覆盖四种贡献类型的具体操作规范，以及数据红线和审核流程。
 
@@ -9,8 +9,8 @@
 | 贡献类型 | 目标路径 | 说明 |
 |----------|----------|------|
 | Skill 实现 | `skills/<skill-name>/` | 新增或改进求职相关 skill |
-| 企业数据 | `knowledge/company-taxonomy/` | 企业信息、融资阶段、业务描述等 |
-| 岗位 Rubric | `knowledge/rubrics/` | 岗位能力评分标准 |
+| 企业数据 | `skills/_career-skills-shared/knowledge/company-taxonomy/` | 企业信息、融资阶段、业务描述等 |
+| 岗位 Rubric | `skills/_career-skills-shared/rubrics/` | 岗位能力评分标准 |
 | 评测用例 | `evals/workflow/` | 用于验证系统行为的 JSON 测试夹具 |
 
 ---
@@ -29,7 +29,7 @@
 
 每一个新增或修改的 skill，必须包含以下全部文件，缺一不可：
 
-- `SKILL.md` — skill 功能描述、输入/输出规范、使用限制
+- 若新增 **worker 工具**：主文件为 `PLAYBOOK.md`（由 career-principal 读取后执行，不自动触发）；若新增或修改 career-principal 主理人本身，主文件为 `SKILL.md`（唯一自动触发入口）
 - `contract.yaml` — skill 接口契约：触发条件、参数类型、返回格式
 - `schemas/input.schema.json` — 输入数据 JSON Schema
 - `schemas/output.schema.json` — 输出数据 JSON Schema
@@ -42,7 +42,7 @@
 
 ## 企业数据贡献规范
 
-向 `knowledge/company-taxonomy/companies.seed.yaml` 添加企业条目时：
+向 `skills/_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` 添加企业条目时：
 
 - 每条记录必须包含 `source_url` 或 `source_note` 字段，指向可核实的公开来源
 - 融资轮次和规模数据必须标注数据采集时间（`data_as_of`）
@@ -130,7 +130,7 @@ PR 被合并前，维护者将检查：
 - 数据红线无违反
 - 示例文件中无真实个人信息
 - 有来源字段的数据其来源已填写且格式正确
-- `SKILL.md` 描述与 `contract.yaml` 接口定义一致
+- career-principal 的 `SKILL.md` 及各 worker 的 `PLAYBOOK.md` 描述与 `contract.yaml` 接口定义一致
 - 新增 skill 的 `marketplace.yaml` 已更新
 
 审查周期：维护者会在 5 个工作日内回复 PR。如有疑问，请在 PR 评论区留言。

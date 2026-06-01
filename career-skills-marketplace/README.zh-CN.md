@@ -1,4 +1,4 @@
-# Career Skills Marketplace
+﻿# Career Skills Marketplace
 
 **求职主理人 + 37 个可调用 skill 的半自动求职操作系统**，专为中国求职市场设计，运行于 Claude Code 环境。
 
@@ -90,21 +90,30 @@ Career Skills Marketplace 是一套以 Claude Code 为运行时的 skill 插件�
 
 ## 快速开始
 
-**前提**：已安装 [Claude Code](https://docs.anthropic.com/claude-code)（或兼容 SKILL.md 协议的 agent 环境）。
+这是一个 **Claude Code 插件**，一个「求职主理人」统一入口，手握 37 个 playbook 工具覆盖从匹配诊断到面试准备的完整流程。
 
-### macOS / Linux
+**前提**：已安装 [Claude Code](https://docs.anthropic.com/claude-code)。
+
+### 推荐：插件安装（两条命令）
+
+```
+/plugin marketplace add Jaydenlk/HR
+/plugin install career-principal@career-skills
+```
+
+### 备选：clone 后脚本安装
 
 ```bash
-git clone https://github.com/career-skills/career-skills-marketplace.git
-cd career-skills-marketplace
+# macOS / Linux
+git clone https://github.com/Jaydenlk/HR
+cd HR/career-skills-marketplace
 bash install.sh
 ```
 
-### Windows
-
 ```powershell
-git clone https://github.com/career-skills/career-skills-marketplace.git
-cd career-skills-marketplace
+# Windows
+git clone https://github.com/Jaydenlk/HR
+cd HR/career-skills-marketplace
 .\install.ps1
 ```
 
@@ -184,5 +193,5 @@ cd career-skills-marketplace
 
 ## 许可证
 
-- 代码（skills/、shared/、install 脚本）：[MIT License](LICENSE)
-- 知识数据（knowledge/）：[CC BY 4.0](LICENSE-KNOWLEDGE)
+- 代码（skills/、install 脚本）：[MIT License](LICENSE)
+- 知识数据（skills/_career-skills-shared/knowledge/）：[CC BY 4.0](LICENSE-KNOWLEDGE)

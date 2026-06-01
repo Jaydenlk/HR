@@ -1,0 +1,7 @@
+{
+  "name": "career-principal",
+  "version": "1.2.0",
+  "description": "求职主理人 · 校招/实习一站式求职代表。单一入口统一调度 37 个独立 playbook 工具(JD分析/简历改写/匹配诊断/校招诊断/模拟面试/offer评估/市场情报/职业战略),内置 90 职业×双难度档校招标尺 + 600 公司库;中文、句句标来源、时效信息当场联网。",
+  "author": { "name": "Jaydenlk" },
+  "license": "MIT"
+}

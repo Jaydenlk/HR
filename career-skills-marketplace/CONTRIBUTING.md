@@ -1,4 +1,4 @@
-# 贡献指南
+﻿# 贡献指南
 
 感谢你考虑为 Career Skills Marketplace 做出贡献。本指南说明如何提交 Pull Request、需要遵守的数据规范，以及代码审查流程。
 
@@ -9,8 +9,8 @@
 | 类型 | 目标路径 | 说明 |
 |------|----------|------|
 | Skill 实现 | `skills/<skill-name>/` | 新增或改进求职相关 skill |
-| 企业数据 | `knowledge/company-taxonomy/` | 企业信息、阶段、融资轮次等 |
-| 评分 Rubric | `knowledge/rubrics/` 或 `shared/rubrics/` | 匹配度、质量评分标准 |
+| 企业数据 | `skills/_career-skills-shared/knowledge/company-taxonomy/` | 企业信息、阶段、融资轮次等 |
+| 评分 Rubric | `skills/_career-skills-shared/rubrics/` | 匹配度、质量评分标准 |
 | 评测用例 | `skills/<skill-name>/tests/` | 用于验证 skill 行为的输入/输出样例 |
 
 ---
@@ -29,12 +29,12 @@
 
 每一个新增或修改的 skill，必须包含以下全部文件，缺一不可：
 
-- `SKILL.md` — skill 功能描述、输入/输出规范、使用限制
+- 若新增 **worker 工具**：主文件为 `PLAYBOOK.md`（由 career-principal 读取后执行，不自动触发）；若新增或修改 career-principal 主理人本身，主文件为 `SKILL.md`（唯一自动触发入口）
 - `contract.yaml` — skill 接口契约：触发条件、参数类型、返回格式
 - `schemas/input.schema.json` — 输入数据 JSON Schema
 - `schemas/output.schema.json` — 输出数据 JSON Schema
 - `examples/` — 至少 2 个完整的输入/输出示例（正常路径 + 边界情况各一个）
-- `tests/` — 至少 1 个可运行的评测用例，格式参考 `shared/output-schema/`
+- `tests/` — 至少 1 个可运行的评测用例，格式参考 `skills/_career-skills-shared/output-schema/`
 
 ---
 

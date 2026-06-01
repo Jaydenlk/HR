@@ -1,4 +1,4 @@
-# source-quality-auditor
+﻿# source-quality-auditor
 
 来源质量审计 skill，是 Career Skills Marketplace 的信任基础设施。
 
@@ -19,7 +19,7 @@ source-quality-auditor 提供一套一致的审计机制，让所有 skill 在�
 
 ## 在其他 skill 中如何引用
 
-任何需要外部事实的 skill 都应在 SKILL.md 中声明依赖：
+任何需要外部事实的 worker 都应在 PLAYBOOK.md 中声明依赖：
 
 ```yaml
 depends_on:

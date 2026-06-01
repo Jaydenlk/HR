@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const ROOT = resolve(process.cwd());
 const DIST = resolve(ROOT, 'packages/api/dist/profession-presets/presets');
 const SERVICE = resolve(ROOT, 'packages/api/src/profession-presets/profession-presets.service.ts');
-const OUT = resolve(ROOT, 'career-skills-marketplace/knowledge/campus-recruitment-rubrics');
+const OUT = resolve(ROOT, 'career-skills-marketplace/skills/_career-skills-shared/knowledge/campus-recruitment-rubrics');
 const PROF_DIR = resolve(OUT, 'professions');
 
 // 1) 载入全部预设对象(每个 dist .js 导出一个含 .profession 的常量)

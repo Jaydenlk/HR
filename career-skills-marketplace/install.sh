@@ -1,26 +1,23 @@
 #!/bin/bash
 set -e
 
+# 推荐安装方式 = Claude Code 插件(一次装好、归一组):
+#   /plugin marketplace add Jaydenlk/HR
+#   /plugin install career-principal@career-skills
+# 本脚本是 loose 备选:把 skills/ 下所有目录拷进 ~/.claude/skills/。
+# 仅 career-principal 含 SKILL.md(唯一自动触发入口);37 个 worker 为 PLAYBOOK.md,
+# 由主理人读取执行;_career-skills-shared/ 为共享资源。三者都需就位。
+
 MARKETPLACE_DIR="$(cd "$(dirname "$0")" && pwd)"
-# Discover all skills dynamically from skills/ directory
-SKILLS=()
-for dir in "$MARKETPLACE_DIR/skills"/*/; do
-  skill="$(basename "$dir")"
-  if [ -f "$dir/SKILL.md" ]; then
-    SKILLS+=("$skill")
-  fi
-done
 
-# Default: Claude Code
 SKILLS_ROOT="${HOME}/.claude/skills"
-
-# Parse --target flag
 if [ "$1" = "--target" ]; then
   case "$2" in
     claude)
       SKILLS_ROOT="${HOME}/.claude/skills"
       ;;
     codex)
+      # 注:Codex 端需独立适配(.agents/ + openai.yaml),此处仅复制文件。
       if [ -n "$CODEX_HOME" ]; then
         SKILLS_ROOT="${CODEX_HOME}/skills"
       else
@@ -29,66 +26,32 @@ if [ "$1" = "--target" ]; then
       ;;
     *)
       echo "Usage: install.sh [--target claude|codex]"
-      echo "  claude (default): install to ~/.claude/skills/"
-      echo "  codex: install to \$CODEX_HOME/skills/ or ~/.codex/skills/"
       exit 1
       ;;
   esac
 fi
 
-SHARED_DIR="${SKILLS_ROOT}/_career-skills-shared"
-
-echo "Career Skills Marketplace Installer"
+echo "Career Skills Marketplace — loose install (fallback)"
+echo "推荐改用插件: /plugin marketplace add Jaydenlk/HR  然后  /plugin install career-principal@career-skills"
 echo "===================================="
 echo "Target: ${SKILLS_ROOT}"
 echo ""
 
-# Check for existing installations — never overwrite
-for skill in "${SKILLS[@]}"; do
-  if [ -d "${SKILLS_ROOT}/${skill}" ]; then
-    echo "ERROR: ${SKILLS_ROOT}/${skill} already exists."
-    echo "This installer never deletes or overwrites existing skill directories."
-    echo "Back up and remove existing directories manually if you want a clean reinstall."
+mkdir -p "$SKILLS_ROOT"
+
+# Copy every subdir of skills/ (career-principal + 37 worker playbooks + _career-skills-shared).
+for dir in "$MARKETPLACE_DIR/skills"/*/; do
+  name="$(basename "$dir")"
+  dest="${SKILLS_ROOT}/${name}"
+  if [ -e "$dest" ]; then
+    echo "ERROR: ${dest} already exists."
+    echo "This installer never deletes or overwrites. Remove it manually for a clean reinstall."
     exit 1
   fi
-done
-
-if [ -d "$SHARED_DIR" ]; then
-  echo "ERROR: ${SHARED_DIR} already exists."
-  echo "Back up and remove it manually if you want a clean reinstall."
-  exit 1
-fi
-
-# Install shared resources
-mkdir -p "$SHARED_DIR"
-cp -R "$MARKETPLACE_DIR/shared/"* "$SHARED_DIR/"
-cp -R "$MARKETPLACE_DIR/knowledge" "$SHARED_DIR/"
-cp "$MARKETPLACE_DIR/marketplace.yaml" "$SHARED_DIR/"
-echo "  ✓ _career-skills-shared/"
-
-# Install each skill as a top-level directory
-ALL_OK=true
-for skill in "${SKILLS[@]}"; do
-  cp -R "$MARKETPLACE_DIR/skills/${skill}" "${SKILLS_ROOT}/${skill}"
-  if [ -f "${SKILLS_ROOT}/${skill}/SKILL.md" ]; then
-    echo "  ✓ ${skill}/SKILL.md"
-  else
-    echo "  ✗ ${skill}/SKILL.md MISSING"
-    ALL_OK=false
-  fi
+  cp -R "$dir" "$dest"
+  echo "  ✓ ${name}/"
 done
 
 echo ""
-if [ "$ALL_OK" = true ]; then
-  echo "Installed to: ${SKILLS_ROOT}/"
-  echo ""
-  for skill in "${SKILLS[@]}"; do
-    echo "  ${SKILLS_ROOT}/${skill}/"
-  done
-  echo "  ${SHARED_DIR}/"
-  echo ""
-  echo "Next: Open your agent environment and say \"帮我分析一个 JD\""
-else
-  echo "ERROR: Some skills are missing. Installation may be incomplete."
-  exit 1
-fi
+echo "Installed to: ${SKILLS_ROOT}/"
+echo "Next: open Claude Code and say \"帮我看看我的简历\" — 求职主理人(career-principal)会接管。"

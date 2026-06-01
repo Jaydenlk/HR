@@ -1,4 +1,4 @@
-# match-diagnosis
+﻿# match-diagnosis
 
 简历与 JD 匹配诊断技能。输出多维评分、差距分类和改进建议。
 
@@ -48,7 +48,7 @@
 
 ```
 match-diagnosis/
-├── SKILL.md                        # 技能主文件（Claude 加载点）
+├── PLAYBOOK.md                     # 技能主文件（由 career-principal 读取后执行，非自动加载点）
 ├── contract.yaml                   # 输入输出契约
 ├── input.schema.yaml               # 输入 JSON Schema
 ├── output.schema.yaml              # 输出 JSON Schema（扩展 base_output）

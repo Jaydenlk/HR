@@ -279,24 +279,27 @@ skills:
     depends_on: [profile-builder]
     live_research_required: false
 
+# 注:本仓已插件化(Claude Code Plugin)。权威清单 = .claude-plugin/plugin.json + skills/ 自动发现;
+# 仅 career-principal 含 SKILL.md(唯一自动触发入口),37 个 worker 为 PLAYBOOK.md(主理人读取执行)。
+# 共享资源统一在 skills/_career-skills-shared/ 下,以下为其运行期位置。
 shared:
-  evidence_schema: shared/evidence-schema/evidence.schema.json
-  output_schema: shared/output-schema/skill-output-base.schema.json
-  source_policy: shared/source-policy/
-  confidence_policy: shared/confidence-policy/
-  rubrics: shared/rubrics/
+  evidence_schema: skills/_career-skills-shared/evidence-schema/evidence.schema.json
+  output_schema: skills/_career-skills-shared/output-schema/skill-output-base.schema.json
+  source_policy: skills/_career-skills-shared/source-policy/
+  confidence_policy: skills/_career-skills-shared/confidence-policy/
+  rubrics: skills/_career-skills-shared/rubrics/
 
 knowledge:
-  company_taxonomy: knowledge/company-taxonomy/
+  company_taxonomy: skills/_career-skills-shared/knowledge/company-taxonomy/
   # role_taxonomy 已退役(roles.yaml / role-categories.yaml 删除,校招标尺改由 campus-recruitment-rubrics 承载)
-  interview_focus: knowledge/interview-focus.yaml
-  market_vocabulary: knowledge/market-vocabulary/
-  rubrics: knowledge/rubrics/
-  interview_taxonomy: knowledge/interview-taxonomy/
-  offer_factors: knowledge/offer-factors/
-  city_industry_fit: knowledge/city-industry-fit/
-  career_paths: knowledge/career-paths/
-  market_sources: knowledge/market-sources/
+  interview_focus: skills/_career-skills-shared/knowledge/interview-focus.yaml
+  market_vocabulary: skills/_career-skills-shared/knowledge/market-vocabulary/
+  rubrics: skills/_career-skills-shared/knowledge/rubrics/
+  interview_taxonomy: skills/_career-skills-shared/knowledge/interview-taxonomy/
+  offer_factors: skills/_career-skills-shared/knowledge/offer-factors/
+  city_industry_fit: skills/_career-skills-shared/knowledge/city-industry-fit/
+  career_paths: skills/_career-skills-shared/knowledge/career-paths/
+  market_sources: skills/_career-skills-shared/knowledge/market-sources/
 
 knowledge_stats:
   companies: 600

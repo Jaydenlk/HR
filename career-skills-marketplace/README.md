@@ -1,4 +1,4 @@
-# Career Skills Marketplace — v1 Beta Release Candidate
+﻿# Career Skills Marketplace — v1 Beta Release Candidate
 
 A Claude Code / Codex skill marketplace for Chinese job seekers. 37 callable skills across 5 layers, orchestrated by a "Career Principal" that handles 39 recognized intents.
 
@@ -32,23 +32,28 @@ Live adapters for XHS (小红书), 牛客, 公众号, and general web search are
 
 ## Install
 
-```bash
-# macOS / Linux — Claude Code (default)
-git clone https://github.com/career-skills/career-skills-marketplace.git
-cd career-skills-marketplace
-bash install.sh
+### Recommended: Claude Code plugin
 
-# macOS / Linux — Codex
-bash install.sh --target codex
-
-# Windows — Claude Code
-.\install.ps1
-
-# Windows — Codex
-.\install.ps1 -Target codex
+```
+/plugin marketplace add Jaydenlk/HR
+/plugin install career-principal@career-skills
 ```
 
-The installer dynamically discovers all skills and copies them to `~/.claude/skills/<skill-name>/` (Claude Code) or `~/.codex/skills/<skill-name>/` (Codex). It never deletes existing directories.
+### Fallback: clone and run the install script
+
+The plugin lives in the `career-skills-marketplace/` subdirectory of the monorepo.
+
+```bash
+# macOS / Linux
+git clone https://github.com/Jaydenlk/HR
+cd HR/career-skills-marketplace
+bash install.sh
+
+# Windows
+.\install.ps1
+```
+
+The script copies all subdirectories under `skills/` (career-principal, 37 workers, _career-skills-shared) to `~/.claude/skills/`. It never deletes existing directories.
 
 ## Documentation
 

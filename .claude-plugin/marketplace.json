@@ -1,0 +1,12 @@
+{
+  "name": "career-skills",
+  "description": "校招/实习求职技能市场:统一求职代表 career-principal + 37 个独立 playbook 工具(诊断/JD/简历/匹配/面试/offer/市场情报/职业战略),内置 90 职业×双难度档校招标尺 + 600 公司库,全中文。",
+  "owner": { "name": "Jaydenlk" },
+  "plugins": [
+    {
+      "name": "career-principal",
+      "source": "./career-skills-marketplace",
+      "description": "求职主理人:校招/实习统一求职代表,一个入口手握 37 个独立 playbook 工具(诊断/JD/简历/匹配/面试/offer/市场情报/职业战略)。"
+    }
+  ]
+}

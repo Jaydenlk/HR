@@ -1,11 +1,11 @@
-import { readFileSync, readdirSync } from 'fs';
+import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { listSkillDirs } from './skills-dir.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const skillsDir = join(__dirname, '..', 'skills');
-const skills = readdirSync(skillsDir, { withFileTypes: true })
-  .filter(d => d.isDirectory()).map(d => d.name);
+const skills = listSkillDirs(skillsDir);
 
 let failures = 0;
 let checked = 0;

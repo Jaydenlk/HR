@@ -5,6 +5,8 @@ version: "2.0.0"
 
 # 编排规则
 
+> **调度机制(与 career-principal `SKILL.md` §3.0 一致)**:本文中「调用 / 执行 skill X」均指主理人 **读取并执行 `../X/PLAYBOOK.md`**(worker 已改为 playbook 文件,不自动触发、不互相调用)。依赖由主理人按序串联:逐个读取+执行,把上游产出喂给下游。
+
 ## 1. 依赖顺序
 
 sub-skill 之间存在数据依赖，违反顺序会导致下游 skill 缺少必要输入。
