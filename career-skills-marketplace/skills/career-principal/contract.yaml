@@ -66,7 +66,7 @@ sub_skills:
   - city-industry-fit-advisor
 
 product_principles:
-  policy_reference: "shared/policies/product-principles.md"
+  policy_reference: "../_career-skills-shared/policies/product-principles.md"
   ask_before_judging: true
   source_reason_opinion: true
 
@@ -74,25 +74,25 @@ evidence_required:
   - "每个结论必须可追溯到 evidence"
   - "涉及市场事实必须经过 source-quality-auditor"
 
-tools_allowed: [Read, Grep, Glob]
+tools_allowed: [Read, Grep, Glob, WebSearch, WebFetch]
 
 confidence_policy:
   rule: "取所有 sub-skill confidence 中最低值"
 
 knowledge_dependencies:
-  - path: knowledge/company-taxonomy/companies.seed.yaml
+  - path: ../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml
     usage: "公司基本信息、公司类型和已知风险信号查询"
     required: false
     degradation: "仅使用 JD 原文中的公司信息，不补充知识图谱数据"
-  - path: knowledge/company-taxonomy/company-types.yaml
+  - path: ../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml
     usage: "判断公司发展阶段（初创/成长/成熟）"
     required: false
     degradation: "company_context.stage 标注为 unknown"
-  - path: knowledge/role-taxonomy/roles.yaml
+  - path: ../_career-skills-shared/knowledge/role-taxonomy/roles.yaml
     usage: "岗位技能要求参考，辅助匹配诊断"
     required: false
     degradation: "仅依赖 JD 中的显性技能要求"
-  - path: knowledge/market-vocabulary/china-job-search-terms.yaml
+  - path: ../_career-skills-shared/knowledge/market-vocabulary/china-job-search-terms.yaml
     usage: "中国求职黑话解析（996/大小周/虚拟股等）"
     required: false
     degradation: "使用内置术语表，可能覆盖不全"

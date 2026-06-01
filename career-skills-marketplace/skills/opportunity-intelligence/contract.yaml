@@ -43,6 +43,8 @@ evidence_required:
 tools_allowed:
   - Read
   - Grep
+  - WebSearch
+  - WebFetch
 
 depends_on:
   - jd-analyzer
@@ -81,11 +83,11 @@ test_cases:
   - tests/hallucination-guard.json
 
 knowledge_dependencies:
-  - path: knowledge/company-taxonomy/companies.seed.yaml
+  - path: ../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml
     usage: "查询目标公司已知风险信号和公司类型（tier），辅助风险维度（25%）评分"
     required: false
     degradation: "风险维度仅依赖传入的 jd_analysis.risk_signals，不补充公司历史数据"
-  - path: knowledge/company-taxonomy/company-types.yaml
+  - path: ../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml
     usage: "公司类型分类，辅助市场定位维度（35%）中品牌价值判断"
     required: false
     degradation: "品牌维度标注 uncertain，评分保守估算"
@@ -93,13 +95,14 @@ knowledge_dependencies:
 product_principles:
   ask_before_judging: true
   source_reason_opinion: true
-  policy_reference: "shared/policies/product-principles.md"
+  policy_reference: "../_career-skills-shared/policies/product-principles.md"
 
 china_market_specificity: high
 
-live_research_required: false
+live_research_required: true
 
 degradation_behavior:
   missing_user_profile: "匹配维度降级，opportunity_score 基于市场+风险两维，confidence 降至 medium 或 low"
   missing_source_quality: "来源可信度置 unknown，风险维度保守估算"
   only_jd_text: "先内部执行 jd-analyzer 逻辑，再基于结果评分，confidence 为 low"
+  missing_live_data: "市场/风险维度先当场 WebSearch/WebFetch 核实公司动态/薪资行情，命中则附 URL 标「实时·未核实·日期」；无果才回落知识库或降级估算"

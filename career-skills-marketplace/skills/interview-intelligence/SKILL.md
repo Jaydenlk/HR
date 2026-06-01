@@ -5,7 +5,7 @@ description: >
   询问"这家公司面试流程是什么"、"面试考什么"、
   "怎么准备这个岗位的面试"时触发。
   聚合特定公司+岗位的面试流程、题型、考察重点。
-allowed-tools: [Read, Grep]
+allowed-tools: [Read, Grep, WebSearch, WebFetch]
 ---
 
 # interview-intelligence — 面试情报聚合
@@ -13,7 +13,7 @@ allowed-tools: [Read, Grep]
 ## 职责
 
 为特定公司和岗位聚合结构化面试情报，涵盖笔试、群面、业务面、HR 面等中国市场特有流程阶段。
-**无实时数据时必须声明降级，不得凭空编造公司具体题目或流程细节。**
+**遇到时效信息（公司近期面试流程/高频题/考官风格）先用 WebSearch/WebFetch 搜近 6 个月真实面经，命中即引用并附来源 URL、标注「实时·未核实·日期」；确实搜不到才降级到通用框架，并写明已尝试的检索路径，不得凭空编造公司具体题目或流程细节。**
 
 ## 情报维度
 
@@ -66,12 +66,13 @@ allowed-tools: [Read, Grep]
 | `high` | 有近6个月真实面经，公司和岗位精确匹配 |
 | `medium` | 面经时间超过1年，或公司匹配但岗位仅相近 |
 | `low` | 仅有公司名，无岗位面经；或面经超过2年 |
-| `insufficient` | 无任何该公司/岗位相关面经，降级到通用知识图谱 |
+| `insufficient` | 先经 WebSearch/WebFetch 检索仍无任何该公司/岗位相关面经，确实搜不到才降级到通用知识图谱 |
 
 ## 降级行为
 
-当无实时数据时，输出基于知识图谱通用信息，`confidence` 标注为 `low`，
-`cannot_determine` 列出无法确认的具体细节，禁止编造具体题目或流程轮数。
+遇到时效信息先用 WebSearch/WebFetch 搜近 6 个月真实面经：命中即引用，附来源 URL，标注「实时·未核实·日期」。
+确实搜不到才降级——输出基于知识图谱通用信息，`confidence` 标注为 `low`，
+`cannot_determine` 列出无法确认的具体细节，并写明已尝试的检索路径（搜了哪些关键词/站点），禁止编造具体题目或流程轮数。
 
 ## 输出格式
 
@@ -97,13 +98,13 @@ allowed-tools: [Read, Grep]
 
 ## 产品原则适用
 
-本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+本 skill 遵循 `../_career-skills-shared/policies/product-principles.md` 中的两项核心原则。
 
 ### 信息不足时 (Ask-before-judging)
-- 当目标公司不在知识图谱（`companies.seed.yaml`）且无实时面经数据时，视为信息不足
-- 信息不足时不能输出具体面试题（`common_questions[]` 中的 `question` 字段），因为无来源支撑的具体题目属于编造，会误导用户备考方向
-- 低置信度时只给出通用流程框架（按公司类型：大厂/国企/外企/初创推断流程轮数），`confidence` 标注为 low，`cannot_determine` 列明缺失的定向情报
-- 追问：「请问您有该公司的近期面经来源（如牛客帖子链接）吗？这将帮助我提供更精准的备考建议」
+- 当目标公司不在知识图谱（`companies.seed.yaml`）时，先用 WebSearch/WebFetch 搜近 6 个月真实面经（关键词如「公司名 岗位 面经 2026 牛客/小红书」），命中即引用、附来源 URL、标注「实时·未核实·日期」
+- 检索仍搜不到时才视为信息不足；此时不能输出具体面试题（`common_questions[]` 中的 `question` 字段），因为无来源支撑的具体题目属于编造，会误导用户备考方向
+- 信息不足降级时只给出通用流程框架（按公司类型：大厂/国企/外企/初创推断流程轮数），`confidence` 标注为 low，`cannot_determine` 列明缺失的定向情报，并写明已尝试的检索路径（搜了哪些关键词/站点）
+- 追问：「我搜了近期面经但没找到该公司该岗位的可靠来源，您手头有近期面经链接（如牛客/小红书帖子）吗？这将帮助我提供更精准的备考建议」
 
 ### 出处-思考-观点 (Source-Reason-Opinion)
 - Source: `common_questions` 每题必须附 `source_hint`（如「牛客/看准近6个月高频」），无来源题目不得出现在输出中

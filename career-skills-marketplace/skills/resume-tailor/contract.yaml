@@ -88,7 +88,7 @@ outputs:
         description: 无法通过改写弥补、需要用户真实补充的差距
 
 knowledge_dependencies:
-  - path: knowledge/role-taxonomy/roles.yaml
+  - path: ../_career-skills-shared/knowledge/role-taxonomy/roles.yaml
     usage: "目标岗位标准关键词（resume_keywords），指导改写时哪些技能词应在简历中优先体现"
     required: false
     degradation: "仅依赖 JD 原文关键词指导改写，不引用岗位标准关键词库"
@@ -119,4 +119,4 @@ failure_modes:
 product_principles:
   ask_before_judging: true
   source_reason_opinion: true
-  policy_reference: "shared/policies/product-principles.md"
+  policy_reference: "../_career-skills-shared/policies/product-principles.md"

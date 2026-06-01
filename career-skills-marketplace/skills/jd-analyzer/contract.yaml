@@ -78,15 +78,15 @@ dependencies:
     - references/jd-risk-signals.md
 
 knowledge_dependencies:
-  - path: knowledge/company-taxonomy/companies.seed.yaml
+  - path: ../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml
     usage: "查询已知公司的发展阶段和已知风险，辅助 company_context 字段填写"
     required: false
     degradation: "company_context.stage 置为 unknown，signals 留空"
-  - path: knowledge/company-taxonomy/company-types.yaml
+  - path: ../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml
     usage: "公司类型分类辅助判断 company_context.stage"
     required: false
     degradation: "仅依赖 JD 文本中的信号推断"
-  - path: knowledge/market-vocabulary/china-job-search-terms.yaml
+  - path: ../_career-skills-shared/knowledge/market-vocabulary/china-job-search-terms.yaml
     usage: "识别风险信号中的中国职场黑话（大小周、虚拟股、期权等）"
     required: false
     degradation: "使用内置关键词表，覆盖范围可能不全"
@@ -94,4 +94,4 @@ knowledge_dependencies:
 product_principles:
   ask_before_judging: true
   source_reason_opinion: true
-  policy_reference: "shared/policies/product-principles.md"
+  policy_reference: "../_career-skills-shared/policies/product-principles.md"

@@ -22,7 +22,7 @@ inputs:
     description: 目标岗位 JD 正文(可选)。仅作背景参考,不改变职业标尺的维度与满分。
 
 scoring_model:
-  source: knowledge/campus-recruitment-rubrics/professions/<id>.md
+  source: ../_career-skills-shared/knowledge/campus-recruitment-rubrics/professions/<id>.md
   description: >
     维度、各维满分、好的样子、应届证据、常见缺失/反模式均来自所选职业标尺文件(locked rubric);
     本 skill 不内联标尺,单次诊断只读所选 1 个职业文件。维度数量/顺序/满分以标尺为准(各职业不同,权重之和=100)。
@@ -62,7 +62,7 @@ rules:
 
 routing:
   必要信息: [resume_text, target_profession]
-  缺职业: "Grep knowledge/campus-recruitment-rubrics/index.md 从简历推断 1-2 候选 → 让用户确认"
+  缺职业: "Grep ../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md 从简历推断 1-2 候选 → 让用户确认"
   职业找不到: "取最相近 + 显式告知非精确 + confidence 降为 medium"
   追问纪律: "每轮 ≤2 问,每问附「为何需要」;最多 2 轮;到顶用已有信息出结论标 confidence:low,绝不死循环"
   checkpoints:
@@ -109,11 +109,11 @@ outputs:
     description: "诚实边界声明:本次做了/没做什么、哪些 gap_advice 需真实具备后再写入、知识截止说明"
 
 knowledge_dependencies:
-  - path: knowledge/campus-recruitment-rubrics/index.md
+  - path: ../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md
     usage: "Phase 0 由简历推断/定位目标职业,匹配精确或最相近的职业标尺文件"
     required: true
     degradation: "无索引时无法定位标尺,只能基于通用校招认知给低置信度定性评估,不产生精确 total_score"
-  - path: knowledge/campus-recruitment-rubrics/professions/<id>.md
+  - path: ../_career-skills-shared/knowledge/campus-recruitment-rubrics/professions/<id>.md
     usage: "阶段 2 的锁定标尺:维度/满分/好的样子/应届证据/常见缺失/反模式/本土惯例/改写指引"
     required: true
     degradation: "找不到精确职业时取最相近文件并显式告知非精确、confidence 降为 medium"
@@ -125,11 +125,11 @@ knowledge_dependencies:
 product_principles:
   ask_before_judging: true
   source_reason_opinion: true
-  policy_reference: "shared/policies/product-principles.md"
+  policy_reference: "../_career-skills-shared/policies/product-principles.md"
 
 shared_schemas:
-  evidence: "shared/evidence-schema/evidence.schema.json"
-  output_base: "shared/output-schema/skill-output-base.schema.json"
+  evidence: "../_career-skills-shared/evidence-schema/evidence.schema.json"
+  output_base: "../_career-skills-shared/output-schema/skill-output-base.schema.json"
 
 failure_modes:
   - id: missing_resume

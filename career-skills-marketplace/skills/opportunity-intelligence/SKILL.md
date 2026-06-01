@@ -8,6 +8,8 @@ description: >
 allowed-tools:
   - Read
   - Grep
+  - WebSearch
+  - WebFetch
 ---
 
 # opportunity-intelligence — 求职机会综合评估
@@ -15,6 +17,8 @@ allowed-tools:
 ## 职责
 
 整合 JD 分析结果、用户画像匹配诊断和来源质量评审，计算求职机会综合价值分数，输出结构化评估报告。**所有评分必须基于传入的分析数据，禁止在数据缺失时编造分数。**
+
+**实时姿态**：市场定位与风险维度涉及时效信息（公司当季动态、薪资行情、近期风险信号）时，先当场 WebSearch/WebFetch 核实、附 URL、标「实时·未核实·日期」；确无可用结果才回落到知识库/降级估算并说明依据。
 
 ## 工作机制
 
@@ -38,9 +42,9 @@ allowed-tools:
 **市场分计算规则：**
 - 公司 tier_1 且 hiring_relevance: high → 基础分 80
 - 公司 tier_1 且 hiring_relevance: medium → 基础分 60
-- 公司不在知识图谱 → 基础分 50（标注 confidence 降级）
+- 公司不在知识图谱 → 可当场 WebSearch/WebFetch 核实公司当季动态（招聘节奏、近期融资/裁员、品牌口碑），命中则据此给分并附 URL、标「实时·未核实·日期」；无果才回落基础分 50（标注 confidence 降级）
 - 有薪资数据且高于市场中位数 → +10
-- 无薪资数据 → 不加分，标注 cannot_determine
+- 无薪资数据 → 可当场联网核实该岗位/城市的薪资行情，命中则据此估算并附 URL、标「实时·未核实·日期」；无果才不加分、标注 cannot_determine
 
 **匹配分来源：** 直接使用 match-diagnosis 的 overall_match_pct。无 user_profile 时设为 null，公式中该维度权重分摊到市场分。
 
@@ -85,12 +89,12 @@ allowed-tools:
 
 | 文件 | 用途 | 何时使用 | 不可用时降级 |
 |------|------|---------|------------|
-| `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 查询目标公司的已知风险信号、公司类型（tier）和发展阶段，辅助风险维度评分 | 计算风险系数（25%权重）时，判断公司是否属于已知高风险类别 | 风险维度仅依赖 jd-analyzer 输出的 risk_signals，不补充公司历史信息 |
+| `../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml` | 查询目标公司的已知风险信号、公司类型（tier）和发展阶段，辅助风险维度评分 | 计算风险系数（25%权重）时，判断公司是否属于已知高风险类别 | 知识库未命中时，可当场 WebSearch/WebFetch 核实公司近期风险信号（裁员、欠薪、诉讼、负面口碑），命中则计入并附 URL、标「实时·未核实·日期」；无果才回落为仅依赖 jd-analyzer 的 risk_signals，不补充公司历史信息 |
 | `../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml` | 公司类型分类，辅助判断市场定位维度（35%权重）中的品牌价值评估 | 评估公司品牌/成长维度时 | 品牌维度标注为 uncertain，仅依赖 JD 文本推断 |
 
 ## 产品原则适用
 
-本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+本 skill 遵循 `../_career-skills-shared/policies/product-principles.md` 中的两项核心原则。
 
 ### 信息不足时 (Ask-before-judging)
 - 当缺少 `user_profile`（无法计算匹配维度 40% 权重）时，视为信息不足

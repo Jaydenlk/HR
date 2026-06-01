@@ -3,7 +3,7 @@ name: nowcoder-tech-miner
 description: >
   从牛客网提取技术面经和笔试题，结构化供其他 skill 使用。
   当用户询问牛客网面经、技术笔试题时触发。
-  来源上限 B 级，无实时数据时返回空结果。
+  来源上限 B 级；优先当场 WebSearch/WebFetch 搜近 6 个月内容并附来源 URL+时效标注，确实搜不到才返回空数组。
 allowed-tools: [Read, Grep, WebSearch, WebFetch]
 ---
 
@@ -15,7 +15,7 @@ allowed-tools: [Read, Grep, WebSearch, WebFetch]
 
 **严格约束：**
 1. 牛客网来源可靠性上限为 B 级（技术社区，质量高于小红书）
-2. 无实时数据时返回空结果，confidence: insufficient
+2. 优先 WebSearch/WebFetch 当场搜近 6 个月内容、附来源 URL+时效标注；确实搜不到再返回空数组并写明已尝试的检索路径与关键词，confidence: insufficient
 3. 禁止从训练数据推断笔试题目
 
 ## 与 xhs-interview-miner 对比
@@ -26,12 +26,13 @@ allowed-tools: [Read, Grep, WebSearch, WebFetch]
 | 技术题可靠性 | 较高（用户有技术背景） | 较低（混杂推广） |
 | 适用场景 | 技术岗位笔试/面试 | 公司文化/非技术岗 |
 
-## 降级行为
+## 检索与降级行为
 
-无法获取实时牛客网内容时：
+默认姿态：先用 WebSearch/WebFetch 当场搜近 6 个月的牛客网技术面经与笔试题，命中即结构化输出、逐条附来源 URL 与时效标注（标「实时·未核实·日期」）。
+只有在确实搜不到（无网、检索无结果）时才降级：
 1. `confidence` 设为 `insufficient`
 2. `mined_posts` 和 `technical_questions` 返回空数组
-3. `next_actions` 引导用户手动访问牛客网
+3. `next_actions` 引导用户手动访问牛客网，并写明已尝试的检索路径与关键词
 
 ## source_audit 动态置信度调整
 

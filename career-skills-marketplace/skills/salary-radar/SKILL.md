@@ -64,7 +64,7 @@ salary-radar 需要分解以下中国特有组成部分：
 
 ## 产品原则适用
 
-本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+本 skill 遵循 `../_career-skills-shared/policies/product-principles.md` 中的两项核心原则。
 
 ### 信息不足时 (Ask-before-judging)
 - 当缺少岗位（role）、城市（city）或数据年份（year）任一要素时，视为信息不足

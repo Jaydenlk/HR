@@ -82,7 +82,7 @@ allowed-tools: [Read, Grep]
 
 ## 产品原则适用
 
-本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+本 skill 遵循 `../_career-skills-shared/policies/product-principles.md` 中的两项核心原则。
 
 ### 信息不足时 (Ask-before-judging)
 - 当未提供用户画像（`profile` 缺失或为空对象）时，视为信息不足

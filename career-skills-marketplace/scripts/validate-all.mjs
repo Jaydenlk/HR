@@ -171,6 +171,20 @@ for (const s of skills) {
 }
 check(`Guards: ${skills.length - guardFail}/${skills.length}`, guardFail === 0);
 
+// === 9. Resource Paths ===
+console.log('\n=== Resource Paths ===');
+try {
+  const out = execSync(`node "${join(__dirname, 'validate-resource-paths.mjs')}"`, { encoding: 'utf-8' });
+  const summary = out.trim().split('\n').filter(l => l.trim()).pop() || '';
+  console.log(`  ${summary.trim()}`);
+  check('Resource paths: no bare knowledge//shared/ refs', true);
+} catch (e) {
+  // validate-resource-paths.mjs exits 1 on violations; stdout carries the per-file report.
+  const report = (e.stdout || '').toString().trim();
+  if (report) console.log(report);
+  check('Resource paths: no bare knowledge//shared/ refs', false);
+}
+
 // === Summary ===
 console.log(`\n${'='.repeat(40)}`);
 console.log(totalFail === 0 ? 'OVERALL: PASS' : `OVERALL: FAIL (${totalFail} failures)`);

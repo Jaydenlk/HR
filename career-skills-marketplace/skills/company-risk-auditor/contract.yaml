@@ -70,11 +70,11 @@ dependencies:
     - references/china-company-risk-signals.md
 
 knowledge_dependencies:
-  - path: knowledge/company-taxonomy/companies.seed.yaml
+  - path: ../_career-skills-shared/knowledge/company-taxonomy/companies.seed.yaml
     usage: "已知公司的历史风险信号（known_risk_signals），在无实时数据时作为降级数据源"
     required: false
     degradation: "confidence: low，标注 data_age_warning，说明来自历史知识库"
-  - path: knowledge/company-taxonomy/company-types.yaml
+  - path: ../_career-skills-shared/knowledge/company-taxonomy/company-types.yaml
     usage: "公司类型与典型风险模式关联（初创资金链/大厂裁员周期/国企稳定性），辅助无精确数据时的通用风险判断"
     required: false
     degradation: "不做公司类型推断，overall_risk 保守置为 unknown"

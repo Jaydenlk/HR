@@ -12,7 +12,7 @@ allowed-tools: [Read, Grep]
 ## 职责
 
 为特定公司生成一份系统化的面试攻略手册，整合公司文化、面试流程、备考策略、薪资谈判等模块。
-**无实时数据时必须降级，不得编造具体薪资数字或面试内部细节。**
+**优先经上游 interview-intelligence / salary-radar 取实时情报；缺失才降级并标注，不得编造具体薪资数字或面试内部细节。**
 
 ## 手册结构
 
@@ -60,9 +60,10 @@ allowed-tools: [Read, Grep]
 | 字节飞速 | 字节跳动 | 强调效率、直接、数据驱动 |
 | 家文化 | 中小公司 | 可能要求超时工作，注意识别 |
 
-## 降级行为
+## 取数与降级行为
 
-无实时数据时：
+优先经上游 interview-intelligence / salary-radar 获取该公司实时情报（本 skill 不单独联网，走上游取数）。
+仅当上游也缺失时才降级并标注：
 - `company_profile` 基于知识图谱通用画像，标注置信度
 - `salary_negotiation_notes.salary_range_estimate` 为 null，不推断具体数字
 - `interview_process` 来自类似规模公司通用规律，标注来源

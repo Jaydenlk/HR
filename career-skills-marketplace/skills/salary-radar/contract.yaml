@@ -84,7 +84,7 @@ dependencies:
     - references/salary-data-sources.md
 
 knowledge_dependencies:
-  - path: knowledge/offer-comparison-factors.yaml
+  - path: ../_career-skills-shared/knowledge/offer-comparison-factors.yaml
     usage: "中国薪资结构标准组成要素定义，用于解析和标准化薪资数据的 breakdown 字段"
     required: false
     degradation: "使用内置薪资结构定义，特殊条款（如虚拟股、项目奖金）可能缺失说明"
@@ -92,4 +92,4 @@ knowledge_dependencies:
 product_principles:
   ask_before_judging: true
   source_reason_opinion: true
-  policy_reference: "shared/policies/product-principles.md"
+  policy_reference: "../_career-skills-shared/policies/product-principles.md"

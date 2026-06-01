@@ -32,9 +32,9 @@ allowed-tools: [Read, Grep, Bash]
 | 难度档未提 | 默认 `standard`(校招友好档);**仅当**用户提「压力档/大厂卡人/想被狠批」才用 `pressure` |
 | 职业找不到精确项 | 取**最相近**职业,**显式告知**「未找到精确标尺,按最接近的 X 评估」,`confidence` 降为 `medium` |
 
-**从简历推断职业**:`Grep` 关键词到 `knowledge/campus-recruitment-rubrics/index.md`(如 Java/分布式→后端;Figma/交互稿→设计;尽调/估值→投行),取命中大类下 1-2 个候选,列给用户二选一。
+**从简历推断职业**:`Grep` 关键词到 `../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md`(如 Java/分布式→后端;Figma/交互稿→设计;尽调/估值→投行),取命中大类下 1-2 个候选,列给用户二选一。
 
-**追问纪律(绝不死循环)**:每轮 ≤2 问,每问附「为何需要」(如「想知道你主导还是参与,关系到能力维度评分」)。**最多 2 轮**;到顶仍缺,用现有信息出结论并把 `confidence` 标 `low`、缺口写进 `cannot_determine` 与 `follow_up_questions`。遵循 `shared/policies/product-principles.md` 的 ask-before-judging。
+**追问纪律(绝不死循环)**:每轮 ≤2 问,每问附「为何需要」(如「想知道你主导还是参与,关系到能力维度评分」)。**最多 2 轮**;到顶仍缺,用现有信息出结论并把 `confidence` 标 `low`、缺口写进 `cannot_determine` 与 `follow_up_questions`。遵循 `../_career-skills-shared/policies/product-principles.md` 的 ask-before-judging。
 
 **Checkpoint 1**:把「确认的目标职业 + 难度档 + 选用的标尺文件」回报给用户确认后,才进入打分。
 
@@ -49,7 +49,7 @@ allowed-tools: [Read, Grep, Bash]
 - verify: 简历里每段竞赛/荣誉/成绩都被收进结构里 ✅;输出文本里搜不到任何英文 key ✅。
 
 ### 阶段 2 · 打分(score)
-- [ ] `Grep` `knowledge/campus-recruitment-rubrics/index.md` 定位所选职业 → `Read` 对应 `professions/<id>.md`,取其为**锁定标尺(locked rubric)**:维度、各维满分、好的样子、应届证据、常见缺失/反模式。
+- [ ] `Grep` `../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md` 定位所选职业 → `Read` 对应 `../_career-skills-shared/knowledge/campus-recruitment-rubrics/professions/<id>.md`,取其为**锁定标尺(locked rubric)**:维度、各维满分、好的样子、应届证据、常见缺失/反模式。
 - [ ] **证据优先三步**(逐维执行):
   1. 从简历**抽原句**填进该维度 `evidenceFound[]`(无则空数组);
   2. 对照标尺 `常见缺失` 逐条比对,把简历**没有**的列进 `gap`;
@@ -100,8 +100,8 @@ allowed-tools: [Read, Grep, Bash]
 
 ## 五、输出
 
-严格按 `output_schema.json` 输出(顶层复用 `shared/output-schema/skill-output-base.schema.json`)。
-- 顶层:`skill_name`/`skill_version`/`summary`/`confidence`(high|medium|low|insufficient)/`evidence_used[]`(每条对齐 `shared/evidence-schema/evidence.schema.json`,标 `source_type`,如简历→`user_resume`、标尺→`knowledge_graph`)/`cannot_determine[]`/`follow_up_questions[]`/`risks[]`/`recommendations[]`(总体建议,基础 schema **必填**,如「优先补齐 X 能力的真实项目」)/`next_actions[]`(下一步行动,如「按 gap_advice 补强后重诊」)。
+严格按 `output_schema.json` 输出(顶层复用 `../_career-skills-shared/output-schema/skill-output-base.schema.json`)。
+- 顶层:`skill_name`/`skill_version`/`summary`/`confidence`(high|medium|low|insufficient)/`evidence_used[]`(每条对齐 `../_career-skills-shared/evidence-schema/evidence.schema.json`,标 `source_type`,如简历→`user_resume`、标尺→`knowledge_graph`)/`cannot_determine[]`/`follow_up_questions[]`/`risks[]`/`recommendations[]`(总体建议,基础 schema **必填**,如「优先补齐 X 能力的真实项目」)/`next_actions[]`(下一步行动,如「按 gap_advice 补强后重诊」)。
 - 域载荷:`diagnosis`(`total_score` + `dimensions[]` + `conventionChecks[]` + `interviewHooks[]`)、`rewrite_suggestions[]`、`honesty_boundary`。
 - 信息不足时:不输出精确 `total_score`,只给维度级定性评估,`confidence` 标 `low`/`insufficient`,缺口进 `cannot_determine`。
 
@@ -123,11 +123,11 @@ allowed-tools: [Read, Grep, Bash]
 
 | 资产 | 路径 | 何时用 |
 |------|------|--------|
-| 标尺索引 | `knowledge/campus-recruitment-rubrics/index.md` | Phase 0 推断/定位职业 |
-| 职业标尺 | `knowledge/campus-recruitment-rubrics/professions/<id>.md` | 阶段 2,只读所选 1 个 |
-| 产品原则 | `shared/policies/product-principles.md` | ask-before-judging + 出处-思考-观点 |
-| 证据结构 | `shared/evidence-schema/evidence.schema.json` | `evidence_used[]` 每条字段 |
-| 输出基类 | `shared/output-schema/skill-output-base.schema.json` | 顶层字段 |
+| 标尺索引 | `../_career-skills-shared/knowledge/campus-recruitment-rubrics/index.md` | Phase 0 推断/定位职业 |
+| 职业标尺 | `../_career-skills-shared/knowledge/campus-recruitment-rubrics/professions/<id>.md` | 阶段 2,只读所选 1 个 |
+| 产品原则 | `../_career-skills-shared/policies/product-principles.md` | ask-before-judging + 出处-思考-观点 |
+| 证据结构 | `../_career-skills-shared/evidence-schema/evidence.schema.json` | `evidence_used[]` 每条字段 |
+| 输出基类 | `../_career-skills-shared/output-schema/skill-output-base.schema.json` | 顶层字段 |
 | 防编造脚本 | `scripts/check_fabrication.mjs` | 阶段 4 确定性兜底 |
 
-> 路径以 marketplace 根为基准。运行期零外部依赖:标尺已预生成提交,单次诊断只读 1 个职业文件。
+> 运行期零外部依赖:标尺已预生成提交,单次诊断只读 1 个职业文件。

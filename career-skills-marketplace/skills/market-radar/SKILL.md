@@ -81,7 +81,7 @@ allowed-tools: [Read, Grep, WebSearch, WebFetch]
 
 ## 产品原则适用
 
-本 skill 遵循 `shared/policies/product-principles.md` 中的两项核心原则。
+本 skill 遵循 `../_career-skills-shared/policies/product-principles.md` 中的两项核心原则。
 
 ### 信息不足时 (Ask-before-judging)
 - 当无法获取实时数据（WebSearch/WebFetch 无结果或仅返回 D 级来源）时，视为信息不足
