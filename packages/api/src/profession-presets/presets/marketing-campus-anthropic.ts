@@ -1,0 +1,74 @@
+// 压力版(pressure,高标准):改编自 anthropics/knowledge-work-plugins (Apache-2.0) marketing skills(campaign-plan/performance-report/competitive-brief/brand-review),
+// 按校招+中文场景修改;英文框架概念(Objective-Audience-Message-Channel-Measure / 漏斗分阶段优化 / 归因模型 / vanity metrics / feature parity / positioning statement 等)仅内部参照,字段文本一律中文。
+import { ProfessionPreset } from '../../common/types';
+
+export const marketingCampusAnthropic: ProfessionPreset = {
+  id: 'marketing-campus-anthropic',
+  profession: '市场营销',
+  stage: 'campus',
+  tier: 'pressure',
+  displayName: '市场营销 · 校招(压力版 · 高标准)',
+  dimensions: [
+    {
+      key: 'campaign_strategy_objective',
+      name: '战役目标与策略闭环(从目标倒推,非创意先行)',
+      weight: 26,
+      whatGoodLooksLike:
+        '头部品牌/4A真实门槛:先定可衡量的战役目标(认知/考虑/转化/留存/口碑分层,且写成 SMART:6周内为华北区中型SaaS带来200个MQL),再倒推人群-信息-媒介-度量,环环咬合。能讲清"核心信息一句话+3-4条支撑论点+每条都有 proof point",并能解释"为什么先打这个目标、为什么这个媒介组合、预算如何按高置信渠道60-70%+测试15-20%分配"。媒介选择基于"目标人群在哪"而非"自己熟悉哪个"。',
+      campusEvidence:
+        '在宝洁/联合利华/欧莱雅/字节/腾讯品牌部或头部4A(奥美/电通/W)实习中操盘过完整 campaign,简历写出战役目标数值、人群定义、媒介组合与预算量级;校园营销顶赛拿到全国级名次(宝洁CMO总决赛/特仑苏营销大赛全国赛/学院奖/大广赛国赛);能附一页战役 brief 链接展示"目标→人群→信息→媒介→度量"的完整逻辑链。',
+      commonGaps:
+        '【Anthropic 反模式·solutioning before framing(方案先于框定)】上来就是"做了一支TVC/一场快闪",没有可衡量目标与人群倒推,创意悬空;【Anthropic 反模式·vanity metrics(虚荣指标)】战役"成功"只靠总曝光/累计阅读这类只涨不反映生意的数字,缺转化/MQL/ROI 这类生意指标;创意与策略两张皮,说不清"为谁、为何这么打"。',
+    },
+    {
+      key: 'paid_media_attribution',
+      name: '投放体系与归因复盘(读得懂数,改得动盘)',
+      weight: 24,
+      whatGoodLooksLike:
+        '大厂效果岗真实卡分线:不止会投,还懂归因。能按漏斗定位问题(曝光不足调预算/定向,CTR低改创意/钩子,落地页跳出高改内容/速度,转化低改 offer/CTA/信任背书),并给出对应优化动作;理解 ROAS/CPA/CPC/CPM/CTR/CVR 各自口径与陷阱;知道末次归因会低估认知型渠道(展示/社媒/PR)、首次归因会低估转化型渠道(SEM/再营销),能用 U 型或时间衰减做更公允的判断;做过 A/B 且"先定成功指标、算够样本量、跑满一个完整业务周期再下结论"。',
+      campusEvidence:
+        '巨量引擎/腾讯广告/小红书广告/百度SEM 真实操盘,写清预算量级与 ROAS/CPA/CTR 结果及优化前后对比;持巨量引擎/腾讯广告/百度信息流官方认证;用 GA4/神策/GrowingIO 跑过漏斗与归因报表并据此调过盘;A/B 实验有"假设-成功指标-样本量-结论"完整记录。',
+      commonGaps:
+        '【Anthropic 反模式·single-touch attribution worship(单触点归因迷信)】只看末次转化就给某渠道判死刑,把做认知的渠道当无效;【反模式·没有复盘的投手】投了不知道为何涨跌、说不出下一步优化动作,复盘意识为零;【反模式·提前停实验】A/B 没跑满周期/样本量就拍结论,把噪音当信号;通篇"配合投放执行"无任何数据与判断。',
+    },
+    {
+      key: 'positioning_competitive',
+      name: '定位与竞争洞察(为客户需求,非对标功能)',
+      weight: 18,
+      whatGoodLooksLike:
+        '能写出/反推清晰的定位句式"为[目标人群],我们是[品类]中那个[关键差异]的,因为[支撑理由]",并用定位地图(价格×能力、轻量×强大、点解决×平台)找到对手没占的象限;诚实评估对手强弱(不贬低),按买家在意的能力维度对比而非堆功能数;会做内容/信息缺口分析,判断"哪里该差异化、哪里只需对齐(parity)";区分有行为/投入/真实需求支撑的信号与只是媒体热度的噪音。',
+      campusEvidence:
+        '产出过结构化竞品/定位分析(定位地图、价值主张拆解、信息对比矩阵),PDF 链接贴简历顶部;做过 win/loss 或用户评价(G2/小红书评论/黑猫)的归因;参与市场分析类竞赛并落到差异化定位结论而非功能罗列。',
+      commonGaps:
+        '【Anthropic 反模式·feature parity thinking(对标功能思维)】只列"对手有什么我们就要有什么",从不追问背后用户需求,把对齐当差异化;【Anthropic 反模式·positioning against competitor not customer(对着对手而非客户做定位)】定位句全在反对手,落不到一个真实客户需求上;竞品分析只夸己方贬对手,缺可信度;把行业热词当趋势,无客户数据支撑。',
+    },
+    {
+      key: 'content_brand_consistency',
+      name: '内容创意与品牌一致性(成品+调性,非自嗨)',
+      weight: 18,
+      whatGoodLooksLike:
+        '有可点开的内容成品(小红书/公众号/抖音/B站),且懂平台语言差异(小红书种草笔记≠抖音钩子脚本≠公众号深度长图文);文案兼顾"用户视角+品牌调性",能按品牌声音(在/不在、像/不像)自检,不出现无依据的"最/第一/唯一"等合规风险表述;懂"先利益后特性、每段回答用户的so what、CTA用动词且单一"。B2B 内容能讲清买家旅程分层,而非只会 B2C 种草。',
+      campusEvidence:
+        '内容产出写清平台/阅读量/互动数据(点赞/收藏/转发/涨粉率),并附作品链接;个人自媒体有可验证运营数据;创意/文案竞赛获奖作品(写明主办方与名次);为真实品牌(非课堂假设)写过被采用的稿件/脚本。',
+      commonGaps:
+        '【反模式·创意自嗨】只有"创意理念"说不清为谁、为何能打动、落哪个媒介;【Anthropic 反模式·unsubstantiated superlatives(无依据的最高级)】文案堆"行业第一/全网最强"等无证据合规风险表述;【反模式·文字工作者】把文案当文学,忘记传播目标与品牌调性;只会 B2C 种草,对 B2B 内容逻辑一无所知;技能写"会写"却无一条可点开的作品链接。',
+    },
+    {
+      key: 'measurement_reporting',
+      name: '效果度量与向上汇报(对齐生意,非堆活动量)',
+      weight: 14,
+      whatGoodLooksLike:
+        '用指标定义成功而非罗列产出:汇报先给执行摘要(一句结论+主指标趋势+一胜一忧),再上数据看板(本期/对比期/目标/状态三列对齐);区分一级生意指标(MQL/SQL/CAC/pipeline)与诊断指标(曝光/CTR);优化建议用影响×成本的2×2排序、点名优先级;能把研究/数据翻译成决策者一眼能用的语言并标清受众。',
+      campusEvidence:
+        '交付过完整 campaign 复盘/月度报告(含目标对比、what worked/what didn\'t与下一步优先级);用数据看板向 mentor/品牌经理汇报并影响了某个决策;能说清某指标口径与对应优化动作。',
+      commonGaps:
+        '【Anthropic 反模式·output not outcome(活动量冒充结果)】用"上线N个活动/发了N篇稿/关了N个工单"等活动量冒充生意结果;【反模式·数据盲】有投放/活动经历却读不懂报表、得不出任何结论;汇报通篇过程流水账,无执行摘要、无对比期、无下一步优先级,看不出对生意的影响。',
+    },
+  ],
+  explanationRubric:
+    '每个维度必须给出 why:① 指出简历中具体命中/缺失的句子或事实(campaign目标数值、人群定义、媒介组合与预算、ROAS/CPA/CTR结果及优化前后对比、定位句与差异化象限、作品链接与互动数据、报表口径与对应优化动作)放进 evidenceFound/gap;② 说明在校招市场营销(压力版·头部品牌/4A/大厂效果岗)语境下为何重要(如:大厂效果岗第一卡分线是"读得懂数、改得动盘",创意先行、单触点归因迷信会被一眼识破);③ 命中反模式时直接点名:【Anthropic 反模式·solutioning before framing】【Anthropic 反模式·vanity metrics】【Anthropic 反模式·single-touch attribution worship】【Anthropic 反模式·feature parity thinking】【Anthropic 反模式·positioning against competitor not customer】【Anthropic 反模式·unsubstantiated superlatives】【Anthropic 反模式·output not outcome】【反模式·创意自嗨】【反模式·没有复盘的投手】【反模式·提前停实验】【反模式·文字工作者】【反模式·数据盲】,不得以"有待加强"等软化表述替代;④ 分数必须与 why 一致——有目标有数据有归因高分,有经历无数据无判断中分,创意悬空/虚荣指标/单触点迷信低分;给高分但 why 全是缺口属于评分自相矛盾,应拒绝输出。严禁泄漏任何"满分X%/扣X分"内部计算,只给定性 why。',
+  rewriteGuidance:
+    '禁编造铁律:只精修简历"已有"的 campaign/投放/内容/复盘句,绝不替候选人添加原句没有的战役目标、投放数据、归因结论或作品。① 把模糊句讲精准——"负责投放"在原文确有其事时改为"操盘[平台]信息流投放,预算[具体金额],ROAS [具体数字],通过[原文已提到的优化动作]将CPA从[A]降至[B]",动词用市场精准动词(操盘/策划/投放/归因/复盘/AB测试)替换空泛的"负责/配合";② 仅在缺数字处用 [具体ROAS]/[曝光量]/[MQL数]/[CTR] 占位,提示回填真实数据,绝不凭空编造一个数字填进去;③ 严禁夸大——原文是"参与campaign执行"只能精修为"参与[环节]执行",不得擅自升级为"独立操盘/主导";④ original 字段必须是简历原文一字不差;⑤ 凡简历没有的能力(无归因经历/无作品链接/无定位分析)一律走 gap_advice 给"建议补充X",绝不写进改写句。',
+  resumeConventions:
+    '中国校招市场营销(压力版)惯例硬规则:① 每条 campaign/活动必须附生意相关数字(ROAS/CPA/MQL/转化/曝光/参与人数任选,纯无数字的市场经历视为隐身,标注"建议补充");② 头部效果岗要求会读 GA4/神策/巨量后台并能做归因判断,只会"配合投放"不写出口径与优化动作的会被刷;③ 广告/公关(4A奥美电通W/本土代理/MCN)实习与互联网品牌部同等受重视,均须量化产出;④ 竞赛只认国家级:宝洁CMO/特仑苏营销大赛全国赛/大广赛国赛/学院奖/IAI国际广告奖,须写明名次层级,校级基本无加分;⑤ 文案/内容岗必须附可点开作品链接(小红书主页/公众号/视频),否则可信度极低;⑥ 与"运营"岗严格区分——市场=品牌心智/整合传播/投放/活动/PR,运营=用户增长/留存/DAU,混淆会被直接排除;⑦ 简历堆"熟练Office/责任心强"等通用话等于浪费版面,本科一页A4、PDF投递、时间倒序。',
+};

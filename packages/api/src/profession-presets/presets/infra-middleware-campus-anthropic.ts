@@ -1,0 +1,74 @@
+// 压力版(pressure,高标准):改编自 anthropics/knowledge-work-plugins (Apache-2.0) engineering skills,
+// 按校招+中文场景修改;英文框架概念(architecture 的 ADR/trade-off/consequences、system-design 的 scale-and-reliability、tech-debt 的 debt-categories、incident-response 的 5-whys-root-cause 等)仅内部参照,字段文本一律中文。
+import { ProfessionPreset } from '../../common/types';
+
+export const infraMiddlewareCampusAnthropic: ProfessionPreset = {
+  id: 'infra-middleware-campus-anthropic',
+  profession: '基础架构/中间件',
+  stage: 'campus',
+  tier: 'pressure',
+  displayName: '基础架构/中间件 · 校招(压力版 · 高标准)',
+  dimensions: [
+    {
+      key: 'systems_fundamentals_depth',
+      name: '系统底层原理纵深(OS×网络×可推演)',
+      weight: 28,
+      whatGoodLooksLike:
+        '头部基础架构组(字节基础架构、阿里云、腾讯 TEG、PingCAP、华为 2012)把 OS/网络当非弹性硬通货且要求「能推演而非背诵」:操作系统侧能从进程/线程/协程调度、虚拟内存与页表、内核态用户态切换、零拷贝(mmap/sendfile)、page cache 推到「为什么这样设计、什么场景失效」;网络侧能讲清 TCP 拥塞控制为何这样收敛、epoll 边沿触发为何必须配非阻塞 IO、Reactor/Proactor 与 io_uring 的取舍。语言以 C/C++ 主线(C++11/14/17、RAII、move 语义、内存模型),Rust 是亮点。最关键是把原理用进项目并能说清架构权衡(system-design 框架:任何选型都把 trade-off 显式摊开),如「基于 epoll 单 Reactor 多线程网络库,QPS 达 [具体数字],为何不用多 Reactor」。',
+      campusEvidence:
+        '技能/项目栏体现「系统级」而非「调包级」:写明 C/C++ 标准版本与掌握的核心特性;网络项目标注用了 epoll/io_uring、自己实现了哪一层(连接管理/内存池/定时器)并说清选型权衡;用过 perf/gdb/tcpdump/strace/Valgrind/AddressSanitizer 等系统级排查工具(应届稀缺,出现即加分);这些信息靠近首屏并与项目绑定。',
+      commonGaps:
+        '【Anthropic 反模式·trade-off-blindness】网络库/IO 模型只给「我用了 epoll/边沿触发」的结论,说不清放弃了什么、代价在哪(system-design 要求 trade-off 必须显式);【反模式·八股背诵机】技能栏密密麻麻全是 TCP/进程线程/epoll 名词,一行项目都不绑定,一句「ET 模式为什么必须配非阻塞 IO」当场卡壳;语言栈写 Java/Go 业务方向却投 C/C++ 主线基础架构,方向错位。压力档对纯纸面八股直接判出局级。',
+    },
+    {
+      key: 'infra_project_built_not_used',
+      name: '底层系统项目(造轮子×架构决策×压测硬数据)',
+      weight: 28,
+      whatGoodLooksLike:
+        '头部门槛要求「造过轮子」而非「用过轮子」:典型硬通货是手写高性能网络库/RPC 框架、自研 KV 存储引擎(LSM-Tree/B+Tree)、实现分布式一致性(Raft/Paxos,如跑通 MIT 6.824 lab)、自研内存池/协程库/线程池、消息队列或缓存中间件核心模块。项目要用 architecture(ADR)/system-design 的方式讲清:背景与约束 → 候选方案与显式 trade-off → 选定方案的 consequences(变易/变难/需复盘的点)→ 量级(并发连接、QPS/吞吐、P99、内存占用),且有压测数据支撑。深度优先于数量——一个讲得透、有架构决策记录的网络库胜过三个 CRUD 后台。',
+      campusEvidence:
+        '项目用「背景/约束 → 候选方案与取舍 → 我负责的自研核心模块 → 量化结果」结构写;明确标注手写了哪一层(不是调库),给出压测数字(QPS [具体数字]、P99 [具体数字]ms)与关键决策的取舍理由;GitHub 链接放出,代码可读、有 README、commit 历史与设计文档。MIT 6.824、CMU 15-445、南大 PA、清华 rCore 等知名 lab 完成项是强信号。',
+      commonGaps:
+        '【Anthropic 反模式·trade-off-blindness】项目只说「实现了 KV 存储」却说不清为何选 LSM-Tree、放弃了 B+Tree 的什么、写放大代价如何(architecture 框架要求 options-considered + trade-off + consequences);【反模式·调包侠 CRUD 王】项目个个唬人(电商秒杀、IM)细看全是 Spring/框架糊起来的增删改查,自己没碰过任何底层,基础架构看的是造没造过轮子;【反模式·只挂业务层侠】项目复杂度堆得很大但本人只做业务层,追问存储/网络细节一问三不知。压力档:仅业务 CRUD、无架构决策与压测数据封顶不及格。',
+    },
+    {
+      key: 'distributed_storage_first_principles',
+      name: '分布式与存储第一性原理(一致性×存储引擎×可推演)',
+      weight: 20,
+      whatGoodLooksLike:
+        '这是基础架构区别于普通后端的分水岭,头部要求「能推演到根因」而非攒名词:一致性协议讲得清 Raft 为何需要 term、为何要多数派、脑裂如何避免;存储引擎讲得清 LSM-Tree 为何写快读慢、Compaction 与读放大/写放大/空间放大的三角权衡、WAL 与 MVCC 的作用;分布式经典问题(CAP/BASE 取舍、分区容错、数据分片、副本一致性)能落到自己做过/理解的环节。读过经典论文(GFS/Bigtable/Raft paper/Dynamo)并能讲出设计取舍是顶级加分。哪怕「课程项目实现了简化版 Raft 的 Leader 选举」也胜过纯名词罗列。',
+      campusEvidence:
+        '在项目/课程/竞赛中出现一致性协议、LSM-Tree、RocksDB、WAL、分片副本等术语并说明自己实现/理解了什么环节;读过的核心论文在项目动机里自然带出取舍判断;有 RocksDB/etcd/TiKV 等开源项目源码阅读笔记或 issue 参与更佳。',
+      commonGaps:
+        '【Anthropic 反模式·symptom-not-root-cause】满嘴 CAP/Raft/LSM 名词却说不出 Raft 为何需要 term、LSM 为何写快读慢,推不到根因(debug 框架:定位 root cause 而非症状,incident-response 的 5-whys 同样要求追到根因);【反模式·名词收藏家】把 Raft、Paxos、LSM-Tree、MVCC 当集邮列满简历,一追问原理就空白;简历从头到尾只有单机项目和语言八股、零分布式/存储术语,显示只会写单机程序不懂系统。压力档:零分布式/存储认知给低分但不一票否决(进阶维度,可由强系统项目部分补足),集邮无原理则按缺失计。',
+    },
+    {
+      key: 'engineering_quality_toolchain',
+      name: '工程质量与工具链(算法硬关×可观测×代码工程化)',
+      weight: 14,
+      whatGoodLooksLike:
+        '算法是头部基础架构的硬关(字节尤甚,每轮 2-3 道 Medium),需用 LeetCode 题量/ACM-ICPC、蓝桥、PAT 等可验证成绩证明而非自称「熟悉算法」。工程化是本岗隐性硬通货:熟练 Linux 开发环境、Git、CMake/Bazel 构建、GDB/perf/火焰图/strace 性能与故障定位、CI/CD;懂多线程并发编程与调试。能用 code-review 的眼光看自己的代码:并发竞争、资源泄漏、边界条件、错误传播都覆盖;懂用 tech-debt 视角识别架构债/测试债并说清优先级,而非堆砌一次性脚本。这些应届稀缺,出现即区分度。',
+      campusEvidence:
+        '技能/荣誉栏写明 LeetCode 刷题 [具体数字]+ 或竞赛获奖等级(ACM 区域赛奖牌、PAT 甲级分数);项目里体现用 CMake/Bazel 构建、写了单元测试、用 perf/火焰图做过性能定位、用 AddressSanitizer 查过内存问题;熟悉 Linux/Vim/Git 工作流;给 RocksDB/Redis/etcd 等提过被合并的 PR 或有效 issue 是顶级证明。',
+      commonGaps:
+        '【Anthropic 反模式·happy-path-only】代码只在理想输入跑通,没覆盖并发竞争、资源泄漏、边界与错误传播(code-review 框架明确要求覆盖 edge cases/race conditions/resource leaks);【反模式·点点点选手】开发全靠 IDE 图形界面,Linux 下编译运行磕磕绊绊,GDB/perf 一个不会,而基础架构日常全在命令行与性能调优里;算法零可验证记录只写「熟悉数据结构算法」,头部大厂笔试一关即被刷。',
+    },
+    {
+      key: 'education_internship_match',
+      name: '学历背景与对口实习(科班纵深×对口不可平替)',
+      weight: 10,
+      whatGoodLooksLike:
+        '基础架构是科班高门槛岗,本/硕为计算机/软件工程/电子等强相关专业,头部组学历偏好明显(硕士占比高,985/海外 CS 名校与系统方向强校——清华、上交、浙大、华科、南大、北航——的系统课/实验室背景是隐形加分)。实习层级清晰更优:大厂基础架构/中间件/存储/数据库团队(字节基础架构、阿里云、腾讯 TEG、PingCAP 等)的对口实习是录用官第一位筛选项,且不可被业务后端实习平替;任务能讲清自己在底层模块做了什么实质工作、做过什么权衡。',
+      campusEvidence:
+        '教育背景写明院校+专业+全日制+预计毕业时间,系统方向核心课(操作系统、计算机网络、编译原理、分布式系统、数据库系统)成绩可列;实习经历写明团队全称(基础架构/存储/中间件方向)+具体底层任务+量化产出,而非「参与后端开发」一句带过。',
+      commonGaps:
+        '【反模式·沾边后端仔】拿写业务接口的实习往基础架构上靠,觉得同是后端就算对口,可这个岗要的是造中间件不是用中间件,实习对不对口录用官一眼分得清;用纯业务后端/前端/测试实习冒充基础架构经验,被第一刀砍掉;专业非科班且无任何系统级项目/课程补足,底层岗硬竞争力为零。压力档:仅业务实习不得按对口实习计分。',
+    },
+  ],
+  explanationRubric:
+    '每个维度必须给出 why,落到简历事实并点名反模式,分数与 why 严格一致,严禁出现「满分的 X%」「给分不超过」「故给满分」「扣 X 分」等内部比例/扣分话术:\n\n① 命中/缺失事实(写进 evidenceFound / gap):\n- systems_fundamentals_depth:evidenceFound 写出 OS/网络原理的落地与显式权衡(如「基于 epoll 单 Reactor 多线程网络库,说清为何不用多 Reactor」);gap 写「IO 模型只给结论无 trade-off」「OS/网络名词仅堆技能栏正文零绑定」或「语言栈为 Java 业务方向与 C/C++ 主线错位」。\n- infra_project_built_not_used:evidenceFound 写出系统级项目类型+自研层次+架构取舍+压测量级(如「手写 KV 存储,选 LSM-Tree 并说清写放大代价,QPS 达 X」);gap 写「项目全为业务 CRUD 底层仅调用 Redis/Kafka」「复杂项目里只做业务层底层细节空白」或「只说实现了 X 无架构决策无压测数据」。\n- distributed_storage_first_principles:evidenceFound 写出命中的分布式/存储术语+参与内容+原理推演(如「实现简化 Raft 选举,讲清为何需要多数派」);gap 写「全文无一致性协议/LSM-Tree 等任何分布式术语」或「术语罗列但推不到根因(Raft 为何需要 term 答不出)」。\n- engineering_quality_toolchain:evidenceFound 写出可验证算法成绩+工具链+边界覆盖(如「LeetCode X 题/ACM 区域赛铜牌,项目用 CMake+perf,AddressSanitizer 查内存」);gap 写「算法零可验证记录仅写熟悉算法」「不熟 Linux/GDB/perf 等系统级工具链」或「代码未覆盖并发竞争/资源泄漏/边界」。\n- education_internship_match:evidenceFound 写院校+专业方向+对口实习团队层级与底层任务;gap 写「仅有业务后端实习无基础架构对口经历」或「非科班且无系统级项目补足」。\n\n② 校招语境下为何重要:必须说明该维度在基础架构校招的实际筛选作用——系统底层原理纵深(OS/网络)是这个岗区别于业务后端的非弹性硬门槛,只给结论/纸面八股一追问根因或权衡即被打穿;底层系统项目是录用官判断「造没造过轮子」的核心依据,业务 CRUD 不可替代,且头部要求带架构决策与压测数据;分布式存储第一性原理是基础架构与普通后端的分水岭(要的是推到根因而非集邮);算法是头部笔试硬关(字节尤其难);对口实习不可被业务后端实习平替,学历科班是隐形筛选线。\n\n③ 命中反模式直接点名:有 Anthropic 源的直呼「trade-off-blindness」「symptom-not-root-cause」「happy-path-only」;行业反模式直呼「八股背诵机」「调包侠 CRUD 王」「只挂业务层侠」「名词收藏家」「点点点选手」「沾边后端仔」,不得空泛说「有待提升」。\n\n分数对齐(压力档抬高 bar):systems_fundamentals_depth 全为纸面名词无落地或只给结论无权衡封顶不及格(底层岗硬出局);infra_project_built_not_used 仅业务 CRUD 无系统级项目、或有项目但无架构决策与压测数据不得给中等以上分;distributed_storage_first_principles 零分布式/存储术语给低分但不一票否决(进阶维度,可由强系统项目部分补足),集邮无原理按缺失计;engineering_quality_toolchain 算法零可验证记录在头部场景按缺失计(笔试关会刷掉);education_internship_match 仅业务实习不得按对口实习计分。',
+  rewriteGuidance:
+    '严格遵循「禁编造」铁律,绝不替候选人添加原句没有体现的技术名词、底层能力、架构权衡或实习层级:\n\n1. 只精修简历「已有」的系统项目/实习句:明确写出原文已提及的底层技术(epoll/io_uring/LSM-Tree/Raft/无锁队列)、解决的系统问题(高并发连接/读写放大/一致性/性能瓶颈)、自己负责哪一层、量级多大(并发连接 X、QPS X、P99 X ms、内存占用 X)。\n   - 例:原句「实现了一个网络服务器」→ 改「基于 [原文已提及的 IO 模型] 实现 [服务类型],支持 [具体数字] 并发连接,QPS 达 [具体数字]」(IO 模型、服务类型须取自原文,缺则留占位或走 gap_advice)。\n\n2. 用专业精准动词替换模糊词但不得越级:原文写「参与/协助」就保留「参与」,严禁夸大为「独立设计/主导架构」;原文确写了手写某模块才可用「自研/手写实现」;原文只调用了 Redis 不得改写成「实现了类 Redis 引擎」;绝不把「用过某中间件」升级成「造过某中间件」。\n\n3. 缺数字一律用 [具体数字] 占位:如「压测 QPS 达 [具体数字]」「P99 延迟降至 [具体数字]ms」「LeetCode 刷题 [具体数字] 道」,让候选人自行填真实数字,绝不代填。\n\n4. 简历没有的能力一律不在改写中出现:没写过 Raft/LSM-Tree/io_uring/perf/某开源贡献、没体现过的算法成绩、实习团队层级、底层模块经历、架构权衡,一律不得凭空生成。\n\n5. 凡简历缺失的关键能力(无系统级项目、无算法可验证记录、无分布式认知、无对口实习、无架构决策说明),一律走 gap_advice 给「建议补充」而非在 rewrite 里编造:\n   - gap_advice 示例:「建议补充一个系统级项目(手写网络库/KV 存储引擎/简易 Raft)并写明自研模块与压测数据」「建议为一处技术选型补充取舍说明(候选方案、为何选它、放弃了什么、代价是什么)」「建议补充可验证的算法成绩(LeetCode 题量或竞赛获奖)」「建议在项目中体现对一致性协议或存储引擎原理的推演(如 Raft 为何需要 term、LSM 为何写快读慢)」「建议补充一段基础架构/存储方向对口实习并写明底层任务」。',
+  resumeConventions:
+    '中国校招惯例硬规则(压力档按头部门槛收口):\n- 语言栈与岗位主线错位(只会 Java/Go 业务栈、零 C/C++ 系统编程)却投 C/C++ 主线基础架构岗:方向不符直接过滤。\n- 系统底层原理(OS/网络)全为纸面八股、零项目落地或只给结论无权衡:底层岗追问即穿帮,头部组直接出局。\n- 头部笔试算法关:零可验证算法功底(无刷题量、无竞赛)在字节等算法门槛高的厂笔试即被刷,进不到简历评审。\n- 简历项目造假/夸大(把调用框架写成自研中间件、把业务层经历写成存储内核经历、把跑通 lab 写成生产级实现):面试技术追问与背调即穿帮。\n- 非全日制学历 / 无法按时拿到毕业证+学位证双证:大厂校招硬性出局。\n\n证书/技能优先级(基础架构岗共识,与业务后端不同):\n1. 可验证的系统级项目(带架构决策与压测数据)+ 算法竞赛/刷题成绩 —— 硬通货,远重于任何培训证书。\n2. C/C++ 深度(标准版本+内存模型+并发) > Rust(亮点) > Go(部分中间件) >> Java(业务栈,基础架构弱化)。\n3. 知名系统课程 lab 完成项(MIT 6.824、CMU 15-445、清华 rCore、南大 PA)是强信号,可当项目写(但不得包装成生产级)。\n4. 开源贡献(RocksDB/etcd/TiKV/Redis 等 PR/issue)是顶级证明,优先级高于课程项目。\n5. 反信号:堆砌一排前端/业务框架(Vue/React/SSM 全家桶)与基础架构岗并列暴露方向不聚焦;软考/速成培训证书对底层岗几乎不加分。\n\n格式偏好:\n- 大厂走网申/内推系统,本科 1 页、硕士最多 2 页;项目深度优先于罗列数量。\n- 系统级项目、GitHub 链接、算法/竞赛成绩三项应在首屏可见。\n- 项目描述用「背景/约束 → 候选方案与取舍 → 自研模块 → 量化结果(QPS/P99/吞吐)」结构,带压测数字,而非纯功能罗列。\n- 技能栏避免无佐证的「精通/熟练」堆词,每项底层技术尽量绑定一个用到它的项目。\n\n加分项(基础架构特有):\n- ACM-ICPC 区域赛奖牌 / Codeforces 高分 / 蓝桥国奖等可验证算法竞赛成绩。\n- 经典论文阅读痕迹(GFS/Bigtable/Raft/Dynamo)能在项目动机里带出取舍判断。\n- 系统方向强校实验室 / 顶会(OSDI/SOSP/VLDB 等)相关科研。\n- 大厂基础架构/存储/数据库团队对口实习,做过底层模块并说清权衡。\n- 熟练 perf/火焰图/GDB/strace/AddressSanitizer 等系统级排查工具(应届稀缺,出现即区分度)。\n\n反信号(基础架构特有,压力档尤其敏感):\n- 项目全是带界面的业务系统(商城/IM/管理后台),底层只有「调用了某中间件」。\n- 项目只给结论(「用了 LSM/epoll」)而无候选方案与取舍说明。\n- 技能栈以业务框架(Spring/SSM/Vue)为主,系统级能力缺位。\n- 满屏分布式/存储名词却无任何实现或原理推演佐证(集邮式罗列)。\n- 描述项目只用「参与/负责」而无自研模块说明与压测量化。',
+};

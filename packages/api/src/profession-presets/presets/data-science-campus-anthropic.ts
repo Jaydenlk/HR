@@ -1,0 +1,76 @@
+// 压力版(pressure,高标准):改编自 anthropics/knowledge-work-plugins (Apache-2.0) data skills
+// (statistical-analysis / explore-data / validate-data / sql-queries),按校招+中文场景修改;
+// 英文框架概念(effect size vs significance、Simpson's paradox/multiple comparisons/survivorship bias、
+// selection bias in segmentation、look-ahead bias、join explosion、profiling/grain 等)仅内部参照,字段文本一律中文。
+import { ProfessionPreset } from '../../common/types';
+
+export const dataScienceCampusAnthropic: ProfessionPreset = {
+  id: 'data-science-campus-anthropic',
+  profession: '数据科学',
+  stage: 'campus',
+  tier: 'pressure',
+  displayName: '数据科学 · 校招(压力版 · 高标准)',
+  dimensions: [
+    {
+      key: 'modeling_statistics_rigor',
+      name: '建模与统计严谨性(选型依据×指标正确×防泄漏)',
+      weight: 26,
+      whatGoodLooksLike:
+        '头部大厂卡分:模型选型有公式级依据(为何 LightGBM 而非逻辑回归、为何树模型而非深度模型),并用对评估指标——不均衡样本绝不用准确率,而用 AUC/KS/GAUC/PR-AUC,能从公式解释 GBDT 与 XGBoost 差异、正则化作用、SHAP 归因;统计严谨到分得清"统计显著 ≠ 业务有意义",同时报效应量、置信区间与样本量;主动防数据泄漏(特征里混入未来信息=look-ahead bias)、防幸存者偏差(只用留存样本建模);数学/统计背景或手推过损失函数、贝叶斯公式是强加分。',
+      campusEvidence:
+        '建模项目写明选型理由 + 正确评估指标(AUC/KS/GAUC 而非孤零零"准确率 99%");博客/论文有损失函数推导或 SHAP 分析;能说清某次建模如何防数据泄漏(时间切分、特征穿越检查);数学/统计/概率/随机过程课程落到项目;面经能答 XGBoost 损失推导、AUC 计算、正则化原理。',
+      commonGaps:
+        '【Anthropic 反模式·accuracy-illusion(准确率幻觉)】不均衡样本仍用准确率衡量、只报"准确率 99%"不提样本比例/数据规模,模型好坏无从判断;【Anthropic 反模式·look-ahead-leakage(未来信息泄漏)】特征里混入了标签后才知道的信息却浑然不觉,离线 AUC 虚高;技能栏堆满 XGBoost/LSTM/Transformer/BERT 却说不清为何选、答不出 XGBoost 与 GBDT 区别(调包侠:框架名背得溜、损失函数推不出)。',
+    },
+    {
+      key: 'feature_engineering_data_quality',
+      name: '特征工程与数据质量(真实数据×profiling×脏数据)',
+      weight: 22,
+      whatGoodLooksLike:
+        '头部卡分:从原始日志/真实业务数据构造有效特征(行为序列、时间窗口统计、类别变量目标编码),拿到数据先做系统 profiling——grain(一行代表什么)、主键唯一性、各列空值率/基数、分布形态、异常值与占位值识别,再决定清洗策略;说得清缺失率、样本不均衡处理(重采样/类权重/阈值调整)、异常值处置逻辑(判断数据错误/真实极值/异质人群再分段,而非无脑删);有"原始日志→特征宽表→建模"完整链路;竞赛排名注明百分比(天池/Kaggle 前 10%–20% 才有说服力)。',
+      campusEvidence:
+        '实习/项目有具体特征构造方式与数据清洗细节(缺失率多少、如何处理不均衡、查出过哪些占位值/重复);有端到端取数→profiling→特征工程描述;天池/Kaggle 写清排名百分比与特征方案;接触过真实业务量级数据(XX 万行/XX 亿条日志)。',
+      commonGaps:
+        '【Anthropic 反模式·toy-dataset(玩具数据集冒充实战)】把泰坦尼克、股票预测等公开数据集包装成"工业级项目",特征全默认参数、模型 pip install 后复制粘贴,一问数据清洗与上线就崩;【Anthropic 反模式·skip-profiling(不探查直接建模)】拿到数据不看 grain/空值/重复/分布就丢进模型,被脏数据和数据泄漏带偏;只写"做了特征工程"却说不出造了哪些特征、为何这么造。',
+    },
+    {
+      key: 'experiment_causal_rigor',
+      name: 'AB实验与因果推断严谨性(效应量×陷阱×因果思维)',
+      weight: 22,
+      whatGoodLooksLike:
+        '头部卡分:设计可信 AB(分桶分流、指标选取、显著性检验、上线决策),报告效应量+置信区间+样本量而非只抛"提升 X%";比例指标(CTR/CVR)用比例检验,主动规避辛普森悖论(分群复核结论)、多重比较(测多指标必有假阳性,Bonferroni 或声明测了几次)、样本比例失调(SRM)、选择偏差(用结果定义分组=循环论证,如"完成新手引导的留存更高");了解 CUPED 降方差;有超越"预测"的因果思维——做过 Uplift(写明 ITE/HTE 与 AUUC 评估)或 Double ML/DID/PSM,能说清为何要识别混淆因子。',
+      campusEvidence:
+        '实习参与过完整 AB 流程并能说清结论"与局限";简历出现 CUPED、分层抽样、效应量、显著性检验、SRM 校验等进阶概念;因果项目写明 Uplift/AUUC/DID/PSM 方法与场景;计量经济学课程结合实际;面经能答"CTR 比值指标怎么检验""方差太大检验不显著怎么办""怎么识别混淆因子"。',
+      commonGaps:
+        '【Anthropic 反模式·significance-only(只看显著不报效应)】抛"提升 X%"无置信区间、无样本量、不报效应量,问到实验设计就卡壳;【Anthropic 反模式·selection-bias-segmentation(用结果定义分组)】"完成 X 的用户留存更高"这类自选择循环论证当因果结论;建模只做离线验证、从不考虑特征延迟/线上线下一致性/分布漂移/模型监控,写"AUC=0.87"却答不出"上线后 QPS、延迟"(离线成功主义:实验室里赢、生产一上就崩)。',
+    },
+    {
+      key: 'sql_engineering_landing',
+      name: 'SQL与工程落地能力(复杂取数×端到端pipeline)',
+      weight: 16,
+      whatGoodLooksLike:
+        '头部卡分:能现场白板写复杂 SQL——多层 CTE、窗口函数(ROW_NUMBER 去重、LAG/LEAD 同环比、SUM OVER 累计)、多表关联,知道 COUNT(DISTINCT) 穿过 JOIN 计数、NULLIF 防除零、按分区裁剪控成本;Python(pandas/numpy)独立处理数据,熟练 sklearn/LightGBM/PyTorch;有模型上线/部署经历(哪怕离线预测 pipeline)是加分;熟悉 Linux 命令行、能看 GPU 训练日志,不完全依赖数据工程团队就能把模型落地。',
+      campusEvidence:
+        '技能栏分层标注 SQL 熟练度、Python 数据/建模库且有项目支撑;GitHub 有可查代码仓库(README+代码+结论);经历出现"独立取数→建模→离线 pipeline"端到端动作;能复述一个有难度的 SQL 场景(开窗算留存/去重);美团等面经高频考 SQL 窗口函数、Linux/GPU 训练日志查看。',
+      commonGaps:
+        '【Anthropic 反模式·join-explosion(关联爆炸)】多对多 JOIN 悄悄翻倍行数、用 COUNT(*) 把样本量/指标灌水,JOIN 前后不核对行数;【Anthropic 反模式·tech-keyword-wholesaler(技术名词批发商)】技能栏批发 Python/R/Spark/TensorFlow/Kafka/Hadoop/Docker/LangChain,一问"Spark 用在哪个项目"就答"就了解一点";只会执行别人写好的 SQL,无独立多表关联/取数记录。',
+    },
+    {
+      key: 'business_understanding_metrics',
+      name: '业务理解与指标体系(建模问题抽象×业务结果)',
+      weight: 14,
+      whatGoodLooksLike:
+        '头部卡分:能把业务问题抽象成建模问题,实习项目写清"解决了什么业务问题"而非只堆技术栈;对 DAU/GMV/留存等核心指标做过异动归因(含 profiling 与口径核验);能把建模结论和业务结果连起来——说清"模型 AUC 提升了、业务结果是否跟着变",做过"离线涨、在线不涨"的排查尤其受认可;懂相关 ≠ 因果,不把"用 X 的用户更好"直接当因果论断。',
+      campusEvidence:
+        '实习经历有"业务问题→建模动作→业务结果"因果链表述;参与过核心指标异动分析或指标体系搭建;能说清模型提升与业务收益关系;经历强调"负责端到端流程"(取数→建模→上线→监控)而非只做一环。',
+      commonGaps:
+        '【Anthropic 反模式·correlation-as-causation(相关当因果)】把"使用某功能的用户留存更高"直接写成"该功能提升留存",不考虑反向因果与混淆;【Anthropic 反模式·intern-ghost(实习打杂党)】实习写"参与 XXX 数据分析",追问贡献只剩 SQL 提数、Excel 画图,说不出用了什么模型、效果如何;项目名高大上("智能 XX 系统")只讲技术不讲业务价值,问"让业务变好了多少"一片空白。',
+    },
+  ],
+  explanationRubric:
+    '每个维度必须给出 why:① 指出简历中具体命中/缺失的事实——模型选型理由与正确指标(AUC/KS/GAUC 而非准确率)+防数据泄漏、特征构造与 profiling/脏数据处理、AB 与因果推断的效应量/陷阱规避(辛普森/多重比较/SRM/选择偏差)/Uplift-AUUC-DID 证据、复杂 SQL+Python+上线 pipeline 实操、业务问题→建模→业务结果因果链,分别写进 evidenceFound/gap;② 说明在校招数据科学(压力版/头部大厂业务落地型)语境下为何重要——建模+统计严谨是一票否决级、防数据泄漏与离线/在线一致性是高级候选人分水岭、效应量与因果陷阱规避是区分初高级的杀手锏;③ 命中反模式时直接点名——「accuracy-illusion(准确率幻觉)」「look-ahead-leakage(未来信息泄漏)」「toy-dataset(玩具数据集)」「skip-profiling(不探查)」「significance-only(只看显著)」「selection-bias-segmentation(自选择当因果)」「join-explosion(关联爆炸)」「tech-keyword-wholesaler(技术名词批发商)」「correlation-as-causation(相关当因果)」「intern-ghost(实习打杂党)」,不得空泛("数据能力一般"无效)。分数必须与 why 一致,不得先打分再倒补理由。',
+  rewriteGuidance:
+    '数据科学(压力版)改写铁律——禁编造:只基于简历已有内容重组/量化/补证据链,把候选人"已有"的项目/实习句讲精准——写清用了什么模型(并补上为何选它)、解决什么业务问题、数据量级多大、用什么正确指标(AUC/KS/GAUC/AUUC 而非准确率)衡量、效果提升多少、如何防泄漏/做过哪些 profiling;缺数字时只在该处用 [具体数字] 占位并在 reason 注明"建议补充真实指标(AUC、样本量、提升幅度)";严禁替候选人添加原句没有的能力或技术名词——简历没写过 CUPED/因果推断/上线 pipeline/数据泄漏防护/效应量,就绝不在改写里凭空加,凡简历缺失能力一律走 gap_advice("建议补充")而非编造;尤其不得把"协助/参与某项目"夸大为"独立/主导建模";original 必须是简历原文一字不差;用数据科学精准动词(选型/构造/检验/归因/验证/部署)。',
+  resumeConventions:
+    '中国校招数据科学(压力版/业务落地型)惯例核查:① 学历硬门槛——头部互联网(字节/阿里/美团)数据科学岗事实上要求硕士及以上,双非硕无相关实习基本简历关出局,211/985 本科 HC 极少且竞争激烈;② 笔试不可跳——拼多多等公司笔试缺席流程直接终止;③ 简历漏洞即出局——写"精通"被现场追问(损失函数推导/数据泄漏/效应量)答不上直接淘汰且印象极差,技能栏分层写(主力/熟悉/了解)不堆砌;④ 证书优先级——有效:天池/Kaggle 奖牌(前 10%–20%,须注明排名百分比)、顶会论文(KDD/NeurIPS/ICML,共同作者亦可)、金融数科岗 CFA/FRM;无效甚至负分:无项目支撑的在线证书、低级别数学建模奖项充当主要亮点;⑤ 格式——一页纸(硕士多段实习+论文可两页,须高信息密度),每条经历"场景-动作-结果(含量化与口径)"、动词开头,不要自我评价栏;⑥ 反信号——硕士只有课程项目无实习、项目名高大上但细节一问三不知、通用版简历不按岗位定制、不均衡样本仍报准确率;⑦ 岗位区分:这是 ML 应用/建模/特征工程的业务落地数据科学岗,不是纯算法研究岗(深度学习/顶会权重对此岗有限,树模型与业务落地更重要),也不是只做 SQL 取数+BI 报表的数据分析师岗。',
+};

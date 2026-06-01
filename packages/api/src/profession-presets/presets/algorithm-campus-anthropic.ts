@@ -1,0 +1,75 @@
+// 压力版(pressure,高标准):改编自 anthropics/knowledge-work-plugins (Apache-2.0) engineering skills
+// (system-design / architecture / code-review / debug),按校招+中文场景修改;
+// 英文框架概念(non-functional requirements/trade-off/root-cause/ADR/edge case 等)仅内部参照,字段文本一律中文。
+import { ProfessionPreset } from '../../common/types';
+
+export const algorithmCampusAnthropic: ProfessionPreset = {
+  id: 'algorithm-campus-anthropic',
+  profession: '算法(含大模型)',
+  stage: 'campus',
+  tier: 'pressure',
+  displayName: '算法(含大模型)· 校招(压力版 · 高标准)',
+  dimensions: [
+    {
+      key: 'math_derivation_depth',
+      name: '数学功底与推导能力',
+      weight: 22,
+      whatGoodLooksLike:
+        '头部大厂/顶会卡分标准:线代(矩阵分解/SVD/特征值)、概率(贝叶斯/MLE/EM/信息熵)、优化(SGD/Adam/凸优化/拉格朗日对偶)能在白板上推导关键公式;大模型方向能从矩阵形式推导注意力与反向传播,讲清 LayerNorm/BatchNorm 的数学定义与梯度;追问任一公式细节答得上、推得出。',
+      campusEvidence:
+        '数学/优化类课程 A+;复现论文并记录完整推导的技术博客;面试能现场推导 softmax 交叉熵梯度或注意力反传。',
+      commonGaps:
+        '【Anthropic 反模式·只跑通不究原理(symptom-not-root-cause)】训练 loss 不降只会换学习率/换模型,讲不出数学上为什么;【调包侠】只会调 PyTorch API,问 BatchNorm/注意力的数学定义就卡壳,是工具使用者非算法理解者。',
+    },
+    {
+      key: 'model_depth_tradeoff',
+      name: '模型深度与方案取舍',
+      weight: 24,
+      whatGoodLooksLike:
+        '头部大厂/顶会卡分标准:传统方向精通某垂域(CV/NLP/RecSys)主流架构及变体并讲清演进动机;大模型方向完整理解 预训练→SFT→RLHF/DPO→RAG 链路,讲清 LoRA/QLoRA/MoE 原理、适用场景与代价;每个建模选择都给出显式取舍(为什么这个损失函数/采样策略/架构,否掉了什么,牺牲了什么);能说出方法的已知缺陷与边界。',
+      campusEvidence:
+        '复现 SOTA 论文并在 GitHub 公开且有改进;Kaggle/天池 Top 3%;一作/共一论文(顶会优先,arXiv 预印本也算);有"为何这样建模"的方案对比文档。',
+      commonGaps:
+        '【Anthropic 反模式·选型无取舍(no-tradeoff-analysis)】"用了 Transformer/LoRA/RAG"答不出为什么是它、代价与边界是什么;【笔记本跑通侠】跑通了 notebook 但改一行就报错、讲不清原理,运行了不代表理解了。',
+    },
+    {
+      key: 'engineering_landing_quality',
+      name: '工程落地与系统设计',
+      weight: 22,
+      whatGoodLooksLike:
+        '头部大厂卡分标准:能把模型部署成服务(FastAPI/Triton/vLLM)并做推理优化(量化/蒸馏/KV cache/批处理),设计时先明确非功能需求(延迟 SLA/吞吐/显存/成本)再出方案;有生产 AB 实验或百万级以上数据处理 pipeline;代码经得起 review(数据泄漏/特征穿越/边界与异常处理);大模型方向尤重"能稳定低成本上线"。',
+      campusEvidence:
+        'GitHub 有完整工程项目(Dockerfile/CI/服务化);实习有上线模型的在线业务数据(CTR/GMV/BLEU 提升)与延迟成本指标;有数据/特征 pipeline 的工程化记录。',
+      commonGaps:
+        '【Anthropic 反模式·无视非功能需求(ignore-nonfunctional-reqs)】只追离线指标,从不考虑延迟/吞吐/显存/成本约束,模型上不了线;【数据泄漏无感(leakage-blind)】特征穿越/标签泄漏却毫无察觉,离线虚高;【实验室纯种】学术闭环、零工程意识。',
+    },
+    {
+      key: 'research_impact_verifiable',
+      name: '科研/竞赛/开源影响力',
+      weight: 18,
+      whatGoodLooksLike:
+        '头部大厂/顶会卡分标准:顶会论文(NeurIPS/ICLR/ACL/CVPR 一作或共一)> Kaggle 金牌 > 知名开源项目核心贡献 > 天池冠军;所有成果都能被招聘方独立核实(论文链接/arXiv 号/竞赛排名比例/GitHub star 与 commit)。',
+      campusEvidence:
+        '论文链接或 arXiv 编号;竞赛写名次比例("Kaggle 金牌 Top 0.5%")+方案 Blog;GitHub star 与可核实贡献记录。',
+      commonGaps:
+        '【Anthropic 反模式·无法独立核实(unverifiable-claim)】成果只有文字描述、无链接无编号无排名比例,招聘方点不开,可信度归零;【表面冲浪者】只有课程项目、无任何可被独立核实的技术影响力。',
+    },
+    {
+      key: 'domain_debug_depth',
+      name: '领域纵深与问题定位',
+      weight: 14,
+      whatGoodLooksLike:
+        '头部大厂卡分标准:大模型方向 RAG/Agent/多模态/RLHF 任选其一讲到很深(框架选型理由+已知缺陷+解法+评测);传统方向能讲清推荐系统 召回→粗排→精排→重排 全流程;遇到效果/训练问题有结构化定位路径(复现→隔离变量→定位根因→验证),区分症状与根因(类 5-whys),而非盲调超参。',
+      campusEvidence:
+        '技术长文(掘金/知乎)对某模型/论文做完整复现+改进+消融分析;能讲清一次自己定位的"指标异常根因为数据分布偏移/标签噪声"的排查过程。',
+      commonGaps:
+        '【Anthropic 反模式·拍脑袋调参(guess-and-tune)】效果不好就盲目网格搜超参,无假设、无消融、无根因;【表面冲浪者】什么都懂一点,追问任何细节都说"大概了解",面试深挖中存活不下来。',
+    },
+  ],
+  explanationRubric:
+    '每个维度必须给出 why:① 指出简历中具体命中/缺失的事实(数学推导能力、模型深度与建模取舍、工程落地的非功能指标、可独立核实的论文/竞赛/GitHub、领域纵深与根因定位),写进 evidenceFound/gap;② 说明在校招算法压力档语境下为何重要(顶尖团队只信可核实的技术影响力与"为何这样建模"的权衡);③ 命中反模式直接点名(如"无法独立核实""选型无取舍""无视非功能需求""调包侠""笔记本跑通侠""拍脑袋调参"),不得空泛。严禁泄漏满分占比或扣分数值等内部计算。分数必须与 why 一致。',
+  rewriteGuidance:
+    '算法(压力版)改写铁律——只精修简历"已有"的模型/实验/竞赛句:讲精准(用了什么方法、离线指标/在线 AB 效果如何、数据规模多大、取舍与边界是什么),用算法精准动词(训练/微调/蒸馏/部署/消融)与可量化指标(准确率/AUC/CTR 提升/推理延迟/显存)增强可信度;只在缺数字处用 [具体数字] 占位;严禁替候选人添加原句没有体现的模型名称、论文、竞赛成绩或在线指标,没写顶会就不能编、没写 AB 就不能造在线数据;凡简历没有的能力一律走"建议补充(gap_advice)"而非编造。',
+  resumeConventions:
+    '中国校招算法惯例核查(压力档从严):① 项目/论文必须附链接(GitHub/arXiv,招聘方会点开核实),无链接近乎不计入评分;② 竞赛写名次比例("天池 Top 0.5%"优于"第 8 名");③ 实习算法工作必须写离线指标+在线 AB 结论,只写离线指标压力档扣分;④ 硕博写清导师/实验室,顶会单位 > 普通 985;⑤ 大模型方向写过 RAG/Agent 应用或参与开源模型微调者明显加分,需讲清取舍与缺陷;⑥ 无关证书(如 CFA)不写,技术密度优先。',
+};

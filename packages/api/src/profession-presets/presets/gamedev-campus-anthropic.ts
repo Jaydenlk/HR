@@ -1,0 +1,74 @@
+// 压力版(pressure,高标准):改编自 anthropics/knowledge-work-plugins (Apache-2.0) engineering skills,
+// 按校招+中文场景修改;英文框架概念(trade-off analysis/ADR options/code-review correctness & performance/root cause-not-symptom/architecture consequences 等)仅内部参照,字段文本一律中文。
+import { ProfessionPreset } from '../../common/types';
+
+export const gamedevCampusAnthropic: ProfessionPreset = {
+  id: 'gamedev-campus-anthropic',
+  profession: '游戏开发',
+  stage: 'campus',
+  tier: 'pressure',
+  displayName: '游戏开发 · 校招(压力版 · 高标准)',
+  dimensions: [
+    {
+      key: 'project_depth_tradeoff',
+      name: '项目深度与技术取舍闭环',
+      weight: 28,
+      whatGoodLooksLike:
+        '头部大厂(腾讯/米哈游/网易)卡分线:至少 1 个能抗住 30 分钟深挖的可玩 Demo/可运行项目,且每个项目讲得清"技术域→要解决的问题→考虑过哪些方案→为什么这么取舍→量化结果"全链路——像写 ADR 一样把"选项 A/B 与权衡、放弃了什么、带来什么后果"说明白(如"移动端选延迟渲染而非前向:在 Adreno 650 上把带宽占用降低 40%,代价是 MRT 内存上升")。GitHub 有跨数周的真实持续提交(非一次性上传),引擎/图形岗附渲染前后对比图与 Profiler 数据。',
+      campusEvidence:
+        '可玩 Demo 视频/截图 + 量化指标(帧率 X→Y、DrawCall X→Y、带宽降 Z%);GitHub/Gitee 跨数周多次 commit;项目描述写出"考虑过的方案与取舍";GameJam(GGJ/Ludum Dare)完整参赛作品;在 Steam/TapTap 发布过可玩游戏(极稀缺);笔试编程题全 AC 截图。',
+      commonGaps:
+        '项目照抄视频教程、一次性传 GitHub、无个人改造【Anthropic 反模式·教程搬运工:跟着视频敲,追问"这块你改了什么、为什么"当场失语】;只给结论不讲考虑过的方案与代价【Anthropic 反模式·trade-off 缺失:"我实现了 XXX"却讲不出为什么这么选、放弃了什么、后果是什么】;只有设计文档无可执行版本与视频,无法自证真做过。',
+    },
+    {
+      key: 'cs_fundamentals',
+      name: '计算机基础扎实度',
+      weight: 22,
+      whatGoodLooksLike:
+        '数据结构/算法、操作系统、计算机网络三门能从定义延伸到场景而非背八股(米哈游 JD 第一条即"扎实的计算机基础")。大厂笔试为 ACM 模式(需自行处理输入输出),能在限定时间 AC 中等及以上算法题;OS 的内存布局/进程线程/调度能被 C++ 八股一路追问下去仍接得住,且能把"为什么这么设计"讲清。',
+      campusEvidence:
+        'ACM/ICPC 区域赛、蓝桥杯省级及以上获奖(最强直接信号);洛谷/AcWing 的 ACM 模式刷题量与排名;408 核心科目(尤其 OS、数据结构)成绩突出;笔试编程题全 AC 记录;OS/计网/数据结构相关课程项目或博客。',
+      commonGaps:
+        '只刷 LeetCode 核心模式没练 ACM 自处理输入输出,大厂笔试第一轮直接被过滤【反模式·只刷核心模式:面对 ACM 模式不会读入输出,笔试关即出局】;OS/计网/数据结构无项目支撑只会背定义【Anthropic 反模式·八股背诵机:虚函数表、TCP 握手会背,一句"为什么这么设计"就卡壳,知其然不知其所以然】。',
+    },
+    {
+      key: 'cpp_depth',
+      name: 'C++ 语言深度',
+      weight: 20,
+      whatGoodLooksLike:
+        'C++ 是客户端/引擎/服务端三岗核心语言,一面普遍从 C++ 八股切入再往底层挖 OS(米哈游面经:从虚函数表问到内存结构)。好的样子:有用 C++ 独立完成的项目(非 Python/脚本包装),讲得清内存管理、多线程、STL、对象模型并往深处挖,能从 code-review 视角看出代码里的资源泄漏/竞态/未定义行为/越界这类正确性与性能问题;读过《C++ Primer》《深度探索 C++ 对象模型》且能在面试中引用。',
+      campusEvidence:
+        'GitHub 上以 C++ 为主语言的项目(渲染器、小型引擎、服务端模块、Ray Tracing);项目描述自然带出内存/多线程/对象模型且经得起追问;能写出"手写对象池规避频繁 new/delete"这类底层取舍;C++ 源码阅读或技术博客。',
+      commonGaps:
+        '技能栏突出 Java/Spring/Python,C++ 只在"了解"一栏,给面试官转行者印象【Anthropic 反模式·Java气质C++:主体是 Java/Web 那一套,C++ 只凑数,投引擎/客户端岗一眼被划为非科班转行】;写"熟悉 C++"但项目全是脚本调用、答不出虚函数表与内存布局,也看不出代码里的资源泄漏/竞态【反模式·会语法不会工程:能写出能跑的 C++,却发现不了内存泄漏与并发竞态等正确性坑】。',
+    },
+    {
+      key: 'engine_modification_depth',
+      name: '引擎使用与改造深度',
+      weight: 16,
+      whatGoodLooksLike:
+        '客户端岗硬需求、引擎岗看"改造能力"。大厂客户端一面会问 DrawCall、UI 动静分离、AssetBundle、热更新;好的样子是写清具体模块(Unity 写到 UI/动画/ScriptableObject/资源管理/Shader,UE 写到蓝图+C++ 混合、Gameplay 框架、自定义 Pass),引擎岗能体现"魔改 UE/Unity 渲染管线"而非只调 API——改过什么 > 用过什么,且能讲清改造带来的后果与取舍(性能收益 vs 维护成本)。',
+      campusEvidence:
+        '项目点名具体引擎模块与解决的问题("用 AssetBundle 做热更新,包体从 X 降到 Y""自定义 UE 渲染 Pass 实现描边");Profiler 调优截图;蓝图+C++ 混合工程;改造引擎源码或渲染管线的真实记录。',
+      commonGaps:
+        '技能栏只写"熟悉 Unity 开发"却不点任何模块,等于无效信息【Anthropic 反模式·熟悉Unity仔:就一句"熟悉 Unity/UE",问 DrawCall 怎么降、AssetBundle 怎么组织就空白】;只会拖蓝图/调 API,无任何改造与底层理解,讲不出改造的代价与收益。',
+    },
+    {
+      key: 'graphics_rendering',
+      name: '图形学与渲染知识',
+      weight: 14,
+      whatGoodLooksLike:
+        '引擎/图形渲染方向核心门槛(客户端为加分)。GAMES101 现在只是及格线;好的样子是 GAMES101+GAMES202 至少完成一个,讲得清渲染管线顺序、透明物体排序、PBR、Shadow Map、Deferred Rendering 并追得住性能权衡,有 Ray Tracing 项目,且像性能 code-review 一样能定位渲染瓶颈的根因(用 RenderDoc/Profiler 抓到是哪个 Pass/DrawCall 的问题,而非只说"卡")。项目描述写清"为什么选此方案"而非只写"我实现了 XXX"。',
+      campusEvidence:
+        'GAMES202/RayTracing 项目附渲染截图与 Profile 对比;项目描述出现具体取舍("为什么用 Deferred 而非 Forward");用 RenderDoc/Profiler 定位渲染 Bug 的过程;图形技术拆解博客;论文或导师科研项目(图形方向加分明显)。',
+      commonGaps:
+        '堆"GPU Driven Rendering/Clustered Lighting/Mesh Shader"等术语却无量化结果、无取舍说明【Anthropic 反模式·技术词堆砌症:把最唬人的渲染名词全列上,讲不出一个数字、一次取舍,越堆越像没真做过】;渲染卡顿只说现象不挖根因【Anthropic 反模式·symptom-not-root-cause:只说"帧率低",没用 Profiler/RenderDoc 追到是哪个 Pass/Overdraw/带宽的根因】;只写"学过 GAMES101"就当核心竞争力。',
+    },
+  ],
+  explanationRubric:
+    '每个维度必须给出 why,且分数与 why 严格一致:① 指出简历中具体命中/缺失的事实(可玩 Demo 是否抗 30 分钟深挖、是否讲"技术域→问题→考虑过的方案与取舍→量化结果"全链路、GitHub 是否持续 commit、是否有帧率/DrawCall/带宽数字、C++ 是否为主语言并带内存/多线程/对象模型与能否看出资源泄漏/竞态、引擎是否点到具体模块或改造且讲清代价、图形是否 GAMES202/RayTracing 且能用 Profiler 追根因、ACM/蓝桥/实习是否真实可核),写进 evidenceFound/gap;② 说明在校招游戏开发压力档语境下为何重要(头部岗考"做过什么、为什么这么做、效果如何"的思维链路,30 分钟深挖与从 C++ 挖到 OS 的连环追问最易暴露真实水平,CS 基础是 ACM 模式笔试第一关);③ 命中反模式直接点名(教程搬运工 / trade-off 缺失 / 只刷核心模式 / 八股背诵机 / Java气质C++ / 会语法不会工程 / 熟悉Unity仔 / 技术词堆砌症 / symptom-not-root-cause),说清踩中证据,不得空泛。严禁泄漏任何"满分 X%/扣 X 分"等内部评分口径,只描述事实与反模式。严禁因学历或技能词覆盖广而给高分——双非但有抗深挖 Demo+量化结果应高于 985 只有课程作业;岗位方向错配(图形项目投 C++ 偏重的游研岗、Java/Web 投引擎客户端)要在对应维度明确降分。',
+  rewriteGuidance:
+    '禁编造铁律:只对简历"已有"内容做精准化重组,严禁替候选人添加原句没有体现的能力或技术名词。改写侧重:把含糊的项目/实习句讲精准(用了什么引擎/语言/图形技术、解决什么渲染或性能或玩法问题、量级多大),用精准动词(实现/优化/重构/魔改/接入/压测/定位)与可量化指标(帧率 X→Y FPS、DrawCall X→Y、带宽/内存占用降 Z%、包体大小、加载耗时、并发在线数)增强可信度。只在缺数字处用 [具体数字] 占位并在 reason 注明"建议补充真实 Profiler/工具读数"。严禁添加原句没有的能力——没写自定义渲染 Pass 不能改出"魔改管线",没写 RenderDoc 不能编调试细节,没写 GAMES202 不能虚构实时渲染能力,没写 C++ 内存管理不能加;凡缺失能力一律走 gap_advice 而非编造,更不得把"参与/协助/跟教程做"夸大为"独立/主导/从零设计"。特别警示:量化数字不得超出硬件物理极限(如某移动 GPU 填充率),占位只提示候选人填真实工具读数。original 必须是简历原文一字不差。',
+  resumeConventions:
+    '中国校招游戏开发本土惯例核查(压力档加严):① 出局级硬规则——大厂(腾讯/米哈游/网易)头部岗位实际以 985/211 为主,非科班+双非需用极强作品集补偿(面经共识);笔试为 ACM 模式需自行处理输入输出,只练 LeetCode 核心模式不够,必须刷洛谷/AcWing;毕业时间卡死,超窗口直接拒;简历严格 1 页 A4;无可运行 Demo 或只有设计文档的项目近乎不计分。② 岗位方向匹配——引擎/客户端/渲染三岗面试重点不同,严禁同一份描述混投;投引擎岗要有图形+C++,投客户端要有引擎使用深度,用游研语言投引擎岗或反之是明确反信号。③ 证书/竞赛优先级——ACM/ICPC 区域赛及以上 > 蓝桥杯省级 > 技术类论文 > 国家级游戏创作大赛 > Unity 认证 > 课程证书(近乎无效);Unity 官方认证在大厂 HR 眼中权重极低,远不如一个有量化结果的项目;技术岗 GPA 几乎不问、背调不看。④ 格式——中文主体、技术词保留英文(DrawCall/Shader/Profiler),雅黑或思源宋,1 页 PDF;GitHub 主页必须存在且有活跃记录(空主页=减分);引擎/图形岗强烈建议作品集附渲染截图+Profile 对比数据。⑤ 反信号——多岗投递描述一模一样、引擎/客户端岗突出 Java/Spring/Python、个人评价写"吃苦耐劳/责任心强"等通用空话、完全无实习直冲大厂(共识路径小厂→中厂→大厂)。⑥ 加分项——大厂或知名中厂实习是最强单项加分、论文/导师科研、GameJam 完整作品、有深度的技术博客、在 Steam/TapTap 发布过可玩游戏;米哈游/叠纸/鹰角等文化属性强的厂会真实考察玩家深度(品类/名称/时长/成就),个人兴趣处应据实写代表性游戏与玩家深度(腾讯/三七互娱不强要求)。',
+};

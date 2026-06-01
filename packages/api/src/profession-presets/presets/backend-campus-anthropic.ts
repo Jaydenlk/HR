@@ -1,0 +1,75 @@
+// 压力版(pressure,高标准):改编自 anthropics/knowledge-work-plugins (Apache-2.0) engineering skills
+// (system-design / code-review / architecture / debug),按校招+中文场景修改;
+// 英文框架概念(trade-off analysis/root-cause/N+1/race condition/ADR 等)仅内部参照,字段文本一律中文。
+import { ProfessionPreset } from '../../common/types';
+
+export const backendCampusAnthropic: ProfessionPreset = {
+  id: 'backend-campus-anthropic',
+  profession: '后端开发',
+  stage: 'campus',
+  tier: 'pressure',
+  displayName: '后端开发 · 校招(压力版 · 高标准)',
+  dimensions: [
+    {
+      key: 'cs_fundamentals_internals',
+      name: '计算机基础与源码级理解',
+      weight: 22,
+      whatGoodLooksLike:
+        '头部大厂卡分标准:OS(进程线程/内存模型/IO 多路复用 epoll 实现差异)、网络(TCP 拥塞控制/HTTP2 多路复用/TLS 握手全链路)、数据库(InnoDB B+树页结构/MVCC/锁升级/EXPLAIN 执行计划逐项解读)三者都能延伸到具体场景并讲清取舍;Java 能讲到 JVM 内存模型/GC 算法源码逻辑(CMS vs G1 vs ZGC 选型理由),Go 能讲清 GMP 调度器抢占与 channel 底层结构;追问"为什么不是另一种"答得上。',
+      campusEvidence:
+        '有源码级分析博客或 JDK/Netty/Redis 源码阅读笔记;项目里出现"慢查询→EXPLAIN 定位回表→覆盖索引,RT 从 800ms 到 30ms"这类带执行计划的闭环;读过并能复述某中间件核心模块实现。',
+      commonGaps:
+        '【Anthropic 反模式·只治标不究根因(symptom-not-root-cause)】出问题只重启/扩容/加机器,讲不出"为什么会这样"的根因定位路径;【八股背诵机】能背定义但追问"TCP 为何三次握手不是两次""B+树为何不用 B 树"就卡壳,知其然不知其所以然。',
+    },
+    {
+      key: 'system_design_tradeoff',
+      name: '系统设计与显式取舍',
+      weight: 26,
+      whatGoodLooksLike:
+        '头部大厂卡分标准:能完整设计分布式系统(秒杀/短链/IM/消息中台),先讲清功能与非功能需求(QPS 量级/延迟 SLA/可用性/成本约束)再出方案;每个关键决策都给出显式取舍(为什么 Redis 分布式锁而非 DB 行锁、为什么 Kafka 而非 RabbitMQ、CAP 里牺牲了什么);讲得清容量估算、热点/雪崩/缓存击穿应对、分布式事务(2PC/TCC/本地消息表)选型;能说出"系统长大后哪里要重做"。',
+      campusEvidence:
+        '项目有"设计 XX 模块支撑 Y QPS,选用 Z 方案的理由与被否方案"这类带 trade-off 的决策描述;参与过大厂中间件/高并发服务实习并有容量与延迟数字;有架构设计文档(类 ADR:背景→选项→取舍→后果)。',
+      commonGaps:
+        '【Anthropic 反模式·选型无取舍(no-tradeoff-analysis)】只说"用了 Redis/Kafka",答不出"为什么是它、否掉了什么、代价是什么",每个决策都有代价但简历看不出权衡;【CRUD仔】项目全是增删改查表单,无任何并发/缓存/异步/一致性设计,工程深度为零。',
+    },
+    {
+      key: 'engineering_correctness_review',
+      name: '工程质量与代码正确性',
+      weight: 20,
+      whatGoodLooksLike:
+        '头部大厂卡分标准:有上线代码且经得起 code review——能主动指出并规避 N+1 查询、热点路径上的 O(n²)、无界查询/循环、资源泄漏、并发竞态与可见性问题;懂边界与异常处理(空值/溢出/超时/幂等/重试),写过或参与过线上故障复盘;代码遵循单一职责、有测试覆盖关键路径。',
+      campusEvidence:
+        'GitHub 有被合并的开源 PR 或 code review 记录;实习有上线代码且配业务数字("支撑日均 X 万订单、P99 从 A 降到 B");能讲清一次自己发现并修复的并发/数据一致性 Bug 的根因。',
+      commonGaps:
+        '【Anthropic 反模式·只跑通乐观路径(happy-path-only)】代码只验证正常流,缺幂等/超时/重试/竞态处理,真实流量下必炸;【N+1 无感知(query-amplification-blind)】循环里查库、无界拉全表却毫无察觉;【课程仔】全是课程作业/毕设、零生产环境经历。',
+    },
+    {
+      key: 'debug_rootcause',
+      name: '问题定位与根因分析',
+      weight: 18,
+      whatGoodLooksLike:
+        '头部大厂卡分标准:面对线上偶发问题有结构化定位路径(复现→隔离→定位根因→修复→加防回归测试),区分症状与根因(类 5-whys 追到底);会用日志/链路追踪/火焰图/arthas/pprof 等工具,能讲清"如何缩小范围、如何验证假设";修复时考虑副作用与边界。',
+      campusEvidence:
+        '简历有"用 pprof 定位到 goroutine 泄漏根因为 X,修复后内存稳定"或"全链路追踪定位跨服务超时在 Y 环节"这类带工具+根因的句子;实习参与过性能调优或线上故障排查并有量化结果。',
+      commonGaps:
+        '【Anthropic 反模式·症状级修复(treat-the-symptom)】问题来了靠重启/回滚糊弄,不追根因,同类问题反复出现;【拍脑袋调试(guess-and-restart)】无假设、无工具、无验证,全靠猜与改了再看,讲不出定位链路。',
+    },
+    {
+      key: 'language_algorithm_depth',
+      name: '语言底层与算法功底',
+      weight: 14,
+      whatGoodLooksLike:
+        '头部大厂卡分标准:Java(并发包 AQS/线程池参数推导/锁优化)或 Go(逃逸分析/内存对齐/sync 包原理)能讲到设计哲学层面;算法 LeetCode 300+,困难题(动态规划/图论/并查集)能在 45 分钟内手撕并讲清复杂度与优化点;ACM/ICPC 区域赛或同等竞赛背书加分。',
+      campusEvidence:
+        'ACM/ICPC 区域赛奖牌、LeetCode 周赛高 rating;有语言底层机制的源码博客;项目中有算法/数据结构带来的量化优化("把 O(n²) 匹配优化为 O(n log n),耗时降 X")。',
+      commonGaps:
+        '【Anthropic 反模式·套模板不懂原理(pattern-without-principle)】只会套刷题模板,换个变种或追问"为什么这样设计"就崩;【语言搬运工】会用 API 但讲不出语言设计哲学,Go 写成 Java 风格、滥用 goroutine 不管生命周期。',
+    },
+  ],
+  explanationRubric:
+    '每个维度必须给出 why:① 指出简历中具体命中/缺失的事实(源码级理解证据、系统设计的显式取舍、上线代码与 code review、根因定位链路与工具、竞赛/算法背书),写进 evidenceFound/gap;② 说明在校招后端压力档语境下为何重要(大厂只信可验证的工程输出与"为什么这样设计"的权衡能力);③ 命中反模式直接点名(如"症状级修复""选型无取舍""只跑通乐观路径""八股背诵机""语言搬运工"),不得空泛。严禁泄漏满分占比或扣分数值等内部计算。分数必须与 why 一致。',
+  rewriteGuidance:
+    '后端(压力版)改写铁律——只精修简历"已有"的项目/实习句:讲精准(用了什么技术、解决什么并发/性能/一致性问题、量级多大、取舍是什么),用后端精准动词(优化/重构/压测/接入/定位)与可量化指标(QPS/P99 RT/并发数/数据规模)增强可信度;只在缺数字处用 [具体数字] 占位;严禁替候选人添加原句没有体现的技术名词、取舍或源码理解,简历没写分布式锁就不能改出分布式锁,没写根因定位就不能编造工具链;凡简历没有的能力一律走"建议补充(gap_advice)"而非编造。',
+  resumeConventions:
+    '中国校招后端惯例核查(压力档从严):① 技术栈分"精通/熟悉/了解"三档,压力档"精通"必须有源码级证据支撑,否则降级;② 项目必须有 GitHub 链接或大厂实习+业务数字,否则可信度低、近乎不计入评分;③ 每个核心项目应体现至少一处显式技术取舍("为何这样设计"),纯 CRUD 项目压力档基本不得分;④ 竞赛含金量标清(ACM/ICPC > 蓝桥国奖 > 力扣周赛);⑤ 大厂实习(腾讯/字节/阿里/美团/华为)一行顶三个课程项目,应靠前;⑥ 不写个人评价/爱好等软性段落,技术密度优先。',
+};

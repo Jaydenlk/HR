@@ -92,6 +92,96 @@ import { recruitmentConsultantCampus } from './presets/recruitment-consultant-ca
 import { compliancePrivacyCampus } from './presets/compliance-privacy-campus';
 import { ipPatentCampus } from './presets/ip-patent-campus';
 
+import { accountantGlCampusAnthropic } from './presets/accountant-gl-campus-anthropic';
+import { actuaryCampusAnthropic } from './presets/actuary-campus-anthropic';
+import { adOptimizerCampusAnthropic } from './presets/ad-optimizer-campus-anthropic';
+import { adminCampusAnthropic } from './presets/admin-campus-anthropic';
+import { algorithmCampusAnthropic } from './presets/algorithm-campus-anthropic';
+import { assetMgmtCampusAnthropic } from './presets/asset-mgmt-campus-anthropic';
+import { auditorFirmCampusAnthropic } from './presets/auditor-firm-campus-anthropic';
+import { backendCampusAnthropic } from './presets/backend-campus-anthropic';
+import { bankingCampusAnthropic } from './presets/banking-campus-anthropic';
+import { bdCampusAnthropic } from './presets/bd-campus-anthropic';
+import { biEngineerCampusAnthropic } from './presets/bi-engineer-campus-anthropic';
+import { bigdataEngCampusAnthropic } from './presets/bigdata-eng-campus-anthropic';
+import { brandPrCampusAnthropic } from './presets/brand-pr-campus-anthropic';
+import { businessAnalystCampusAnthropic } from './presets/business-analyst-campus-anthropic';
+import { cashierCampusAnthropic } from './presets/cashier-campus-anthropic';
+import { compensationCampusAnthropic } from './presets/compensation-campus-anthropic';
+import { compliancePrivacyCampusAnthropic } from './presets/compliance-privacy-campus-anthropic';
+import { consultingCampusAnthropic } from './presets/consulting-campus-anthropic';
+import { corporateStrategyCampusAnthropic } from './presets/corporate-strategy-campus-anthropic';
+import { costAccountingCampusAnthropic } from './presets/cost-accounting-campus-anthropic';
+import { craClinicalCampusAnthropic } from './presets/cra-clinical-campus-anthropic';
+import { creditAnalysisCampusAnthropic } from './presets/credit-analysis-campus-anthropic';
+import { crossBorderEcommerceCampusAnthropic } from './presets/cross-border-ecommerce-campus-anthropic';
+import { customerSuccessCampusAnthropic } from './presets/customer-success-campus-anthropic';
+import { dataAnalystCampusAnthropic } from './presets/data-analyst-campus-anthropic';
+import { dataProductManagerCampusAnthropic } from './presets/data-product-manager-campus-anthropic';
+import { dataScienceCampusAnthropic } from './presets/data-science-campus-anthropic';
+import { dataWarehouseDevCampusAnthropic } from './presets/data-warehouse-dev-campus-anthropic';
+import { designerCampusAnthropic } from './presets/designer-campus-anthropic';
+import { devopsSreCampusAnthropic } from './presets/devops-sre-campus-anthropic';
+import { digitalTransformationConsultingCampusAnthropic } from './presets/digital-transformation-consulting-campus-anthropic';
+import { ecommerceOpsCampusAnthropic } from './presets/ecommerce-ops-campus-anthropic';
+import { educationCampusAnthropic } from './presets/education-campus-anthropic';
+import { embeddedCampusAnthropic } from './presets/embedded-campus-anthropic';
+import { financeBpCampusAnthropic } from './presets/finance-bp-campus-anthropic';
+import { financeManagementTraineeCampusAnthropic } from './presets/finance-management-trainee-campus-anthropic';
+import { fmcgMtCampusAnthropic } from './presets/fmcg-mt-campus-anthropic';
+import { fpaAnalystCampusAnthropic } from './presets/fpa-analyst-campus-anthropic';
+import { frontendCampusAnthropic } from './presets/frontend-campus-anthropic';
+import { gameArtCampusAnthropic } from './presets/game-art-campus-anthropic';
+import { gameDesignCampusAnthropic } from './presets/game-design-campus-anthropic';
+import { gamedevCampusAnthropic } from './presets/gamedev-campus-anthropic';
+import { growthCampusAnthropic } from './presets/growth-campus-anthropic';
+import { hrSscCampusAnthropic } from './presets/hr-ssc-campus-anthropic';
+import { hrTraineeCampusAnthropic } from './presets/hr-trainee-campus-anthropic';
+import { hrbpCampusAnthropic } from './presets/hrbp-campus-anthropic';
+import { industrialDesignCampusAnthropic } from './presets/industrial-design-campus-anthropic';
+import { infraMiddlewareCampusAnthropic } from './presets/infra-middleware-campus-anthropic';
+import { institutionalSalesCampusAnthropic } from './presets/institutional-sales-campus-anthropic';
+import { interactionDesignCampusAnthropic } from './presets/interaction-design-campus-anthropic';
+import { internalAuditCampusAnthropic } from './presets/internal-audit-campus-anthropic';
+import { investmentBankingCampusAnthropic } from './presets/investment-banking-campus-anthropic';
+import { ipPatentCampusAnthropic } from './presets/ip-patent-campus-anthropic';
+import { legalCampusAnthropic } from './presets/legal-campus-anthropic';
+import { marketResearchCampusAnthropic } from './presets/market-research-campus-anthropic';
+import { marketingCampusAnthropic } from './presets/marketing-campus-anthropic';
+import { medicalRepCampusAnthropic } from './presets/medical-rep-campus-anthropic';
+import { motionDesignCampusAnthropic } from './presets/motion-design-campus-anthropic';
+import { multimediaDevCampusAnthropic } from './presets/multimedia-dev-campus-anthropic';
+import { newmediaCampusAnthropic } from './presets/newmedia-campus-anthropic';
+import { operationsCampusAnthropic } from './presets/operations-campus-anthropic';
+import { orgDevelopmentCampusAnthropic } from './presets/org-development-campus-anthropic';
+import { processEngineerCampusAnthropic } from './presets/process-engineer-campus-anthropic';
+import { procurementCampusAnthropic } from './presets/procurement-campus-anthropic';
+import { projectManagementCampusAnthropic } from './presets/project-management-campus-anthropic';
+import { qualityEngineerCampusAnthropic } from './presets/quality-engineer-campus-anthropic';
+import { quantCampusAnthropic } from './presets/quant-campus-anthropic';
+import { realEstateCampusAnthropic } from './presets/real-estate-campus-anthropic';
+import { recruiterCampusAnthropic } from './presets/recruiter-campus-anthropic';
+import { recruitmentConsultantCampusAnthropic } from './presets/recruitment-consultant-campus-anthropic';
+import { recsysAdsAlgoCampusAnthropic } from './presets/recsys-ads-algo-campus-anthropic';
+import { riskAdvisoryCampusAnthropic } from './presets/risk-advisory-campus-anthropic';
+import { riskManagementCampusAnthropic } from './presets/risk-management-campus-anthropic';
+import { salesCampusAnthropic } from './presets/sales-campus-anthropic';
+import { salesOperationsCampusAnthropic } from './presets/sales-operations-campus-anthropic';
+import { securitiesResearchCampusAnthropic } from './presets/securities-research-campus-anthropic';
+import { securityCampusAnthropic } from './presets/security-campus-anthropic';
+import { storeManagerTraineeCampusAnthropic } from './presets/store-manager-trainee-campus-anthropic';
+import { strategyProductManagerCampusAnthropic } from './presets/strategy-product-manager-campus-anthropic';
+import { supplyChainCampusAnthropic } from './presets/supply-chain-campus-anthropic';
+import { taxCampusAnthropic } from './presets/tax-campus-anthropic';
+import { testDevCampusAnthropic } from './presets/test-dev-campus-anthropic';
+import { threeDDesignCampusAnthropic } from './presets/three-d-design-campus-anthropic';
+import { trainingDevelopmentCampusAnthropic } from './presets/training-development-campus-anthropic';
+import { treasuryCampusAnthropic } from './presets/treasury-campus-anthropic';
+import { userOperationsCampusAnthropic } from './presets/user-operations-campus-anthropic';
+import { uxResearchCampusAnthropic } from './presets/ux-research-campus-anthropic';
+import { visualDesignCampusAnthropic } from './presets/visual-design-campus-anthropic';
+import { wealthManagementCampusAnthropic } from './presets/wealth-management-campus-anthropic';
+
 const PRESETS: ProfessionPreset[] = [
   productManagerCampus,
   productManagerCampusAnthropic,
@@ -184,6 +274,95 @@ const PRESETS: ProfessionPreset[] = [
   recruitmentConsultantCampus,
   compliancePrivacyCampus,
   ipPatentCampus,
+  accountantGlCampusAnthropic,
+  actuaryCampusAnthropic,
+  adOptimizerCampusAnthropic,
+  adminCampusAnthropic,
+  algorithmCampusAnthropic,
+  assetMgmtCampusAnthropic,
+  auditorFirmCampusAnthropic,
+  backendCampusAnthropic,
+  bankingCampusAnthropic,
+  bdCampusAnthropic,
+  biEngineerCampusAnthropic,
+  bigdataEngCampusAnthropic,
+  brandPrCampusAnthropic,
+  businessAnalystCampusAnthropic,
+  cashierCampusAnthropic,
+  compensationCampusAnthropic,
+  compliancePrivacyCampusAnthropic,
+  consultingCampusAnthropic,
+  corporateStrategyCampusAnthropic,
+  costAccountingCampusAnthropic,
+  craClinicalCampusAnthropic,
+  creditAnalysisCampusAnthropic,
+  crossBorderEcommerceCampusAnthropic,
+  customerSuccessCampusAnthropic,
+  dataAnalystCampusAnthropic,
+  dataProductManagerCampusAnthropic,
+  dataScienceCampusAnthropic,
+  dataWarehouseDevCampusAnthropic,
+  designerCampusAnthropic,
+  devopsSreCampusAnthropic,
+  digitalTransformationConsultingCampusAnthropic,
+  ecommerceOpsCampusAnthropic,
+  educationCampusAnthropic,
+  embeddedCampusAnthropic,
+  financeBpCampusAnthropic,
+  financeManagementTraineeCampusAnthropic,
+  fmcgMtCampusAnthropic,
+  fpaAnalystCampusAnthropic,
+  frontendCampusAnthropic,
+  gameArtCampusAnthropic,
+  gameDesignCampusAnthropic,
+  gamedevCampusAnthropic,
+  growthCampusAnthropic,
+  hrSscCampusAnthropic,
+  hrTraineeCampusAnthropic,
+  hrbpCampusAnthropic,
+  industrialDesignCampusAnthropic,
+  infraMiddlewareCampusAnthropic,
+  institutionalSalesCampusAnthropic,
+  interactionDesignCampusAnthropic,
+  internalAuditCampusAnthropic,
+  investmentBankingCampusAnthropic,
+  ipPatentCampusAnthropic,
+  legalCampusAnthropic,
+  marketResearchCampusAnthropic,
+  marketingCampusAnthropic,
+  medicalRepCampusAnthropic,
+  motionDesignCampusAnthropic,
+  multimediaDevCampusAnthropic,
+  newmediaCampusAnthropic,
+  operationsCampusAnthropic,
+  orgDevelopmentCampusAnthropic,
+  processEngineerCampusAnthropic,
+  procurementCampusAnthropic,
+  projectManagementCampusAnthropic,
+  qualityEngineerCampusAnthropic,
+  quantCampusAnthropic,
+  realEstateCampusAnthropic,
+  recruiterCampusAnthropic,
+  recruitmentConsultantCampusAnthropic,
+  recsysAdsAlgoCampusAnthropic,
+  riskAdvisoryCampusAnthropic,
+  riskManagementCampusAnthropic,
+  salesCampusAnthropic,
+  salesOperationsCampusAnthropic,
+  securitiesResearchCampusAnthropic,
+  securityCampusAnthropic,
+  storeManagerTraineeCampusAnthropic,
+  strategyProductManagerCampusAnthropic,
+  supplyChainCampusAnthropic,
+  taxCampusAnthropic,
+  testDevCampusAnthropic,
+  threeDDesignCampusAnthropic,
+  trainingDevelopmentCampusAnthropic,
+  treasuryCampusAnthropic,
+  userOperationsCampusAnthropic,
+  uxResearchCampusAnthropic,
+  visualDesignCampusAnthropic,
+  wealthManagementCampusAnthropic,
 ];
 
 const tierKey = (profession: string, tier: ProfessionTier): string => `${profession}::${tier}`;
