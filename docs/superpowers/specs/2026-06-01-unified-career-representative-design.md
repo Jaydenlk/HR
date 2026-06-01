@@ -80,7 +80,8 @@
 - **质量基准 = 91 campus 标尺(基于 Anthropic 仓库 fork,质量更高),它是канон。** role-taxonomy 质量较次,**只取精华去糟粕**——经质量审视后,选择性把 role 里确有增量价值的内容(hidden_preferences/common_red_flags/interview_focus 中值得的部分)融进对应 91 标尺,**不照单全收**;低质/冗余丢弃。统一大类(以 campus 11 大类为准,role 12 大类做映射)。
 - **范围 = 仅学生场景(校招 + 实习 + 一切学生相关),暂不含社招/通用。** 91 标尺本就是校招标尺(id 皆 `*-campus`),其跨意图共享天然限定在学生求职语境。
 - **跨意图共享(限学生场景)**:career-principal 于 match_diagnosis/analyze_jd/interview_prep/tailor_resume 等意图也按目标职业拉同一套(融合后的)标尺,全流程口径一致,而非只在校招诊断里用。
-- **两难度档 = 用户可选**(机制已存在,本轮强化为代表层显式选择):**严格档**≈几乎直接用 Anthropic 高标准(适合冲大厂);**融合版**稍温柔(适合中小厂/实习)。代表按用户目标(大厂 vs 中小厂·实习)主动建议档位,**选择权交用户**。
+- **两难度档 = 用户可选**(机制已存在,本轮强化为代表层显式选择):**严格档/压力版**≈几乎直接用 Anthropic 高标准(`tier: pressure`,适合冲大厂);**融合版**稍温柔(`tier: standard`,适合中小厂/实习)。代表按用户目标(大厂 vs 中小厂·实习)主动建议档位,**选择权交用户**。
+- **融合改动位置(用户 2026-06-01 批准)**:职业标尺**真相源 = `packages/api/src/profession-presets/*.ts`**;marketplace 的 91 标尺是 `skills/campus-recruitment-diagnosis/scripts/build_rubrics.mjs` 读 `dist/*.js` 渲染的产物(每 preset 有 `tier` standard/pressure)。融合**在 .ts 源做**(只改职业知识,不碰 SaaS 应用/前端/接口/部署),再 `nest build` → 重跑 `build_rubrics.mjs` 重生成 marketplace 标尺,`.ts` 与渲染出的 `.md` 一起提交。**禁止手改渲染出的 .md**(会被下次渲染覆盖、与源漂移)。保单一真相源、SaaS+marketplace 两形态同时受益。Anthropic 衍生内容(`anthropics/knowledge-work-plugins`,Apache-2.0)沿用既有署名/注明修改。
 
 ## 4. 实施计划(三批,step→verify)
 
@@ -99,7 +100,7 @@
 
 ### 批3:职业标尺融合(批2 落地后做;先摸两套系统再融)
 10. 深摸两套 + **质量判定**:摸 role-taxonomy(30)与 campus-rubrics(91)的职业/大类重叠、字段差异;逐项判 role 内容**精华 vs 糟粕**(91 为 Anthropic-fork 质量更高=канон)→ **verify**:产出 role→campus 映射表 + role 精华清单(值得融入)+ 糟粕清单(丢弃)+ 11 vs 12 大类对齐方案。
-11. 选择性融合 + 两难度档:把 role **精华**(非全部)融进对应 91 标尺,统一大类与索引;确保每职业标尺**两难度档清晰可选**(严格≈Anthropic 直用 / 融合稍温柔)→ **verify**:标尺含融入的精华字段且两档齐;validate-all 标尺计数/结构过;无职业丢失;严格档对齐 Anthropic 高标准。
+11. 选择性融合 + 两难度档(**改 .ts 源,非手改 .md**):把 role **精华**(非全部)融进对应职业的预设 `.ts`(`packages/api/src/profession-presets/`),统一大类与索引;确保两难度档清晰(`tier` standard/pressure);然后 `nest build` → 重跑 `build_rubrics.mjs` 重渲染 marketplace 标尺 → `.ts` 与 `.md` 一起提交 → **verify**:标尺含融入精华且两档齐;build_rubrics 渲染无报错(≥80 预设、5维/权重100);validate-all 过;无职业丢失;严格档对齐 Anthropic 高标准。
 12. 跨意图启用(限学生场景):career-principal 于 match_diagnosis/analyze_jd/interview_prep/tailor_resume 按目标职业拉同套融合标尺(经 next-intent/coverage 调度),范围限校招+实习+学生相关 → **verify**:eval 同一职业在诊断与匹配用同套标尺、口径一致;非学生场景不误用 campus 标尺。
 13. 难度档用户选择 + 清双轨:代表按用户目标(大厂→严格 / 中小厂·实习→融合)主动建议档位、选择权交用户;role-taxonomy 旧引用迁到融合标尺清双轨 → **verify**:eval 代表会建议/询问难度档;validate-resource-paths/validate-all 全绿;无遗留双轨引用。
 
