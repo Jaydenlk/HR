@@ -8,7 +8,8 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
-export type SalarySource = 'self' | 'peer';
+// 'self'/'peer' are user submissions; 'market' is system-seeded pool data.
+export type SalarySource = 'self' | 'peer' | 'market';
 
 @Entity('salary_entries')
 export class SalaryEntry {

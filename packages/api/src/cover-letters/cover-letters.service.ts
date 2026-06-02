@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CoverLetter } from './entities/cover-letter.entity';
+import { CoverLetter, CoverLetterTone } from './entities/cover-letter.entity';
 import { CreateCoverLetterDto } from './dto/create-cover-letter.dto';
 import { AiService } from '../ai/ai.service';
 import { ResumesService } from '../resumes/resumes.service';
@@ -28,10 +28,10 @@ export class CoverLettersService {
     }
 
     const tone = dto.tone ?? 'warm';
-    const toneLabel: Record<string, string> = {
+    const toneLabel: Record<CoverLetterTone, string> = {
       professional: '专业克制',
       warm: '真诚热情',
-      concise: '简短直接',
+      direct: '简短直接',
     };
     const toneDesc = toneLabel[tone] ?? toneLabel['warm'];
     const lengthHint = dto.length_words ? `求职信字数控制在约 ${dto.length_words} 字以内。` : '';
@@ -110,7 +110,7 @@ ${lengthHint}
       role: existing.role,
       tone: existing.tone,
       length_words: existing.length_words ?? undefined,
-      jd_text: existing.jd_text ?? undefined,
+      jd_text: existing.jd_text,
     };
 
     const newLetter = await this.generate(userId, dto);

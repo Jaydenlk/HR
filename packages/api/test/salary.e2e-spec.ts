@@ -270,4 +270,64 @@ describe('Salary (e2e)', () => {
       expect(res.status).toBe(401);
     });
   });
+
+  // ─── POST /api/salary — 发帖数值/枚举校验(本次修复) ───────────────────────
+  describe('POST /api/salary — input validation', () => {
+    it('base_salary > total_comp → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: 'Bad Co', role: 'Dev', base_salary: 900000, total_comp: 100000 });
+      expect(res.status).toBe(400);
+    });
+
+    it('negative base_salary → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: 'Bad Co', role: 'Dev', base_salary: -50000, total_comp: 60000 });
+      expect(res.status).toBe(400);
+    });
+
+    it('invalid source enum → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: 'Bad Co', role: 'Dev', base_salary: 80000, total_comp: 100000, source: 'hacker' });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── GET /api/salary — 社区可见 + 匿名(已脱敏,不暴露 user_id) ─────────────
+  describe('GET /api/salary — community visibility + anonymity', () => {
+    it('response entries never expose user_id (anonymized)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/salary')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThan(0);
+      for (const entry of res.body) {
+        expect(entry).not.toHaveProperty('user_id');
+        expect(entry).not.toHaveProperty('user');
+      }
+    });
+
+    it('community pool: user2 sees an offer posted by user1 (shared board, not private)', async () => {
+      const probeCompany = 'CommunityProbe Inc';
+      await request(app.getHttpServer())
+        .post('/api/salary')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: probeCompany, role: 'CommDev', base_salary: 111000, total_comp: 222000 });
+
+      const res = await request(app.getHttpServer())
+        .get('/api/salary')
+        .set('Authorization', `Bearer ${otherToken}`);
+      expect(res.status).toBe(200);
+      const found = res.body.find(
+        (e: { company: string; role: string }) => e.company === probeCompany && e.role === 'CommDev',
+      );
+      expect(found).toBeDefined();
+      expect(found).not.toHaveProperty('user_id');
+    });
+  });
 });

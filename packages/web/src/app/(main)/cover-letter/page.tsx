@@ -6,9 +6,9 @@ import type { CoverLetter } from '@/lib/types';
 import { RefreshCw, Copy, FileText, Loader2, Plus } from 'lucide-react';
 
 const TONES = [
-  { value: '专业克制', label: '专业克制' },
-  { value: '真诚热情', label: '真诚热情' },
-  { value: '简短直接', label: '简短直接' },
+  { value: 'professional', label: '专业克制' },
+  { value: 'warm', label: '真诚热情' },
+  { value: 'direct', label: '简短直接' },
 ];
 
 const LENGTHS = [
@@ -42,7 +42,7 @@ export default function CoverLetterPage() {
   // Form state
   const [company, setCompany] = useState('');
   const [role, setRole] = useState('');
-  const [tone, setTone] = useState('真诚热情');
+  const [tone, setTone] = useState('warm');
   const [lengthWords, setLengthWords] = useState(350);
   const [jdText, setJdText] = useState('');
 

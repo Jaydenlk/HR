@@ -1,5 +1,6 @@
 import { Injectable, ServiceUnavailableException, Logger } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
+import { ConcurrencyLimiter } from './concurrency-limiter';
 
 interface CompleteParams {
   system: string;
@@ -28,7 +29,7 @@ export class AiService {
   private readonly primary: Provider;
   private readonly fallback: Provider | null;
 
-  constructor() {
+  constructor(private readonly limiter: ConcurrencyLimiter) {
     const apiKey = process.env.CLOUDDREAM_API_KEY;
     if (!apiKey) {
       throw new Error('CLOUDDREAM_API_KEY is required but not set');
@@ -79,7 +80,9 @@ export class AiService {
     };
 
     return this.withFailover('complete', async (provider) => {
-      const response = await provider.client.messages.create(build(provider.model));
+      const response = await this.limiter.run(() =>
+        provider.client.messages.create(build(provider.model)),
+      );
       for (const block of response.content) {
         if (block.type === 'text') return block.text;
       }
@@ -139,7 +142,7 @@ export class AiService {
     const ATTEMPTS = 3;
     for (let i = 0; i < ATTEMPTS; i++) {
       const input = this.extractToolInput<T>(
-        await provider.client.messages.create(messageParams),
+        await this.limiter.run(() => provider.client.messages.create(messageParams)),
         toolName,
       );
       if (input !== null) {

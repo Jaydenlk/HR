@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AiService } from './ai.service';
+import { ConcurrencyLimiter } from './concurrency-limiter';
 import { ParserService } from './parser.service';
 import { AnalyzerService } from './analyzer.service';
 import { RewriterService } from './rewriter.service';
 
 @Module({
-  providers: [AiService, ParserService, AnalyzerService, RewriterService],
+  providers: [ConcurrencyLimiter, AiService, ParserService, AnalyzerService, RewriterService],
   exports: [AiService, ParserService, AnalyzerService, RewriterService],
 })
 export class AiModule {}

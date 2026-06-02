@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
 import { SalaryEntry } from './entities/salary-entry.entity';
 import { CreateSalaryEntryDto } from './dto/create-salary-entry.dto';
+import { SalaryEntryResponseDto } from './dto/salary-entry-response.dto';
 
 export interface SalaryStats {
   company: string;
@@ -25,8 +26,11 @@ export class SalaryService {
     private readonly repo: Repository<SalaryEntry>,
   ) {}
 
-  create(userId: string, dto: CreateSalaryEntryDto): Promise<SalaryEntry> {
-    return this.repo.save(
+  async create(
+    userId: string,
+    dto: CreateSalaryEntryDto,
+  ): Promise<SalaryEntryResponseDto> {
+    const saved = await this.repo.save(
       this.repo.create({
         user_id: userId,
         company: dto.company,
@@ -40,25 +44,26 @@ export class SalaryService {
         source: dto.source ?? 'self',
       }),
     );
+    return SalaryEntryResponseDto.from(saved);
   }
 
-  findAll(filters?: SalaryFilters): Promise<SalaryEntry[]> {
-    const where: Partial<SalaryEntry> = {};
+  /**
+   * 社区薪资池:所有用户主动发布的 offer(含 seed 市场样本)对全体可见——
+   * 这是产品的社区共享卖点(不是用户私有数据)。每条记录匿名返回(去掉 user_id),
+   * 发布者不可识别。帖子的删除/管理仅限本人(见 findOne / remove)。
+   */
+  async findAll(filters?: SalaryFilters): Promise<SalaryEntryResponseDto[]> {
+    const where: FindOptionsWhere<SalaryEntry> = {};
     if (filters?.company) where.company = filters.company;
     if (filters?.role) where.role = filters.role;
     if (filters?.location) where.location = filters.location;
 
-    return this.repo.find({
+    const entries = await this.repo.find({
       where: Object.keys(where).length ? where : undefined,
       order: { created_at: 'DESC' },
     });
-  }
 
-  findAllByUser(userId: string): Promise<SalaryEntry[]> {
-    return this.repo.find({
-      where: { user_id: userId },
-      order: { created_at: 'DESC' },
-    });
+    return entries.map((e) => SalaryEntryResponseDto.from(e));
   }
 
   async getStats(): Promise<SalaryStats[]> {
@@ -83,14 +88,18 @@ export class SalaryService {
     }));
   }
 
-  async findOne(id: string, userId: string): Promise<SalaryEntry> {
-    const entry = await this.repo.findOne({ where: { id, user_id: userId } });
-    if (!entry) throw new NotFoundException();
-    return entry;
+  async findOne(id: string, userId: string): Promise<SalaryEntryResponseDto> {
+    return SalaryEntryResponseDto.from(await this.findOwnEntry(id, userId));
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    const entry = await this.findOne(id, userId);
+    const entry = await this.findOwnEntry(id, userId);
     await this.repo.remove(entry);
+  }
+
+  private async findOwnEntry(id: string, userId: string): Promise<SalaryEntry> {
+    const entry = await this.repo.findOne({ where: { id, user_id: userId } });
+    if (!entry) throw new NotFoundException();
+    return entry;
   }
 }
