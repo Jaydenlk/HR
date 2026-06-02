@@ -45,7 +45,7 @@
     },
     "diagnosis": {
       "type": "object",
-      "required": ["total_score", "dimensions", "conventionChecks", "interviewHooks"],
+      "required": ["dimensions", "conventionChecks", "interviewHooks"],
       "properties": {
         "total_score": {
           "type": "number",

@@ -71,11 +71,11 @@
       "description": "加权综合评分",
       "items": {
         "type": "object",
-        "required": ["offer_id", "company", "total_score"],
+        "required": ["offer_id", "company"],
         "properties": {
           "offer_id": { "type": "string" },
           "company": { "type": "string" },
-          "total_score": { "type": "number", "minimum": 0, "maximum": 100 },
+          "total_score": { "type": "number", "minimum": 0, "maximum": 100, "description": "加权总分;信息不足(confidence=low/insufficient)无法可靠评分时省略,并在 missing_info 说明缺失字段,不硬给一个看似精确的伪分。" },
           "dimension_scores": { "type": "object" }
         }
       }

@@ -24,14 +24,14 @@
 //     注:只校验 \d{2,}(两位及以上),与后端一致,避免误伤序号/单位里的个位数字。
 //
 //   gap_advice(简历没有、需用户真实具备后再写)不做内容子串校验,
-//   但仍校验结构红线:original 必须为空字符串。
+//   但仍校验结构红线:original 必须为空字符串、reason 必须含「穿帮风险」标注。
 //
 // 输入(三选一):
 //   1) 参数式:   node check_fabrication.mjs <resume.txt> <candidates.json>
 //   2) stdin 式: echo '{"resumeText":"...","suggestions":[...]}' | node check_fabrication.mjs
 //   3) 自检:     node check_fabrication.mjs --self-test
 //   兼容字段名: resumeText / resume_text / resume ; suggestions / rewrite_suggestions / candidates
-//   候选项字段: original(原句) / suggested(改写后, 兼容 suggestion/rewrite) / type(可选)
+//   候选项字段: original(原句) / suggested(改写后, 兼容 suggestion/rewrite/modified) / type(可选)
 //
 // 输出:每条违规打印到 stderr;末尾打印 JSON `{"violations":[index,...]}` 到 stdout,
 //       供调用方机械读取需降级/占位处理的候选项下标(违规 index 数组,去重升序)。
@@ -67,8 +67,10 @@ function pickSuggestions(data) {
 }
 
 // 兼容多种字段命名拿到改写后文本。
+// 注意 `modified`:resume-tailor 等 worker 用它命名改写后文本——漏掉它会让规则 B 的数字
+// 核对读到空串、等于跳过(伪造数字蒙混过关),故必须纳入别名链。
 function pickSuggested(s) {
-  return s?.suggested ?? s?.suggestion ?? s?.rewrite ?? '';
+  return s?.suggested ?? s?.suggestion ?? s?.rewrite ?? s?.modified ?? '';
 }
 
 // 核心校验:返回 { indices, messages }。纯函数,便于自检复用。
@@ -85,10 +87,13 @@ export function checkFabrication(resumeText, suggestions) {
     const type = s?.type;
     const original = s?.original ?? '';
 
-    // gap_advice:不查内容,只查结构红线(original 必须为空)。
+    // gap_advice:不查内容,只查结构红线(original 必须为空 + reason 必须标穿帮风险)。
     if (type === 'gap_advice') {
       if (original !== '') {
         flag(i, `(gap_advice):original 必须为空字符串(简历没有的内容),当前为「${original}」`);
+      }
+      if (!/穿帮风险/.test(s?.reason ?? '')) {
+        flag(i, `(gap_advice):reason 必须标注「面试穿帮风险:高——需你真实具备后再写入」`);
       }
       return;
     }
@@ -150,13 +155,30 @@ function selfTest() {
       expectViolation: true,
     },
     {
+      name: 'modified 字段里的伪造数字应被抓(回归:pickSuggested 须认 modified)',
+      resume,
+      suggestions: [
+        // 用 modified(而非 suggested)装改写后文本,含原文没有的 350/86 → 规则 B 应抓。
+        { type: 'quantify', original: '回收约300份简历', modified: '发放350份简历,回收率86%' },
+      ],
+      expectViolation: true,
+    },
+    {
+      name: 'gap_advice 缺穿帮风险标注应被抓(回归:reason 校验)',
+      resume,
+      suggestions: [
+        { type: 'gap_advice', original: '', reason: '可补充团队规模', suggested: '若带过团队可写' },
+      ],
+      expectViolation: true,
+    },
+    {
       name: '可溯源改写应通过',
       resume,
       suggestions: [
         // original 是子串;suggested 的数字 300/2 均在原文出现 → 通过。
         { type: 'rewrite', original: '主导2场双选会', suggested: '独立主导2场校园双选会,覆盖回收的300份简历' },
-        // gap_advice 结构合规(original 为空)→ 通过。
-        { type: 'gap_advice', original: '', suggested: '若你真实带过团队,可补充团队规模' },
+        // gap_advice 结构合规(original 为空 + reason 标穿帮风险)→ 通过。
+        { type: 'gap_advice', original: '', reason: '面试穿帮风险:高——需你真实具备后再写入', suggested: '若你真实带过团队,可补充团队规模' },
       ],
       expectViolation: false,
     },
