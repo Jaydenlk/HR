@@ -62,11 +62,12 @@ allowed-tools: [Read, Grep, Bash]
   1. 从简历**抽原句**填进该维度 `evidenceFound[]`(无则空数组);
   2. 对照标尺 `常见缺失` 逐条比对,把简历**没有**的列进 `gap`;
   3. 落**离散行为档**:有相关经历且有量化→中高档;有经历但**完全无量化数字**→明显低于及格的低档;**完全空白**→极低分。此规则对所有维度一致,不选择性放宽。
-- [ ] 每维 `score` 封顶该维满分,`total_score` = 各维之和。
+- [ ] 每维 `score` 封顶该维满分,`total_score` **必须等于各维 `score` 之和的字面值**(自己机械相加,不得凭感觉报分,更不得自证算式都加错)。**禁在 `honesty_boundary` 或任何用户可见文本泄露满分配重 / 内部算式 / 加权过程**;只呈现各维 `score`/`max` 与 `total_score` 结果。
 - [ ] 每维 `why`:① 落到简历**具体事实**(技术栈深度/项目决策/实习公司+业务数字/竞赛名次);② 命中标尺反模式**直接点名**(如「CRUD仔」「八股背诵机」「语言搬运工」);③ `why` 与分数一致,不得「给高分却 why 全是缺口」。
 - [ ] **打分话术红线**:`why`/`evidenceFound`/`gap`/`conventionChecks.note` 等所有用户可见文本**严禁**出现内部计算/比例措辞——「满分的X%」「给到满分的约X%」「给分不超过…」「扣X分」「上限调整」「修正为X分」「故给满分」一律违规;只陈述最终结论(如「核心能力缺失,仅给基础分」)。
 - [ ] **本土惯例核查**:按标尺「本土惯例与硬规则」逐条核(如技术栈分精通/熟悉/了解三档、项目须有 GitHub 或大厂实习、竞赛含金量排序),落进 `conventionChecks[]`(status: pass|warn|fail)。
-- verify: 维度数量/顺序/满分与 `professions/<id>.md` 完全一致 ✅;搜不到任何「满分的X%/扣X分」内部话术 ✅;`total_score` = 各维之和 ✅。
+- [ ] **契约硬校验(有 `Bash` 时必跑)**:把 `diagnosis`(连同顶层 `confidence`)喂给 `scripts/check_diagnosis.mjs`,它确定性校验 `total_score`=各维之和、每维 `score`≤`max`、`conventionChecks` 非空、`interviewHooks`≥2 且子字段齐全、拒报时 `confidence`=`insufficient`;**退出码非 0 必须按提示改对再继续**,不得带病进入阶段 3。
+- verify: 维度数量/顺序/满分与 `professions/<id>.md` 完全一致 ✅;搜不到任何「满分的X%/扣X分」内部话术 ✅;`total_score` = 各维之和 ✅;`scripts/check_diagnosis.mjs` 退出码 0 ✅。
 
 ### 阶段 3 · 面试追问预演(interviewHooks)
 - [ ] 针对**得分低**或**表述可能夸大/被质疑**的点,给 2-4 条 `interviewHooks`:
@@ -91,7 +92,7 @@ allowed-tools: [Read, Grep, Bash]
 - **缺口铁律**:阶段 2 列进 `gap` 的能力一定是简历没有的,**绝不能**在改进型里当作已具备补进 `suggested`,只能进 `gap_advice`。
 
 **自校验三招(交付前必须全过)**:
-1. **确定性兜底**:有 `Bash` 工具时跑 `scripts/check_fabrication.mjs`(传入简历原文 + 改写建议 JSON),它对改进型逐条做「original 是否是简历子串」「suggested 里的数字是否都在简历中出现」的机械校验,任何一条不过 → 该条降级为 `gap_advice` 或改回 `[具体数字]` 占位。
+1. **确定性兜底**:有 `Bash` 工具时跑 `scripts/check_fabrication.mjs`(传入简历原文 + 改写建议 JSON),它对改进型逐条做「original 是否是简历子串」(规则 A)、「suggested 里的数字是否都在简历中出现」(规则 B)、「suggested 是否新增 original 没有的强动词/技术名词」(规则 C·能力升格黑名单,如 主导/独立/设计/RFM/REST/多级缓存),任何一条不过 → 该条降级为 `gap_advice` 或改回 `[具体数字]` 占位。**退出码 0 仅代表「数字与造句、黑名单升格词的机械校验通过」,不代表语义无夸大**——黑名单非穷尽,仍须配合招 2 逐条引语回溯。
 2. **逐条引语回溯自证**:对每条改进型,自己把 `suggested` 相对简历**新增的实质内容**(能力/方法/工具/变量/数字/经历)列出来,凡简历无支撑 → 打回降级。把握不准从严,宁可打回。**注意:招 1 脚本只抓「伪造数字」与「凭空原句」,抓不到「无数字的动词/能力夸大」**(如把「参与/协助」改成「主导/独立负责」、把「用了缓存」夸成「设计了多级缓存」)——这类只能靠本招逐条揪出,必须打回。
 3. **locked rubric 防漂移**:全程只用阶段 2 读入的那一个标尺文件,不凭记忆改维度/满分/反模式名。
 - verify: `scripts/check_fabrication.mjs` 退出码 0(或无 Bash 时人工三招过)✅;每条 `gap_advice` 的 `original` 为空且带穿帮风险标注 ✅。
@@ -128,6 +129,12 @@ allowed-tools: [Read, Grep, Bash]
 - 标尺与判断基于截至模型知识更新日的中国校招通行做法,具体公司当季要求可能不同,以官方 JD 为准。
 ```
 
+**`honesty_boundary` 话术红线(违反即不得交付)**:
+- **不得声称做了产出里实际没有的事**——例如没产出 `interviewHooks` 就不得写「已预演面试追问」;没跑/没过 `check_fabrication.mjs` 就不得写「已确定性校验防编造」。声明只能描述**本次真实发生**的步骤。
+- **`check_fabrication.mjs` 退出 0 ≠「语义无夸大已校验」**:它只机械校验「数字未伪造 + 原句未凭空 + 黑名单升格词未注入」(规则 A/B/C),黑名单非穷尽;**凡 `suggested` 出现 `original` 没有的强动词/技术名词,须自核并降级为 `gap_advice`**,绝不能拿「退出 0」给语义编造背书。
+- **契约缺失即不得交付**:`diagnosis` 必须含**非空 `conventionChecks`** 与 **≥2 条 `interviewHooks`**(每条 `resumeHit`/`interviewQuestion`/`prepDirection` 齐全),缺失即不合格,改对再交付;**禁止把面试追问 / 本土惯例核查散写进 `rewrite_suggestions` 的 `reason`** 来规避契约。
+- **`total_score` 必须等于各维 `score` 之和的字面值**;`honesty_boundary` 不得泄露满分配重 / 内部加权算式。
+
 ---
 
 ## 七、引用路径
@@ -140,6 +147,7 @@ allowed-tools: [Read, Grep, Bash]
 | 公司查询协议 | `../_career-skills-shared/protocols/company-lookup.md` | 仅当给了 `target_company`:Phase0/阶段3 查公司画像(三级降级 + 按需联网) |
 | 证据结构 | `../_career-skills-shared/evidence-schema/evidence.schema.json` | `evidence_used[]` 每条字段 |
 | 输出基类 | `../_career-skills-shared/output-schema/skill-output-base.schema.json` | 顶层字段 |
-| 防编造脚本 | `scripts/check_fabrication.mjs` | 阶段 4 确定性兜底 |
+| 诊断契约校验脚本 | `scripts/check_diagnosis.mjs` | 阶段 2 末:确定性校验 total_score=各维之和 + conventionChecks 非空 + interviewHooks≥2 子字段齐全 + 拒报一致性 |
+| 防编造脚本 | `scripts/check_fabrication.mjs` | 阶段 4 确定性兜底(规则 A/B/C:子串/数字/能力升格黑名单) |
 
 > 运行期零外部依赖:标尺已预生成提交,单次诊断只读 1 个职业文件。

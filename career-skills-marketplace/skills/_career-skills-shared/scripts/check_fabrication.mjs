@@ -23,6 +23,16 @@
 //     (如把「回收约300份」改成「发放350份、回收率86%」)→ 违规,应改回占位符。
 //     注:只校验 \d{2,}(两位及以上),与后端一致,避免误伤序号/单位里的个位数字。
 //
+//   规则 C(能力升格黑名单)——补规则 A/B 的盲区:
+//     A/B 只抓「凭空原句」与「伪造数字」,抓不到**不带新数字的语义能力升格**——
+//     如「做了→设计」「参与→推动」「负责→独立负责」「接口→REST 接口」「画图→组件化」。
+//     做法:维护一份**启发式黑名单** UPGRADE_TERMS(归属/能力强词 + 技术/方法名词),
+//     对每个改进型项,凡某 term 出现在 suggested(改写后)而**不在 original** → flag
+//     「能力升格」,提示回退或降级为 gap_advice。
+//     注:这是**启发式黑名单、非穷尽**——只兜常见高频升格词;语义级夸大仍需人工
+//     「逐条引语回溯」(PLAYBOOK 自校验招 2)互补,二者职责不同、互不替代。
+//     原句已含该 term(改写只是保留)→ 不误抓。
+//
 //   gap_advice(简历没有、需用户真实具备后再写)不做内容子串校验,
 //   但仍校验结构红线:original 必须为空字符串、reason 必须含「穿帮风险」标注。
 //
@@ -44,6 +54,25 @@ import { readFileSync } from 'node:fs';
 // 改进型 type 白名单:这些显式做 original 子串 + suggested 数字校验。
 const IMPROVE_TYPES = new Set(['rewrite', 'quantify', 'restructure', 'add_keywords']);
 const PLACEHOLDER = '[具体数字]';
+
+// 规则 C 黑名单(启发式、非穷尽):凡某 term 在 suggested 出现而 original 没有,即判「能力升格」。
+//   归属/能力强词:把「参与/协助/做了/负责」悄悄拔高成「主导/独立/设计/架构」一类;
+//   技术/方法名词:把泛泛描述拔高成具体高阶技术/方法名(简历没提=凭空贴金)。
+//   与 campus 版保持完全一致;若调整请两处同步。
+const UPGRADE_TERMS = [
+  // 归属 / 能力强词
+  '主导', '独立负责', '独立', '设计', '架构', '搭建', '构建', '推动', '牵头', '验证',
+  // 技术 / 方法名词
+  'RFM', 'RESTful', 'REST', '微调', '蒸馏', '多级缓存', '布隆过滤器', '分库分表',
+  '读写分离', '组件化', '设计系统', 'AB实验', 'AB测试', '强相关', '相关性检验', 'DCF', 'LBO',
+];
+
+// 找出 suggested 相对 original 新增的升格 term(suggested 含、original 不含)。
+function upgradeTerms(suggested, original) {
+  const sug = String(suggested ?? '');
+  const ori = String(original ?? '');
+  return UPGRADE_TERMS.filter((t) => sug.includes(t) && !ori.includes(t));
+}
 
 // 抽取 suggested 中需核对的「具体数字」:剔除占位符后,取长度 ≥2 的数字串(复刻后端 \d{2,})。
 function unsupportedNumbers(suggested, resumeText) {
@@ -120,6 +149,11 @@ export function checkFabrication(resumeText, suggestions) {
     for (const n of unsupportedNumbers(pickSuggested(s), text)) {
       flag(i, `(${type ?? 'improve'}):suggested 含原文中不存在的数字「${n}」=伪造指标,应改回 ${PLACEHOLDER} 占位`);
     }
+
+    // 规则 C:能力升格黑名单——suggested 含、original 没有的强动词/技术名词(启发式,非穷尽)。
+    for (const t of upgradeTerms(pickSuggested(s), original)) {
+      flag(i, `(${type ?? 'improve'}):能力升格——suggested 新增原句没有的「${t}」,改进型不得新增能力/方法名词,请回退或降级为 gap_advice`);
+    }
   });
 
   return {
@@ -175,8 +209,8 @@ function selfTest() {
       name: '可溯源改写应通过',
       resume,
       suggestions: [
-        // original 是子串;suggested 的数字 300/2 均在原文出现 → 通过。
-        { type: 'rewrite', original: '主导2场双选会', suggested: '独立主导2场校园双选会,覆盖回收的300份简历' },
+        // original 是子串;suggested 数字 300/2 均在原文出现;未新增任何升格词(原句已含「主导」)→ 通过。
+        { type: 'rewrite', original: '主导2场双选会', suggested: '主导2场校园双选会,覆盖回收的300份简历' },
         // gap_advice 结构合规(original 为空 + reason 标穿帮风险)→ 通过。
         { type: 'gap_advice', original: '', reason: '面试穿帮风险:高——需你真实具备后再写入', suggested: '若你真实带过团队,可补充团队规模' },
       ],
@@ -189,6 +223,41 @@ function selfTest() {
         { type: 'rewrite', original: '管理百人团队', suggested: '管理百人团队达成KPI' },
       ],
       expectViolation: true,
+    },
+    {
+      name: '规则C:做了→设计 能力升格应被抓',
+      resume: '做了用户分层模块,参与活动方案。',
+      suggestions: [
+        // original 是子串、无新数字,但 suggested 凭空加「设计」=能力升格 → 规则 C 应抓。
+        { type: 'rewrite', original: '做了用户分层模块', suggested: '设计了用户分层模块' },
+      ],
+      expectViolation: true,
+    },
+    {
+      name: '规则C:参与→推动 能力升格应被抓',
+      resume: '做了用户分层模块,参与活动方案。',
+      suggestions: [
+        { type: 'rewrite', original: '参与活动方案', suggested: '推动活动方案落地' },
+      ],
+      expectViolation: true,
+    },
+    {
+      name: '规则C:RFM 技术名词注入应被抓',
+      resume: '做了用户分层模块,参与活动方案。',
+      suggestions: [
+        // 原句只是「按频次分层」语义,suggested 凭空贴 RFM 方法名 → 规则 C 应抓。
+        { type: 'add_keywords', original: '做了用户分层模块', suggested: '做了用户分层模块,采用RFM模型' },
+      ],
+      expectViolation: true,
+    },
+    {
+      name: '规则C:原句已含该词(设计)不应误抓',
+      resume: '独立设计了订单系统的发号器模块。',
+      suggestions: [
+        // original 本就含「独立」「设计」,suggested 保留 → 不算新增 → 不应误抓。
+        { type: 'rewrite', original: '独立设计了订单系统的发号器模块', suggested: '独立设计了订单系统的发号器模块,日均处理订单' },
+      ],
+      expectViolation: false,
     },
   ];
 
