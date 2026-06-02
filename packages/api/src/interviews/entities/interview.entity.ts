@@ -12,7 +12,6 @@ import { Application } from '../../applications/entities/application.entity';
 export interface ScoreItem {
   name: string;
   score: number;
-  color: string;
 }
 
 export interface QuestionItem {

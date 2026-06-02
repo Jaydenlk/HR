@@ -76,13 +76,8 @@ ${transcript}
             properties: {
               name: { type: 'string', description: '维度名称' },
               score: { type: 'number', description: '分数 0-100' },
-              color: {
-                type: 'string',
-                enum: ['green', 'yellow', 'red'],
-                description: '颜色标识：green>=75, yellow>=50, red<50',
-              },
             },
-            required: ['name', 'score', 'color'],
+            required: ['name', 'score'],
           },
         },
         questions: {

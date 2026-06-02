@@ -37,7 +37,6 @@ export class WechatImporterService implements FeedImporter {
     if (!baseUrl) return [];
 
     const token = await this.login(baseUrl);
-    if (!token) return [];
 
     const url = `${baseUrl.replace(/\/$/, '')}/api/v1/wx/articles?page=1&page_size=${IMPORT_LIMIT}`;
     this.logger.log(`Fetching WeChat articles from "${source.name}"`);
@@ -74,25 +73,25 @@ export class WechatImporterService implements FeedImporter {
       }));
   }
 
-  private async login(baseUrl: string): Promise<string | null> {
+  private async login(baseUrl: string): Promise<string> {
     const username = process.env.WECHAT_RSS_USERNAME ?? 'admin';
     const password = process.env.WECHAT_RSS_PASSWORD ?? 'coach2026';
-    try {
-      const res = await fetch(
-        `${baseUrl.replace(/\/$/, '')}/api/v1/wx/auth/login`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
-          signal: AbortSignal.timeout(10000),
-        },
-      );
-      if (!res.ok) return null;
-      const data = (await res.json()) as { code: number; data?: { access_token?: string } };
-      return data.data?.access_token ?? null;
-    } catch {
-      this.logger.warn('Failed to login to We-MP-RSS');
-      return null;
+    const res = await fetch(
+      `${baseUrl.replace(/\/$/, '')}/api/v1/wx/auth/login`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+        signal: AbortSignal.timeout(10000),
+      },
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`We-MP-RSS login failed ${res.status}: ${text.slice(0, 200)}`);
     }
+    const data = (await res.json()) as { code: number; data?: { access_token?: string } };
+    const token = data.data?.access_token;
+    if (!token) throw new Error('We-MP-RSS login succeeded but returned no access_token');
+    return token;
   }
 }

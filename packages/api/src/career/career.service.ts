@@ -123,9 +123,11 @@ export class CareerService {
   }
 
   private normalizeAlumniCount(value: number | null | undefined): number | null {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    // 校友数只接受"有限的非负整数"。NaN/Infinity/非整数(如 12.6 人)都是模型臆造的信号,
+    // 一律置 null,绝不四舍五入成一个看似精确实则编造的整数。
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
       return null;
     }
-    return Math.round(value);
+    return value;
   }
 }

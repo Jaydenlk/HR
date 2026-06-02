@@ -1,4 +1,6 @@
 import { FeedIngestionService } from '../src/feed/feed-ingestion.service';
+import { WechatImporterService } from '../src/feed/importers/wechat-importer.service';
+import { RssImporterService } from '../src/feed/importers/rss-importer.service';
 import type { FeedImporter } from '../src/feed/importers/feed-importer.interface';
 import type { FeedSource } from '../src/feed/entities/feed-source.entity';
 import type { DigestRun } from '../src/feed/entities/digest-run.entity';
@@ -116,5 +118,66 @@ describe('FeedIngestionService stability', () => {
 
     expect(registry.recordSuccess).toHaveBeenCalledTimes(2);
     expect(registry.recordFailure).not.toHaveBeenCalled();
+  });
+});
+
+describe('WechatImporterService — login failure transparency', () => {
+  const originalEnv = process.env.WECHAT_SOURCE_FEEDS;
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.WECHAT_SOURCE_FEEDS;
+    } else {
+      process.env.WECHAT_SOURCE_FEEDS = originalEnv;
+    }
+    jest.restoreAllMocks();
+  });
+
+  function makeFakeSource(): FeedSource {
+    return { id: 'w1', kind: 'wechat', name: '公众号测试', status: 'active', config_key: null } as FeedSource;
+  }
+
+  it('throws when login returns HTTP error — not silently returns []', async () => {
+    process.env.WECHAT_SOURCE_FEEDS = 'http://fake-wemp.local';
+
+    // Simulate login endpoint returning 401
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => 'Unauthorized',
+    } as Response);
+
+    const svc = new WechatImporterService();
+    await expect(svc.fetch(makeFakeSource())).rejects.toThrow();
+  });
+
+  it('throws when login fetch throws network error — not silently returns []', async () => {
+    process.env.WECHAT_SOURCE_FEEDS = 'http://fake-wemp.local';
+
+    jest.spyOn(global, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+
+    const svc = new WechatImporterService();
+    await expect(svc.fetch(makeFakeSource())).rejects.toThrow('ECONNREFUSED');
+  });
+});
+
+describe('RssImporterService — configured but all URLs fail', () => {
+  const originalEnv = process.env.RSS_FEED_URL;
+
+  afterEach(() => {
+    if (originalEnv === undefined) {
+      delete process.env.RSS_FEED_URL;
+    } else {
+      process.env.RSS_FEED_URL = originalEnv;
+    }
+  });
+
+  it('throws when all RSS URLs fail — not silently returns []', async () => {
+    process.env.RSS_FEED_URL = 'http://rss-that-does-not-exist.invalid/feed.xml';
+
+    const svc = new RssImporterService();
+    const fakeSource = { id: 'r1', kind: 'nowcoder', name: '牛客RSS', status: 'active', config_key: null } as FeedSource;
+
+    await expect(svc.fetch(fakeSource)).rejects.toThrow();
   });
 });

@@ -327,6 +327,35 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
   });
 
   describe('POST /api/mock-sessions/:id/complete', () => {
+    // P0-2 不变量:completed 永不与 null evaluation 共存。
+    // AI 失败时不得留半完成态(status=completed, evaluation=null)。
+    it('P0-2 invariant: AI failure → 503, session remains in_progress with null evaluation (no half-complete state)', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: 'HalfCo', role: '测试工程师', question_count: 2 });
+      const halfId = created.body.id;
+      expect(halfId).toBeTruthy();
+
+      failTool = 'generate_evaluation';
+      const failRes = await request(app.getHttpServer())
+        .post(`/api/mock-sessions/${halfId}/complete`)
+        .set('Authorization', `Bearer ${token}`);
+
+      // complete() 调用本身应以 503 失败。
+      expect(failRes.status).toBe(503);
+
+      // 关键断言:503 后 GET 会话,状态机不得停留在半完成态。
+      failTool = null;
+      const snap = await request(app.getHttpServer())
+        .get(`/api/mock-sessions/${halfId}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(snap.status).toBe(200);
+      // completed 永不与 null evaluation 共存:AI 失败时 status 应保持 in_progress。
+      expect(snap.body.status).toBe('in_progress');
+      expect(snap.body.evaluation).toBeNull();
+    });
+
     // 修复点 ②:综合评估 AI 失败应 503,而不是返回 200 + 空 evaluation。
     it('AI evaluation failure → 503 AND session not left with empty evaluation', async () => {
       // 用一个独立会话,避免污染 sessionIdA 的幂等测试。

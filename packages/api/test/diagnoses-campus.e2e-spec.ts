@@ -59,19 +59,15 @@ describe('Diagnoses Campus (e2e)', () => {
       expect(res.status).toBe(404);
     });
 
-    it('简历过短 → 400', async () => {
+    it('简历过短 → 创建阶段即 400(短简历拒绝前移到 resume 层,进不了诊断)', async () => {
+      // resume 创建 DTO 要求 raw_text ≥30 字,过短简历在创建阶段就被 400 拦下,
+      // 拿不到 resume_id,自然无法进入 campus 诊断——这是用户实际遇到的拦截点。
+      // (campus 服务内仍保留 <30 的冗余护栏作纵深防御,但正常 API 已不可达。)
       const resumeRes = await request(app.getHttpServer())
         .post('/api/resumes')
         .set('Authorization', `Bearer ${token}`)
         .send({ title: '过短简历', raw_text: '太短' });
-      expect(resumeRes.status).toBe(201);
-
-      const res = await request(app.getHttpServer())
-        .post('/api/diagnoses/campus')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ resume_id: resumeRes.body.id, profession: '互联网产品经理' });
-
-      expect(res.status).toBe(400);
+      expect(resumeRes.status).toBe(400);
     });
 
     it('未鉴权 → 401', async () => {

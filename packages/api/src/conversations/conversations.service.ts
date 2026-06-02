@@ -29,13 +29,43 @@ export class ConversationsService {
   ) {}
 
   async create(userId: string, dto: CreateConversationDto): Promise<Conversation> {
+    const contextType = dto.context_type ?? 'free';
+    // Reject binding a conversation to a context record the caller does not own.
+    // Without this, user B could read user A's private diagnosis/opportunity by
+    // supplying A's context_id (IDOR via the chat context loader).
+    if (dto.context_id) {
+      await this.assertContextOwnership(contextType, dto.context_id, userId);
+    }
     const conv = this.convRepo.create({
       user_id: userId,
       title: dto.title ?? undefined,
-      context_type: dto.context_type ?? 'free',
+      context_type: contextType,
       context_id: dto.context_id ?? undefined,
     } as Partial<Conversation>);
     return this.convRepo.save(conv) as Promise<Conversation>;
+  }
+
+  private async assertContextOwnership(
+    contextType: string,
+    contextId: string,
+    userId: string,
+  ): Promise<void> {
+    // context_id only carries meaning for diagnosis/opportunity bindings; any
+    // other context_type with a context_id — or a record not owned by the
+    // caller — leaves `owned` null and is rejected by the single guard below.
+    let owned: { id: string } | null = null;
+    if (contextType === 'diagnosis') {
+      owned = await this.diagnosisRepo.findOne({
+        where: { id: contextId, user_id: userId },
+        select: { id: true },
+      });
+    } else if (contextType === 'opportunity') {
+      owned = await this.oppRepo.findOne({
+        where: { id: contextId, user_id: userId },
+        select: { id: true },
+      });
+    }
+    if (!owned) throw new NotFoundException();
   }
 
   findAllByUser(userId: string): Promise<Conversation[]> {
@@ -78,7 +108,9 @@ export class ConversationsService {
     // Build context from diagnosis or opportunity if available
     let context: { type: string; data: string } | undefined;
     if (conv.context_type === 'diagnosis' && conv.context_id) {
-      const diagnosis = await this.diagnosisRepo.findOne({ where: { id: conv.context_id } });
+      const diagnosis = await this.diagnosisRepo.findOne({
+        where: { id: conv.context_id, user_id: userId },
+      });
       if (diagnosis) {
         context = {
           type: '简历诊断结果',
@@ -86,7 +118,9 @@ export class ConversationsService {
         };
       }
     } else if (conv.context_type === 'opportunity' && conv.context_id) {
-      const opp = await this.oppRepo.findOne({ where: { id: conv.context_id } });
+      const opp = await this.oppRepo.findOne({
+        where: { id: conv.context_id, user_id: userId },
+      });
       if (opp) {
         const eval_ = await this.evalRepo.findOne({
           where: { opportunity_id: conv.context_id },

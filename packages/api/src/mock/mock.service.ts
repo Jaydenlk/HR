@@ -312,24 +312,22 @@ ${qaList}
   async complete(id: string, userId: string): Promise<MockSession> {
     const session = await this.findOne(id, userId);
 
-    // 幂等守卫:已完成且已有综合评估的会话,直接返回既有结果,不重跑 LLM 覆盖原结果。
-    // (status 为 completed 但 evaluation 缺失时,说明上次 complete 的 AI 步骤失败,
-    //  此时允许重跑以恢复——故守卫只在 evaluation 已存在时短路。)
+    // 幂等守卫:已完成且已有综合评估的会话,直接返回既有结果,不重跑 LLM。
     if (session.status === 'completed' && session.evaluation) {
       return session;
     }
-
-    session.status = 'completed';
 
     const totalFiller = (session.answers ?? []).reduce(
       (sum, a) => sum + (a.filler_count ?? 0),
       0,
     );
-    session.total_filler_count = totalFiller;
 
-    // 综合评估失败不静默吞:若静默,前端 MockResult 见 evaluation 为 null 会渲染空白,
-    // 用户无法区分"AI 失败"与"无评估"。让 503 上抛,前端 alert 提示重试。
+    // 综合评估失败不静默吞:503 上抛,前端 alert 提示重试。
+    // status/evaluation 均在 AI 成功返回后一次性落库,确保两者不会分离。
     const evaluation = await this.generateEvaluation(session);
+
+    session.status = 'completed';
+    session.total_filler_count = totalFiller;
     session.evaluation = evaluation;
 
     return this.repo.save(session);

@@ -1,4 +1,9 @@
 import { INestApplication } from '@nestjs/common';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../src/users/entities/user.entity';
+import { Resume } from '../src/resumes/entities/resume.entity';
+import { Diagnosis } from '../src/diagnoses/entities/diagnosis.entity';
 import { createTestApp, loginUser, request } from './test-utils';
 
 describe('Conversations (e2e)', () => {
@@ -256,6 +261,98 @@ describe('Conversations (e2e)', () => {
         .delete(`/api/conversations/some-id`);
 
       expect(res.status).toBe(401);
+    });
+  });
+
+  // ── IDOR: a user must not bind a conversation to another user's record ──
+  describe('Context IDOR (cross-user context_id)', () => {
+    let userAId: string;
+    let userBId: string;
+    let aDiagnosisId: string;
+
+    beforeAll(async () => {
+      const userRepo = app.get<Repository<User>>(getRepositoryToken(User));
+      const resumeRepo = app.get<Repository<Resume>>(getRepositoryToken(Resume));
+      const diagnosisRepo = app.get<Repository<Diagnosis>>(
+        getRepositoryToken(Diagnosis),
+      );
+
+      const userA = await userRepo.findOneByOrFail({
+        email: 'conversations-test@coach.dev',
+      });
+      const userB = await userRepo.findOneByOrFail({
+        email: 'conversations-other@coach.dev',
+      });
+      userAId = userA.id;
+      userBId = userB.id;
+
+      // Private resume + diagnosis owned by user A
+      const aResume = await resumeRepo.save(
+        resumeRepo.create({
+          user_id: userAId,
+          title: 'A 的私有简历',
+          raw_text: 'A 的机密简历内容',
+          is_primary: true,
+        }),
+      );
+      const aDiagnosis = await diagnosisRepo.save(
+        diagnosisRepo.create({
+          user_id: userAId,
+          resume_id: aResume.id,
+          mode: 'jd_match',
+          jd_company: 'A机密公司',
+          jd_role: 'A机密岗位',
+          score: 88,
+          keywords_hit: ['A机密命中'],
+          keywords_miss: ['A机密缺失'],
+          suggestions: [],
+        }),
+      );
+      aDiagnosisId = aDiagnosis.id;
+    });
+
+    it('user B cannot create a conversation bound to user A diagnosis → 404', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/conversations')
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({
+          context_type: 'diagnosis',
+          context_id: aDiagnosisId,
+        });
+
+      // Ownership is enforced at create time — B never gets a conversation
+      // wired to A's private diagnosis.
+      expect(res.status).toBe(404);
+
+      // Sanity: the diagnosis really belongs to A, not B.
+      expect(userAId).not.toBe(userBId);
+    });
+
+    it('user A CAN create a conversation bound to their own diagnosis → 201', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/conversations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          context_type: 'diagnosis',
+          context_id: aDiagnosisId,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty('id');
+      expect(res.body.context_type).toBe('diagnosis');
+      expect(res.body.context_id).toBe(aDiagnosisId);
+    });
+
+    it('non-existent context_id (valid uuid) → 404 even for owner', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/conversations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          context_type: 'diagnosis',
+          context_id: '00000000-0000-0000-0000-000000000000',
+        });
+
+      expect(res.status).toBe(404);
     });
   });
 });

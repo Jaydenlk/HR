@@ -4,12 +4,14 @@ import { createTestApp, loginUser, request } from './test-utils';
 describe('Tasks (e2e)', () => {
   let app: INestApplication;
   let token: string;
+  let otherToken: string;
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
     process.env.DB_PATH = ':memory:';
     app = await createTestApp();
     token = await loginUser(app, 'tasks-test@coach.dev', 'Tasks User');
+    otherToken = await loginUser(app, 'tasks-other@coach.dev', 'Tasks Other');
   }, 30000);
 
   afterAll(async () => {
@@ -144,6 +146,21 @@ describe('Tasks (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'done' });
 
+      expect(res.status).toBe(404);
+    });
+
+    it('cross-user: other user cannot patch first user task → 404 (user isolation)', async () => {
+      if (!taskId) {
+        console.warn('No task available to test isolation — skipping');
+        return;
+      }
+
+      const res = await request(app.getHttpServer())
+        .patch(`/api/tasks/${taskId}`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ status: 'done' });
+
+      // TasksService.update queries with both id AND user_id → NotFoundException
       expect(res.status).toBe(404);
     });
   });

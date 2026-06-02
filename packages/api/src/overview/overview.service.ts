@@ -76,8 +76,16 @@ export class OverviewService {
       avgGrade = numToGrade(avg);
     }
 
+    // 最近评分:取最新 5 条已评分面试,按 created_at DESC 稳定排序。
+    // created_at 仅秒级精度,批量插入会撞同一时刻;不能依赖仓库返回序(并列项退化为
+    // 行号 ASC,slice 会反向取到最旧的),故此处显式重排,并用 id 作为确定性 tiebreaker,
+    // 保证并列时刻下输出依然稳定、不随插入顺序漂移。filter 在排序前,排序覆盖其影响。
     const recentGrades = allInterviews
       .filter((iv) => iv.overall_grade)
+      .sort((a, b) => {
+        const diff = b.created_at.getTime() - a.created_at.getTime();
+        return diff !== 0 ? diff : b.id.localeCompare(a.id);
+      })
       .slice(0, 5)
       .map((iv) => ({
         company: iv.company ?? iv.application?.company ?? '未知公司',

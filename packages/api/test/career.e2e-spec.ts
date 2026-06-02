@@ -220,10 +220,10 @@ describe('Career (e2e) — deterministic AI mock asserts fixed behavior', () => 
       expect(path.alumni_count).toBeNull();
     });
 
-    it('AI returns a valid non-negative count → preserved (rounded to integer)', async () => {
+    it('AI returns a valid non-negative INTEGER count → preserved verbatim', async () => {
       nextAiResult = {
         paths: [
-          { title: '后端工程师', fit_pct: 78, description: '有数据', skills: ['Java'], alumni_count: 12.6 },
+          { title: '后端工程师', fit_pct: 78, description: '有数据', skills: ['Java'], alumni_count: 12 },
         ],
         skill_audit: [{ name: 'Java', current: 6, needed: 6 }],
       };
@@ -233,7 +233,60 @@ describe('Career (e2e) — deterministic AI mock asserts fixed behavior', () => 
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.paths[0].alumni_count).toBe(13);
+      expect(res.body.paths[0].alumni_count).toBe(12);
+    });
+
+    // P0-6: a non-integer alumni count (e.g. 12.6 人) is nonsensical and a sign the
+    // model is hallucinating — it must NOT be rounded into a fake-precise integer.
+    // Rounding would manufacture a number the model never actually had. → null.
+    it('AI returns a non-integer count → normalized to null (no fabricated rounding)', async () => {
+      nextAiResult = {
+        paths: [
+          { title: '后端工程师', fit_pct: 78, description: '非整数', skills: ['Java'], alumni_count: 12.6 },
+        ],
+        skill_audit: [{ name: 'Java', current: 6, needed: 6 }],
+      };
+
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.paths[0].alumni_count).toBeNull();
+    });
+
+    // P0-6: NaN / Infinity reaching normalizeAlumniCount (in-process AI mock can carry
+    // real JS NaN/Infinity that JSON never could) must collapse to null, never leak.
+    it('AI returns NaN → normalized to null', async () => {
+      nextAiResult = {
+        paths: [
+          { title: '后端工程师', fit_pct: 78, description: 'NaN', skills: ['Java'], alumni_count: NaN },
+        ],
+        skill_audit: [{ name: 'Java', current: 6, needed: 6 }],
+      };
+
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.paths[0].alumni_count).toBeNull();
+    });
+
+    it('AI returns Infinity → normalized to null', async () => {
+      nextAiResult = {
+        paths: [
+          { title: '后端工程师', fit_pct: 78, description: 'Infinity', skills: ['Java'], alumni_count: Infinity },
+        ],
+        skill_audit: [{ name: 'Java', current: 6, needed: 6 }],
+      };
+
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.paths[0].alumni_count).toBeNull();
     });
 
     it('AI returns an illegal negative count → normalized to null', async () => {
