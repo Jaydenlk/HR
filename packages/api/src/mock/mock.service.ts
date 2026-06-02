@@ -231,6 +231,16 @@ ${qaList}
 
     const count = dto.question_count ?? 5;
 
+    // 先出题再落库:出题是创建会话的核心产物。若 AI 失败,generateQuestions
+    // 抛出的 ServiceUnavailableException(503)直接上抛,不写入任何会话行,
+    // 避免产生无题的"进行中"僵尸会话。
+    const questions = await this.generateQuestions(
+      jdText,
+      dto.company ?? '',
+      role,
+      count,
+    );
+
     const session = this.repo.create({
       user_id: userId,
       application_id: dto.application_id,
@@ -239,26 +249,11 @@ ${qaList}
       jd_text: dto.jd_text,
       mode: dto.mode ?? 'text',
       status: 'in_progress',
-      questions: [],
+      questions,
       answers: [],
     });
 
-    const saved = await this.repo.save(session);
-
-    try {
-      const questions = await this.generateQuestions(
-        jdText,
-        dto.company ?? '',
-        role,
-        count,
-      );
-      saved.questions = questions;
-      await this.repo.save(saved);
-    } catch {
-      // question generation failure is non-fatal — session still created
-    }
-
-    return saved;
+    return this.repo.save(session);
   }
 
   findAllByUser(userId: string): Promise<MockSession[]> {
@@ -296,12 +291,9 @@ ${qaList}
       throw new BadRequestException('所有题目已作答完毕，请调用 complete 接口结束面试');
     }
 
-    let evaluated: AnswerEvaluation = { score: 0, feedback: '', filler_count: 0 };
-    try {
-      evaluated = await this.evaluateAnswer(question.question, dto.answer);
-    } catch {
-      // evaluation failure is non-fatal
-    }
+    // 评分失败不静默吞:若静默,score:0 会和真实低分混淆。让 AI 失败时抛出的
+    // ServiceUnavailableException(503)上抛,不落库该作答,前端可据此重试。
+    const evaluated = await this.evaluateAnswer(question.question, dto.answer);
 
     const newAnswer: Answer = {
       n: nextN,
@@ -320,6 +312,13 @@ ${qaList}
   async complete(id: string, userId: string): Promise<MockSession> {
     const session = await this.findOne(id, userId);
 
+    // 幂等守卫:已完成且已有综合评估的会话,直接返回既有结果,不重跑 LLM 覆盖原结果。
+    // (status 为 completed 但 evaluation 缺失时,说明上次 complete 的 AI 步骤失败,
+    //  此时允许重跑以恢复——故守卫只在 evaluation 已存在时短路。)
+    if (session.status === 'completed' && session.evaluation) {
+      return session;
+    }
+
     session.status = 'completed';
 
     const totalFiller = (session.answers ?? []).reduce(
@@ -328,12 +327,10 @@ ${qaList}
     );
     session.total_filler_count = totalFiller;
 
-    try {
-      const evaluation = await this.generateEvaluation(session);
-      session.evaluation = evaluation;
-    } catch {
-      // evaluation generation failure is non-fatal
-    }
+    // 综合评估失败不静默吞:若静默,前端 MockResult 见 evaluation 为 null 会渲染空白,
+    // 用户无法区分"AI 失败"与"无评估"。让 503 上抛,前端 alert 提示重试。
+    const evaluation = await this.generateEvaluation(session);
+    session.evaluation = evaluation;
 
     return this.repo.save(session);
   }

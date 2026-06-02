@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Opportunity } from './entities/opportunity.entity';
 import { OpportunityAction } from './entities/opportunity-action.entity';
 import { OpportunityEvaluation } from './entities/opportunity-evaluation.entity';
@@ -70,8 +70,11 @@ export class OpportunityIntegrationService {
       throw new NotFoundException('机会不存在');
     }
 
+    // Idempotent: only actions that have not yet produced a task. linked_task_id
+    // is set below once a task is created, so a repeat call skips them and never
+    // duplicates tasks.
     const actions = await this.actionRepo.find({
-      where: { opportunity_id: opportunityId, status: 'pending' },
+      where: { opportunity_id: opportunityId, status: 'pending', linked_task_id: IsNull() },
       order: { created_at: 'ASC' },
     });
 
@@ -92,7 +95,7 @@ export class OpportunityIntegrationService {
           task_type: mapActionTypeToTaskType(action.action_type),
           reason: action.reason,
           status: 'todo',
-          linked_type: 'application',
+          linked_type: 'opportunity',
           linked_id: opportunityId,
           duration_min: null,
         }),

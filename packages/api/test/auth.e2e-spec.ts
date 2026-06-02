@@ -94,6 +94,67 @@ describe('Auth (e2e)', () => {
       expect(res1.body.user.id).toBe(res2.body.user.id);
       expect(res1.body.user.email).toBe(res2.body.user.email);
     });
+
+    it('same email different case twice → same user.id (case-insensitive)', async () => {
+      const res1 = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'CaseTest@Coach.Dev', name: 'Case User', invite_code: 'COACH2026' });
+
+      const res2 = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'casetest@coach.dev', name: 'Case User', invite_code: 'COACH2026' });
+
+      expect(res1.status).toBe(201);
+      expect(res2.status).toBe(201);
+      // email normalized to lowercase regardless of input casing
+      expect(res1.body.user.email).toBe('casetest@coach.dev');
+      expect(res2.body.user.email).toBe('casetest@coach.dev');
+      // both casings resolve to the SAME user record
+      expect(res1.body.user.id).toBe(res2.body.user.id);
+    });
+
+    it('second login with new name → response + /auth/me return updated name', async () => {
+      const email = 'rename@coach.dev';
+
+      const first = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email, name: 'Original Name', invite_code: 'COACH2026' });
+
+      expect(first.status).toBe(201);
+      expect(first.body.user.name).toBe('Original Name');
+
+      const second = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email, name: 'Updated Name', invite_code: 'COACH2026' });
+
+      expect(second.status).toBe(201);
+      // same user, but login response reflects the new name
+      expect(second.body.user.id).toBe(first.body.user.id);
+      expect(second.body.user.name).toBe('Updated Name');
+
+      // /auth/me with the fresh token also returns the new name
+      const me = await request(app.getHttpServer())
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${second.body.access_token}`);
+
+      expect(me.status).toBe(200);
+      expect(me.body.id).toBe(first.body.user.id);
+      expect(me.body.name).toBe('Updated Name');
+    });
+
+    it('invite_code with leading/trailing whitespace → 201 (trimmed before validation)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'whitespace@coach.dev', name: 'Whitespace User', invite_code: '  COACH2026  ' });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty('access_token');
+      expect(typeof res.body.access_token).toBe('string');
+      expect(res.body.user).toMatchObject({
+        email: 'whitespace@coach.dev',
+        name: 'Whitespace User',
+      });
+    });
   });
 
   describe('GET /api/auth/me', () => {

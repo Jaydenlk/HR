@@ -49,8 +49,13 @@ export class OpportunityController {
     @CurrentUser() user: { id: string },
     @Param('id') id: string,
   ) {
-    // Verify ownership
-    await this.opportunityService.findOne(id, user.id);
+    // Verify ownership and read current status in one query
+    const opportunity = await this.opportunityService.findOne(id, user.id);
+    // Dedup: if an evaluation is already in-flight (e.g. the create auto-fire),
+    // do not start a second one — same opportunity keeps a single live run.
+    if (opportunity.status === 'evaluating') {
+      return { status: 'evaluating' };
+    }
     // Fire-and-forget
     this.evaluator.evaluate(id, user.id).catch(() => {});
     return { status: 'evaluating' };

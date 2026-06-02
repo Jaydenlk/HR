@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { Server } from 'http';
 import { AppModule } from './app.module';
 
@@ -16,8 +17,14 @@ async function bootstrap() {
     logger.error(`未捕获异常: ${err.stack ?? err.message}`);
   });
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.setGlobalPrefix('api');
+
+  // body 上限:默认 100KB 会让完整 CV(粘贴长简历/新建版本)静默 413。
+  // 提到 2mb 足以容纳纯文本简历正文,文件上传走 multipart 不受此限制。
+  app.useBodyParser('json', { limit: '2mb' });
+  app.useBodyParser('urlencoded', { limit: '2mb', extended: true });
+
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors({ origin: true, credentials: true });
   app.enableShutdownHooks();

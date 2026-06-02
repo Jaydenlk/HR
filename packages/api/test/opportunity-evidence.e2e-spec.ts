@@ -108,6 +108,7 @@ describe('OpportunityEvaluator Evidence integration', () => {
     findOne: jest.fn(),
     setStatus: jest.fn(),
     updateOpportunity: jest.fn(),
+    clearEvaluationData: jest.fn(),
     saveEvaluation: jest.fn(),
     saveEvidence: jest.fn(),
     saveActions: jest.fn(),
@@ -170,6 +171,68 @@ describe('OpportunityEvaluator Evidence integration', () => {
 
     expect(evidenceMock.gather).toHaveBeenCalledTimes(1);
     expect(evidenceMock.gather).toHaveBeenCalledWith(userId);
+  });
+
+  // ── 1b. Re-evaluate REPLACES prior artifacts (clear before save) ─────────
+
+  it('clears prior evaluation data before persisting fresh results (replace, not append)', async () => {
+    const userId = 'user-replace';
+    setupFullMocks(userId);
+    mockParser.parse.mockResolvedValue(makeParsedJd());
+
+    await evaluator.evaluate('opp-1', userId);
+
+    // clearEvaluationData must be called exactly once with the opportunity id
+    expect(mockOppService.clearEvaluationData).toHaveBeenCalledTimes(1);
+    expect(mockOppService.clearEvaluationData).toHaveBeenCalledWith('opp-1');
+
+    // It must run BEFORE the fresh save calls so the prior result is wiped first.
+    const clearOrder = mockOppService.clearEvaluationData.mock.invocationCallOrder[0];
+    const saveEvalOrder = mockOppService.saveEvaluation.mock.invocationCallOrder[0];
+    const saveEvidenceOrder = mockOppService.saveEvidence.mock.invocationCallOrder[0];
+    const saveActionsOrder = mockOppService.saveActions.mock.invocationCallOrder[0];
+    expect(clearOrder).toBeLessThan(saveEvalOrder);
+    expect(clearOrder).toBeLessThan(saveEvidenceOrder);
+    expect(clearOrder).toBeLessThan(saveActionsOrder);
+  });
+
+  it('does NOT clear prior data when an AI call fails (failed run keeps last good eval)', async () => {
+    const userId = 'user-fail';
+    setupFullMocks(userId);
+    mockParser.parse.mockResolvedValue(makeParsedJd());
+    // AI evaluation throws — clearing must not have happened yet.
+    mockAi.completeStructured.mockRejectedValueOnce(new Error('AI 中转超时'));
+
+    await evaluator.evaluate('opp-1', userId);
+
+    expect(mockOppService.clearEvaluationData).not.toHaveBeenCalled();
+    expect(mockOppService.saveEvaluation).not.toHaveBeenCalled();
+    // The failure path marks the opportunity as failed, preserving prior data.
+    expect(mockOppService.setStatus).toHaveBeenLastCalledWith(
+      'opp-1',
+      userId,
+      'failed',
+      'AI 中转超时',
+    );
+  });
+
+  it('each evaluate call clears exactly once — repeat eval replaces, never accumulates', async () => {
+    const userId = 'user-repeat';
+    setupFullMocks(userId);
+    mockParser.parse.mockResolvedValue(makeParsedJd());
+
+    await evaluator.evaluate('opp-1', userId);
+    await evaluator.evaluate('opp-1', userId);
+
+    // Two evaluations → two clears (one per run); each run wipes the previous
+    // artifacts, so evidence/actions only ever reflect the latest run.
+    expect(mockOppService.clearEvaluationData).toHaveBeenCalledTimes(2);
+    expect(mockOppService.saveEvaluation).toHaveBeenCalledTimes(2);
+    // saveEvidence/saveActions receive only the current run's items each time,
+    // never an accumulated set.
+    const firstEvidenceBatch = mockOppService.saveEvidence.mock.calls[0][0];
+    const secondEvidenceBatch = mockOppService.saveEvidence.mock.calls[1][0];
+    expect(secondEvidenceBatch.length).toBe(firstEvidenceBatch.length);
   });
 
   // ── 2. No-resume user: evaluate succeeds, AI prompt contains 尚未上传简历 ──

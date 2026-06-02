@@ -410,6 +410,40 @@ describe('Opportunity (e2e)', () => {
       const after = await waitForEvaluation(app, token, evalOppId);
       expect(after.status).toBe('evaluated');
     });
+
+    // #19b — re-evaluation REPLACES prior artifacts, never appends.
+    it('re-evaluating keeps exactly one evaluation/evidence/action set (replace, not append)', async () => {
+      // evalOppId was evaluated in beforeAll, then re-evaluated in #19 → 2 runs.
+      // With the fix (clearEvaluationData before each persist), only the latest
+      // run's artifacts survive — counts must not have accumulated.
+      const detail = await request(app.getHttpServer())
+        .get(`/api/opportunities/${evalOppId}`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(detail.status).toBe(200);
+
+      const evaluations = detail.body.evaluations as Record<string, unknown>[];
+      // Each run produces exactly one evaluation row; replace semantics → 1, not 2+.
+      expect(evaluations.length).toBe(1);
+
+      // Mock produces 2 actions per run; replace semantics → 2, not 4.
+      const actions = detail.body.actions as Record<string, unknown>[];
+      expect(actions.length).toBe(2);
+
+      // Re-evaluate once more and re-check: still single evaluation, still 2 actions.
+      await request(app.getHttpServer())
+        .post(`/api/opportunities/${evalOppId}/evaluate`)
+        .set('Authorization', `Bearer ${token}`);
+      await waitForEvaluation(app, token, evalOppId);
+
+      const afterDetail = await request(app.getHttpServer())
+        .get(`/api/opportunities/${evalOppId}`)
+        .set('Authorization', `Bearer ${token}`);
+      const afterEvals = afterDetail.body.evaluations as Record<string, unknown>[];
+      const afterActions = afterDetail.body.actions as Record<string, unknown>[];
+      expect(afterEvals.length).toBe(1);
+      expect(afterActions.length).toBe(2);
+    });
   });
 
   /* ================================================================ */
@@ -418,6 +452,11 @@ describe('Opportunity (e2e)', () => {
 
   describe('Integration — track, tasks, chat-context', () => {
     let integOppId: string;
+    // Dedicated opportunity for the /tasks tests. It is evaluated but NEVER
+    // tracked, so POST /:id/tasks is the FIRST consumer of its actions.
+    // (POST /:id/track auto-generates tasks internally, which would otherwise
+    //  consume integOppId's actions before the explicit /tasks call runs.)
+    let tasksOppId: string;
 
     beforeAll(async () => {
       // Create + wait for evaluation to complete
@@ -427,6 +466,13 @@ describe('Opportunity (e2e)', () => {
         .send({ jd_text: validJdText });
       integOppId = res.body.id;
       await waitForEvaluation(app, token, integOppId);
+
+      const tasksRes = await request(app.getHttpServer())
+        .post('/api/opportunities')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ jd_text: validJdText });
+      tasksOppId = tasksRes.body.id;
+      await waitForEvaluation(app, token, tasksOppId);
     });
 
     // #20
@@ -482,18 +528,56 @@ describe('Opportunity (e2e)', () => {
       expect(res.body.status).toBe('tracked');
     });
 
-    // #24
-    it('POST /:id/tasks creates DailyTask records', async () => {
+    // #24 — uses tasksOppId (evaluated, untracked) so /tasks is the first consumer.
+    it('POST /:id/tasks creates DailyTask records linked to the opportunity', async () => {
       const res = await request(app.getHttpServer())
-        .post(`/api/opportunities/${integOppId}/tasks`)
+        .post(`/api/opportunities/${tasksOppId}/tasks`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(201);
       expect(Array.isArray(res.body)).toBe(true);
-      // Mock returns 2 actions, so we expect up to 2 tasks
-      expect(res.body.length).toBeGreaterThanOrEqual(1);
+      // Mock returns 2 actions → 2 tasks created on the first call.
+      expect(res.body.length).toBe(2);
       expect(res.body[0].title).toBeDefined();
       expect(res.body[0].status).toBe('todo');
+      // Tasks created from an opportunity must be linked back to it as
+      // linked_type 'opportunity' (NOT the old 'application'), with linked_id
+      // pointing at the opportunity id.
+      for (const task of res.body) {
+        expect(task.linked_type).toBe('opportunity');
+        expect(task.linked_id).toBe(tasksOppId);
+      }
+    });
+
+    // #24b — idempotency: a repeat call generates NO new tasks
+    it('POST /:id/tasks twice does not create duplicate DailyTask records', async () => {
+      // Count this opportunity's linked tasks after the first call (#24).
+      const before = await request(app.getHttpServer())
+        .get('/api/tasks')
+        .set('Authorization', `Bearer ${token}`);
+      expect(before.status).toBe(200);
+      const beforeCount = (before.body as Record<string, unknown>[]).filter(
+        (t) => t.linked_type === 'opportunity' && t.linked_id === tasksOppId,
+      ).length;
+      expect(beforeCount).toBe(2);
+
+      // Second call: all actions already have linked_task_id set, so none qualify.
+      const second = await request(app.getHttpServer())
+        .post(`/api/opportunities/${tasksOppId}/tasks`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(second.status).toBe(201);
+      expect(Array.isArray(second.body)).toBe(true);
+      expect(second.body.length).toBe(0);
+
+      // Total opportunity-linked task count must be unchanged after the 2nd call.
+      const after = await request(app.getHttpServer())
+        .get('/api/tasks')
+        .set('Authorization', `Bearer ${token}`);
+      expect(after.status).toBe(200);
+      const afterCount = (after.body as Record<string, unknown>[]).filter(
+        (t) => t.linked_type === 'opportunity' && t.linked_id === tasksOppId,
+      ).length;
+      expect(afterCount).toBe(beforeCount);
     });
 
     // #25

@@ -70,6 +70,19 @@ export class OpportunityService {
     return this.repo.remove(opportunity);
   }
 
+  /**
+   * Remove all prior evaluation artifacts for an opportunity so a re-evaluation
+   * replaces (not appends to) the previous result. Called right before persisting
+   * a fresh evaluation, so a failed AI run leaves the previous good data intact.
+   */
+  async clearEvaluationData(opportunityId: string): Promise<void> {
+    await Promise.all([
+      this.evalRepo.delete({ opportunity_id: opportunityId }),
+      this.evidenceRepo.delete({ opportunity_id: opportunityId }),
+      this.actionRepo.delete({ opportunity_id: opportunityId }),
+    ]);
+  }
+
   async saveEvaluation(partial: Partial<OpportunityEvaluation>): Promise<OpportunityEvaluation> {
     return this.evalRepo.save(this.evalRepo.create(partial));
   }

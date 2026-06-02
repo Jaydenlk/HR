@@ -119,7 +119,10 @@ export class OpportunityEvaluatorService {
       const recommendation = this.determineRecommendation(overallScore, riskAssessment);
       const confidence = this.determineConfidence(parsedJd, evalCtx.hasResume);
 
-      // Step 8: Save evaluation
+      // Step 8: Replace prior artifacts then persist the fresh evaluation.
+      // Clearing happens only after all AI calls above succeeded, so a transient
+      // failure leaves the previous good evaluation intact.
+      await this.opportunityService.clearEvaluationData(opportunityId);
       await this.opportunityService.saveEvaluation({
         opportunity_id: opportunityId,
         match_score: evalResult.match_score,

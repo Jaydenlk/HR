@@ -12,12 +12,20 @@ export class UsersService {
   }
 
   findByEmail(email: string): Promise<User | null> {
-    return this.repo.findOneBy({ email });
+    return this.repo.findOneBy({ email: email.trim().toLowerCase() });
   }
 
   async findOrCreate(email: string, name: string, invite_code: string): Promise<User> {
-    const existing = await this.findByEmail(email);
-    if (existing) return existing;
-    return this.repo.save(this.repo.create({ email, name, invite_code }));
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedName = name.trim();
+    const existing = await this.findByEmail(normalizedEmail);
+    if (existing) {
+      if (existing.name !== trimmedName) {
+        existing.name = trimmedName;
+        return this.repo.save(existing);
+      }
+      return existing;
+    }
+    return this.repo.save(this.repo.create({ email: normalizedEmail, name: trimmedName, invite_code }));
   }
 }
