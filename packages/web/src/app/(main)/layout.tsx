@@ -24,6 +24,10 @@ import {
   Scale,
   Users,
   GitMerge,
+  ClipboardList,
+  Route,
+  Library,
+  Mail,
 } from 'lucide-react';
 
 interface NavItem {
@@ -69,6 +73,10 @@ function buildToolNav(applicationCount: number): NavItem[] {
     { id: 'offer-comparator', label: 'Offer 比对', href: '/offer-comparator', icon: <Scale size={16} /> },
     { id: 'networking', label: '人脉内推', href: '/networking', icon: <Users size={16} /> },
     { id: 'role-transition', label: '转岗顾问', href: '/role-transition', icon: <GitMerge size={16} /> },
+    { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
+    { id: 'question-bank', label: '面试题库', href: '/question-bank', icon: <Library size={16} /> },
+    { id: 'follow-up', label: '跟进消息', href: '/follow-up', icon: <Mail size={16} /> },
+    { id: 'learning-roadmap', label: '学习路线', href: '/learning-roadmap', icon: <Route size={16} /> },
   ];
 }
 

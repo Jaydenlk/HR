@@ -25,6 +25,10 @@ import { IntelligenceModule } from './intelligence/intelligence.module';
 import { OfferComparatorModule } from './offer-comparator/offer-comparator.module';
 import { NetworkingModule } from './networking/networking.module';
 import { RoleTransitionModule } from './role-transition/role-transition.module';
+import { InterviewPrepModule } from './interview-prep/interview-prep.module';
+import { LearningRoadmapModule } from './learning-roadmap/learning-roadmap.module';
+import { QuestionBankModule } from './question-bank/question-bank.module';
+import { FollowUpModule } from './follow-up/follow-up.module';
 
 @Module({
   imports: [
@@ -75,6 +79,10 @@ import { RoleTransitionModule } from './role-transition/role-transition.module';
     OfferComparatorModule,
     NetworkingModule,
     RoleTransitionModule,
+    InterviewPrepModule,
+    LearningRoadmapModule,
+    QuestionBankModule,
+    FollowUpModule,
   ],
 })
 export class AppModule {}

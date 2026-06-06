@@ -908,3 +908,326 @@ export interface RoleTransitionResult {
   follow_up_questions: string[];
   cannot_determine: string[];
 }
+
+// ─── Interview Prep (4合1) ──────────────────────────────────────────────────────
+
+export type InterviewPrepConfidence = 'high' | 'medium' | 'low' | 'insufficient';
+
+interface InterviewPrepEnvelope {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: InterviewPrepConfidence;
+  evidence_used: unknown[];
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+}
+
+export interface CompanyPlaybookRequest {
+  company_name: string;
+  job_title?: string;
+  interview_intelligence?: Record<string, unknown>;
+}
+
+export interface CompanyPlaybookResult extends InterviewPrepEnvelope {
+  company_profile: {
+    company_name: string;
+    stage: string;
+    culture_keywords: string[];
+    hiring_volume?: string;
+    reputation_summary: string;
+    common_pain_points?: string[];
+  };
+  interview_process: Array<{
+    stage: string;
+    description: string;
+    key_assessment_angle: string;
+    format?: string;
+    typical_duration?: string;
+    pass_rate_estimate?: string;
+  }>;
+  culture_fit_tips: Array<{ tip: string; example_answer_pattern?: string; anti_pattern: string }>;
+  common_pitfalls: Array<{ pitfall: string; consequence: string; avoidance_strategy: string }>;
+  salary_negotiation_notes: {
+    salary_range_estimate: string | null;
+    negotiation_timing?: string;
+    leverage_points?: string[];
+    taboos?: string[];
+  };
+}
+
+export type StarCompetency =
+  | '问题解决'
+  | '领导力'
+  | '协作影响'
+  | '主动创新'
+  | '逆境应对'
+  | '数据驱动'
+  | '客户中心'
+  | '自我学习';
+
+export interface StarStoriesRequest {
+  experiences: string[];
+  target_competencies?: StarCompetency[];
+  target_job_type?: 'tech' | 'product' | 'ops' | 'sales' | 'general';
+}
+
+export interface StarStory {
+  title: string;
+  competency: string[];
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
+  polish_level: 'ready' | 'needs_polish' | 'skeleton';
+  applicable_questions?: string[];
+  time_estimate?: number;
+}
+
+export interface StarStoriesResult extends InterviewPrepEnvelope {
+  story_bank: StarStory[];
+  coverage_map: {
+    by_dimension?: Record<string, number>;
+    strong_dimensions: string[];
+    weak_dimensions: string[];
+    missing_dimensions: string[];
+  };
+  gaps: Array<{ dimension: string; severity: 'critical' | 'moderate' | 'minor'; experience_hint?: string }>;
+}
+
+export interface TechCoachRequest {
+  job_title: string;
+  company_name?: string;
+  interview_intelligence?: Record<string, unknown>;
+  available_weeks?: number;
+}
+
+export interface TechCoachResult extends InterviewPrepEnvelope {
+  preparation_plan: Array<{
+    priority: 'critical' | 'high' | 'medium';
+    area: string;
+    estimated_hours: number;
+    target_week?: number;
+    resources_hint?: string;
+  }>;
+  practice_questions: Array<{
+    title: string;
+    type: 'algorithm' | 'system_design' | 'coding' | 'cs_fundamentals';
+    difficulty: 'easy' | 'medium' | 'hard';
+    target_company_relevance?: 'high' | 'medium' | 'low';
+    key_concepts: string[];
+  }>;
+  common_patterns: Array<{ pattern_name: string; applicable_types: string[]; description: string }>;
+  company_specific_focus: Array<{ focus_area: string; rationale: string; evidence_source: string }>;
+}
+
+export type CaseInterviewType =
+  | 'product_design'
+  | 'market_estimation'
+  | 'case_consulting'
+  | 'group_discussion'
+  | 'business_analysis';
+
+export interface CaseCoachRequest {
+  interview_type: CaseInterviewType;
+  target_company?: string;
+  experience_level?: 'fresh_grad' | '1-3yr' | '3-5yr' | '5yr_plus';
+  focus_area?: string;
+}
+
+export interface CaseCoachResult extends InterviewPrepEnvelope {
+  framework_library: Array<{
+    name: string;
+    applicable_to: string[];
+    structure: string;
+    example_usage?: string;
+    common_mistake?: string;
+  }>;
+  practice_cases: Array<{
+    title: string;
+    type: string;
+    question: string;
+    suggested_approach: string[];
+    key_considerations?: string[];
+    evaluation_criteria: string[];
+    time_limit?: number;
+  }>;
+  common_mistakes: Array<{ mistake: string; why_bad: string; fix: string }>;
+  evaluation_criteria: Array<{
+    dimension: string;
+    weight: 'primary' | 'secondary' | 'minor';
+    good_example?: string;
+    bad_example?: string;
+  }>;
+}
+
+// ─── Learning Roadmap ──────────────────────────────────────────────────────────
+
+export interface RoadmapPhase {
+  phase_name: string;
+  goal: string;
+  estimated_weeks: number;
+  activities?: string[];
+  completion_criteria: string;
+  output_artifact?: string;
+}
+
+export interface RoadmapItem {
+  skill_name: string;
+  priority?: number;
+  total_weeks?: number;
+  phases: RoadmapPhase[];
+}
+
+export interface RoadmapResource {
+  skill_name: string;
+  resource_type: 'official_docs' | 'chinese_community' | 'book' | 'video' | 'open_source' | 'practice_platform';
+  description: string;
+  quality_criteria: string;
+  language?: 'zh' | 'en' | 'both';
+  for_level?: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface BuildRoadmapRequest {
+  skill_gaps: string[];
+  profile?: string;
+  weekly_hours?: number;
+  preferred_language?: string;
+}
+
+export interface BuildRoadmapResult {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
+  evidence_used: { field: string; value: string; relevance: string }[];
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  total_estimated_weeks?: number;
+  roadmap: RoadmapItem[];
+  resource_list: RoadmapResource[];
+  backlog?: string[];
+}
+
+// ─── Question Bank ────────────────────────────────────────────────────────────
+
+export type QuestionCategory =
+  | 'behavioral'
+  | 'technical_cs'
+  | 'technical_domain'
+  | 'case_product'
+  | 'case_business'
+  | 'motivation'
+  | 'cultural_fit'
+  | 'system_design';
+
+export type QuestionDifficulty = 'easy' | 'medium' | 'hard';
+export type QuestionFrequency = 'very_high' | 'high' | 'medium' | 'low';
+
+export interface QuestionItem {
+  id: string;
+  question: string;
+  category: QuestionCategory;
+  subcategory?: string;
+  difficulty: QuestionDifficulty;
+  frequency: QuestionFrequency;
+  source: string;
+  answer_hint?: string;
+  time_estimate?: number;
+}
+
+export interface QuestionBankCoverage {
+  total_questions: number;
+  by_category: Record<string, number>;
+  estimated_coverage_percentage: number;
+}
+
+export interface QuestionBankGap {
+  area: string;
+  reason: string;
+  workaround?: string;
+}
+
+export interface QuestionBankResult {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
+  evidence_used: unknown[];
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  question_bank: QuestionItem[];
+  coverage: QuestionBankCoverage;
+  gaps: QuestionBankGap[];
+}
+
+export interface QuestionBankRecord {
+  id: string;
+  company: string;
+  role: string;
+  result: QuestionBankResult;
+  created_at: string;
+}
+
+export interface QuestionBankListItem {
+  id: string;
+  company: string;
+  role: string;
+  summary: string;
+  confidence: string;
+  total_questions: number;
+  created_at: string;
+}
+
+export interface GenerateQuestionBankRequest {
+  company: string;
+  role: string;
+}
+
+// ─── Follow-up message types ──────────────────────────────────────────────────
+
+export type FollowUpScenario =
+  | 'thank_you'
+  | 'status_inquiry'
+  | 'rejection_reply'
+  | 'offer_urge'
+  | 'acceptance';
+
+export type FollowUpConfidence = 'high' | 'medium' | 'low' | 'insufficient';
+
+export interface FollowUpTimingAdvice {
+  recommended_send_time: string;
+  is_timing_appropriate: boolean;
+  timing_note: string;
+}
+
+export interface FollowUpToneGuide {
+  tone: 'formal' | 'semi_formal' | 'casual' | 'grateful' | 'professional';
+  key_tone_points: string[];
+  avoid: string[];
+}
+
+export interface FollowUpResult {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: FollowUpConfidence;
+  evidence_used: Array<{ source: string; content: string }>;
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  message_draft: string;
+  timing_advice: FollowUpTimingAdvice;
+  tone_guide: FollowUpToneGuide;
+}
