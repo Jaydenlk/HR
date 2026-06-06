@@ -1,0 +1,922 @@
+'use client';
+
+import { useState } from 'react';
+import { api } from '@/lib/api';
+import type {
+  OfferItem,
+  OfferCompareRequest,
+  OfferCompareResult,
+  OfferCompareEntry,
+  OfferHourlyRate,
+  OfferMissingInfo,
+} from '@/lib/types';
+import { Scale, Plus, X, Loader2, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+let idCounter = 1;
+function nextId(): string {
+  return `offer_${idCounter++}`;
+}
+
+function formatMoney(v: number | undefined | null): string {
+  if (v == null) return '—';
+  if (v >= 10000) return `${(v / 10000).toFixed(1)}w`;
+  return v.toLocaleString();
+}
+
+function confidenceLabel(c: string): string {
+  const map: Record<string, string> = {
+    high: '高',
+    medium: '中',
+    low: '低',
+    insufficient: '信息不足',
+    uncertain: '不确定',
+  };
+  return map[c] ?? c;
+}
+
+function confidenceColor(c: string): string {
+  if (c === 'high') return '#10b981';
+  if (c === 'medium') return 'var(--color-brand)';
+  return 'var(--color-ink-3)';
+}
+
+// ── Offer Form Item ───────────────────────────────────────────────────────────
+
+interface OfferFormData {
+  id: string;
+  company: string;
+  base_monthly: string;
+  months_per_year: string;
+  annual_bonus: string;
+  city: string;
+  level: string;
+  weekly_hours: string;
+  probation_discount: string;
+  probation_months: string;
+  social_insurance_monthly: string;
+  equity_annual: string;
+  equity_type: string;
+  notes: string;
+}
+
+function emptyForm(): OfferFormData {
+  return {
+    id: nextId(),
+    company: '',
+    base_monthly: '',
+    months_per_year: '',
+    annual_bonus: '',
+    city: '',
+    level: '',
+    weekly_hours: '',
+    probation_discount: '',
+    probation_months: '',
+    social_insurance_monthly: '',
+    equity_annual: '',
+    equity_type: '',
+    notes: '',
+  };
+}
+
+function formToItem(f: OfferFormData): OfferItem {
+  const item: OfferItem = {
+    id: f.id,
+    company: f.company,
+    base_monthly: Number(f.base_monthly),
+  };
+  if (f.months_per_year) item.months_per_year = Number(f.months_per_year);
+  if (f.annual_bonus) item.annual_bonus = Number(f.annual_bonus);
+  if (f.city) item.city = f.city;
+  if (f.level) item.level = f.level;
+  if (f.weekly_hours) item.weekly_hours = Number(f.weekly_hours);
+  if (f.probation_discount) item.probation_discount = Number(f.probation_discount) / 100;
+  if (f.probation_months) item.probation_months = Number(f.probation_months);
+  if (f.social_insurance_monthly) item.social_insurance_monthly = Number(f.social_insurance_monthly);
+  if (f.equity_annual) item.equity_annual = Number(f.equity_annual);
+  if (f.equity_type) item.equity_type = f.equity_type;
+  if (f.notes) item.notes = f.notes;
+  return item;
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 10px',
+  background: 'var(--color-surface-2)',
+  border: '1px solid var(--color-line)',
+  borderRadius: '7px',
+  fontFamily: 'inherit',
+  fontSize: '13px',
+  color: 'var(--color-ink)',
+  fontWeight: 500,
+  boxSizing: 'border-box',
+  outline: 'none',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '11px',
+  fontWeight: 700,
+  color: 'var(--color-ink-3)',
+  letterSpacing: '0.03em',
+  marginBottom: '4px',
+};
+
+// ── Offer Card (input form) ───────────────────────────────────────────────────
+
+function OfferCard({
+  form,
+  index,
+  onChange,
+  onRemove,
+  canRemove,
+}: {
+  form: OfferFormData;
+  index: number;
+  onChange: (id: string, key: keyof OfferFormData, val: string) => void;
+  onRemove: (id: string) => void;
+  canRemove: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  function field(key: keyof OfferFormData, label: string, placeholder?: string, type = 'text') {
+    return (
+      <div>
+        <label style={labelStyle}>{label}</label>
+        <input
+          style={inputStyle}
+          type={type}
+          placeholder={placeholder}
+          value={form[key]}
+          onChange={(e) => onChange(form.id, key, e.target.value)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-line)',
+        borderRadius: '14px',
+        padding: '18px 18px 14px',
+        position: 'relative',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '14px',
+        }}
+      >
+        <span
+          style={{
+            fontSize: '12px',
+            fontWeight: 700,
+            color: 'var(--color-brand)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          Offer {index + 1}
+        </span>
+        {canRemove && (
+          <button
+            onClick={() => onRemove(form.id)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--color-ink-4)',
+              padding: '2px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            title="删除此 offer"
+          >
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
+      {/* Core fields */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div style={{ gridColumn: '1 / -1' }}>
+          {field('company', '公司名称 *', '字节跳动')}
+        </div>
+        <div>
+          {field('base_monthly', '月薪（元）*', '35000', 'number')}
+        </div>
+        <div>
+          {field('months_per_year', '年薪月数', '14', 'number')}
+        </div>
+        <div>
+          {field('annual_bonus', '年终奖（元）', '70000', 'number')}
+        </div>
+        <div>
+          {field('weekly_hours', '周工时', '60', 'number')}
+        </div>
+      </div>
+
+      {/* Expand for more fields */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          marginTop: '12px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--color-ink-3)',
+          fontSize: '12px',
+          fontWeight: 600,
+          padding: '2px 0',
+          fontFamily: 'inherit',
+        }}
+      >
+        {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        {expanded ? '收起' : '更多字段（五险一金 / 试用期 / 股权）'}
+      </button>
+
+      {expanded && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>
+          <div>
+            {field('city', '城市', '上海')}
+          </div>
+          <div>
+            {field('level', '职级', 'P7 / T3')}
+          </div>
+          <div>
+            {field('probation_discount', '试用期折扣（%）', '80', 'number')}
+          </div>
+          <div>
+            {field('probation_months', '试用期月数', '3', 'number')}
+          </div>
+          <div>
+            {field('social_insurance_monthly', '五险一金公司月缴（元）', '3000', 'number')}
+          </div>
+          <div>
+            {field('equity_annual', '股权/期权年均（元）', '50000', 'number')}
+          </div>
+          <div>
+            {field('equity_type', '股票类型', 'A股 / 美股 / 虚拟股')}
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            {field('notes', '备注', '其他说明')}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Result Panel ──────────────────────────────────────────────────────────────
+
+function ResultPanel({ result }: { result: OfferCompareResult }) {
+  const { comparison, weighted_scores, recommendation, hourly_rate_comparison, missing_info } = result;
+
+  // Build lookup map
+  const compMap = new Map<string, OfferCompareEntry>(comparison.map((c) => [c.offer_id, c]));
+
+  const offerIds = comparison.map((c) => c.offer_id);
+
+  const cardStyle: React.CSSProperties = {
+    background: 'var(--color-surface)',
+    border: '1px solid var(--color-line)',
+    borderRadius: '14px',
+    padding: '18px 20px',
+  };
+
+  const sectionTitle = (text: string) => (
+    <div
+      style={{
+        fontSize: '12px',
+        fontWeight: 700,
+        color: 'var(--color-ink-3)',
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        marginBottom: '12px',
+      }}
+    >
+      {text}
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Summary + Confidence */}
+      <div style={{ ...cardStyle, borderLeft: `4px solid ${confidenceColor(result.confidence)}` }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '10px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              color: confidenceColor(result.confidence),
+              background: `${confidenceColor(result.confidence)}18`,
+              padding: '2px 9px',
+              borderRadius: '99px',
+            }}
+          >
+            置信度：{confidenceLabel(result.confidence)}
+          </span>
+        </div>
+        <p
+          style={{
+            fontSize: '14px',
+            color: 'var(--color-ink)',
+            lineHeight: 1.6,
+            margin: 0,
+            fontWeight: 500,
+          }}
+        >
+          {result.summary}
+        </p>
+      </div>
+
+      {/* Recommendation */}
+      <div style={cardStyle}>
+        {sectionTitle('推荐意见')}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '10px',
+          }}
+        >
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'rgba(16,185,129,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Scale size={18} color="#10b981" />
+          </div>
+          <div>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '4px' }}>
+              优选：{compMap.get(recommendation.preferred_offer_id)?.company ?? recommendation.preferred_offer_id}
+              <span
+                style={{
+                  marginLeft: '8px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: confidenceColor(recommendation.confidence),
+                }}
+              >
+                ({confidenceLabel(recommendation.confidence)}确信度)
+              </span>
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
+              {recommendation.rationale}
+            </div>
+            {recommendation.caveats && recommendation.caveats.length > 0 && (
+              <ul style={{ margin: '8px 0 0', paddingLeft: '18px', fontSize: '12.5px', color: 'var(--color-ink-3)' }}>
+                {recommendation.caveats.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Comparison table */}
+      <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid var(--color-line)' }}>
+          {sectionTitle('各维度对比')}
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr>
+                <th
+                  style={{
+                    padding: '10px 18px',
+                    textAlign: 'left',
+                    background: 'var(--color-surface-2)',
+                    borderBottom: '1px solid var(--color-line)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--color-ink-3)',
+                    letterSpacing: '0.03em',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  维度
+                </th>
+                {offerIds.map((id) => (
+                  <th
+                    key={id}
+                    style={{
+                      padding: '10px 18px',
+                      textAlign: 'right',
+                      background: recommendation.preferred_offer_id === id
+                        ? 'rgba(16,185,129,0.06)'
+                        : 'var(--color-surface-2)',
+                      borderBottom: '1px solid var(--color-line)',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: recommendation.preferred_offer_id === id ? '#10b981' : 'var(--color-ink)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {compMap.get(id)?.company ?? id}
+                    {recommendation.preferred_offer_id === id && ' ★'}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { key: 'annual_total_compensation', label: '年总包', fmt: (v: number) => `${formatMoney(v)}元` },
+                { key: 'effective_monthly', label: '月均到手（估）', fmt: (v: number) => `${formatMoney(v)}元` },
+                { key: 'social_insurance_annual', label: '五险一金（年）', fmt: (v: number) => `${formatMoney(v)}元` },
+                { key: 'probation_loss', label: '试用期损失', fmt: (v: number) => `${formatMoney(v)}元` },
+                { key: 'stability_score', label: '稳定性评分', fmt: (v: number) => `${v}/10` },
+                { key: 'growth_potential', label: '成长潜力', fmt: (v: string) => v },
+              ].map(({ key, label, fmt }) => {
+                const hasAny = offerIds.some((id) => {
+                  const dims = compMap.get(id)?.dimensions;
+                  return dims && key in dims && dims[key as keyof typeof dims] != null;
+                });
+                if (!hasAny) return null;
+                return (
+                  <tr key={key}>
+                    <td
+                      style={{
+                        padding: '9px 18px',
+                        borderBottom: '1px solid var(--color-line)',
+                        color: 'var(--color-ink-3)',
+                        fontWeight: 600,
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {label}
+                    </td>
+                    {offerIds.map((id) => {
+                      const dims = compMap.get(id)?.dimensions ?? {};
+                      const val = dims[key as keyof typeof dims];
+                      return (
+                        <td
+                          key={id}
+                          style={{
+                            padding: '9px 18px',
+                            borderBottom: '1px solid var(--color-line)',
+                            textAlign: 'right',
+                            color: 'var(--color-ink)',
+                            fontFamily: typeof val === 'number' ? 'var(--font-mono)' : 'inherit',
+                            fontWeight: 600,
+                            background: recommendation.preferred_offer_id === id
+                              ? 'rgba(16,185,129,0.03)'
+                              : 'transparent',
+                          }}
+                        >
+                          {val != null ? (fmt as (v: unknown) => string)(val) : <span style={{ color: 'var(--color-ink-4)' }}>—</span>}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Weighted scores */}
+      {weighted_scores.length > 0 && weighted_scores.some((ws) => ws.total_score != null) && (
+        <div style={cardStyle}>
+          {sectionTitle('加权综合评分')}
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {weighted_scores.map((ws) => (
+              <div
+                key={ws.offer_id}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  background: 'var(--color-surface-2)',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  textAlign: 'center',
+                  border: recommendation.preferred_offer_id === ws.offer_id
+                    ? '2px solid #10b981'
+                    : '1px solid var(--color-line)',
+                }}
+              >
+                <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--color-ink-2)', marginBottom: '6px' }}>
+                  {ws.company}
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '28px',
+                    fontWeight: 800,
+                    color: recommendation.preferred_offer_id === ws.offer_id ? '#10b981' : 'var(--color-ink)',
+                    lineHeight: 1,
+                  }}
+                >
+                  {ws.total_score?.toFixed(0) ?? '—'}
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--color-ink-4)', marginTop: '3px' }}>总分</div>
+              </div>
+            ))}
+          </div>
+          {result.confidence === 'low' || result.confidence === 'insufficient' ? (
+            <p style={{ fontSize: '12px', color: 'var(--color-ink-4)', marginTop: '10px', margin: '10px 0 0' }}>
+              信息不足时不展示评分，请补充关键字段后重新比较。
+            </p>
+          ) : null}
+        </div>
+      )}
+
+      {/* Hourly rate */}
+      {hourly_rate_comparison.length > 0 && (
+        <div style={cardStyle}>
+          {sectionTitle('时薪对比（考虑实际工时）')}
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {hourly_rate_comparison.map((hr: OfferHourlyRate) => (
+              <div
+                key={hr.offer_id}
+                style={{
+                  flex: 1,
+                  minWidth: '100px',
+                  background: 'var(--color-surface-2)',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                }}
+              >
+                <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--color-ink-2)', marginBottom: '4px' }}>
+                  {hr.company}
+                </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '20px', fontWeight: 800, color: 'var(--color-ink)' }}>
+                  {hr.hourly_rate_rmb != null ? `¥${hr.hourly_rate_rmb.toFixed(0)}/h` : '周工时未知'}
+                </div>
+                {hr.weekly_hours != null && (
+                  <div style={{ fontSize: '11px', color: 'var(--color-ink-4)', marginTop: '2px' }}>
+                    {hr.weekly_hours}h/周
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Risks & next actions */}
+      {(result.risks.length > 0 || result.next_actions.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          {result.risks.length > 0 && (
+            <div style={cardStyle}>
+              {sectionTitle('风险提示')}
+              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.7 }}>
+                {result.risks.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            </div>
+          )}
+          {result.next_actions.length > 0 && (
+            <div style={cardStyle}>
+              {sectionTitle('建议下一步')}
+              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.7 }}>
+                {result.next_actions.map((a, i) => <li key={i}>{a}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Missing info */}
+      {missing_info.length > 0 && (
+        <div
+          style={{
+            background: 'rgba(245,158,11,0.07)',
+            border: '1px solid rgba(245,158,11,0.25)',
+            borderRadius: '12px',
+            padding: '14px 16px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '10px',
+            }}
+          >
+            <AlertCircle size={14} color="#f59e0b" />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              缺失字段（补充后可提高分析质量）
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {(missing_info as OfferMissingInfo[]).map((m, i) => (
+              <div key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)' }}>
+                <span style={{ fontWeight: 700 }}>{m.offer_id}</span>
+                {' · '}
+                <span style={{ color: 'var(--color-ink)' }}>{m.field}</span>
+                <span style={{ color: 'var(--color-ink-3)' }}> — {m.impact}</span>
+              </div>
+            ))}
+          </div>
+          {result.follow_up_questions.length > 0 && (
+            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(245,158,11,0.15)' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '6px' }}>
+                追问建议
+              </div>
+              {result.follow_up_questions.map((q, i) => (
+                <div key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
+                  · {q}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+
+export default function OfferComparatorPage() {
+  const [forms, setForms] = useState<OfferFormData[]>([emptyForm(), emptyForm()]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<OfferCompareResult | null>(null);
+
+  // ── Form state handlers ──────────────────────────────────────────────────
+
+  function handleChange(id: string, key: keyof OfferFormData, val: string) {
+    setForms((prev) => prev.map((f) => (f.id === id ? { ...f, [key]: val } : f)));
+  }
+
+  function addOffer() {
+    if (forms.length >= 5) return;
+    setForms((prev) => [...prev, emptyForm()]);
+  }
+
+  function removeOffer(id: string) {
+    setForms((prev) => prev.filter((f) => f.id !== id));
+  }
+
+  // ── Submit ───────────────────────────────────────────────────────────────
+
+  async function handleCompare() {
+    // Validate: all companies + base_monthly must be filled
+    const invalid = forms.find((f) => !f.company.trim() || !f.base_monthly);
+    if (invalid) {
+      setError('请填写每个 offer 的公司名称和月薪');
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const payload: OfferCompareRequest = {
+        offers: forms.map(formToItem),
+      };
+
+      const data = await api.post<OfferCompareResult>('/offer-comparator/compare', payload);
+      setResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '分析失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
+
+  return (
+    <>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100%',
+          padding: '40px 32px 40px',
+          gap: '20px',
+          boxSizing: 'border-box',
+          maxWidth: '900px',
+          margin: '0 auto',
+        }}
+      >
+        {/* Header */}
+        <div>
+          <h1
+            style={{
+              fontSize: '24px',
+              fontWeight: 700,
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.4px',
+              marginBottom: '4px',
+            }}
+          >
+            Offer 比对
+          </h1>
+          <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', margin: 0 }}>
+            多维度量化比较 · 中国市场特有要素 · 防编造分析
+          </p>
+        </div>
+
+        {/* Offer forms */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {forms.map((form, index) => (
+            <OfferCard
+              key={form.id}
+              form={form}
+              index={index}
+              onChange={handleChange}
+              onRemove={removeOffer}
+              canRemove={forms.length > 2}
+            />
+          ))}
+        </div>
+
+        {/* Add offer / compare buttons */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {forms.length < 5 && (
+            <button
+              onClick={addOffer}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 16px',
+                borderRadius: '9px',
+                border: '1.5px dashed var(--color-line-2)',
+                background: 'transparent',
+                color: 'var(--color-ink-3)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              <Plus size={14} />
+              添加 Offer（最多 5 个）
+            </button>
+          )}
+          <button
+            onClick={handleCompare}
+            disabled={loading}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '10px 24px',
+              borderRadius: '10px',
+              border: 'none',
+              background: loading ? 'var(--color-surface-3)' : 'var(--color-brand)',
+              color: loading ? 'var(--color-ink-3)' : '#fff',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              marginLeft: 'auto',
+            }}
+          >
+            {loading ? (
+              <>
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                分析中…
+              </>
+            ) : (
+              <>
+                <Scale size={15} />
+                开始比对
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Error state */}
+        {error && (
+          <div
+            style={{
+              padding: '14px 16px',
+              background: 'var(--color-danger-soft)',
+              borderRadius: '10px',
+              color: 'var(--color-danger)',
+              fontSize: '13.5px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <AlertCircle size={15} />
+            {error}
+          </div>
+        )}
+
+        {/* Empty state (before first compare) */}
+        {!loading && !error && !result && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '32px',
+              textAlign: 'center',
+              background: 'var(--color-surface)',
+              borderRadius: '14px',
+              border: '1.5px dashed var(--color-line-2)',
+              gap: '8px',
+              color: 'var(--color-ink-4)',
+            }}
+          >
+            <Scale size={28} />
+            <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: 'var(--color-ink-3)' }}>
+              填写 2 个以上 offer 后点击「开始比对」
+            </p>
+            <p style={{ fontSize: '12.5px', margin: 0 }}>
+              支持薪酬结构 · 五险一金 · 试用期折扣 · 时薪 · 成长潜力等多维度分析
+            </p>
+          </div>
+        )}
+
+        {/* Loading state */}
+        {loading && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '40px',
+              color: 'var(--color-ink-3)',
+              fontSize: '14px',
+            }}
+          >
+            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            AI 正在分析中，通常需要 10-30 秒…
+          </div>
+        )}
+
+        {/* Insufficient state */}
+        {result && result.confidence === 'insufficient' && (
+          <div
+            style={{
+              padding: '16px 18px',
+              background: 'var(--color-surface-2)',
+              borderRadius: '12px',
+              border: '1px solid var(--color-line)',
+            }}
+          >
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '8px' }}>
+              信息不足，无法完成完整比较
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', margin: '0 0 10px' }}>
+              {result.summary}
+            </p>
+            {result.follow_up_questions.length > 0 && (
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '6px' }}>
+                  请补充以下信息后重试：
+                </div>
+                {result.follow_up_questions.map((q, i) => (
+                  <div key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
+                    · {q}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Result panel */}
+        {result && result.confidence !== 'insufficient' && (
+          <ResultPanel result={result} />
+        )}
+      </div>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+    </>
+  );
+}

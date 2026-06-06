@@ -2,12 +2,17 @@ import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards } from '@n
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SalaryService } from './salary.service';
+import { SalaryAnalysisService } from './salary-analysis.service';
 import { CreateSalaryEntryDto } from './dto/create-salary-entry.dto';
+import { AnalyzeSalaryDto } from './dto/analyze-salary.dto';
 
 @Controller('salary')
 @UseGuards(JwtAuthGuard)
 export class SalaryController {
-  constructor(private readonly salary: SalaryService) {}
+  constructor(
+    private readonly salary: SalaryService,
+    private readonly analysis: SalaryAnalysisService,
+  ) {}
 
   @Post()
   create(
@@ -17,10 +22,15 @@ export class SalaryController {
     return this.salary.create(user.id, dto);
   }
 
-  // IMPORTANT: /stats must be defined BEFORE /:id to avoid route collision
+  // IMPORTANT: /stats and /analyze must be defined BEFORE /:id to avoid route collision
   @Get('stats')
   getStats() {
     return this.salary.getStats();
+  }
+
+  @Post('analyze')
+  analyze(@Body() dto: AnalyzeSalaryDto) {
+    return this.analysis.analyze(dto);
   }
 
   @Get()

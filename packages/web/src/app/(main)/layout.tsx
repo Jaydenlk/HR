@@ -21,6 +21,9 @@ import {
   GraduationCap,
   Menu,
   X,
+  Scale,
+  Users,
+  GitMerge,
 } from 'lucide-react';
 
 interface NavItem {
@@ -63,6 +66,9 @@ function buildToolNav(applicationCount: number): NavItem[] {
     },
     { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
     { id: 'career', label: '职业地图', href: '/career', icon: <Map size={16} /> },
+    { id: 'offer-comparator', label: 'Offer 比对', href: '/offer-comparator', icon: <Scale size={16} /> },
+    { id: 'networking', label: '人脉内推', href: '/networking', icon: <Users size={16} /> },
+    { id: 'role-transition', label: '转岗顾问', href: '/role-transition', icon: <GitMerge size={16} /> },
   ];
 }
 

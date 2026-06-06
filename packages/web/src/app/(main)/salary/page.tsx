@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import type { SalaryEntry } from '@/lib/types';
-import { BarChart2, Plus, X, Loader2, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import type { SalaryEntry, SalaryAnalysisResult } from '@/lib/types';
+import { BarChart2, Plus, X, Loader2, ChevronDown, ChevronUp, Filter, Sparkles, AlertCircle, CheckCircle } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -1061,6 +1061,590 @@ function UserOffersTable({ entries }: { entries: SalaryEntry[] }) {
   );
 }
 
+// ── AI Salary Analysis Section ───────────────────────────────────────────────
+
+interface AnalysisFormData {
+  role: string;
+  city: string;
+  company: string;
+}
+
+type AnalysisState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'error'; message: string }
+  | { kind: 'insufficient'; questions: string[]; missing: string[] }
+  | { kind: 'result'; data: SalaryAnalysisResult };
+
+function gradeColor(grade: string): string {
+  if (grade === 'A') return '#10b981';
+  if (grade === 'B') return 'var(--color-brand)';
+  if (grade === 'C') return '#f59e0b';
+  return 'var(--color-ink-4)';
+}
+
+function confidenceLabel(c: string): string {
+  const map: Record<string, string> = {
+    high: '高置信度',
+    medium: '中置信度',
+    low: '低置信度（历史数据）',
+    insufficient: '数据不足',
+  };
+  return map[c] ?? c;
+}
+
+function AiAnalysisSection() {
+  const [form, setForm] = useState<AnalysisFormData>({ role: '', city: '', company: '' });
+  const [state, setState] = useState<AnalysisState>({ kind: 'idle' });
+
+  function setField(key: keyof AnalysisFormData, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleAnalyze(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.role.trim()) {
+      setState({ kind: 'error', message: '请填写岗位名称' });
+      return;
+    }
+    setState({ kind: 'loading' });
+    try {
+      const payload: Record<string, string> = { role: form.role.trim() };
+      if (form.city.trim()) payload.city = form.city.trim();
+      if (form.company.trim()) payload.company = form.company.trim();
+
+      const result = await api.post<SalaryAnalysisResult>('/salary/analyze', payload);
+
+      if (result.confidence === 'insufficient') {
+        setState({
+          kind: 'insufficient',
+          questions: result.follow_up_questions,
+          missing: result.cannot_determine,
+        });
+        return;
+      }
+      setState({ kind: 'result', data: result });
+    } catch (err) {
+      setState({
+        kind: 'error',
+        message: err instanceof Error ? err.message : '分析失败，请稍后重试',
+      });
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '9px 12px',
+    background: 'var(--color-surface)',
+    border: '1px solid var(--color-line)',
+    borderRadius: '8px',
+    fontFamily: 'inherit',
+    fontSize: '13.5px',
+    color: 'var(--color-ink)',
+    fontWeight: 500,
+    boxSizing: 'border-box',
+    outline: 'none',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '11.5px',
+    fontWeight: 700,
+    color: 'var(--color-ink-2)',
+    letterSpacing: '0.03em',
+    marginBottom: '5px',
+    textTransform: 'uppercase',
+  };
+
+  return (
+    <div
+      style={{
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-line)',
+        borderRadius: '18px',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          padding: '16px 22px',
+          borderBottom: '1px solid var(--color-line)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <Sparkles size={16} color="var(--color-brand)" />
+        <h3
+          style={{
+            margin: 0,
+            fontSize: '15px',
+            fontWeight: 700,
+            letterSpacing: '-0.008em',
+            color: 'var(--color-ink)',
+          }}
+        >
+          AI 对标分析
+        </h3>
+        <span
+          style={{
+            fontSize: '11.5px',
+            color: 'var(--color-ink-4)',
+            marginLeft: '4px',
+            fontWeight: 500,
+          }}
+        >
+          输入岗位/城市，获取实时薪资对标
+        </span>
+      </div>
+
+      <div style={{ padding: '20px 22px' }}>
+        {/* Form */}
+        <form onSubmit={handleAnalyze}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+            <div>
+              <label style={labelStyle}>岗位 *</label>
+              <input
+                style={inputStyle}
+                value={form.role}
+                onChange={(e) => setField('role', e.target.value)}
+                placeholder="后端工程师"
+                disabled={state.kind === 'loading'}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>城市</label>
+              <input
+                style={inputStyle}
+                value={form.city}
+                onChange={(e) => setField('city', e.target.value)}
+                placeholder="北京"
+                disabled={state.kind === 'loading'}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>公司（可选）</label>
+              <input
+                style={inputStyle}
+                value={form.company}
+                onChange={(e) => setField('company', e.target.value)}
+                placeholder="字节跳动"
+                disabled={state.kind === 'loading'}
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={state.kind === 'loading'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 20px',
+              borderRadius: '10px',
+              border: 'none',
+              background: state.kind === 'loading' ? 'var(--color-surface-3)' : 'var(--color-brand)',
+              color: state.kind === 'loading' ? 'var(--color-ink-3)' : '#fff',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              cursor: state.kind === 'loading' ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            {state.kind === 'loading' ? (
+              <>
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                分析中…
+              </>
+            ) : (
+              <>
+                <Sparkles size={14} />
+                开始分析
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* States */}
+        {state.kind === 'error' && (
+          <div
+            style={{
+              marginTop: '16px',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              background: 'var(--color-danger-soft)',
+              color: 'var(--color-danger)',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <AlertCircle size={14} />
+            {state.message}
+          </div>
+        )}
+
+        {state.kind === 'insufficient' && (
+          <div
+            style={{
+              marginTop: '16px',
+              padding: '16px',
+              borderRadius: '12px',
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-line)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '13.5px',
+                fontWeight: 700,
+                color: 'var(--color-ink-2)',
+                marginBottom: '10px',
+              }}
+            >
+              需要更多信息才能完成分析
+            </div>
+            {state.missing.length > 0 && (
+              <div style={{ marginBottom: '10px' }}>
+                {state.missing.map((m, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      fontSize: '12.5px',
+                      color: 'var(--color-ink-3)',
+                      marginBottom: '4px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '6px',
+                    }}
+                  >
+                    <span style={{ color: '#f59e0b', flexShrink: 0 }}>•</span>
+                    {m}
+                  </div>
+                ))}
+              </div>
+            )}
+            {state.questions.map((q, i) => (
+              <div
+                key={i}
+                style={{
+                  fontSize: '13px',
+                  color: 'var(--color-brand)',
+                  fontWeight: 600,
+                  marginTop: '6px',
+                }}
+              >
+                {q}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {state.kind === 'result' && (
+          <AnalysisResultPanel data={state.data} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
+  return (
+    <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Summary + confidence */}
+      <div
+        style={{
+          padding: '14px 16px',
+          background: 'var(--color-surface-2)',
+          borderRadius: '12px',
+          border: '1px solid var(--color-line)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: '20px',
+              background:
+                data.confidence === 'high'
+                  ? 'rgba(16,185,129,0.1)'
+                  : data.confidence === 'medium'
+                    ? 'rgba(99,102,241,0.1)'
+                    : 'rgba(245,158,11,0.1)',
+              color:
+                data.confidence === 'high'
+                  ? '#10b981'
+                  : data.confidence === 'medium'
+                    ? 'var(--color-brand)'
+                    : '#f59e0b',
+              letterSpacing: '0.02em',
+            }}
+          >
+            {confidenceLabel(data.confidence)}
+          </span>
+          <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 600 }}>
+            {data.data_freshness === 'fresh'
+              ? '实时数据'
+              : data.data_freshness === 'stale'
+                ? '历史知识库（非实时，仅供参考）'
+                : '数据暂不可用'}
+          </span>
+        </div>
+        <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
+          {data.summary}
+        </p>
+      </div>
+
+      {/* Salary range */}
+      {data.salary_range && (
+        <div
+          style={{
+            padding: '16px',
+            background: 'var(--color-surface)',
+            borderRadius: '12px',
+            border: '1px solid var(--color-line)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '14px',
+            }}
+          >
+            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-ink-2)' }}>
+              薪资区间 · {data.salary_range.city} · {data.salary_range.role}
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '20px',
+                background: `${gradeColor(data.salary_range.grade)}22`,
+                color: gradeColor(data.salary_range.grade),
+                fontWeight: 700,
+              }}
+            >
+              {data.salary_range.grade} 级数据
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+            {[
+              { label: 'P25', value: data.salary_range.p25, color: 'var(--color-ink-4)' },
+              { label: 'P50 (中位数)', value: data.salary_range.p50, color: 'var(--color-brand)' },
+              { label: 'P75', value: data.salary_range.p75, color: '#f59e0b' },
+            ].map((item) => (
+              <div
+                key={item.label}
+                style={{
+                  padding: '12px',
+                  background: 'var(--color-surface-2)',
+                  borderRadius: '10px',
+                  borderTop: `3px solid ${item.color}`,
+                  textAlign: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    color: item.color,
+                    letterSpacing: '0.04em',
+                    marginBottom: '6px',
+                  }}
+                >
+                  {item.label}
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '18px',
+                    fontWeight: 800,
+                    color: 'var(--color-ink)',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  {formatSalary(item.value)}
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--color-ink-4)', marginTop: '3px' }}>
+                  {data.salary_range!.unit === 'annual_rmb' ? '元/年' : '元/月'}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--color-ink-4)' }}>
+            数据年份：{data.salary_range.year} ·{' '}
+            {data.salary_range.freshness === 'stale' ? '历史数据，非实时' : '实时数据'}
+          </div>
+        </div>
+      )}
+
+      {/* Breakdown */}
+      {data.breakdown && Object.keys(data.breakdown).length > 0 && (
+        <div
+          style={{
+            padding: '14px 16px',
+            background: 'var(--color-surface)',
+            borderRadius: '12px',
+            border: '1px solid var(--color-line)',
+          }}
+        >
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            薪资组成分解
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {data.breakdown.base_monthly != null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                <span style={{ color: 'var(--color-ink-3)' }}>月基本工资</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-ink)' }}>
+                  {data.breakdown.base_monthly.toLocaleString()} 元
+                </span>
+              </div>
+            )}
+            {data.breakdown.months_per_year != null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                <span style={{ color: 'var(--color-ink-3)' }}>年薪月数</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-ink)' }}>
+                  {data.breakdown.months_per_year} 薪
+                </span>
+              </div>
+            )}
+            {data.breakdown.annual_bonus && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                <span style={{ color: 'var(--color-ink-3)' }}>年终奖</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-ink-2)' }}>{data.breakdown.annual_bonus}</span>
+              </div>
+            )}
+            {data.breakdown.equity && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                <span style={{ color: 'var(--color-ink-3)' }}>股权/期权</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-ink-2)' }}>{data.breakdown.equity}（建议核实）</span>
+              </div>
+            )}
+            {data.breakdown.social_insurance && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                <span style={{ color: 'var(--color-ink-3)' }}>社保公积金</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-ink-2)' }}>{data.breakdown.social_insurance}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Data sources */}
+      {data.data_sources.length > 0 && (
+        <div
+          style={{
+            padding: '14px 16px',
+            background: 'var(--color-surface)',
+            borderRadius: '12px',
+            border: '1px solid var(--color-line)',
+          }}
+        >
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            数据来源 · 置信度
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {data.data_sources.map((src, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: `${gradeColor(src.grade)}20`,
+                    color: gradeColor(src.grade),
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  {src.grade}
+                </span>
+                <span style={{ fontSize: '13px', color: 'var(--color-ink-2)', fontWeight: 500 }}>
+                  {src.source_name}
+                </span>
+                {src.date && (
+                  <span style={{ fontSize: '11.5px', color: 'var(--color-ink-4)', marginLeft: 'auto' }}>
+                    {src.date}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Comparison */}
+      {data.comparison.length > 0 && (
+        <div
+          style={{
+            padding: '14px 16px',
+            background: 'var(--color-surface)',
+            borderRadius: '12px',
+            border: '1px solid var(--color-line)',
+          }}
+        >
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            横向对比
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {data.comparison.map((c, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                <span style={{ color: 'var(--color-ink-3)' }}>{c.dimension}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--color-ink)' }}>{c.value}</span>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      padding: '1px 5px',
+                      borderRadius: '4px',
+                      background: `${gradeColor(c.grade)}20`,
+                      color: gradeColor(c.grade),
+                      fontWeight: 700,
+                    }}
+                  >
+                    {c.grade}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recommendations */}
+      {data.recommendations.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {data.recommendations.map((r, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                padding: '10px 12px',
+                background: 'rgba(16,185,129,0.06)',
+                borderRadius: '10px',
+                border: '1px solid rgba(16,185,129,0.15)',
+                fontSize: '13px',
+                color: 'var(--color-ink-2)',
+              }}
+            >
+              <CheckCircle size={13} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+              {r}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function SalaryPage() {
@@ -1231,6 +1815,9 @@ export default function SalaryPage() {
               onRoleChange={setSelectedRole}
               userTotalComp={userTotalComp}
             />
+
+            {/* AI 对标分析 */}
+            <AiAnalysisSection />
 
             {/* Overall stats pill — only when there's data */}
             {stats && stats.count > 0 && (

@@ -22,6 +22,9 @@ import { CareerModule } from './career/career.module';
 import { FeedModule } from './feed/feed.module';
 import { OpportunityModule } from './opportunity/opportunity.module';
 import { IntelligenceModule } from './intelligence/intelligence.module';
+import { OfferComparatorModule } from './offer-comparator/offer-comparator.module';
+import { NetworkingModule } from './networking/networking.module';
+import { RoleTransitionModule } from './role-transition/role-transition.module';
 
 @Module({
   imports: [
@@ -69,6 +72,9 @@ import { IntelligenceModule } from './intelligence/intelligence.module';
     FeedModule,
     OpportunityModule,
     IntelligenceModule,
+    OfferComparatorModule,
+    NetworkingModule,
+    RoleTransitionModule,
   ],
 })
 export class AppModule {}

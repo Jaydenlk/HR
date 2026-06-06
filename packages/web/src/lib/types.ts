@@ -661,3 +661,250 @@ export interface NewspaperEdition {
   total_count: number;
   categories: Record<string, number>;
 }
+
+// ── Offer Comparator ───────────────────────────────────────────────────────────
+
+export interface OfferItem {
+  id: string;
+  company: string;
+  base_monthly: number;
+  months_per_year?: number;
+  annual_bonus?: number;
+  city?: string;
+  level?: string;
+  weekly_hours?: number;
+  probation_discount?: number;
+  probation_months?: number;
+  social_insurance_monthly?: number;
+  equity_annual?: number;
+  equity_type?: string;
+  notes?: string;
+}
+
+export interface OfferCompareRequest {
+  offers: OfferItem[];
+  weights?: {
+    compensation?: number;
+    growth?: number;
+    stability?: number;
+    work_life_balance?: number;
+  };
+  user_priorities?: string[];
+}
+
+export interface OfferCompareDimensions {
+  annual_total_compensation?: number;
+  effective_monthly?: number;
+  social_insurance_annual?: number;
+  probation_loss?: number;
+  stability_score?: number;
+  growth_potential?: string;
+}
+
+export interface OfferCompareEntry {
+  offer_id: string;
+  company: string;
+  dimensions: OfferCompareDimensions;
+}
+
+export interface OfferWeightedScore {
+  offer_id: string;
+  company: string;
+  total_score?: number;
+  dimension_scores?: Record<string, number>;
+}
+
+export interface OfferHourlyRate {
+  offer_id: string;
+  company: string;
+  weekly_hours?: number;
+  hourly_rate_rmb: number | null;
+}
+
+export interface OfferMissingInfo {
+  offer_id: string;
+  field: string;
+  impact: string;
+}
+
+export interface OfferCompareResult {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
+  evidence_used: unknown[];
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  comparison: OfferCompareEntry[];
+  weighted_scores: OfferWeightedScore[];
+  recommendation: {
+    preferred_offer_id: string;
+    rationale: string;
+    confidence: 'high' | 'medium' | 'low' | 'uncertain';
+    caveats?: string[];
+  };
+  hourly_rate_comparison: OfferHourlyRate[];
+  missing_info: OfferMissingInfo[];
+}
+
+// ─── Networking types ─────────────────────────────────────────────────────────
+
+export type NetworkingConfidence = 'high' | 'medium' | 'low' | 'insufficient';
+
+export interface NetworkingFollowUpTiming {
+  best_send_time: string;
+  follow_up_after_days: number;
+  follow_up_note?: string;
+}
+
+export interface NetworkingMessageResult {
+  confidence: NetworkingConfidence;
+  summary: string;
+  message_draft: string | null;
+  tone: 'formal' | 'semi_formal' | 'casual';
+  key_points: string[];
+  what_not_to_say: string[];
+  recommendations: string[];
+  risks: string[];
+  follow_up_timing: NetworkingFollowUpTiming | null;
+  cannot_determine: string[];
+}
+
+export interface ReferralPath {
+  target_company: string;
+  contact_description: string;
+  path_type: 'direct' | 'indirect' | 'cold_contact';
+  estimated_success_rate: string;
+  priority: number;
+  relationship_strength?: 'strong' | 'moderate' | 'weak';
+  suggested_action: string;
+}
+
+export interface ColdOutreachTarget {
+  target_company: string;
+  target_profile_type: string;
+  platform: string;
+  approach: string;
+}
+
+export interface NetworkGap {
+  target_company: string;
+  gap_description: string;
+  fill_strategy: string[];
+}
+
+export interface ReferralStrategyResult {
+  confidence: NetworkingConfidence;
+  summary: string;
+  referral_paths: ReferralPath[];
+  cold_outreach_targets: ColdOutreachTarget[];
+  network_gaps: NetworkGap[];
+  recommendations: string[];
+  risks: string[];
+  cannot_determine: string[];
+}
+
+// ─── Salary AI Analysis ───────────────────────────────────────────────────────
+
+export interface SalaryRangeResult {
+  p25: number;
+  p50: number;
+  p75: number;
+  unit: 'monthly_rmb' | 'annual_rmb';
+  year: string;
+  city: string;
+  role: string;
+  grade: 'A' | 'B' | 'C' | 'D';
+  freshness: 'fresh' | 'stale' | 'unknown';
+}
+
+export interface SalaryBreakdown {
+  base_monthly?: number;
+  months_per_year?: number;
+  annual_bonus?: string;
+  equity?: string;
+  social_insurance?: string;
+}
+
+export interface SalaryDataSource {
+  source_name: string;
+  url?: string;
+  date?: string;
+  grade: 'A' | 'B' | 'C' | 'D';
+}
+
+export interface SalaryComparison {
+  dimension: string;
+  value: string;
+  grade: 'A' | 'B' | 'C' | 'D';
+}
+
+export interface SalaryAnalysisResult {
+  summary: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
+  salary_range: SalaryRangeResult | null;
+  breakdown: SalaryBreakdown | null;
+  data_sources: SalaryDataSource[];
+  comparison: SalaryComparison[];
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  data_freshness: 'fresh' | 'stale' | 'unavailable';
+}
+
+// ─── Role Transition ──────────────────────────────────────────────────────────
+
+export type RoleTransitionFeasibility = 'high' | 'medium' | 'low' | 'not_feasible';
+export type RoleTransitionConfidence = 'high' | 'medium' | 'low' | 'insufficient';
+export type GapSeverity = 'critical' | 'important' | 'nice_to_have';
+export type SuccessFactorStatus = 'has' | 'partial' | 'missing';
+
+export interface RoleTransitionEvidenceItem {
+  field: string;
+  value: string;
+  relevance: string;
+}
+
+export interface RoleTransitionSkillGap {
+  skill_name: string;
+  current_level: string;
+  required_level: string;
+  gap_severity: GapSeverity;
+  remedy: string;
+  estimated_months: number;
+}
+
+export interface RoleTransitionPath {
+  path_name: string;
+  description: string;
+  duration: string;
+  success_rate_note?: string;
+}
+
+export interface RoleTransitionSuccessFactor {
+  factor: string;
+  user_status: SuccessFactorStatus;
+  evidence?: string;
+}
+
+export interface RoleTransitionResult {
+  feasibility: RoleTransitionFeasibility;
+  feasibility_rationale: string;
+  confidence: RoleTransitionConfidence;
+  summary: string;
+  skill_gap: RoleTransitionSkillGap[];
+  typical_transition_path: RoleTransitionPath[];
+  success_factors: RoleTransitionSuccessFactor[];
+  first_step: string;
+  evidence_used: RoleTransitionEvidenceItem[];
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+}
