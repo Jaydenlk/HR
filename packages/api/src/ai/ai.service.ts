@@ -1,6 +1,8 @@
 import { Injectable, ServiceUnavailableException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { ConcurrencyLimiter } from './concurrency-limiter';
+import { AiConfig } from '../config/ai.config';
 
 interface CompleteParams {
   system: string;
@@ -29,37 +31,38 @@ export class AiService {
   private readonly primary: Provider;
   private readonly fallback: Provider | null;
 
-  constructor(private readonly limiter: ConcurrencyLimiter) {
-    const apiKey = process.env.CLOUDDREAM_API_KEY;
-    if (!apiKey) {
+  constructor(
+    private readonly limiter: ConcurrencyLimiter,
+    config: ConfigService,
+  ) {
+    const ai = config.get<AiConfig>('ai')!;
+
+    if (!ai.primary.apiKey) {
       throw new Error('CLOUDDREAM_API_KEY is required but not set');
     }
 
     // 主通道:CloudDreamAI 中转(auto-v2)。超时即失败(maxRetries=0),交由降级逻辑切备用,
     // 避免中转挂起时长时间阻塞。超时阈值可经 AI_PRIMARY_TIMEOUT_MS 调整。
-    const primaryModel = process.env.CLOUDDREAM_MODEL ?? 'auto-v2';
     this.primary = {
-      name: primaryModel,
-      model: primaryModel,
+      name: ai.primary.model,
+      model: ai.primary.model,
       client: new Anthropic({
-        apiKey,
-        baseURL: process.env.CLOUDDREAM_BASE_URL ?? 'https://api.tutorial.clouddreamai.com',
-        timeout: Number(process.env.AI_PRIMARY_TIMEOUT_MS ?? 60000),
+        apiKey: ai.primary.apiKey,
+        baseURL: ai.primary.baseURL,
+        timeout: ai.primary.timeoutMs,
         maxRetries: 0,
       }),
     };
 
     // 备用通道:DeepSeek(Anthropic 兼容端点)。仅当配置了 DEEPSEEK_API_KEY 时启用。
-    const fallbackKey = process.env.DEEPSEEK_API_KEY;
-    const fallbackModel = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat';
-    this.fallback = fallbackKey
+    this.fallback = ai.fallback.apiKey
       ? {
-          name: fallbackModel,
-          model: fallbackModel,
+          name: ai.fallback.model,
+          model: ai.fallback.model,
           client: new Anthropic({
-            apiKey: fallbackKey,
-            baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/anthropic',
-            timeout: Number(process.env.AI_FALLBACK_TIMEOUT_MS ?? 120000),
+            apiKey: ai.fallback.apiKey,
+            baseURL: ai.fallback.baseURL,
+            timeout: ai.fallback.timeoutMs,
             maxRetries: 1,
           }),
         }

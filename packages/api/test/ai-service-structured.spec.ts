@@ -1,5 +1,9 @@
 import { ServiceUnavailableException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { AiService } from '../src/ai/ai.service';
+import { ConcurrencyLimiter } from '../src/ai/concurrency-limiter';
+import type { AiConfig } from '../src/config/ai.config';
 
 // 模块级 mock @anthropic-ai/sdk:auto-mock 不会填充运行时创建的 messages 实例属性,
 // 故用工厂返回一个 messages.create 指向可控 createMock 的类,避免任何 as unknown as 断言。
@@ -27,13 +31,49 @@ const validToolUse = (input: Record<string, unknown>) => ({
   content: [{ type: 'tool_use', name: 'parse', input }],
 });
 
+/** 构造一个带 mock ConfigService 的 AiService 实例,行为与旧 process.env 读取完全一致 */
+async function buildService(primaryKey: string, fallbackKey?: string): Promise<AiService> {
+  const aiCfg: AiConfig = {
+    primary: {
+      apiKey: primaryKey,
+      model: 'auto-v2',
+      baseURL: 'https://api.tutorial.clouddreamai.com',
+      timeoutMs: 60000,
+    },
+    fallback: {
+      apiKey: fallbackKey,
+      model: 'deepseek-chat',
+      baseURL: 'https://api.deepseek.com/anthropic',
+      timeoutMs: 120000,
+    },
+    concurrency: { max: 2, queue: 8 },
+  };
+
+  const module = await Test.createTestingModule({
+    providers: [
+      AiService,
+      ConcurrencyLimiter,
+      {
+        provide: ConfigService,
+        useValue: {
+          get: (key: string) => {
+            if (key === 'ai') return aiCfg;
+            if (key === 'ai.concurrency') return aiCfg.concurrency;
+            return undefined;
+          },
+        },
+      },
+    ],
+  }).compile();
+
+  return module.get(AiService);
+}
+
 // 背景:autoV2 中转偶发对强制 tool_use 返回空块({} 或无 tool_use),概率个位数 %、与业务无关。
 // 因此 completeStructured 把空块当瞬时故障,最多尝试 3 次取非空;全空才抛 503(可重试)。
 describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use)', () => {
   beforeEach(() => {
     createMock.mockReset();
-    process.env.CLOUDDREAM_API_KEY = 'test-key';
-    delete process.env.DEEPSEEK_API_KEY; // 本组只验主通道行为:无降级时与历史行为一致
   });
 
   it('首次空 {} → 重试拿到非空并返回', async () => {
@@ -41,7 +81,8 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
       .mockResolvedValueOnce(emptyToolUse)
       .mockResolvedValueOnce(validToolUse({ ok: true }));
 
-    const result = await new AiService().completeStructured<{ ok: boolean }>(STRUCTURED_PARAMS);
+    const svc = await buildService('test-key');
+    const result = await svc.completeStructured<{ ok: boolean }>(STRUCTURED_PARAMS);
 
     expect(result).toEqual({ ok: true });
     expect(createMock).toHaveBeenCalledTimes(2);
@@ -53,7 +94,8 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
       .mockResolvedValueOnce(emptyToolUse)
       .mockResolvedValueOnce(validToolUse({ ok: true }));
 
-    const result = await new AiService().completeStructured<{ ok: boolean }>(STRUCTURED_PARAMS);
+    const svc = await buildService('test-key');
+    const result = await svc.completeStructured<{ ok: boolean }>(STRUCTURED_PARAMS);
 
     expect(result).toEqual({ ok: true });
     expect(createMock).toHaveBeenCalledTimes(3);
@@ -62,7 +104,8 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
   it('三次都空 {} → 抛 ServiceUnavailableException(503,可重试),绝不静默返回空', async () => {
     createMock.mockResolvedValue(emptyToolUse);
 
-    await expect(new AiService().completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
+    const svc = await buildService('test-key');
+    await expect(svc.completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
       ServiceUnavailableException,
     );
     expect(createMock).toHaveBeenCalledTimes(3);
@@ -71,7 +114,8 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
   it('完全无 tool_use 块 → 视为空,三次后抛 503', async () => {
     createMock.mockResolvedValue({ content: [{ type: 'text', text: '抱歉无法解析' }] });
 
-    await expect(new AiService().completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
+    const svc = await buildService('test-key');
+    await expect(svc.completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
       ServiceUnavailableException,
     );
     expect(createMock).toHaveBeenCalledTimes(3);
@@ -81,7 +125,8 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
     const payload = { name: '张三', skills: ['SQL'] };
     createMock.mockResolvedValueOnce(validToolUse(payload));
 
-    const result = await new AiService().completeStructured<typeof payload>(STRUCTURED_PARAMS);
+    const svc = await buildService('test-key');
+    const result = await svc.completeStructured<typeof payload>(STRUCTURED_PARAMS);
 
     expect(result).toEqual(payload);
     expect(createMock).toHaveBeenCalledTimes(1);
@@ -92,11 +137,6 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
 describe('AiService 主备降级(默认 autoV2,失败降级 DeepSeek)', () => {
   beforeEach(() => {
     createMock.mockReset();
-    process.env.CLOUDDREAM_API_KEY = 'primary-key';
-    process.env.DEEPSEEK_API_KEY = 'fallback-key';
-  });
-  afterEach(() => {
-    delete process.env.DEEPSEEK_API_KEY;
   });
 
   it('主通道抛错(超时/连接)→ 自动降级到 DeepSeek 并返回其结果', async () => {
@@ -104,7 +144,8 @@ describe('AiService 主备降级(默认 autoV2,失败降级 DeepSeek)', () => {
       .mockRejectedValueOnce(new Error('Request timed out.'))
       .mockResolvedValueOnce(validToolUse({ ok: 'fallback' }));
 
-    const result = await new AiService().completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
+    const svc = await buildService('primary-key', 'fallback-key');
+    const result = await svc.completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
 
     // 拿到 fallback 专属载荷即证明走了备用通道(若无降级,主通道抛错会直接 503)
     expect(result).toEqual({ ok: 'fallback' });
@@ -118,7 +159,8 @@ describe('AiService 主备降级(默认 autoV2,失败降级 DeepSeek)', () => {
       .mockResolvedValueOnce(emptyToolUse)
       .mockResolvedValueOnce(validToolUse({ ok: 'fallback' }));
 
-    const result = await new AiService().completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
+    const svc = await buildService('primary-key', 'fallback-key');
+    const result = await svc.completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
 
     expect(result).toEqual({ ok: 'fallback' });
     expect(createMock).toHaveBeenCalledTimes(4); // 主通道 3 次空 + 备用 1 次非空
@@ -127,7 +169,8 @@ describe('AiService 主备降级(默认 autoV2,失败降级 DeepSeek)', () => {
   it('主备都失败 → 抛 ServiceUnavailableException(503)', async () => {
     createMock.mockRejectedValue(new Error('both down'));
 
-    await expect(new AiService().completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
+    const svc = await buildService('primary-key', 'fallback-key');
+    await expect(svc.completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
       ServiceUnavailableException,
     );
     expect(createMock).toHaveBeenCalledTimes(2); // 主 1 次抛 + 备 1 次抛
@@ -136,7 +179,8 @@ describe('AiService 主备降级(默认 autoV2,失败降级 DeepSeek)', () => {
   it('主通道成功 → 不触发降级(备用通道不被调用)', async () => {
     createMock.mockResolvedValueOnce(validToolUse({ ok: 'primary' }));
 
-    const result = await new AiService().completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
+    const svc = await buildService('primary-key', 'fallback-key');
+    const result = await svc.completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
 
     expect(result).toEqual({ ok: 'primary' });
     expect(createMock).toHaveBeenCalledTimes(1);
