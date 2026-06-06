@@ -115,7 +115,7 @@ export class LearningRoadmapService {
    * Valid criteria must reference a concrete output (code/project/article/demo).
    */
   private validateCriteria(criteria: string): string {
-    if (!criteria || criteria.trim().length < 10) {
+    if (!criteria || criteria.trim().length < 5) {
       return '【需补充】完成标准须为可验证的输出物（如：代码仓库、项目截图、技术博客）';
     }
     // Reject self-assessment phrases — they violate the "no self-evaluation" rule

@@ -286,11 +286,11 @@ ${timelineHint}
     const lowerProfile = profile.toLowerCase();
     const filteredEvidence: EvidenceItem[] = (raw.evidence_used ?? []).filter((e) => {
       if (!e.field || !e.value) return false;
-      // Check if the evidence value (or meaningful substring of it) exists in profile
+      // Check if the evidence value appears verbatim in profile
       const val = e.value.toLowerCase();
       // Short values (≤4 chars) are too generic to anchor reliably — keep them
       if (val.length <= 4) return true;
-      return lowerProfile.includes(val) || lowerProfile.includes(val.slice(0, Math.min(val.length, 10)));
+      return lowerProfile.includes(val);
     }).map((e) => ({
       field: e.field as string,
       value: e.value as string,

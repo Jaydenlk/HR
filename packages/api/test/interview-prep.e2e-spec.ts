@@ -204,6 +204,28 @@ describe('InterviewPrep (e2e) — deterministic guard tests', () => {
         .send({ company_name: '' });
       expect(res.status).toBe(400);
     });
+
+    it('guard evidence_used: items without field/value are stripped', async () => {
+      mockResult = makePlaybookResult({
+        evidence_used: [
+          { field: '工作年限', value: '5年', relevance: '匹配' }, // valid
+          { field: '', value: '某公司', relevance: '' },          // empty field → stripped
+          { field: '学历', value: '', relevance: '' },            // empty value → stripped
+          { value: '某值' },                                      // missing field → stripped
+          { field: '技能', value: 'Java' },                      // valid, no relevance
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/playbook')
+        .set('Authorization', auth())
+        .send({ company_name: '字节跳动', interview_intelligence: { rounds: 3 } });
+
+      expect(res.status).toBe(200);
+      const ev = res.body.evidence_used as Array<{ field: string; value: string }>;
+      expect(ev.length).toBe(2);
+      expect(ev[0]).toMatchObject({ field: '工作年限', value: '5年' });
+      expect(ev[1]).toMatchObject({ field: '技能', value: 'Java' });
+    });
   });
 
   // ─── 2. star-stories ──────────────────────────────────────────────────────
@@ -236,6 +258,58 @@ describe('InterviewPrep (e2e) — deterministic guard tests', () => {
       expect(story.result).not.toContain('30');
       // ready downgraded because fabricated number stripped
       expect(story.polish_level).toBe('needs_polish');
+    });
+
+    it('guard ②: fabricated number in action (not in input) → action scrubbed + polish downgraded', async () => {
+      // action contains "5人团队" but input has no numbers
+      mockResult = makeStarResult({
+        story_bank: [
+          {
+            title: '主导重构',
+            competency: ['领导力'],
+            situation: '系统不稳定',
+            task: '牵头重构',
+            action: '我组建了5人攻坚小组并重新设计了对账流程',
+            result: '显著降低了故障率',
+            polish_level: 'ready',
+          },
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/star-stories')
+        .set('Authorization', auth())
+        .send({ experiences: ['我牵头重构了系统，显著降低了故障率'] }); // no digits
+
+      expect(res.status).toBe(200);
+      const story = res.body.story_bank[0];
+      expect(story.action).toContain('待核实');
+      expect(story.action).not.toContain('5');
+      expect(story.polish_level).toBe('needs_polish');
+    });
+
+    it('guard ②: action number present in input → action preserved', async () => {
+      mockResult = makeStarResult({
+        story_bank: [
+          {
+            title: '主导重构',
+            competency: ['领导力'],
+            situation: '系统不稳定',
+            task: '牵头重构',
+            action: '我组建了5人攻坚小组并重新设计了对账流程',
+            result: '显著降低了故障率',
+            polish_level: 'ready',
+          },
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/star-stories')
+        .set('Authorization', auth())
+        .send({ experiences: ['我带领5人团队重构了系统，显著降低了故障率'] }); // 5 in input
+
+      expect(res.status).toBe(200);
+      const story = res.body.story_bank[0];
+      expect(story.action).toContain('5');
+      expect(story.action).not.toContain('待核实');
     });
 
     it('abnormal: empty experiences array → 400', async () => {

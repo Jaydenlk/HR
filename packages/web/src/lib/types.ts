@@ -918,7 +918,7 @@ interface InterviewPrepEnvelope {
   skill_version: string;
   summary: string;
   confidence: InterviewPrepConfidence;
-  evidence_used: unknown[];
+  evidence_used: Array<{ field: string; value: string; relevance?: string }>;
   recommendations: string[];
   risks: string[];
   next_actions: string[];
@@ -1183,7 +1183,7 @@ export interface QuestionBankListItem {
   company: string;
   role: string;
   summary: string;
-  confidence: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
   total_questions: number;
   created_at: string;
 }

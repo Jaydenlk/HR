@@ -197,14 +197,10 @@ export class PersonalBrandService {
       }),
     };
 
-    // Guard 2: platform_actions — keep all but annotate unverifiable rationale
-    const platform_actions = (result.platform_actions ?? []).map((pa) => {
+    // Guard 2: platform_actions — filter out entries whose rationale cannot be traced to profile
+    const platform_actions = (result.platform_actions ?? []).filter((pa) => {
       const rationaleLower = (pa.rationale ?? '').toLowerCase();
-      const traceable = profileKeys.some((k) => rationaleLower.includes(k)) || profileStr.includes(rationaleLower);
-      if (!traceable) {
-        return { ...pa, rationale: `[依据待补充] ${pa.rationale}` };
-      }
-      return pa;
+      return profileKeys.some((k) => rationaleLower.includes(k)) || profileStr.includes(rationaleLower);
     });
 
     // Guard 4: strip content_ideas with empty/unlocatable source_experience

@@ -7,6 +7,9 @@ import { CaseCoachDto } from './dto/case-coach.dto';
 
 type Confidence = 'high' | 'medium' | 'low' | 'insufficient';
 
+// evidence_used 条目类型：field/value 必填，relevance 可选
+type EvidenceItem = { field: string; value: string; relevance?: string };
+
 // ── 1. company-interview-playbook ───────────────────────────────────────────────
 
 interface SalaryNegotiationNotes {
@@ -21,7 +24,7 @@ export interface CompanyPlaybookResult {
   skill_version: string;
   summary: string;
   confidence: Confidence;
-  evidence_used: unknown[];
+  evidence_used: EvidenceItem[];
   recommendations: string[];
   risks: string[];
   next_actions: string[];
@@ -69,7 +72,7 @@ export interface StarStoriesResult {
   skill_version: string;
   summary: string;
   confidence: Confidence;
-  evidence_used: unknown[];
+  evidence_used: EvidenceItem[];
   recommendations: string[];
   risks: string[];
   next_actions: string[];
@@ -102,7 +105,7 @@ export interface TechCoachResult {
   skill_version: string;
   summary: string;
   confidence: Confidence;
-  evidence_used: unknown[];
+  evidence_used: EvidenceItem[];
   recommendations: string[];
   risks: string[];
   next_actions: string[];
@@ -127,7 +130,7 @@ export interface CaseCoachResult {
   skill_version: string;
   summary: string;
   confidence: Confidence;
-  evidence_used: unknown[];
+  evidence_used: EvidenceItem[];
   recommendations: string[];
   risks: string[];
   next_actions: string[];
@@ -185,6 +188,19 @@ function extractNumbers(text: string): string[] {
   return matches ?? [];
 }
 
+// 过滤 evidence_used：剔除 field 或 value 为空的条目（AI 无法锚定来源 → 不可信）
+function guardEvidenceItems(items: unknown[]): EvidenceItem[] {
+  return (items ?? []).filter(
+    (e): e is EvidenceItem =>
+      typeof e === 'object' &&
+      e !== null &&
+      typeof (e as EvidenceItem).field === 'string' &&
+      (e as EvidenceItem).field.trim().length > 0 &&
+      typeof (e as EvidenceItem).value === 'string' &&
+      (e as EvidenceItem).value.trim().length > 0,
+  );
+}
+
 // ── Service ─────────────────────────────────────────────────────────────────────
 
 @Injectable()
@@ -238,7 +254,8 @@ export class InterviewPrepService {
       if (confidence === 'high') confidence = 'medium';
     }
 
-    return { ...result, confidence, cannot_determine, salary_negotiation_notes };
+    const evidence_used = guardEvidenceItems(result.evidence_used);
+    return { ...result, confidence, cannot_determine, salary_negotiation_notes, evidence_used };
   }
 
   // ── 端点 2：STAR 行为故事 ────────────────────────────────────────────────────
@@ -255,7 +272,7 @@ export class InterviewPrepService {
     return this.guardStar(result, dto.experiences);
   }
 
-  // Guard ②：result 不得含输入经历里没有的量化数字（代码逐故事校验后剔除/降级）。
+  // Guard ②：result/action 不得含输入经历里没有的量化数字（代码逐故事校验后剔除/降级）。
   private guardStar(
     result: StarStoriesResult,
     experiences: string[],
@@ -264,21 +281,30 @@ export class InterviewPrepService {
 
     const story_bank = (result.story_bank ?? []).map((story) => {
       const resultNumbers = extractNumbers(story.result);
-      const fabricated = resultNumbers.filter((n) => !inputNumbers.has(n));
-      if (fabricated.length === 0) return story;
+      const actionNumbers = extractNumbers(story.action ?? '');
+      const fabricatedInResult = resultNumbers.filter((n) => !inputNumbers.has(n));
+      const fabricatedInAction = actionNumbers.filter((n) => !inputNumbers.has(n));
 
-      // 含编造数字：把 result 收口为「待补充」，并据经历详略下调 polish_level。
+      if (fabricatedInResult.length === 0 && fabricatedInAction.length === 0) return story;
+
+      // 含编造数字：把相关字段收口，并据经历详略下调 polish_level。
       // ready 经历被剔数后不再是 ready；至多 needs_polish。
       const downgraded: PolishLevel =
         story.polish_level === 'ready' ? 'needs_polish' : story.polish_level;
       return {
         ...story,
-        result: '待补充（原输出含未在你经历中出现的量化数字，已移除以防编造）',
+        ...(fabricatedInResult.length > 0
+          ? { result: '待补充（原输出含未在你经历中出现的量化数字，已移除以防编造）' }
+          : {}),
+        ...(fabricatedInAction.length > 0
+          ? { action: '待核实（action 含输入经历未提及的量化数字，已移除以防编造）' }
+          : {}),
         polish_level: downgraded,
       };
     });
 
-    return { ...result, story_bank };
+    const evidence_used = guardEvidenceItems(result.evidence_used);
+    return { ...result, story_bank, evidence_used };
   }
 
   // ── 端点 3：技术面辅导 ───────────────────────────────────────────────────────
@@ -329,7 +355,8 @@ export class InterviewPrepService {
       if (!cannot_determine.includes(note)) cannot_determine.push(note);
     }
 
-    return { ...result, company_specific_focus, preparation_plan, cannot_determine };
+    const evidence_used = guardEvidenceItems(result.evidence_used);
+    return { ...result, company_specific_focus, preparation_plan, cannot_determine, evidence_used };
   }
 
   // ── 端点 4：案例面辅导 ───────────────────────────────────────────────────────
@@ -365,8 +392,9 @@ export class InterviewPrepService {
 
     const recommendations = (result.recommendations ?? []).map(scrub);
     const summary = scrub(result.summary);
+    const evidence_used = guardEvidenceItems(result.evidence_used);
 
-    return { ...result, summary, framework_library, recommendations };
+    return { ...result, summary, framework_library, recommendations, evidence_used };
   }
 
   // ── System prompts（防编造硬规则逐条写入）─────────────────────────────────────

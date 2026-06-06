@@ -49,7 +49,6 @@ const THANK_YOU_NO_DETAILS = {
 
 const STATUS_INQUIRY = {
   scenario: 'status_inquiry',
-  application_id: 'app-001',
   contact: 'HR 李女士',
 };
 
@@ -217,10 +216,12 @@ describe('FollowUp (e2e) — deterministic guard tests', () => {
 
   // ── Guard 2: forbidden words stripped from message_draft ─────────────────
 
-  describe('Guard: forbidden words stripped from message_draft', () => {
-    it('message_draft with 尽快 → stripped in response', async () => {
+  describe('Guard: forbidden urging phrases stripped from message_draft', () => {
+    it('explicit urging phrases stripped, compound words preserved', async () => {
       mockResult = makeAiResult({
-        message_draft: '您好，希望您能尽快给我回复，我很急迫地等待结果，请马上告知。',
+        // 尽快 and 马上 are explicit urging phrases — must be stripped
+        // 焦急 and 紧急 are legitimate compound words — must be preserved
+        message_draft: '您好，希望您能尽快给我回复，我焦急地等待，情况十分紧急，请马上告知，我很急需答复。',
       });
 
       const res = await request(app.getHttpServer())
@@ -229,9 +230,13 @@ describe('FollowUp (e2e) — deterministic guard tests', () => {
         .send(STATUS_INQUIRY);
 
       expect(res.status).toBe(201);
+      // Explicit urging phrases must be stripped
       expect(res.body.message_draft).not.toContain('尽快');
-      expect(res.body.message_draft).not.toContain('急');
       expect(res.body.message_draft).not.toContain('马上');
+      expect(res.body.message_draft).not.toContain('很急');
+      // Legitimate compound words must NOT be broken
+      expect(res.body.message_draft).toContain('焦急');
+      expect(res.body.message_draft).toContain('紧急');
     });
   });
 
@@ -256,7 +261,7 @@ describe('FollowUp (e2e) — deterministic guard tests', () => {
     });
 
     it('status_inquiry with >150 char draft → truncated', async () => {
-      mockResult = makeAiResult({ message_draft: LONG_DRAFT, message_draft_scenario: 'status_inquiry' });
+      mockResult = makeAiResult({ message_draft: LONG_DRAFT });
 
       const res = await request(app.getHttpServer())
         .post('/api/follow-up/generate')
@@ -290,6 +295,28 @@ describe('FollowUp (e2e) — deterministic guard tests', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.message_draft.length).toBeGreaterThan(150);
+    });
+  });
+
+  // ── application_id ownership guard ───────────────────────────────────────
+
+  describe('Guard: application_id ownership', () => {
+    it('application_id that does not belong to user → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/follow-up/generate')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ scenario: 'status_inquiry', application_id: 'non-existent-app-id' });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('no application_id → no ownership check, 201 ok', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/follow-up/generate')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ scenario: 'status_inquiry', contact: 'HR 李女士' });
+
+      expect(res.status).toBe(201);
     });
   });
 

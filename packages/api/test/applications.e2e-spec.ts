@@ -32,6 +32,7 @@ describe('Applications (e2e)', () => {
       expect(res.body.company).toBe('Acme Corp');
       expect(res.body.role).toBe('Engineer');
       expect(res.body.stage).toBe('wishlist');
+      expect(res.body).not.toHaveProperty('user_id');
     });
 
     it('valid data with stage → 201 + correct stage', async () => {
@@ -83,13 +84,16 @@ describe('Applications (e2e)', () => {
   // ─── GET /api/applications ────────────────────────────────────────────────
 
   describe('GET /api/applications', () => {
-    it('returns 200 + array', async () => {
+    it('returns 200 + array without user_id', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/applications')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
+      if (res.body.length > 0) {
+        expect(res.body[0]).not.toHaveProperty('user_id');
+      }
     });
 
     it('without JWT → 401', async () => {
@@ -138,7 +142,7 @@ describe('Applications (e2e)', () => {
       appId = res.body.id;
     });
 
-    it('GET :id → 200 with events array', async () => {
+    it('GET :id → 200 with events array, no user_id', async () => {
       const res = await request(app.getHttpServer())
         .get(`/api/applications/${appId}`)
         .set('Authorization', `Bearer ${token}`);
@@ -147,9 +151,10 @@ describe('Applications (e2e)', () => {
       expect(res.body.id).toBe(appId);
       expect(res.body).toHaveProperty('events');
       expect(Array.isArray(res.body.events)).toBe(true);
+      expect(res.body).not.toHaveProperty('user_id');
     });
 
-    it('PATCH :id change stage → 200 + updated stage', async () => {
+    it('PATCH :id change stage → 200 + updated stage, no user_id', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/api/applications/${appId}`)
         .set('Authorization', `Bearer ${token}`)
@@ -157,6 +162,7 @@ describe('Applications (e2e)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.stage).toBe('applied');
+      expect(res.body).not.toHaveProperty('user_id');
     });
 
     it('PATCH :id change stage → creates ApplicationEvent', async () => {

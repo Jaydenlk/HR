@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -57,32 +57,54 @@ function buildMainNav(interviewCount: number): NavItem[] {
   ];
 }
 
-function buildToolNav(applicationCount: number): NavItem[] {
+interface ToolNavGroup {
+  section: string;
+  items: NavItem[];
+}
+
+// 工具区按求职场景分三组(做减法:18 项不删,但按"准备→投递面试→薪资决策"分组,消除无差别信息瀑布)
+function buildToolNav(applicationCount: number): ToolNavGroup[] {
+  const tracker: NavItem = {
+    id: 'tracker',
+    label: '投递追踪',
+    href: '/applications',
+    icon: <Briefcase size={16} />,
+    ...(applicationCount > 0 ? { badge: String(applicationCount) } : {}),
+  };
   return [
-    { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
-    { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} /> },
-    { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} /> },
-    { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
-    { id: 'salary', label: '薪资雷达', href: '/salary', icon: <BarChart2 size={16} /> },
     {
-      id: 'tracker',
-      label: '投递追踪',
-      href: '/applications',
-      icon: <Briefcase size={16} />,
-      ...(applicationCount > 0 ? { badge: String(applicationCount) } : {}),
+      section: '准备 · 定位',
+      items: [
+        { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} /> },
+        { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} /> },
+        { id: 'career', label: '职业地图', href: '/career', icon: <Map size={16} /> },
+        { id: 'role-transition', label: '转岗顾问', href: '/role-transition', icon: <GitMerge size={16} /> },
+        { id: 'learning-roadmap', label: '学习路线', href: '/learning-roadmap', icon: <Route size={16} /> },
+        { id: 'education-path', label: '读研vs就业', href: '/education-path', icon: <BookMarked size={16} /> },
+      ],
     },
-    { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
-    { id: 'career', label: '职业地图', href: '/career', icon: <Map size={16} /> },
-    { id: 'offer-comparator', label: 'Offer 比对', href: '/offer-comparator', icon: <Scale size={16} /> },
-    { id: 'networking', label: '人脉内推', href: '/networking', icon: <Users size={16} /> },
-    { id: 'role-transition', label: '转岗顾问', href: '/role-transition', icon: <GitMerge size={16} /> },
-    { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
-    { id: 'question-bank', label: '面试题库', href: '/question-bank', icon: <Library size={16} /> },
-    { id: 'follow-up', label: '跟进消息', href: '/follow-up', icon: <Mail size={16} /> },
-    { id: 'learning-roadmap', label: '学习路线', href: '/learning-roadmap', icon: <Route size={16} /> },
-    { id: 'personal-brand', label: '个人品牌', href: '/personal-brand', icon: <Sparkles size={16} /> },
-    { id: 'industry-trend', label: '行业趋势', href: '/industry-trend', icon: <TrendingUp size={16} /> },
-    { id: 'education-path', label: '读研vs就业', href: '/education-path', icon: <BookMarked size={16} /> },
+    {
+      section: '投递 · 面试',
+      items: [
+        { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
+        tracker,
+        { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
+        { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
+        { id: 'question-bank', label: '面试题库', href: '/question-bank', icon: <Library size={16} /> },
+        { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
+        { id: 'networking', label: '人脉内推', href: '/networking', icon: <Users size={16} /> },
+        { id: 'follow-up', label: '跟进消息', href: '/follow-up', icon: <Mail size={16} /> },
+      ],
+    },
+    {
+      section: '薪资 · 决策',
+      items: [
+        { id: 'salary', label: '薪资雷达', href: '/salary', icon: <BarChart2 size={16} /> },
+        { id: 'offer-comparator', label: 'Offer 比对', href: '/offer-comparator', icon: <Scale size={16} /> },
+        { id: 'industry-trend', label: '行业趋势', href: '/industry-trend', icon: <TrendingUp size={16} /> },
+        { id: 'personal-brand', label: '个人品牌', href: '/personal-brand', icon: <Sparkles size={16} /> },
+      ],
+    },
   ];
 }
 
@@ -401,26 +423,27 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           );
         })}
 
-        {/* Tools section */}
-        <div
-          style={{
-            fontSize: '11px',
-            color: 'var(--color-ink-4)',
-            fontWeight: 600,
-            margin: '14px 10px 4px',
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-          }}
-        >
-          工具
-        </div>
-
-        {buildToolNav(applicationCount).map((item) => {
-          const active = isActive(item);
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
+        {/* Tools section — 按求职场景分组(做减法:消除无差别信息瀑布) */}
+        {buildToolNav(applicationCount).map((group) => (
+          <Fragment key={group.section}>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'var(--color-ink-4)',
+                fontWeight: 600,
+                margin: '14px 10px 4px',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {group.section}
+            </div>
+            {group.items.map((item) => {
+              const active = isActive(item);
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -466,9 +489,11 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                   {item.badge}
                 </span>
               )}
-            </Link>
-          );
-        })}
+                </Link>
+              );
+            })}
+          </Fragment>
+        ))}
 
         {/* Recent conversations */}
         {conversations.length > 0 && (

@@ -120,16 +120,14 @@ function applyGuards(raw: RawAnalysisOutput, dto: AnalyzeSalaryDto): SalaryAnaly
         ? (r.grade as SalaryRange['grade'])
         : 'C';
 
-    // freshness: 无实时来源 → stale
+    // freshness: 只有实时来源(grade A/B)且 freshness 合法时才 'fresh'/保留，否则 'stale'
     const hasRealSource = (raw.data_sources ?? []).some(
       (s) => s.grade === 'A' || s.grade === 'B',
     );
-    const freshness =
-      VALID_FRESHNESS_RANGE.has(r.freshness ?? '') && hasRealSource
+    const freshness: SalaryRange['freshness'] =
+      hasRealSource && VALID_FRESHNESS_RANGE.has(r.freshness ?? '')
         ? (r.freshness as SalaryRange['freshness'])
-        : hasRealSource
-          ? 'stale'
-          : 'stale';
+        : 'stale';
 
     // 无实时来源 → confidence 不高于 low
     const adjustedConfidence: SalaryAnalysisResult['confidence'] =

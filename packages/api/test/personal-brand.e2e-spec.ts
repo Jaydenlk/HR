@@ -326,6 +326,39 @@ describe('PersonalBrand (e2e) — deterministic guard tests', () => {
     });
   });
 
+  // ── Guard: platform_actions with unlocatable rationale stripped ─────────────
+
+  describe('Guard: platform_actions with unlocatable rationale filtered', () => {
+    it('platform_action.rationale not traceable to profile → filtered out', async () => {
+      mockBrandResult = makeBrandResult({
+        platform_actions: [
+          {
+            platform: '掘金',
+            action: '建立技术专栏',
+            priority: 'high',
+            rationale: 'skills.technical 包含 react',  // traceable → kept
+          },
+          {
+            platform: '微博',
+            action: '发布营销内容',
+            priority: 'low',
+            rationale: '完全虚构依据_zzz999',  // not in profile → filtered
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/personal-brand/brand-strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ profile: PROFILE_SUFFICIENT });
+
+      expect(res.status).toBe(200);
+      const actions: Array<{ platform: string }> = res.body.platform_actions;
+      expect(actions.some((a) => a.platform === '掘金')).toBe(true);
+      expect(actions.some((a) => a.platform === '微博')).toBe(false);
+    });
+  });
+
   // ── Guard: content_ideas with unlocatable source_experience stripped ────────
 
   describe('Guard: content_ideas with unlocatable source_experience stripped', () => {

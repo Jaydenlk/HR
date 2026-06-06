@@ -11,9 +11,9 @@ export class FollowUpController {
 
   @Post('generate')
   generate(
-    @CurrentUser() _user: { id: string },
+    @CurrentUser() user: { id: string },
     @Body() dto: GenerateFollowUpDto,
   ) {
-    return this.followUp.generate(dto);
+    return this.followUp.generate(dto, user.id);
   }
 }

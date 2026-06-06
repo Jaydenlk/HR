@@ -64,13 +64,13 @@ export class IndustryTrendService {
   // ── 服务端确定性 guard ──────────────────────────────────────────────────────
 
   private applyGuards(result: IndustryTrendResult): IndustryTrendResult {
-    // Guard 1: 无 web 来源时，若 confidence 非 insufficient，强制降为 insufficient + 清空信号数组
+    // Guard 1: 无 web 来源时，强制降为 insufficient + 清空所有信号数组
     // 判断是否有真实 web 来源（URL 或可追溯的外部来源）
     const hasWebSources = (result.evidence_used ?? []).some(
       (e) => e.url && e.url.startsWith('http'),
     );
 
-    if (!hasWebSources && result.confidence !== 'insufficient') {
+    if (!hasWebSources) {
       return {
         ...result,
         confidence: 'insufficient',

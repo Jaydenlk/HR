@@ -5,6 +5,7 @@ import { Application, ApplicationStage } from './entities/application.entity';
 import { ApplicationEvent } from './entities/application-event.entity';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
+import { ApplicationResponseDto, ApplicationEventResponseDto } from './dto/application-response.dto';
 
 export interface ApplicationStats {
   wishlist: number;
@@ -24,7 +25,7 @@ export class ApplicationsService {
     private readonly eventRepo: Repository<ApplicationEvent>,
   ) {}
 
-  async create(userId: string, dto: CreateApplicationDto): Promise<Application> {
+  async create(userId: string, dto: CreateApplicationDto): Promise<ApplicationResponseDto> {
     const stage: ApplicationStage = dto.stage ?? 'wishlist';
 
     const application = await this.repo.save(
@@ -52,28 +53,30 @@ export class ApplicationsService {
       }),
     );
 
-    return application;
+    return ApplicationResponseDto.from(application);
   }
 
-  findAllByUser(userId: string): Promise<Application[]> {
-    return this.repo.find({
+  async findAllByUser(userId: string): Promise<ApplicationResponseDto[]> {
+    const rows = await this.repo.find({
       where: { user_id: userId },
       order: { updated_at: 'DESC' },
     });
+    return rows.map(ApplicationResponseDto.from);
   }
 
-  async findOne(id: string, userId: string): Promise<Application> {
+  async findOne(id: string, userId: string): Promise<ApplicationResponseDto> {
     const application = await this.repo.findOne({
       where: { id, user_id: userId },
       relations: { events: true },
       order: { events: { created_at: 'ASC' } },
     });
     if (!application) throw new NotFoundException();
-    return application;
+    return ApplicationResponseDto.from(application);
   }
 
-  async update(id: string, userId: string, dto: UpdateApplicationDto): Promise<Application> {
-    const application = await this.findOne(id, userId);
+  async update(id: string, userId: string, dto: UpdateApplicationDto): Promise<ApplicationResponseDto> {
+    const application = await this.repo.findOne({ where: { id, user_id: userId } });
+    if (!application) throw new NotFoundException();
     const oldStage = application.stage;
 
     Object.assign(application, dto);
@@ -93,7 +96,8 @@ export class ApplicationsService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    const application = await this.findOne(id, userId);
+    const application = await this.repo.findOne({ where: { id, user_id: userId } });
+    if (!application) throw new NotFoundException();
     await this.repo.remove(application);
   }
 
@@ -122,11 +126,12 @@ export class ApplicationsService {
     return stats;
   }
 
-  async getEvents(id: string, userId: string): Promise<ApplicationEvent[]> {
+  async getEvents(id: string, userId: string): Promise<ApplicationEventResponseDto[]> {
     await this.findOne(id, userId);
-    return this.eventRepo.find({
+    const events = await this.eventRepo.find({
       where: { application_id: id },
       order: { created_at: 'ASC' },
     });
+    return events.map(ApplicationEventResponseDto.from);
   }
 }

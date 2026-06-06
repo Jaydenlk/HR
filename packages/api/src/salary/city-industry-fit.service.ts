@@ -47,6 +47,21 @@ interface RawFitOutput {
 
 const VALID_CONFIDENCE = new Set(['high', 'medium', 'low', 'insufficient']);
 
+// Strips fabricated specific company names from AI output.
+// Keeps descriptive entries (e.g. "中型互联网公司（B轮及以上）") and strips brand names (e.g. "字节跳动", "Tencent").
+const COMPANY_SUFFIXES = /(公司|集团|股份|有限|Corp\.|Inc\.|Ltd\.|LLC)/;
+const DESCRIPTIVE_MARKERS = /[（(]|中型|大型|小型|头部|腰部|行业|领域|类型|规模|以上|以下|\d|初创/;
+
+function stripCompanyNames(companies: string[]): string[] {
+  return companies.filter((e) => {
+    const s = e.trim();
+    if (DESCRIPTIVE_MARKERS.test(s)) return true;
+    if (s.length <= 6 && /^[一-龥a-zA-Z·]+$/.test(s)) return false;
+    if (COMPANY_SUFFIXES.test(s) && s.length <= 15 && !DESCRIPTIVE_MARKERS.test(s)) return false;
+    return true;
+  });
+}
+
 @Injectable()
 export class CityIndustryFitService {
   constructor(private readonly ai: AiService) {}
@@ -174,7 +189,7 @@ function applyGuards(
     })
     .map((h) => ({
       city: h.city!.trim(),
-      key_companies: (h.key_companies ?? []).filter((c) => c.trim().length > 0),
+      key_companies: stripCompanyNames((h.key_companies ?? []).filter((c) => c.trim().length > 0)),
       cluster_effect: h.cluster_effect ?? '',
       career_ceiling: h.career_ceiling ?? '',
     }));

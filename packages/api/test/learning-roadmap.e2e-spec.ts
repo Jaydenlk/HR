@@ -274,6 +274,39 @@ describe('LearningRoadmap (e2e) — deterministic guard tests', () => {
       const phase = res.body.roadmap[0].phases[0] as { completion_criteria: string };
       expect(phase.completion_criteria).toContain('【需补充】');
     });
+
+    it('Chinese short criteria ≥5 chars (e.g. 完成练习题) → preserved as-is', async () => {
+      // 完成练习题 = 5 Chinese characters — previously < 10 byte-length check would accept
+      // this, but the old threshold of 10 was ambiguous. New threshold is < 5 chars.
+      mockResult = makeAiResult({
+        roadmap: [
+          {
+            skill_name: 'TypeScript',
+            priority: 1,
+            total_weeks: 2,
+            phases: [
+              {
+                phase_name: '基础阶段',
+                goal: '掌握基础',
+                estimated_weeks: 2,
+                completion_criteria: '完成练习题',
+                output_artifact: undefined,
+              },
+            ],
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      const phase = res.body.roadmap[0].phases[0] as { completion_criteria: string };
+      // 5-char Chinese string must pass the guard (length === 5, not < 5)
+      expect(phase.completion_criteria).toBe('完成练习题');
+    });
   });
 });
 

@@ -293,12 +293,12 @@ export class NetworkingService {
   }
 
   /**
-   * 检测冷接触成功率是否被虚报（>30% 视为不合理）
-   * 用简单数字提取：取第一个数字，若 >30 视为虚报。
+   * 检测冷接触成功率是否被虚报（>15% 视为不合理，系统提示规定冷接触成功率 5-15%）
+   * 用简单数字提取：取第一个数字，若 >15 视为虚报。
    */
   private isColdContactRateInflated(rateStr: string): boolean {
     const match = rateStr.match(/(\d+)/);
     if (!match) return false;
-    return parseInt(match[1], 10) > 30;
+    return parseInt(match[1], 10) > 15;
   }
 }

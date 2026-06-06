@@ -98,6 +98,26 @@ const MOCK_REFERRAL_INFLATED_COLD = {
   cannot_determine: [],
 };
 
+const MOCK_REFERRAL_INFLATED_COLD_20 = {
+  confidence: 'medium',
+  summary: '冷接触路径分析（20%场景）',
+  referral_paths: [
+    {
+      target_company: '腾讯',
+      contact_description: '陌生校友',
+      path_type: 'cold_contact',
+      estimated_success_rate: '20%', // 16-30% 漏网区间 — fix 后应被 guard 降级为 5-15%
+      priority: 1,
+      suggested_action: '脉脉联系',
+    },
+  ],
+  cold_outreach_targets: [],
+  network_gaps: [],
+  recommendations: [],
+  risks: [],
+  cannot_determine: [],
+};
+
 let mockToolName: string | null = null;
 
 const mockAiService = {
@@ -299,7 +319,7 @@ describe('Networking (e2e, mocked AI)', () => {
       expect(Array.isArray(res.body.cold_outreach_targets)).toBe(true);
     });
 
-    it('cold_contact path with inflated rate → guard clamps to 5-15%', async () => {
+    it('cold_contact path with inflated rate 80% → guard clamps to 5-15%', async () => {
       mockAiService.completeStructured.mockImplementation(() =>
         Promise.resolve({ ...MOCK_REFERRAL_INFLATED_COLD }),
       );
@@ -319,6 +339,32 @@ describe('Networking (e2e, mocked AI)', () => {
       );
       for (const p of coldPaths) {
         // 虚报 80% 应被降级为 5-15%
+        expect(p.estimated_success_rate).toBe('5-15%');
+      }
+    });
+
+    it('cold_contact path with rate 20% (漏网区间) → guard clamps to 5-15%', async () => {
+      // 20% 处于 16-30% 的漏网区间：旧 >30 阈值不会触发 guard，新 >15 阈值必须触发
+      mockAiService.completeStructured.mockImplementation(() =>
+        Promise.resolve({ ...MOCK_REFERRAL_INFLATED_COLD_20 }),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/networking/referral-strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          target_companies: ['腾讯'],
+          target_position: '产品经理',
+          known_contacts: ['陌生校友'],
+        });
+
+      expect(res.status).toBe(201);
+      const coldPaths = res.body.referral_paths.filter(
+        (p: { path_type: string }) => p.path_type === 'cold_contact',
+      );
+      expect(coldPaths.length).toBeGreaterThan(0);
+      for (const p of coldPaths) {
+        // 20% > 15 → 应被降级为 5-15%
         expect(p.estimated_success_rate).toBe('5-15%');
       }
     });

@@ -29,7 +29,7 @@ interface RolePercentiles {
   P90: PercentileData;
 }
 
-// Static market percentile data from seed JSON (frontend-embedded for instant display)
+// 参考基准数据（非实时 API 数据）：来自种子样本，仅供横向参考，不代表当前市场行情。
 const MARKET_PERCENTILES: Record<string, RolePercentiles> = {
   前端工程师: {
     P25: { base_salary: 21000, total_comp: 340000, description: '二线厂/普通offer档，如网易普通、顺丰、去哪儿等' },
@@ -438,7 +438,7 @@ function MarketBenchmark({
             市场薪资基准
           </h3>
           <p style={{ margin: '3px 0 0', fontSize: '12px', color: 'var(--color-ink-4)' }}>
-            2025-2026 · 应届校招 · 一线城市
+            整理参考基准（非实时 API 数据）· 2025-2026 · 应届校招 · 一线城市
           </p>
         </div>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>

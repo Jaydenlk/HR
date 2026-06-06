@@ -1,5 +1,6 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { AiService } from '../ai/ai.service';
+import { ApplicationsService } from '../applications/applications.service';
 import { GenerateFollowUpDto, FollowUpScenario } from './dto/generate-follow-up.dto';
 
 // ── Output shape ──────────────────────────────────────────────────────────────
@@ -34,7 +35,8 @@ export interface FollowUpResult {
 
 // ── Forbidden words that must not appear in message_draft ─────────────────────
 
-const FORBIDDEN_WORDS = ['尽快', '急', '马上'];
+// Explicit urging phrases — must NOT match compound words like 焦急/紧急/急需
+const FORBIDDEN_PATTERNS = [/尽快/g, /马上/g, /很急/g, /十分急/g, /非常急/g, /尽快回复/g, /快点/g];
 
 // ── Per-scenario system hints ─────────────────────────────────────────────────
 
@@ -72,9 +74,21 @@ const SCENARIO_RULES: Record<FollowUpScenario, string> = {
 
 @Injectable()
 export class FollowUpService {
-  constructor(private readonly ai: AiService) {}
+  constructor(
+    private readonly ai: AiService,
+    private readonly applications: ApplicationsService,
+  ) {}
 
-  async generate(dto: GenerateFollowUpDto): Promise<FollowUpResult> {
+  async generate(dto: GenerateFollowUpDto, userId: string): Promise<FollowUpResult> {
+    // Ownership check: if application_id provided, verify it belongs to the calling user
+    if (dto.application_id) {
+      try {
+        await this.applications.findOne(dto.application_id, userId);
+      } catch {
+        throw new ForbiddenException('application_id does not belong to current user');
+      }
+    }
+
     const result = await this.ai.completeStructured<FollowUpResult>({
       system: this.buildSystem(dto),
       prompt: this.buildPrompt(dto),
@@ -103,9 +117,9 @@ export class FollowUpService {
       }
     }
 
-    // Guard 2: 禁用词检测 — 从 message_draft 中剔除「尽快/急/马上」
-    for (const word of FORBIDDEN_WORDS) {
-      message_draft = message_draft.replaceAll(word, '');
+    // Guard 2: 禁用催促短语检测 — 从 message_draft 中剔除明确催促词组，保留合法复合词
+    for (const pattern of FORBIDDEN_PATTERNS) {
+      message_draft = message_draft.replace(pattern, '');
     }
 
     // Guard 3: 除 offer 回复(offer_urge/acceptance)外，message_draft ≤ 150 字

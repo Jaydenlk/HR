@@ -55,7 +55,7 @@ export interface QuestionBankListItem {
   company: string;
   role: string;
   summary: string;
-  confidence: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
   total_questions: number;
   created_at: string;
 }

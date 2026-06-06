@@ -238,6 +238,34 @@ describe('IndustryTrend (e2e) — deterministic guard tests', () => {
       expect(res.body.growth_signals).toEqual([]);
       expect(res.body.hiring_outlook).toBe('unknown');
     });
+
+    it('Guard bypass fix: confidence=insufficient + no web sources but signals non-empty → all cleared', async () => {
+      // Previously the old condition (!hasWebSources && confidence !== 'insufficient') would
+      // skip Guard 1 entirely, leaving growth_signals/hiring_outlook populated. Verify it
+      // now correctly zeroes them out even when AI already returns confidence=insufficient.
+      mockResult = makeAiResult({
+        confidence: 'insufficient',
+        evidence_used: [],
+        growth_signals: [{ signal: '招聘增长', strength: 'strong', source: '某报告', date: '2024' }],
+        risk_signals: [{ signal: '竞争加剧', severity: 'medium', source: '某报告', date: '2024' }],
+        hiring_outlook: 'growing',
+        recommended_entry_roles: [
+          { role_name: '产品经理', rationale: '需求旺', demand_level: 'high' },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      expect(res.body.confidence).toBe('insufficient');
+      expect(res.body.growth_signals).toEqual([]);
+      expect(res.body.risk_signals).toEqual([]);
+      expect(res.body.hiring_outlook).toBe('unknown');
+      expect(res.body.recommended_entry_roles).toEqual([]);
+    });
   });
 
   // ── Guard 2: no growth_signals → recommended_entry_roles demand_level forced to unknown ──

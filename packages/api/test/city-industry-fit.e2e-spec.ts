@@ -274,6 +274,25 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
         expect(item.fit_breakdown).toHaveProperty('constraint_satisfaction');
       }
     });
+
+    it('industry_hub_analysis key_companies strips specific brand names (anti-fabrication)', async () => {
+      // HAPPY_RESULT includes ['字节跳动', '百度', '京东', '美团'] — all short brand names ≤6 chars
+      // The server guard (stripCompanyNames) should remove them.
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/city-industry-fit')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ profile: { skills: ['Java'], current_role: '后端工程师' } });
+
+      expect(res.status).toBe(201);
+      const hubs: Array<{ city: string; key_companies: string[] }> = res.body.industry_hub_analysis ?? [];
+      for (const hub of hubs) {
+        // Known brand names in the mock output must be stripped
+        expect(hub.key_companies).not.toContain('字节跳动');
+        expect(hub.key_companies).not.toContain('百度');
+        expect(hub.key_companies).not.toContain('阿里巴巴');
+        expect(hub.key_companies).not.toContain('网易');
+      }
+    });
   });
 
   // ─── Anti-fabrication guard: empty evidence_basis filtered out ───────────────

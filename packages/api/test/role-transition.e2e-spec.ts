@@ -333,6 +333,35 @@ describe('RoleTransition (e2e) — deterministic guards', () => {
       const emptyField = evidence.find((e) => e.field === '');
       expect(emptyField).toBeUndefined();
     });
+
+    it('evidence value with shared 10-char prefix but fabricated suffix is pruned (prefix bypass closed)', async () => {
+      // Profile contains "SQL 基础查询" — AI fabricates "SQL 基础查询（包含高级窗口函数）" which shares the same
+      // 10-char prefix. Old code: lowerProfile.includes(val.slice(0,10)) would PASS this through.
+      // New code: only lowerProfile.includes(val) — full string match required — must PRUNE it.
+      nextAiResult = makeResult({
+        evidence_used: [
+          { field: 'skills', value: 'SQL 基础查询（包含高级窗口函数）', relevance: '虚构后半段' },
+          { field: 'work_experience', value: 'SQL 基础查询', relevance: '真实锚点' },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/role-transition/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          profile: '3年互联网运营经验，熟悉用户增长和数据分析，掌握 SQL 基础查询',
+          target_role: '产品经理',
+        });
+
+      expect(res.status).toBe(200);
+      const evidence = res.body.evidence_used as Array<{ field: string; value: string }>;
+      // fabricated suffix value must be pruned — full string "SQL 基础查询（包含高级窗口函数）" not in profile
+      const prefixBypass = evidence.find((e) => e.value.includes('高级窗口函数'));
+      expect(prefixBypass).toBeUndefined();
+      // genuine full-match value must be kept
+      const genuine = evidence.find((e) => e.value === 'SQL 基础查询');
+      expect(genuine).toBeDefined();
+    });
   });
 
   // ── GUARD 4: gap_severity normalization ──────────────────────────────────
