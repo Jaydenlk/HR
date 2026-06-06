@@ -2,11 +2,697 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import type { Application } from '@/lib/types';
+import type {
+  Application,
+  ApplicationStrategyRequest,
+  ApplicationStrategyResult,
+  ApplicationCompanyTier,
+} from '@/lib/types';
 import { TrackerStats } from '@/components/tracker/tracker-stats';
 import { KanbanBoard } from '@/components/tracker/kanban-board';
 import { ApplicationForm } from '@/components/tracker/application-form';
-import { Plus, Briefcase } from 'lucide-react';
+import {
+  Plus,
+  Briefcase,
+  Target,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  AlertCircle,
+  LayoutList,
+} from 'lucide-react';
+
+// ─── Strategy panel ───────────────────────────────────────────────────────────
+
+type StrategyState = 'idle' | 'loading' | 'done' | 'error' | 'insufficient';
+
+const TIER_LABELS: Record<ApplicationCompanyTier['tier'], string> = {
+  stretch: '冲刺目标',
+  target: '核心目标',
+  safety: '保底目标',
+};
+
+const TIER_COLORS: Record<ApplicationCompanyTier['tier'], string> = {
+  stretch: 'var(--color-warn)',
+  target: 'var(--color-brand)',
+  safety: 'var(--color-success, #16a34a)',
+};
+
+function StrategyPanel() {
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<StrategyState>('idle');
+  const [result, setResult] = useState<ApplicationStrategyResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [form, setForm] = useState<ApplicationStrategyRequest>({
+    user_profile: '',
+    application_timeline: '',
+    current_applications: [],
+  });
+  const [appsInput, setAppsInput] = useState('');
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.user_profile.trim()) return;
+
+    setState('loading');
+    setError(null);
+    setResult(null);
+
+    try {
+      const current_applications = appsInput
+        .split(/[，,\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const data = await api.post<ApplicationStrategyResult>('/applications/strategy', {
+        user_profile: form.user_profile,
+        application_timeline: form.application_timeline || undefined,
+        current_applications: current_applications.length > 0 ? current_applications : undefined,
+      });
+
+      if (data.confidence === 'insufficient') {
+        setState('insufficient');
+      } else {
+        setState('done');
+      }
+      setResult(data);
+    } catch (err) {
+      setState('error');
+      setError(err instanceof Error ? err.message : '生成失败，请稍后重试');
+    }
+  }
+
+  function handleReset() {
+    setState('idle');
+    setResult(null);
+    setError(null);
+  }
+
+  return (
+    <div
+      style={{
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-line)',
+        borderRadius: '14px',
+        marginBottom: '20px',
+        flexShrink: 0,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Collapsible header */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 20px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+          <Target size={16} color="var(--color-brand)" />
+          <span
+            style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              color: 'var(--color-ink)',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            制定投递策略
+          </span>
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--color-ink-4)',
+              fontWeight: 500,
+              padding: '2px 8px',
+              background: 'var(--color-surface-2)',
+              borderRadius: '5px',
+            }}
+          >
+            AI 生成
+          </span>
+        </div>
+        {open ? (
+          <ChevronUp size={15} color="var(--color-ink-3)" />
+        ) : (
+          <ChevronDown size={15} color="var(--color-ink-3)" />
+        )}
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--color-line-2)' }}>
+          {/* Form — visible when idle */}
+          {(state === 'idle' || state === 'error') && (
+            <form onSubmit={handleSubmit} style={{ marginTop: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      color: 'var(--color-ink-2)',
+                      marginBottom: '5px',
+                    }}
+                  >
+                    用户画像 <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  </label>
+                  <textarea
+                    value={form.user_profile}
+                    onChange={(e) => setForm((f) => ({ ...f, user_profile: e.target.value }))}
+                    placeholder="例：应届本科生，计算机专业，有2段后端实习，熟悉Java/Spring，目标互联网后端岗位，期望城市上海"
+                    required
+                    rows={3}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid var(--color-line)',
+                      fontSize: '13px',
+                      color: 'var(--color-ink)',
+                      background: 'var(--color-surface)',
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                      fontFamily: 'inherit',
+                      lineHeight: 1.5,
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      color: 'var(--color-ink-2)',
+                      marginBottom: '5px',
+                    }}
+                  >
+                    投递时间安排
+                    <span style={{ fontWeight: 400, color: 'var(--color-ink-4)', marginLeft: '4px' }}>
+                      （可选）
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.application_timeline}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, application_timeline: e.target.value }))
+                    }
+                    placeholder="例：秋招，截止11月底"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid var(--color-line)',
+                      fontSize: '13px',
+                      color: 'var(--color-ink)',
+                      background: 'var(--color-surface)',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      color: 'var(--color-ink-2)',
+                      marginBottom: '5px',
+                    }}
+                  >
+                    当前在投公司
+                    <span style={{ fontWeight: 400, color: 'var(--color-ink-4)', marginLeft: '4px' }}>
+                      （可选，逗号分隔）
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={appsInput}
+                    onChange={(e) => setAppsInput(e.target.value)}
+                    placeholder="例：字节跳动，腾讯，美团"
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid var(--color-line)',
+                      fontSize: '13px',
+                      color: 'var(--color-ink)',
+                      background: 'var(--color-surface)',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                {state === 'error' && error && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      background: 'var(--color-danger-soft)',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <AlertCircle size={14} color="var(--color-danger)" style={{ marginTop: '1px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '12.5px', color: 'var(--color-danger)', lineHeight: 1.5 }}>
+                      {error}
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={!form.user_profile.trim()}
+                  style={{
+                    alignSelf: 'flex-start',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '9px 18px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    background: 'var(--color-brand)',
+                    color: '#fff',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    opacity: form.user_profile.trim() ? 1 : 0.5,
+                    transition: 'background 0.12s',
+                  }}
+                >
+                  <Target size={14} />
+                  生成策略
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Loading state */}
+          {state === 'loading' && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '24px 0',
+                color: 'var(--color-ink-3)',
+                fontSize: '13.5px',
+              }}
+            >
+              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              AI 正在分析画像，生成个性化投递策略…
+            </div>
+          )}
+
+          {/* Insufficient state */}
+          {state === 'insufficient' && result && (
+            <div style={{ marginTop: '16px' }}>
+              <div
+                style={{
+                  padding: '14px 16px',
+                  background: 'var(--color-warn-soft)',
+                  borderRadius: '10px',
+                  marginBottom: '12px',
+                }}
+              >
+                <p
+                  style={{
+                    margin: '0 0 8px',
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    color: 'var(--color-ink)',
+                  }}
+                >
+                  画像信息不足，无法生成完整策略
+                </p>
+                <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
+                  {result.summary}
+                </p>
+              </div>
+              {result.follow_up_questions.length > 0 && (
+                <div>
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--color-ink-3)',
+                      marginBottom: '6px',
+                      letterSpacing: '0.02em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    需要补充
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                    {result.follow_up_questions.map((q, i) => (
+                      <li
+                        key={i}
+                        style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
+                      >
+                        {q}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <button
+                onClick={handleReset}
+                style={{
+                  marginTop: '12px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--color-line)',
+                  background: 'transparent',
+                  color: 'var(--color-ink-2)',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                重新填写
+              </button>
+            </div>
+          )}
+
+          {/* Done state — full strategy result */}
+          {state === 'done' && result && (
+            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Summary */}
+              <div
+                style={{
+                  padding: '12px 16px',
+                  background: 'var(--color-brand-soft)',
+                  borderRadius: '10px',
+                }}
+              >
+                <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--color-ink)', lineHeight: 1.6 }}>
+                  {result.summary}
+                </p>
+              </div>
+
+              {/* Company tiers */}
+              {result.target_company_tiers.length > 0 && (
+                <section>
+                  <SectionTitle icon={<Target size={13} />} label="公司分层" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {result.target_company_tiers.map((tier, i) => (
+                      <TierCard key={i} tier={tier} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Application sequence */}
+              {result.application_sequence.length > 0 && (
+                <section>
+                  <SectionTitle icon={<LayoutList size={13} />} label="投递节奏" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {result.application_sequence.map((week, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '100px 1fr',
+                          gap: '12px',
+                          padding: '10px 14px',
+                          background: 'var(--color-surface-2)',
+                          borderRadius: '9px',
+                          alignItems: 'start',
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-ink-2)' }}
+                          >
+                            {week.week}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '10.5px',
+                              color: 'var(--color-ink-4)',
+                              marginTop: '2px',
+                            }}
+                          >
+                            目标 {week.target_count} 份
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '12.5px', color: 'var(--color-ink)', fontWeight: 500 }}>
+                            {week.focus}
+                          </div>
+                          {week.channels.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '5px' }}>
+                              {week.channels.map((ch, ci) => (
+                                <span
+                                  key={ci}
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '2px 7px',
+                                    background: 'var(--color-surface)',
+                                    border: '1px solid var(--color-line)',
+                                    borderRadius: '4px',
+                                    color: 'var(--color-ink-3)',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {ch}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Daily action plan */}
+              {result.daily_action_plan.length > 0 && (
+                <section>
+                  <SectionTitle icon={<LayoutList size={13} />} label="今日行动清单" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    {result.daily_action_plan.map((action, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 14px',
+                          background: 'var(--color-surface-2)',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span
+                            style={{
+                              width: '7px',
+                              height: '7px',
+                              borderRadius: '50%',
+                              background:
+                                action.priority === 'high'
+                                  ? 'var(--color-danger)'
+                                  : action.priority === 'medium'
+                                    ? 'var(--color-warn)'
+                                    : 'var(--color-ink-4)',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={{ fontSize: '12.5px', color: 'var(--color-ink)' }}>
+                            {action.action}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', flexShrink: 0 }}>
+                          {action.time_estimate}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Risk assessment */}
+              {result.risk_assessment.main_risks.length > 0 && (
+                <section>
+                  <SectionTitle icon={<AlertCircle size={13} />} label="风险与应对" />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div
+                      style={{
+                        padding: '12px 14px',
+                        background: 'var(--color-danger-soft)',
+                        borderRadius: '9px',
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: '0 0 6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: 'var(--color-danger)',
+                          letterSpacing: '0.03em',
+                        }}
+                      >
+                        主要风险
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: '14px' }}>
+                        {result.risk_assessment.main_risks.map((r, i) => (
+                          <li
+                            key={i}
+                            style={{ fontSize: '12px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
+                          >
+                            {r}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div
+                      style={{
+                        padding: '12px 14px',
+                        background: 'var(--color-success-soft, #f0fdf4)',
+                        borderRadius: '9px',
+                      }}
+                    >
+                      <p
+                        style={{
+                          margin: '0 0 6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: 'var(--color-success, #16a34a)',
+                          letterSpacing: '0.03em',
+                        }}
+                      >
+                        应对措施
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: '14px' }}>
+                        {result.risk_assessment.mitigation.map((m, i) => (
+                          <li
+                            key={i}
+                            style={{ fontSize: '12px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
+                          >
+                            {m}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              <button
+                onClick={handleReset}
+                style={{
+                  alignSelf: 'flex-start',
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: '1.5px solid var(--color-line)',
+                  background: 'transparent',
+                  color: 'var(--color-ink-3)',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                重新生成
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        marginBottom: '9px',
+        color: 'var(--color-ink-2)',
+      }}
+    >
+      {icon}
+      <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.02em' }}>{label}</span>
+    </div>
+  );
+}
+
+function TierCard({ tier }: { tier: ApplicationCompanyTier }) {
+  return (
+    <div
+      style={{
+        padding: '11px 14px',
+        background: 'var(--color-surface-2)',
+        borderRadius: '10px',
+        borderLeft: `3px solid ${TIER_COLORS[tier.tier]}`,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '4px',
+        }}
+      >
+        <span
+          style={{
+            fontSize: '12px',
+            fontWeight: 700,
+            color: TIER_COLORS[tier.tier],
+            letterSpacing: '0.02em',
+          }}
+        >
+          {TIER_LABELS[tier.tier]}
+        </span>
+      </div>
+      <p style={{ margin: '0 0 4px', fontSize: '12.5px', color: 'var(--color-ink)', fontWeight: 500 }}>
+        {tier.description}
+      </p>
+      <p style={{ margin: '0 0 7px', fontSize: '12px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
+        {tier.rationale}
+      </p>
+      {tier.example_types.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+          {tier.example_types.map((type, i) => (
+            <span
+              key={i}
+              style={{
+                fontSize: '10.5px',
+                padding: '2px 8px',
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-line)',
+                borderRadius: '5px',
+                color: 'var(--color-ink-2)',
+                fontWeight: 500,
+              }}
+            >
+              {type}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -34,23 +720,10 @@ export default function ApplicationsPage() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const [apps, statsData] = await Promise.all([
-          api.get<Application[]>('/applications'),
-          api.get<Record<string, number>>('/applications/stats'),
-        ]);
-        setApplications(apps);
-        setStats(statsData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '加载失败');
-      } finally {
-        setLoading(false);
-      }
+    void (async () => {
+      await fetchData();
     })();
-  }, []);
+  }, [fetchData]);
 
   async function handleCreate(data: Record<string, string>) {
     try {
@@ -160,6 +833,11 @@ export default function ApplicationsPage() {
         {/* Stats */}
         <div style={{ flexShrink: 0 }}>
           <TrackerStats stats={stats} />
+        </div>
+
+        {/* Strategy panel */}
+        <div style={{ flexShrink: 0, marginTop: '16px' }}>
+          <StrategyPanel />
         </div>
 
         {/* Content */}
@@ -288,6 +966,13 @@ export default function ApplicationsPage() {
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </>
   );
 }

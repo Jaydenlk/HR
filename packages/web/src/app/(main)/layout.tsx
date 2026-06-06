@@ -28,6 +28,9 @@ import {
   Route,
   Library,
   Mail,
+  Sparkles,
+  TrendingUp,
+  BookMarked,
 } from 'lucide-react';
 
 interface NavItem {
@@ -77,6 +80,9 @@ function buildToolNav(applicationCount: number): NavItem[] {
     { id: 'question-bank', label: '面试题库', href: '/question-bank', icon: <Library size={16} /> },
     { id: 'follow-up', label: '跟进消息', href: '/follow-up', icon: <Mail size={16} /> },
     { id: 'learning-roadmap', label: '学习路线', href: '/learning-roadmap', icon: <Route size={16} /> },
+    { id: 'personal-brand', label: '个人品牌', href: '/personal-brand', icon: <Sparkles size={16} /> },
+    { id: 'industry-trend', label: '行业趋势', href: '/industry-trend', icon: <TrendingUp size={16} /> },
+    { id: 'education-path', label: '读研vs就业', href: '/education-path', icon: <BookMarked size={16} /> },
   ];
 }
 

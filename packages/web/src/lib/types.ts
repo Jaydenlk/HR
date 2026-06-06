@@ -1231,3 +1231,280 @@ export interface FollowUpResult {
   timing_advice: FollowUpTimingAdvice;
   tone_guide: FollowUpToneGuide;
 }
+
+// ─── Personal brand types ─────────────────────────────────────────────────────
+
+export type BrandType = 'technical_depth' | 'industry_insight' | 'career_experience';
+export type BrandFocus = BrandType | 'auto';
+export type PlatformPriority = 'high' | 'medium' | 'low';
+export type ContentFormat = 'article' | 'tutorial' | 'case_study' | 'opinion' | 'thread';
+
+export interface BrandEvidenceItem {
+  field: string;
+  value: string;
+  relevance: string;
+}
+
+export interface BrandStrategy {
+  type: BrandType;
+  positioning: string;
+  evidence_basis: string[];
+}
+
+export interface PlatformAction {
+  platform: string;
+  action: string;
+  priority: PlatformPriority;
+  rationale: string;
+}
+
+export interface ContentIdea {
+  title: string;
+  angle: string;
+  source_experience: string;
+  format?: ContentFormat;
+}
+
+export interface ProfileOptimization {
+  platform: string;
+  current_issue: string;
+  suggested_change: string;
+}
+
+export interface BrandStrategyResult {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
+  evidence_used: BrandEvidenceItem[];
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  brand_strategy: BrandStrategy;
+  platform_actions: PlatformAction[];
+  content_ideas: ContentIdea[];
+  profile_optimization: ProfileOptimization[];
+}
+
+export interface BrandStrategyRequest {
+  profile: Record<string, unknown>;
+  brand_focus?: BrandFocus;
+  target_audience?: string;
+}
+
+export type ProjectSize = 'small' | 'medium' | 'large';
+
+export interface ProjectIdea {
+  title: string;
+  description: string;
+  skills_demonstrated: string[];
+  size: ProjectSize;
+  estimated_weeks: number;
+  interview_talking_points: string[];
+  evidence_basis: string;
+  github_visibility?: boolean;
+}
+
+export interface AntiPattern {
+  pattern: string;
+  reason: string;
+}
+
+export interface PortfolioAdviceResult {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
+  evidence_used: BrandEvidenceItem[];
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  project_ideas: ProjectIdea[];
+  anti_patterns: AntiPattern[];
+}
+
+export interface PortfolioAdviceRequest {
+  profile: Record<string, unknown>;
+  skill_gaps?: string[];
+}
+
+// ── Industry Trend ─────────────────────────────────────────────────────────────
+
+export type IndustryTrendConfidence = 'high' | 'medium' | 'low' | 'insufficient';
+export type IndustryHiringOutlook = 'strong' | 'growing' | 'stable' | 'declining' | 'contracting' | 'unknown';
+export type SignalStrength = 'strong' | 'moderate' | 'weak';
+export type SignalSeverity = 'high' | 'medium' | 'low';
+export type DemandLevel = 'high' | 'medium' | 'low' | 'unknown';
+
+export interface IndustryGrowthSignal {
+  signal: string;
+  strength: SignalStrength;
+  source: string;
+  date: string;
+}
+
+export interface IndustryRiskSignal {
+  signal: string;
+  severity: SignalSeverity;
+  source: string;
+  date: string;
+}
+
+export interface IndustryEntryRole {
+  role_name: string;
+  rationale: string;
+  demand_level: DemandLevel;
+}
+
+export interface IndustryTrendResult {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: IndustryTrendConfidence;
+  evidence_used: Array<{ source: string; url?: string; date?: string }>;
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  trend_summary: string;
+  growth_signals: IndustryGrowthSignal[];
+  risk_signals: IndustryRiskSignal[];
+  hiring_outlook: IndustryHiringOutlook;
+  recommended_entry_roles: IndustryEntryRole[];
+  market_radar_used: boolean;
+}
+
+// ─── Application Strategy ─────────────────────────────────────────────────────
+
+export interface ApplicationStrategyRequest {
+  user_profile: string;
+  application_timeline?: string;
+  current_applications?: string[];
+}
+
+export interface ApplicationCompanyTier {
+  tier: 'stretch' | 'target' | 'safety';
+  description: string;
+  rationale: string;
+  example_types: string[];
+  priority?: number;
+}
+
+export interface ApplicationSequenceWeek {
+  week: string;
+  focus: string;
+  target_count: number;
+  channels: string[];
+}
+
+export interface ApplicationDailyAction {
+  action: string;
+  time_estimate: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface ApplicationRiskAssessment {
+  main_risks: string[];
+  mitigation: string[];
+}
+
+export interface ApplicationStrategyResult {
+  skill_name: string;
+  skill_version: string;
+  summary: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
+  evidence_used: Array<{ source: string; content: string }>;
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  target_company_tiers: ApplicationCompanyTier[];
+  application_sequence: ApplicationSequenceWeek[];
+  daily_action_plan: ApplicationDailyAction[];
+  risk_assessment: ApplicationRiskAssessment;
+}
+
+// ─── Education Path types ─────────────────────────────────────────────────────
+
+export type EducationPathConfidence = 'high' | 'medium' | 'low' | 'insufficient';
+export type PathImpact = 'supports_grad_school' | 'supports_work' | 'neutral';
+
+export interface EducationPathAnalysis {
+  path_name: string;
+  pros: string[];
+  cons: string[];
+  feasibility_note: string;
+  opportunity_cost?: string;
+}
+
+export interface EducationPathCriticalFactor {
+  factor: string;
+  user_situation: string;
+  impact: PathImpact;
+}
+
+export interface EducationPathResult {
+  summary: string;
+  confidence: EducationPathConfidence;
+  evidence_used: Array<{ field: string; value: string; relevance: string }>;
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  analysis: EducationPathAnalysis[];
+  recommendation: string;
+  critical_factors: EducationPathCriticalFactor[];
+}
+
+// ─── City × Industry Fit ─────────────────────────────────────────────────────
+
+export interface FitBreakdown {
+  skill_match: number;
+  career_ceiling: number;
+  cost_sustainability: number;
+  constraint_satisfaction: number;
+}
+
+export interface FitMatrixItem {
+  city: string;
+  industry: string;
+  fit_score: number;
+  fit_breakdown: FitBreakdown;
+  evidence_basis: string[];
+}
+
+export interface CostOfLivingItem {
+  city: string;
+  typical_salary_range: string;
+  housing_cost_note: string;
+  purchasing_power_note: string;
+}
+
+export interface IndustryHubItem {
+  city: string;
+  key_companies: string[];
+  cluster_effect: string;
+  career_ceiling: string;
+}
+
+export interface CityIndustryFitResult {
+  summary: string;
+  confidence: 'high' | 'medium' | 'low' | 'insufficient';
+  evidence_used: Array<{ field: string; value: string; relevance: string }>;
+  recommendations: string[];
+  risks: string[];
+  next_actions: string[];
+  follow_up_questions: string[];
+  cannot_determine: string[];
+  fit_matrix: FitMatrixItem[];
+  cost_of_living_impact: CostOfLivingItem[];
+  industry_hub_analysis: IndustryHubItem[];
+  recommendation: string;
+}

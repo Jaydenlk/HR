@@ -3,8 +3,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SalaryService } from './salary.service';
 import { SalaryAnalysisService } from './salary-analysis.service';
+import { CityIndustryFitService } from './city-industry-fit.service';
 import { CreateSalaryEntryDto } from './dto/create-salary-entry.dto';
 import { AnalyzeSalaryDto } from './dto/analyze-salary.dto';
+import { CityIndustryFitDto } from './dto/city-industry-fit.dto';
 
 @Controller('salary')
 @UseGuards(JwtAuthGuard)
@@ -12,6 +14,7 @@ export class SalaryController {
   constructor(
     private readonly salary: SalaryService,
     private readonly analysis: SalaryAnalysisService,
+    private readonly cityIndustryFit: CityIndustryFitService,
   ) {}
 
   @Post()
@@ -31,6 +34,12 @@ export class SalaryController {
   @Post('analyze')
   analyze(@Body() dto: AnalyzeSalaryDto) {
     return this.analysis.analyze(dto);
+  }
+
+  // IMPORTANT: /city-industry-fit must be before /:id to avoid route collision
+  @Post('city-industry-fit')
+  cityIndustryFitAnalyze(@Body() dto: CityIndustryFitDto) {
+    return this.cityIndustryFit.analyze(dto);
   }
 
   @Get()

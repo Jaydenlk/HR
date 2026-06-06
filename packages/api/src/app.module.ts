@@ -29,6 +29,9 @@ import { InterviewPrepModule } from './interview-prep/interview-prep.module';
 import { LearningRoadmapModule } from './learning-roadmap/learning-roadmap.module';
 import { QuestionBankModule } from './question-bank/question-bank.module';
 import { FollowUpModule } from './follow-up/follow-up.module';
+import { PersonalBrandModule } from './personal-brand/personal-brand.module';
+import { IndustryTrendModule } from './industry-trend/industry-trend.module';
+import { EducationPathModule } from './education-path/education-path.module';
 
 @Module({
   imports: [
@@ -83,6 +86,9 @@ import { FollowUpModule } from './follow-up/follow-up.module';
     LearningRoadmapModule,
     QuestionBankModule,
     FollowUpModule,
+    PersonalBrandModule,
+    IndustryTrendModule,
+    EducationPathModule,
   ],
 })
 export class AppModule {}
