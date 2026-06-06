@@ -1,9 +1,13 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AiModule } from '../src/ai/ai.module';
 import { AnalyzerService } from '../src/ai/analyzer.service';
 import { AiService } from '../src/ai/ai.service';
 import { productManagerCampus } from '../src/profession-presets/presets/product-manager-campus';
+import { aiConfig } from '../src/config/ai.config';
+
+const LIVE = process.env.RUN_AI_LIVE === '1';
 
 const RESUME = JSON.stringify({
   basic_info: { name: '张三' },
@@ -40,13 +44,12 @@ describe('AnalyzerService.analyzeAgainstPreset', () => {
 });
 
 // AI live:遵循项目惯例(见 opportunity-ai-probe.spec.ts),ConfigModule.forRoot 加载 .env 的 key 后真跑
-describe('AnalyzerService.analyzeAgainstPreset (AI live)', () => {
+(LIVE ? describe : describe.skip)('AnalyzerService.analyzeAgainstPreset (AI live)', () => {
   let svc: AnalyzerService;
 
   beforeAll(async () => {
     const mod = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true })],
-      providers: [AnalyzerService, AiService],
+      imports: [ConfigModule.forRoot({ isGlobal: true, load: [aiConfig] }), AiModule],
     }).compile();
     svc = mod.get(AnalyzerService);
   });

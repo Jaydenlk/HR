@@ -1,10 +1,14 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AiModule } from '../src/ai/ai.module';
 import { RewriterService } from '../src/ai/rewriter.service';
 import { AiService } from '../src/ai/ai.service';
 import { ProfessionStandardResult } from '../src/common/types';
 import { productManagerCampus } from '../src/profession-presets/presets/product-manager-campus';
+import { aiConfig } from '../src/config/ai.config';
+
+const LIVE = process.env.RUN_AI_LIVE === '1';
 
 const RESUME_TEXT =
   '张三,某大学计算机本科,GPA 3.8。产品实习生:参与某APP需求调研,撰写PRD,推动一个功能上线,次日留存提升15%。';
@@ -163,13 +167,12 @@ describe('RewriterService.suggestAgainstPreset 自检修复层', () => {
 });
 
 // AI live:遵循项目惯例,ConfigModule.forRoot 加载 .env 的 key 后真跑;校验禁止编造(original 必在原文)
-describe('RewriterService.suggestAgainstPreset (AI live)', () => {
+(LIVE ? describe : describe.skip)('RewriterService.suggestAgainstPreset (AI live)', () => {
   let svc: RewriterService;
 
   beforeAll(async () => {
     const mod = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true })],
-      providers: [RewriterService, AiService],
+      imports: [ConfigModule.forRoot({ isGlobal: true, load: [aiConfig] }), AiModule],
     }).compile();
     svc = mod.get(RewriterService);
   });

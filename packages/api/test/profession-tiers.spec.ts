@@ -1,9 +1,13 @@
 import { Test } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
+import { AiModule } from '../src/ai/ai.module';
 import { AnalyzerService } from '../src/ai/analyzer.service';
 import { AiService } from '../src/ai/ai.service';
 import { ProfessionPresetsService } from '../src/profession-presets/profession-presets.service';
 import { ProfessionPreset, ProfessionStandardResult } from '../src/common/types';
+import { aiConfig } from '../src/config/ai.config';
+
+const LIVE = process.env.RUN_AI_LIVE === '1';
 
 /**
  * P1 双难度档验证(AI live,真跑 CloudDreamAI):
@@ -62,14 +66,14 @@ function assertFiveDimsWithWhy(preset: ProfessionPreset, res: ProfessionStandard
   }
 }
 
-describe('Profession dual-tier analyze (AI live)', () => {
+(LIVE ? describe : describe.skip)('Profession dual-tier analyze (AI live)', () => {
   let analyzer: AnalyzerService;
   let presets: ProfessionPresetsService;
 
   beforeAll(async () => {
     const mod = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true })],
-      providers: [AnalyzerService, AiService, ProfessionPresetsService],
+      imports: [ConfigModule.forRoot({ isGlobal: true, load: [aiConfig] }), AiModule],
+      providers: [ProfessionPresetsService],
     }).compile();
     analyzer = mod.get(AnalyzerService);
     presets = mod.get(ProfessionPresetsService);

@@ -2,6 +2,9 @@ import { Test } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { AiModule } from '../src/ai/ai.module';
 import { AiService } from '../src/ai/ai.service';
+import { aiConfig } from '../src/config/ai.config';
+
+const LIVE = process.env.RUN_AI_LIVE === '1';
 
 interface JdProbeResult {
   company: string;
@@ -11,12 +14,12 @@ interface JdProbeResult {
   match_score: number;
 }
 
-describe('CloudDreamAI Structured Output Probe', () => {
+(LIVE ? describe : describe.skip)('CloudDreamAI Structured Output Probe', () => {
   let ai: AiService;
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true }), AiModule],
+      imports: [ConfigModule.forRoot({ isGlobal: true, load: [aiConfig] }), AiModule],
     }).compile();
     ai = module.get(AiService);
   });
