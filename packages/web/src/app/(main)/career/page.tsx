@@ -104,7 +104,7 @@ function PathCard({ path, chosen }: { path: CareerPath; chosen: boolean }) {
             fontWeight: 700,
           }}
         >
-          {path.alumni_count} 人
+          {path.alumni_count != null ? `${path.alumni_count} 人` : '暂无数据'}
         </b>
       </div>
     </div>
@@ -542,7 +542,7 @@ export default function CareerPage() {
                         <div
                           style={{
                             height: '100%',
-                            width: `${Math.min(skill.current, 100)}%`,
+                            width: `${(skill.current / 10) * 100}%`,
                             background: barColor,
                             borderRadius: '3px',
                           }}
@@ -551,7 +551,7 @@ export default function CareerPage() {
                           style={{
                             position: 'absolute',
                             top: '-2px',
-                            left: `${Math.min(skill.needed, 100)}%`,
+                            left: `${(skill.needed / 10) * 100}%`,
                             width: '2px',
                             height: '10px',
                             background: 'var(--color-ink-3)',

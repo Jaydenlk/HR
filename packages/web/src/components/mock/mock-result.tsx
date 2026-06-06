@@ -325,23 +325,21 @@ export function MockResult({ session }: MockResultProps) {
                         </p>
                       </div>
 
-                      {ans.feedback && (
-                        <div
-                          style={{
-                            background: 'var(--color-brand-soft)',
-                            borderRadius: '8px',
-                            padding: '12px 14px',
-                            borderLeft: '3px solid var(--color-brand)',
-                          }}
-                        >
-                          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
-                            AI 点评
-                          </div>
-                          <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6, margin: 0 }}>
-                            {ans.feedback}
-                          </p>
+                      <div
+                        style={{
+                          background: 'var(--color-brand-soft)',
+                          borderRadius: '8px',
+                          padding: '12px 14px',
+                          borderLeft: '3px solid var(--color-brand)',
+                        }}
+                      >
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-brand)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                          AI 点评
                         </div>
-                      )}
+                        <p style={{ fontSize: '13px', color: ans.feedback ? 'var(--color-ink-2)' : 'var(--color-ink-4)', lineHeight: 1.6, margin: 0 }}>
+                          {ans.feedback || '暂无点评'}
+                        </p>
+                      </div>
 
                       {ans.filler_count > 0 && (
                         <div

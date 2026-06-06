@@ -523,7 +523,7 @@ export interface CareerPath {
   fit_pct: number;
   description: string;
   skills: string[];
-  alumni_count: number;
+  alumni_count: number | null;
 }
 
 export interface CareerAnalysis {

@@ -831,7 +831,7 @@ function MarketTable({
             fontSize: '13.5px',
           }}
         >
-          暂无数据，请先运行 seed 脚本导入市场数据
+          市场薪资数据正在完善中，敬请期待
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>

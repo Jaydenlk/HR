@@ -170,12 +170,12 @@ export function MockStage({
           <p
             style={{
               fontSize: '13.5px',
-              color: 'var(--color-ink-2)',
+              color: lastAnswer.feedback ? 'var(--color-ink-2)' : 'var(--color-ink-4)',
               lineHeight: 1.6,
               margin: 0,
             }}
           >
-            {lastAnswer.feedback}
+            {lastAnswer.feedback || '暂无点评'}
           </p>
         </div>
       )}
