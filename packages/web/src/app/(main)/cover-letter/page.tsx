@@ -2,13 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import type { CoverLetter } from '@/lib/types';
+import type { CoverLetter, CoverLetterTone } from '@/lib/types';
 import { RefreshCw, Copy, FileText, Loader2, Plus } from 'lucide-react';
+import { ReferralPanel } from './_referral';
 
-const TONES = [
-  { value: 'professional', label: '专业克制' },
-  { value: 'warm', label: '真诚热情' },
-  { value: 'direct', label: '简短直接' },
+// ─── Top-level tab ────────────────────────────────────────────────────────────
+
+type PageTab = 'cover-letter' | 'referral';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const TONE_LABELS: Record<CoverLetterTone, string> = {
+  professional: '专业克制',
+  warm: '真诚热情',
+  direct: '简短直接',
+};
+
+const TONES: Array<{ value: CoverLetterTone; label: string }> = [
+  { value: 'professional', label: TONE_LABELS.professional },
+  { value: 'warm', label: TONE_LABELS.warm },
+  { value: 'direct', label: TONE_LABELS.direct },
 ];
 
 const LENGTHS = [
@@ -31,7 +44,9 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
 }
 
-export default function CoverLetterPage() {
+// ─── Cover-letter tab content ─────────────────────────────────────────────────
+
+function CoverLetterTab() {
   const [letters, setLetters] = useState<CoverLetter[]>([]);
   const [currentLetter, setCurrentLetter] = useState<CoverLetter | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +57,7 @@ export default function CoverLetterPage() {
   // Form state
   const [company, setCompany] = useState('');
   const [role, setRole] = useState('');
-  const [tone, setTone] = useState('warm');
+  const [tone, setTone] = useState<CoverLetterTone>('warm');
   const [lengthWords, setLengthWords] = useState(350);
   const [jdText, setJdText] = useState('');
 
@@ -68,15 +83,21 @@ export default function CoverLetterPage() {
       setError('请填写目标公司和岗位');
       return;
     }
+    if (jdText.trim().length < 50) {
+      setError('请粘贴 JD 原文（至少 50 字，含岗位职责与要求）——没有 JD，AI 无法针对性撰写');
+      return;
+    }
     setError(null);
     setGenerating(true);
     try {
+      // TODO(#103): 求职信目前仅基于 JD + 公司/岗位/语气生成，尚未接入用户简历。
+      // 待后端开放简历上下文入参后，在此追加 resume 字段实现"简历 × JD"双向定制。
       const letter = await api.post<CoverLetter>('/cover-letters', {
         company,
         role,
         tone,
         length_words: lengthWords,
-        jd_text: jdText || undefined,
+        jd_text: jdText.trim(),
       });
       setCurrentLetter(letter);
       setLetters((prev) => [letter, ...prev]);
@@ -94,7 +115,7 @@ export default function CoverLetterPage() {
     try {
       const letter = await api.post<CoverLetter>(`/cover-letters/${currentLetter.id}/regenerate`, {});
       setCurrentLetter(letter);
-      setLetters((prev) => prev.map((l) => (l.id === letter.id ? letter : l)));
+      setLetters((prev) => [letter, ...prev]);
     } catch (err) {
       setError(err instanceof Error ? err.message : '重新生成失败');
     } finally {
@@ -104,10 +125,19 @@ export default function CoverLetterPage() {
 
   function handleCopy() {
     if (!currentLetter) return;
-    navigator.clipboard.writeText(currentLetter.content).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    if (!navigator.clipboard) {
+      setError('当前环境不支持一键复制，请手动选中正文复制');
+      return;
+    }
+    navigator.clipboard
+      .writeText(currentLetter.content)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {
+        setError('复制失败，请手动选中正文复制');
+      });
   }
 
   const cardStyle: React.CSSProperties = {
@@ -147,84 +177,64 @@ export default function CoverLetterPage() {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        padding: '40px 32px 24px',
         gap: '0',
-        boxSizing: 'border-box',
         overflow: 'hidden',
       }}
     >
-      {/* Header */}
+      {/* Action buttons */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '24px',
+          justifyContent: 'flex-end',
+          marginBottom: '16px',
           flexShrink: 0,
+          gap: '8px',
         }}
       >
-        <div>
-          <h1
-            style={{
-              fontSize: '24px',
-              fontWeight: 700,
-              color: 'var(--color-ink)',
-              letterSpacing: '-0.4px',
-              marginBottom: '4px',
-            }}
-          >
-            求职信
-          </h1>
-          <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)' }}>
-            针对 JD 量身定制 · 三种语气可选
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {currentLetter && (
-            <>
-              <button
-                onClick={handleRegenerate}
-                disabled={generating}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '9px 16px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--color-line)',
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-ink)',
-                  fontSize: '13.5px',
-                  fontWeight: 600,
-                  cursor: generating ? 'not-allowed' : 'pointer',
-                  opacity: generating ? 0.6 : 1,
-                }}
-              >
-                <RefreshCw size={14} />
-                重新生成
-              </button>
-              <button
-                onClick={handleCopy}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '9px 16px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--color-line)',
-                  background: 'var(--color-surface)',
-                  color: copied ? 'var(--color-success)' : 'var(--color-ink)',
-                  fontSize: '13.5px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <Copy size={14} />
-                {copied ? '已复制' : '复制全文'}
-              </button>
-            </>
-          )}
-        </div>
+        {currentLetter && (
+          <>
+            <button
+              onClick={handleRegenerate}
+              disabled={generating}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                border: '1px solid var(--color-line)',
+                background: 'var(--color-surface)',
+                color: 'var(--color-ink)',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                cursor: generating ? 'not-allowed' : 'pointer',
+                opacity: generating ? 0.6 : 1,
+              }}
+            >
+              <RefreshCw size={14} />
+              重新生成
+            </button>
+            <button
+              onClick={handleCopy}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                border: '1px solid var(--color-line)',
+                background: 'var(--color-surface)',
+                color: copied ? 'var(--color-success)' : 'var(--color-ink)',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <Copy size={14} />
+              {copied ? '已复制' : '复制全文'}
+            </button>
+          </>
+        )}
       </div>
 
       {/* Main grid */}
@@ -342,7 +352,7 @@ export default function CoverLetterPage() {
             </div>
 
             <div style={{ marginBottom: '18px' }}>
-              <label style={labelStyle}>JD 原文（可选）</label>
+              <label style={labelStyle}>JD 原文（必填 · ≥50 字）</label>
               <textarea
                 style={{
                   ...inputStyle,
@@ -352,7 +362,7 @@ export default function CoverLetterPage() {
                 }}
                 value={jdText}
                 onChange={(e) => setJdText(e.target.value)}
-                placeholder="粘贴职位描述，AI 将针对性定制内容…"
+                placeholder="粘贴完整职位描述（含岗位职责与要求，≥50 字），AI 将针对性定制内容…"
               />
             </div>
 
@@ -454,7 +464,7 @@ export default function CoverLetterPage() {
                           color: 'var(--color-ink)',
                         }}
                       >
-                        v{letter.version} · {letter.tone}
+                        v{letter.version} · {TONE_LABELS[letter.tone] ?? letter.tone}
                         {letter.length_words ? ` · ${letter.length_words} 字` : ''}
                       </div>
                       <div
@@ -598,6 +608,122 @@ export default function CoverLetterPage() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function CoverLetterPage() {
+  const [activeTab, setActiveTab] = useState<PageTab>('cover-letter');
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        padding: '40px 32px 24px',
+        gap: '0',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          flexShrink: 0,
+          marginBottom: '20px',
+        }}
+      >
+        <h1
+          style={{
+            fontSize: '24px',
+            fontWeight: 700,
+            color: 'var(--color-ink)',
+            letterSpacing: '-0.4px',
+            marginBottom: '4px',
+          }}
+        >
+          求职信
+        </h1>
+        <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)' }}>
+          基于 JD 针对性撰写 · 三种语气可选
+        </p>
+      </div>
+
+      {/* Top-level tab bar */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '4px',
+          padding: '4px',
+          background: 'var(--color-surface-2)',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          flexShrink: 0,
+          width: 'fit-content',
+        }}
+      >
+        <button
+          onClick={() => setActiveTab('cover-letter')}
+          style={{
+            padding: '8px 20px',
+            borderRadius: '9px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '13.5px',
+            fontWeight: activeTab === 'cover-letter' ? 700 : 500,
+            background: activeTab === 'cover-letter' ? 'var(--color-surface)' : 'transparent',
+            color: activeTab === 'cover-letter' ? 'var(--color-ink)' : 'var(--color-ink-3)',
+            boxShadow: activeTab === 'cover-letter' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            fontFamily: 'inherit',
+            transition: 'all 0.12s',
+          }}
+        >
+          求职信
+        </button>
+        <button
+          onClick={() => setActiveTab('referral')}
+          style={{
+            padding: '8px 20px',
+            borderRadius: '9px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '13.5px',
+            fontWeight: activeTab === 'referral' ? 700 : 500,
+            background: activeTab === 'referral' ? 'var(--color-surface)' : 'transparent',
+            color: activeTab === 'referral' ? 'var(--color-ink)' : 'var(--color-ink-3)',
+            boxShadow: activeTab === 'referral' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            fontFamily: 'inherit',
+            transition: 'all 0.12s',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          内推推测
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              padding: '1px 6px',
+              borderRadius: '999px',
+              background: activeTab === 'referral' ? 'var(--color-brand)' : 'var(--color-surface-3)',
+              color: activeTab === 'referral' ? '#fff' : 'var(--color-ink-3)',
+              letterSpacing: '0.02em',
+              lineHeight: '1.6',
+            }}
+          >
+            Beta
+          </span>
+        </button>
+      </div>
+
+      {/* Tab content */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {activeTab === 'cover-letter' ? <CoverLetterTab /> : <ReferralPanel />}
       </div>
 
       <style>{`

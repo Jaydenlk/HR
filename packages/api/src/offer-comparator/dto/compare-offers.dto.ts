@@ -5,7 +5,9 @@ import {
   IsArray,
   ValidateNested,
   Min,
+  Max,
   MinLength,
+  MaxLength,
   ArrayMinSize,
   IsObject,
 } from 'class-validator';
@@ -13,18 +15,26 @@ import { Type } from 'class-transformer';
 
 export class OfferWeightsDto {
   @IsNumber()
+  @Min(0)
+  @Max(1)
   @IsOptional()
   compensation?: number;
 
   @IsNumber()
+  @Min(0)
+  @Max(1)
   @IsOptional()
   growth?: number;
 
   @IsNumber()
+  @Min(0)
+  @Max(1)
   @IsOptional()
   stability?: number;
 
   @IsNumber()
+  @Min(0)
+  @Max(1)
   @IsOptional()
   work_life_balance?: number;
 }
@@ -45,11 +55,13 @@ export class OfferItemDto {
 
   /** 年薪月数（如 13、14、15），默认 12 */
   @IsNumber()
+  @Min(1)
   @IsOptional()
   months_per_year?: number;
 
   /** 年终奖（元），未知时省略 */
   @IsNumber()
+  @Min(0)
   @IsOptional()
   annual_bonus?: number;
 
@@ -65,26 +77,32 @@ export class OfferItemDto {
 
   /** 周工时，未知时省略（影响 hourly_rate） */
   @IsNumber()
+  @Min(1)
   @IsOptional()
   weekly_hours?: number;
 
   /** 试用期折扣比例（0~1），如 0.8 = 8折，未知省略 */
   @IsNumber()
+  @Min(0)
+  @Max(1)
   @IsOptional()
   probation_discount?: number;
 
   /** 试用期月数，未知省略 */
   @IsNumber()
+  @Min(0)
   @IsOptional()
   probation_months?: number;
 
   /** 五险一金公司部分月缴（元），未知省略 */
   @IsNumber()
+  @Min(0)
   @IsOptional()
   social_insurance_monthly?: number;
 
   /** RSU/期权年均价值（元），未知省略 */
   @IsNumber()
+  @Min(0)
   @IsOptional()
   equity_annual?: number;
 
@@ -113,6 +131,8 @@ export class CompareOffersDto {
   weights?: OfferWeightsDto;
 
   @IsArray()
+  @IsString({ each: true })
+  @MaxLength(200, { each: true })
   @IsOptional()
   user_priorities?: string[];
 }

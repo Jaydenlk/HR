@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AiService } from '../ai/ai.service';
 import { ApplicationsService } from '../applications/applications.service';
 import { GenerateFollowUpDto, FollowUpScenario } from './dto/generate-follow-up.dto';
@@ -35,8 +35,104 @@ export interface FollowUpResult {
 
 // ── Forbidden words that must not appear in message_draft ─────────────────────
 
-// Explicit urging phrases — must NOT match compound words like 焦急/紧急/急需
-const FORBIDDEN_PATTERNS = [/尽快/g, /马上/g, /很急/g, /十分急/g, /非常急/g, /尽快回复/g, /快点/g];
+// 明确的催促词组（多字），按句界整句删除。
+// 独立单字「急」另行处理（见 STANDALONE_URGE_PATTERN）：
+//   复合词（加急/应急/救急/心急/情急/焦急/紧急/急需/急切/性急/告急/求急 等）均为合法词，
+//   不可整句删除；故单字「急」只做 confidence 降级 + risks 标注，不做删段（finding #83）。
+const FORBIDDEN_PATTERNS: RegExp[] = [
+  /尽快回复/g,
+  /尽快/g,
+  /马上/g,
+  /很急/g,
+  /十分急/g,
+  /非常急/g,
+  /快点/g,
+];
+
+// 独立催促「急」检测：前后均非构词字时才算真正的独立催促语气。
+// lookbehind 排除：加/应/救/心/情/焦/紧/着/危/緊/性/告/求/事/应（繁）
+// lookahead  排除：需/切/促/迫/忙/于/速/性/救/告
+// 命中时不删段，仅触发 confidence 降级 + risks 标注（finding #83）。
+const STANDALONE_URGE_PATTERN =
+  /(?<![加应救心情焦紧着危緊性告求事])急(?![需切促迫忙于速性救告])/;
+
+// ── Placeholder / fabrication markers (thank_you 占位式编造检测) ───────────────
+
+// AI 在缺面试细节时若仍写出「我们讨论了X」「您提到的X」等内容，需判定为占位式编造。
+// 占位符（[您提到的X话题] 等方括号）= 合规留白；裸写的「讨论/提到」+ 无实质细节 = 编造。
+const FABRICATION_MARKERS = ['我们讨论了', '您提到的', '我们谈到', '您分享的', '我们聊到'];
+const PLACEHOLDER_PATTERN = /[【\[][^】\]]*[】\]]/; // 含方括号占位符即视为合规留白
+
+// 小句分隔符（含逗号）— 催促词剔除以「最小句段」为单位，保留无催促词的相邻小句
+const CLAUSE_DELIMITERS = /([。！？!?；;，,])/;
+
+// ── Text guards (module-level pure helpers) ─────────────────────────────────────
+
+/**
+ * 删除含催促词的整个最小句段，而非裸删两字（finding #6）。
+ * 按句界切分，逐句检测：命中任一禁用 pattern → 丢弃整句；其余原样保留。
+ * 末尾若被删句导致缺标点，补回中文句号保持成文。
+ */
+function stripForbiddenSegments(text: string): { text: string; stripped: boolean } {
+  // 切分为 [小句, 分隔符, 小句, 分隔符, ...]，保留分隔符以便重组
+  const parts = text.split(CLAUSE_DELIMITERS);
+  const kept: string[] = [];
+  let stripped = false;
+
+  for (let i = 0; i < parts.length; i += 2) {
+    const clause = parts[i] ?? '';
+    const delimiter = parts[i + 1] ?? '';
+    if (clause === '' && delimiter === '') continue;
+
+    const hasForbidden = FORBIDDEN_PATTERNS.some((p) => {
+      p.lastIndex = 0; // 全局正则需复位，避免 test() 受 lastIndex 影响
+      return p.test(clause);
+    });
+
+    if (hasForbidden) {
+      stripped = true;
+      continue; // 丢弃整个最小句段（含其后分隔符），不裸删两字
+    }
+    kept.push(clause + delimiter);
+  }
+
+  let result = kept.join('').trim();
+  // 删段后若结尾遗留逗号，规整为中文句号；若无任何句末标点则补句号，保持成文
+  result = result.replace(/[，,]+$/, '');
+  if (stripped && result.length > 0 && !/[。！？!?；;]$/.test(result)) {
+    result += '。';
+  }
+  return { text: result, stripped };
+}
+
+/**
+ * 按句界截断到 ≤ limit 字（finding #42）。
+ * 优先在最后一个完整句界处截断；若首句已超长则在末逗号处截断；
+ * 仍无可用标点时才硬切。截断后保证结果 ≤ limit。
+ */
+function truncateToSentence(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+
+  const window = text.slice(0, limit);
+  // 1) 优先句末标点
+  const sentenceEnd = Math.max(
+    window.lastIndexOf('。'),
+    window.lastIndexOf('！'),
+    window.lastIndexOf('？'),
+    window.lastIndexOf('!'),
+    window.lastIndexOf('?'),
+    window.lastIndexOf('；'),
+    window.lastIndexOf(';'),
+  );
+  if (sentenceEnd >= 0) return window.slice(0, sentenceEnd + 1);
+
+  // 2) 退而求其次：逗号断句
+  const commaEnd = Math.max(window.lastIndexOf('，'), window.lastIndexOf(','));
+  if (commaEnd >= 0) return window.slice(0, commaEnd + 1);
+
+  // 3) 无任何标点 → 硬切（仍保证 ≤ limit）
+  return window;
+}
 
 // ── Per-scenario system hints ─────────────────────────────────────────────────
 
@@ -80,12 +176,17 @@ export class FollowUpService {
   ) {}
 
   async generate(dto: GenerateFollowUpDto, userId: string): Promise<FollowUpResult> {
-    // Ownership check: if application_id provided, verify it belongs to the calling user
+    // Ownership check: if application_id provided, verify it belongs to the calling user.
+    // 仅将「不存在/不属于本人」(NotFound/Forbidden) 归一为 403（防泄露存在性）；
+    // 其他异常（如 DB 故障）原样抛出 → 500，避免把真实错误伪装成 403（finding #43）。
     if (dto.application_id) {
       try {
         await this.applications.findOne(dto.application_id, userId);
-      } catch {
-        throw new ForbiddenException('application_id does not belong to current user');
+      } catch (err) {
+        if (err instanceof NotFoundException || err instanceof ForbiddenException) {
+          throw new ForbiddenException('application_id does not belong to current user');
+        }
+        throw err;
       }
     }
 
@@ -103,40 +204,76 @@ export class FollowUpService {
   // ── 服务端确定性 guard ────────────────────────────────────────────────────
 
   private applyGuards(result: FollowUpResult, dto: GenerateFollowUpDto): FollowUpResult {
-    let { message_draft, confidence } = result;
+    let confidence = result.confidence;
+    const cannot_determine: string[] = [...(result.cannot_determine ?? [])];
+    const risks: string[] = [...(result.risks ?? [])];
 
-    // Guard 1: 感谢信缺实质性面试细节 → confidence 降为 medium/low
-    // 判定"实质性"：interview_details 必须有 10 个字以上非空格内容
+    // Guard 0: message_draft 类型守卫 — 非字符串(缺失/null/对象) → insufficient + 空草稿
+    // 避免后续 .replace/.length 抛 TypeError → 500（finding #5）
+    if (typeof result.message_draft !== 'string') {
+      return {
+        ...result,
+        message_draft: '',
+        confidence: 'insufficient',
+        cannot_determine: [...cannot_determine, 'AI 未返回有效消息正文'],
+        risks,
+      };
+    }
+
+    let message_draft = result.message_draft;
+
+    // Guard 1: 感谢信防编造 + 缺细节降级（findings #41, #113）
     if (dto.scenario === 'thank_you') {
       const hasSubstantialDetails =
         typeof dto.interview_details === 'string' &&
         dto.interview_details.trim().length >= 10;
 
-      if (!hasSubstantialDetails && (confidence === 'high')) {
-        confidence = 'medium';
+      // 占位式编造检测：缺实质细节却仍写出「我们讨论了X / 您提到的X」且无方括号占位
+      // → 该内容为编造，降到 insufficient 并标注（finding #113）。
+      const hasFabrication =
+        FABRICATION_MARKERS.some((m) => message_draft.includes(m)) &&
+        !PLACEHOLDER_PATTERN.test(message_draft);
+
+      if (!hasSubstantialDetails && hasFabrication) {
+        confidence = 'insufficient';
+        cannot_determine.push('感谢信引用了未提供的面试细节，已判定为占位式编造');
+        risks.push('草稿包含无法核实的面试内容，发送前必须替换为真实细节');
+      } else if (!hasSubstantialDetails && (confidence === 'high' || confidence === 'medium')) {
+        // 无实质细节但无编造：仍不可达 high；保守降到 low（finding #41）
+        confidence = 'low';
+        if (!cannot_determine.some((c) => c.includes('面试细节'))) {
+          cannot_determine.push('未提供充分面试细节，无法生成高置信度的个性化感谢信');
+        }
       }
     }
 
-    // Guard 2: 禁用催促短语检测 — 从 message_draft 中剔除明确催促词组，保留合法复合词
-    for (const pattern of FORBIDDEN_PATTERNS) {
-      message_draft = message_draft.replace(pattern, '');
+    // Guard 2: 禁用催促短语 — 按句界删除含催促词的最小句段，不在成品裸删两字（finding #6）
+    const stripResult = stripForbiddenSegments(message_draft);
+    message_draft = stripResult.text;
+    if (stripResult.stripped) {
+      if (!risks.some((r) => r.includes('催促'))) {
+        risks.push('原草稿含催促语气，已删除相关句段，请复核语义完整性');
+      }
+      if (confidence === 'high') confidence = 'medium';
     }
 
-    // Guard 3: 除 offer 回复(offer_urge/acceptance)外，message_draft ≤ 150 字
+    // Guard 2b: 独立催促「急」— 不删段（避免误删加急/应急/救急/心急/情急等合法复合词所在句），
+    // 仅触发 confidence 降级 + risks 标注（finding #83）。
+    STANDALONE_URGE_PATTERN.lastIndex = 0;
+    if (STANDALONE_URGE_PATTERN.test(message_draft)) {
+      if (!risks.some((r) => r.includes('催促'))) {
+        risks.push('原草稿含催促语气（急），建议复核措辞');
+      }
+      if (confidence === 'high') confidence = 'medium';
+    }
+
+    // Guard 3: 长度限制 — 除 offer 场景外 ≤ 150 字，按句界截断；剔除催促词后复检（finding #42）
     const LIMIT_SCENARIOS: FollowUpScenario[] = ['thank_you', 'status_inquiry', 'rejection_reply'];
-    if (LIMIT_SCENARIOS.includes(dto.scenario) && message_draft.length > 150) {
-      // Truncate at last sentence boundary ≤ 150 chars
-      const truncated = message_draft.slice(0, 150);
-      const lastPunct = Math.max(
-        truncated.lastIndexOf('。'),
-        truncated.lastIndexOf('！'),
-        truncated.lastIndexOf('？'),
-        truncated.lastIndexOf('，'),
-      );
-      message_draft = lastPunct > 80 ? truncated.slice(0, lastPunct + 1) : truncated;
+    if (LIMIT_SCENARIOS.includes(dto.scenario)) {
+      message_draft = truncateToSentence(message_draft, 150);
     }
 
-    return { ...result, message_draft, confidence };
+    return { ...result, message_draft, confidence, cannot_determine, risks };
   }
 
   // ── Prompt builders ───────────────────────────────────────────────────────

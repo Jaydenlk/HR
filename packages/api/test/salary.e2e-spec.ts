@@ -192,6 +192,66 @@ describe('Salary (e2e)', () => {
     });
   });
 
+  // ─── GET /api/salary/stats — 小样本隐私收口(#59) ────────────────────────────
+  // count<3 的聚合等同于暴露单条记录，avg_base/avg_total 必须置 null（仅保留 count）；
+  // count>=3 才返回精确均值。
+  describe('GET /api/salary/stats — small-sample privacy (#59)', () => {
+    // 唯一后缀:确保本组聚合 count 只数本次插入(即便 DB 隔离失效也确定性,不受历史/并发数据干扰)
+    const RUN = Date.now();
+    const SMALL_CO = `Tiny Sample Co #59 ${RUN}`;
+    const SMALL_ROLE = 'Solo Engineer';
+    const BIG_CO = `Big Sample Co #59 ${RUN}`;
+    const BIG_ROLE = 'Crowd Engineer';
+
+    beforeAll(async () => {
+      // 单条记录的公司/岗位 → 小样本(count=1)
+      await request(app.getHttpServer())
+        .post('/api/salary')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: SMALL_CO, role: SMALL_ROLE, base_salary: 123456, total_comp: 234567 });
+
+      // 同一公司/岗位 3 条 → 大样本(count>=3)
+      for (let i = 0; i < 3; i++) {
+        await request(app.getHttpServer())
+          .post('/api/salary')
+          .set('Authorization', `Bearer ${token}`)
+          .send({ company: BIG_CO, role: BIG_ROLE, base_salary: 100000 + i, total_comp: 150000 + i });
+      }
+    });
+
+    it('count<3 group → avg_base/avg_total masked to null (no re-identification)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/salary/stats')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      const small = (res.body as Array<{ company: string; role: string; avg_base: number | null; avg_total: number | null; count: number }>)
+        .find((s) => s.company === SMALL_CO && s.role === SMALL_ROLE);
+      expect(small).toBeDefined();
+      expect(small!.count).toBe(1);
+      // 精确均值必须被置空，否则等于反推出该唯一发布者的薪资
+      expect(small!.avg_base).toBeNull();
+      expect(small!.avg_total).toBeNull();
+      // 绝不能等于发布者真实数字
+      expect(small!.avg_base).not.toBe(123456);
+      expect(small!.avg_total).not.toBe(234567);
+    });
+
+    it('count>=3 group → precise averages still returned', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/salary/stats')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      const big = (res.body as Array<{ company: string; role: string; avg_base: number | null; avg_total: number | null; count: number }>)
+        .find((s) => s.company === BIG_CO && s.role === BIG_ROLE);
+      expect(big).toBeDefined();
+      expect(big!.count).toBeGreaterThanOrEqual(3);
+      expect(typeof big!.avg_base).toBe('number');
+      expect(typeof big!.avg_total).toBe('number');
+    });
+  });
+
   // ─── DELETE /api/salary/:id ───────────────────────────────────────────────
 
   describe('DELETE /api/salary/:id', () => {

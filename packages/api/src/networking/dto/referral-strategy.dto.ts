@@ -1,8 +1,9 @@
-import { IsString, IsOptional, IsArray, ArrayMaxSize, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsArray, ArrayMaxSize, ArrayNotEmpty, MinLength } from 'class-validator';
 
 export class ReferralStrategyDto {
   /** 目标公司（可多个，JSON 数组或单个字符串） */
   @IsArray()
+  @ArrayNotEmpty()
   @IsString({ each: true })
   @ArrayMaxSize(5)
   target_companies: string[];

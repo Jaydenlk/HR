@@ -493,11 +493,13 @@ export interface TrendRadarResponse {
   }>;
 }
 
+export type CoverLetterTone = 'professional' | 'warm' | 'direct';
+
 export interface CoverLetter {
   id: string;
   company: string | null;
   role: string | null;
-  tone: string;
+  tone: CoverLetterTone;
   length_words: number | null;
   content: string;
   version: number;
@@ -857,58 +859,6 @@ export interface SalaryAnalysisResult {
   data_freshness: 'fresh' | 'stale' | 'unavailable';
 }
 
-// ─── Role Transition ──────────────────────────────────────────────────────────
-
-export type RoleTransitionFeasibility = 'high' | 'medium' | 'low' | 'not_feasible';
-export type RoleTransitionConfidence = 'high' | 'medium' | 'low' | 'insufficient';
-export type GapSeverity = 'critical' | 'important' | 'nice_to_have';
-export type SuccessFactorStatus = 'has' | 'partial' | 'missing';
-
-export interface RoleTransitionEvidenceItem {
-  field: string;
-  value: string;
-  relevance: string;
-}
-
-export interface RoleTransitionSkillGap {
-  skill_name: string;
-  current_level: string;
-  required_level: string;
-  gap_severity: GapSeverity;
-  remedy: string;
-  estimated_months: number;
-}
-
-export interface RoleTransitionPath {
-  path_name: string;
-  description: string;
-  duration: string;
-  success_rate_note?: string;
-}
-
-export interface RoleTransitionSuccessFactor {
-  factor: string;
-  user_status: SuccessFactorStatus;
-  evidence?: string;
-}
-
-export interface RoleTransitionResult {
-  feasibility: RoleTransitionFeasibility;
-  feasibility_rationale: string;
-  confidence: RoleTransitionConfidence;
-  summary: string;
-  skill_gap: RoleTransitionSkillGap[];
-  typical_transition_path: RoleTransitionPath[];
-  success_factors: RoleTransitionSuccessFactor[];
-  first_step: string;
-  evidence_used: RoleTransitionEvidenceItem[];
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-}
-
 // ─── Interview Prep (4合1) ──────────────────────────────────────────────────────
 
 export type InterviewPrepConfidence = 'high' | 'medium' | 'low' | 'insufficient';
@@ -1142,57 +1092,6 @@ export interface QuestionItem {
   time_estimate?: number;
 }
 
-export interface QuestionBankCoverage {
-  total_questions: number;
-  by_category: Record<string, number>;
-  estimated_coverage_percentage: number;
-}
-
-export interface QuestionBankGap {
-  area: string;
-  reason: string;
-  workaround?: string;
-}
-
-export interface QuestionBankResult {
-  skill_name: string;
-  skill_version: string;
-  summary: string;
-  confidence: 'high' | 'medium' | 'low' | 'insufficient';
-  evidence_used: unknown[];
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-  question_bank: QuestionItem[];
-  coverage: QuestionBankCoverage;
-  gaps: QuestionBankGap[];
-}
-
-export interface QuestionBankRecord {
-  id: string;
-  company: string;
-  role: string;
-  result: QuestionBankResult;
-  created_at: string;
-}
-
-export interface QuestionBankListItem {
-  id: string;
-  company: string;
-  role: string;
-  summary: string;
-  confidence: 'high' | 'medium' | 'low' | 'insufficient';
-  total_questions: number;
-  created_at: string;
-}
-
-export interface GenerateQuestionBankRequest {
-  company: string;
-  role: string;
-}
-
 // ─── Follow-up message types ──────────────────────────────────────────────────
 
 export type FollowUpScenario =
@@ -1232,106 +1131,6 @@ export interface FollowUpResult {
   tone_guide: FollowUpToneGuide;
 }
 
-// ─── Personal brand types ─────────────────────────────────────────────────────
-
-export type BrandType = 'technical_depth' | 'industry_insight' | 'career_experience';
-export type BrandFocus = BrandType | 'auto';
-export type PlatformPriority = 'high' | 'medium' | 'low';
-export type ContentFormat = 'article' | 'tutorial' | 'case_study' | 'opinion' | 'thread';
-
-export interface BrandEvidenceItem {
-  field: string;
-  value: string;
-  relevance: string;
-}
-
-export interface BrandStrategy {
-  type: BrandType;
-  positioning: string;
-  evidence_basis: string[];
-}
-
-export interface PlatformAction {
-  platform: string;
-  action: string;
-  priority: PlatformPriority;
-  rationale: string;
-}
-
-export interface ContentIdea {
-  title: string;
-  angle: string;
-  source_experience: string;
-  format?: ContentFormat;
-}
-
-export interface ProfileOptimization {
-  platform: string;
-  current_issue: string;
-  suggested_change: string;
-}
-
-export interface BrandStrategyResult {
-  skill_name: string;
-  skill_version: string;
-  summary: string;
-  confidence: 'high' | 'medium' | 'low' | 'insufficient';
-  evidence_used: BrandEvidenceItem[];
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-  brand_strategy: BrandStrategy;
-  platform_actions: PlatformAction[];
-  content_ideas: ContentIdea[];
-  profile_optimization: ProfileOptimization[];
-}
-
-export interface BrandStrategyRequest {
-  profile: Record<string, unknown>;
-  brand_focus?: BrandFocus;
-  target_audience?: string;
-}
-
-export type ProjectSize = 'small' | 'medium' | 'large';
-
-export interface ProjectIdea {
-  title: string;
-  description: string;
-  skills_demonstrated: string[];
-  size: ProjectSize;
-  estimated_weeks: number;
-  interview_talking_points: string[];
-  evidence_basis: string;
-  github_visibility?: boolean;
-}
-
-export interface AntiPattern {
-  pattern: string;
-  reason: string;
-}
-
-export interface PortfolioAdviceResult {
-  skill_name: string;
-  skill_version: string;
-  summary: string;
-  confidence: 'high' | 'medium' | 'low' | 'insufficient';
-  evidence_used: BrandEvidenceItem[];
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-  project_ideas: ProjectIdea[];
-  anti_patterns: AntiPattern[];
-}
-
-export interface PortfolioAdviceRequest {
-  profile: Record<string, unknown>;
-  skill_gaps?: string[];
-}
-
 // ── Industry Trend ─────────────────────────────────────────────────────────────
 
 export type IndustryTrendConfidence = 'high' | 'medium' | 'low' | 'insufficient';
@@ -1342,14 +1141,15 @@ export type DemandLevel = 'high' | 'medium' | 'low' | 'unknown';
 
 export interface IndustryGrowthSignal {
   signal: string;
-  strength: SignalStrength;
+  // 后端 OUTPUT_SCHEMA 未将这些枚举列入 required,AI 可能漏返 → 标为可选,前端必须对 undefined 兜底文案。
+  strength?: SignalStrength;
   source: string;
   date: string;
 }
 
 export interface IndustryRiskSignal {
   signal: string;
-  severity: SignalSeverity;
+  severity?: SignalSeverity;
   source: string;
   date: string;
 }
@@ -1357,7 +1157,7 @@ export interface IndustryRiskSignal {
 export interface IndustryEntryRole {
   role_name: string;
   rationale: string;
-  demand_level: DemandLevel;
+  demand_level?: DemandLevel;
 }
 
 export interface IndustryTrendResult {
@@ -1428,39 +1228,6 @@ export interface ApplicationStrategyResult {
   application_sequence: ApplicationSequenceWeek[];
   daily_action_plan: ApplicationDailyAction[];
   risk_assessment: ApplicationRiskAssessment;
-}
-
-// ─── Education Path types ─────────────────────────────────────────────────────
-
-export type EducationPathConfidence = 'high' | 'medium' | 'low' | 'insufficient';
-export type PathImpact = 'supports_grad_school' | 'supports_work' | 'neutral';
-
-export interface EducationPathAnalysis {
-  path_name: string;
-  pros: string[];
-  cons: string[];
-  feasibility_note: string;
-  opportunity_cost?: string;
-}
-
-export interface EducationPathCriticalFactor {
-  factor: string;
-  user_situation: string;
-  impact: PathImpact;
-}
-
-export interface EducationPathResult {
-  summary: string;
-  confidence: EducationPathConfidence;
-  evidence_used: Array<{ field: string; value: string; relevance: string }>;
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-  analysis: EducationPathAnalysis[];
-  recommendation: string;
-  critical_factors: EducationPathCriticalFactor[];
 }
 
 // ─── City × Industry Fit ─────────────────────────────────────────────────────

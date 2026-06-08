@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 export class BuildRoadmapDto {
   @IsArray()
@@ -18,8 +18,12 @@ export class BuildRoadmapDto {
   @IsOptional()
   weekly_hours?: number;
 
-  /** Preferred output language: 'zh' | 'en' (default: 'zh') */
-  @IsString()
+  /**
+   * Preferred output language. Restricted to 'zh' | 'en' so an invalid value
+   * is rejected with 400 instead of silently falling back to English (#88).
+   * Default is 'zh' (中文 only product).
+   */
+  @IsIn(['zh', 'en'])
   @IsOptional()
-  preferred_language?: string;
+  preferred_language?: 'zh' | 'en';
 }

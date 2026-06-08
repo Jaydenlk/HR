@@ -150,7 +150,9 @@ function ListCard({ title, items }: { title: string; items: string[] }) {
 }
 
 function CannotDetermineCard({ env }: { env: Envelope }) {
-  if (env.cannot_determine.length === 0 && env.follow_up_questions.length === 0) return null;
+  const cannotDetermine = env.cannot_determine ?? [];
+  const followUpQuestions = env.follow_up_questions ?? [];
+  if (cannotDetermine.length === 0 && followUpQuestions.length === 0) return null;
   return (
     <div
       style={{
@@ -166,15 +168,15 @@ function CannotDetermineCard({ env }: { env: Envelope }) {
           数据不足 · 无法确定的部分
         </span>
       </div>
-      {env.cannot_determine.map((c, i) => (
+      {cannotDetermine.map((c, i) => (
         <div key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
           · {c}
         </div>
       ))}
-      {env.follow_up_questions.length > 0 && (
+      {followUpQuestions.length > 0 && (
         <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(245,158,11,0.15)' }}>
           <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '6px' }}>追问建议</div>
-          {env.follow_up_questions.map((q, i) => (
+          {followUpQuestions.map((q, i) => (
             <div key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
               · {q}
             </div>
@@ -187,16 +189,17 @@ function CannotDetermineCard({ env }: { env: Envelope }) {
 
 // 信息不足专用面板（confidence === 'insufficient'）
 function InsufficientPanel({ env }: { env: Envelope }) {
+  const followUpQuestions = env.follow_up_questions ?? [];
   return (
     <div style={{ padding: '16px 18px', background: 'var(--color-surface-2)', borderRadius: '12px', border: '1px solid var(--color-line)' }}>
       <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '8px' }}>
         信息不足，无法生成完整结果
       </div>
       <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', margin: '0 0 10px' }}>{env.summary}</p>
-      {env.follow_up_questions.length > 0 && (
+      {followUpQuestions.length > 0 && (
         <div>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '6px' }}>请补充以下信息后重试：</div>
-          {env.follow_up_questions.map((q, i) => (
+          {followUpQuestions.map((q, i) => (
             <div key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
               · {q}
             </div>
@@ -302,31 +305,45 @@ function TabShell({
 // Tab 1: 公司面试手册
 // ════════════════════════════════════════════════════════════════════════════════
 
-function PlaybookTab() {
-  const [companyName, setCompanyName] = useState('');
-  const [jobTitle, setJobTitle] = useState('');
-  const [intel, setIntel] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<CompanyPlaybookResult | null>(null);
+interface PlaybookState {
+  companyName: string;
+  jobTitle: string;
+  intel: string;
+  loading: boolean;
+  error: string | null;
+  result: CompanyPlaybookResult | null;
+}
+
+const PLAYBOOK_INIT: PlaybookState = {
+  companyName: '',
+  jobTitle: '',
+  intel: '',
+  loading: false,
+  error: null,
+  result: null,
+};
+
+function PlaybookTab({ state, patch }: { state: PlaybookState; patch: (p: Partial<PlaybookState>) => void }) {
+  const { companyName, jobTitle, intel, loading, error, result } = state;
+  const setCompanyName = (v: string) => patch({ companyName: v });
+  const setJobTitle = (v: string) => patch({ jobTitle: v });
+  const setIntel = (v: string) => patch({ intel: v });
 
   async function submit() {
     if (!companyName.trim()) {
-      setError('请填写公司名称');
+      patch({ error: '请填写公司名称' });
       return;
     }
-    setError(null);
-    setLoading(true);
-    setResult(null);
+    patch({ error: null, loading: true, result: null });
     try {
       const payload: CompanyPlaybookRequest = { company_name: companyName.trim() };
       if (jobTitle.trim()) payload.job_title = jobTitle.trim();
       if (intel.trim()) payload.interview_intelligence = { notes: intel.trim() };
-      setResult(await api.post<CompanyPlaybookResult>('/interview-prep/playbook', payload));
+      patch({ result: await api.post<CompanyPlaybookResult>('/interview-prep/playbook', payload) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失败，请稍后重试');
+      patch({ error: err instanceof Error ? err.message : '生成失败，请稍后重试' });
     } finally {
-      setLoading(false);
+      patch({ loading: false });
     }
   }
 
@@ -336,78 +353,90 @@ function PlaybookTab() {
     ) : result ? (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <SummaryCard env={result} />
-        <div style={cardStyle}>
-          {sectionTitle('公司画像')}
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '4px' }}>
-            {result.company_profile.company_name}
-            <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--color-ink-3)' }}>
-              {result.company_profile.stage}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '8px 0' }}>
-            {result.company_profile.culture_keywords.map((k, i) => (
-              <span key={i} style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--color-brand)', background: 'var(--color-surface-2)', padding: '3px 9px', borderRadius: '99px' }}>
-                {k}
+        {result.company_profile ? (
+          <div style={cardStyle}>
+            {sectionTitle('公司画像')}
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '4px' }}>
+              {result.company_profile.company_name}
+              <span style={{ marginLeft: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--color-ink-3)' }}>
+                {result.company_profile.stage}
               </span>
-            ))}
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '8px 0' }}>
+              {(result.company_profile.culture_keywords ?? []).map((k, i) => (
+                <span key={i} style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--color-brand)', background: 'var(--color-surface-2)', padding: '3px 9px', borderRadius: '99px' }}>
+                  {k}
+                </span>
+              ))}
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6, margin: '6px 0 0' }}>
+              {result.company_profile.reputation_summary}
+            </p>
           </div>
-          <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6, margin: '6px 0 0' }}>
-            {result.company_profile.reputation_summary}
-          </p>
-        </div>
+        ) : null}
 
-        <div style={cardStyle}>
-          {sectionTitle('面试流程')}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {result.interview_process.map((p, i) => (
-              <div key={i} style={{ paddingLeft: '12px', borderLeft: '2px solid var(--color-line-2)' }}>
-                <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)' }}>{p.stage}</div>
-                <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', margin: '2px 0' }}>{p.description}</div>
-                <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>考察重点：{p.key_assessment_angle}</div>
+        {(result.interview_process ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('面试流程')}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {(result.interview_process ?? []).map((p, i) => (
+                <div key={i} style={{ paddingLeft: '12px', borderLeft: '2px solid var(--color-line-2)' }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)' }}>{p.stage}</div>
+                  <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', margin: '2px 0' }}>{p.description}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>考察重点：{p.key_assessment_angle}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(result.culture_fit_tips ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('文化契合攻略')}
+            {(result.culture_fit_tips ?? []).map((t, i) => (
+              <div key={i} style={{ marginBottom: i < (result.culture_fit_tips ?? []).length - 1 ? '10px' : 0 }}>
+                <div style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 600 }}>· {t.tip}</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-danger)', marginTop: '2px' }}>避免：{t.anti_pattern}</div>
               </div>
             ))}
           </div>
-        </div>
+        )}
 
-        <div style={cardStyle}>
-          {sectionTitle('文化契合攻略')}
-          {result.culture_fit_tips.map((t, i) => (
-            <div key={i} style={{ marginBottom: i < result.culture_fit_tips.length - 1 ? '10px' : 0 }}>
-              <div style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 600 }}>· {t.tip}</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-danger)', marginTop: '2px' }}>避免：{t.anti_pattern}</div>
+        {(result.common_pitfalls ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('常见踩坑预警')}
+            {(result.common_pitfalls ?? []).map((p, i) => (
+              <div key={i} style={{ marginBottom: i < (result.common_pitfalls ?? []).length - 1 ? '10px' : 0 }}>
+                <div style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 600 }}>{p.pitfall}</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', margin: '2px 0' }}>后果：{p.consequence}</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-ink-2)' }}>规避：{p.avoidance_strategy}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {result.salary_negotiation_notes ? (
+          <div style={cardStyle}>
+            {sectionTitle('薪资谈判注记')}
+            <div style={{ fontSize: '13px', color: 'var(--color-ink)' }}>
+              薪资范围：
+              {result.salary_negotiation_notes.salary_range_estimate ? (
+                <span style={{ fontWeight: 700 }}>{result.salary_negotiation_notes.salary_range_estimate}</span>
+              ) : (
+                <span style={{ color: 'var(--color-ink-4)' }}>无可靠来源，不提供估算（防编造）</span>
+              )}
             </div>
-          ))}
-        </div>
-
-        <div style={cardStyle}>
-          {sectionTitle('常见踩坑预警')}
-          {result.common_pitfalls.map((p, i) => (
-            <div key={i} style={{ marginBottom: i < result.common_pitfalls.length - 1 ? '10px' : 0 }}>
-              <div style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 600 }}>{p.pitfall}</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', margin: '2px 0' }}>后果：{p.consequence}</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-ink-2)' }}>规避：{p.avoidance_strategy}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={cardStyle}>
-          {sectionTitle('薪资谈判注记')}
-          <div style={{ fontSize: '13px', color: 'var(--color-ink)' }}>
-            薪资范围：
-            {result.salary_negotiation_notes.salary_range_estimate ? (
-              <span style={{ fontWeight: 700 }}>{result.salary_negotiation_notes.salary_range_estimate}</span>
-            ) : (
-              <span style={{ color: 'var(--color-ink-4)' }}>无可靠来源，不提供估算（防编造）</span>
+            {result.salary_negotiation_notes.negotiation_timing && (
+              <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', marginTop: '4px' }}>
+                谈判时机：{result.salary_negotiation_notes.negotiation_timing}
+              </div>
             )}
           </div>
-          {result.salary_negotiation_notes.negotiation_timing && (
-            <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', marginTop: '4px' }}>
-              谈判时机：{result.salary_negotiation_notes.negotiation_timing}
-            </div>
-          )}
-        </div>
+        ) : null}
 
+        <ListCard title="建议" items={result.recommendations} />
         <ListCard title="风险提示" items={result.risks} />
+        <ListCard title="下一步行动" items={result.next_actions} />
         <CannotDetermineCard env={result} />
       </div>
     ) : null;
@@ -455,38 +484,47 @@ function polishLabel(p: string): { text: string; color: string } {
   return { text: '仅骨架', color: 'var(--color-ink-3)' };
 }
 
-function StarTab() {
-  const [experiences, setExperiences] = useState<string[]>(['']);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<StarStoriesResult | null>(null);
+interface StarState {
+  experiences: string[];
+  loading: boolean;
+  error: string | null;
+  result: StarStoriesResult | null;
+}
+
+const STAR_INIT: StarState = {
+  experiences: [''],
+  loading: false,
+  error: null,
+  result: null,
+};
+
+function StarTab({ state, patch }: { state: StarState; patch: (p: Partial<StarState>) => void }) {
+  const { experiences, loading, error, result } = state;
 
   function setExp(i: number, v: string) {
-    setExperiences((prev) => prev.map((e, idx) => (idx === i ? v : e)));
+    patch({ experiences: experiences.map((e, idx) => (idx === i ? v : e)) });
   }
   function addExp() {
-    setExperiences((prev) => [...prev, '']);
+    patch({ experiences: [...experiences, ''] });
   }
   function removeExp(i: number) {
-    setExperiences((prev) => prev.filter((_, idx) => idx !== i));
+    patch({ experiences: experiences.filter((_, idx) => idx !== i) });
   }
 
   async function submit() {
     const filled = experiences.map((e) => e.trim()).filter(Boolean);
     if (filled.length === 0) {
-      setError('请至少填写 1 段工作经历');
+      patch({ error: '请至少填写 1 段工作经历' });
       return;
     }
-    setError(null);
-    setLoading(true);
-    setResult(null);
+    patch({ error: null, loading: true, result: null });
     try {
       const payload: StarStoriesRequest = { experiences: filled };
-      setResult(await api.post<StarStoriesResult>('/interview-prep/star-stories', payload));
+      patch({ result: await api.post<StarStoriesResult>('/interview-prep/star-stories', payload) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失败，请稍后重试');
+      patch({ error: err instanceof Error ? err.message : '生成失败，请稍后重试' });
     } finally {
-      setLoading(false);
+      patch({ loading: false });
     }
   }
 
@@ -496,7 +534,7 @@ function StarTab() {
     ) : result ? (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <SummaryCard env={result} />
-        {result.story_bank.map((s, i) => {
+        {(result.story_bank ?? []).map((s, i) => {
           const pl = polishLabel(s.polish_level);
           return (
             <div key={i} style={cardStyle}>
@@ -507,7 +545,7 @@ function StarTab() {
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                {s.competency.map((c, ci) => (
+                {(s.competency ?? []).map((c, ci) => (
                   <span key={ci} style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-ink-2)', background: 'var(--color-surface-2)', padding: '2px 8px', borderRadius: '99px' }}>
                     {c}
                   </span>
@@ -528,26 +566,32 @@ function StarTab() {
           );
         })}
 
-        <div style={cardStyle}>
-          {sectionTitle('能力维度覆盖度')}
-          <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.7 }}>
-            <div>强项（2+ 故事）：{result.coverage_map.strong_dimensions.join('、') || '—'}</div>
-            <div>偏弱（仅 1 个）：{result.coverage_map.weak_dimensions.join('、') || '—'}</div>
-            <div style={{ color: 'var(--color-danger)' }}>空白（无覆盖）：{result.coverage_map.missing_dimensions.join('、') || '—'}</div>
+        {result.coverage_map && (
+          <div style={cardStyle}>
+            {sectionTitle('能力维度覆盖度')}
+            <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.7 }}>
+              <div>强项（2+ 故事）：{(result.coverage_map.strong_dimensions ?? []).join('、') || '—'}</div>
+              <div>偏弱（仅 1 个）：{(result.coverage_map.weak_dimensions ?? []).join('、') || '—'}</div>
+              <div style={{ color: 'var(--color-danger)' }}>空白（无覆盖）：{(result.coverage_map.missing_dimensions ?? []).join('、') || '—'}</div>
+            </div>
           </div>
-        </div>
+        )}
 
-        {result.gaps.length > 0 && (
+        {(result.gaps ?? []).length > 0 && (
           <div style={cardStyle}>
             {sectionTitle('空白维度建议')}
-            {result.gaps.map((g, i) => (
+            {(result.gaps ?? []).map((g, i) => (
               <div key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '4px' }}>
-                · <span style={{ fontWeight: 700, color: 'var(--color-ink)' }}>{g.dimension}</span>（{g.severity}）
+                · <span style={{ fontWeight: 700, color: 'var(--color-ink)' }}>{g.dimension}</span>
+                {g.severity ? `（${SEVERITY_LABEL[g.severity] ?? g.severity}）` : ''}
                 {g.experience_hint ? ` — ${g.experience_hint}` : ''}
               </div>
             ))}
           </div>
         )}
+        <ListCard title="建议" items={result.recommendations} />
+        <ListCard title="风险提示" items={result.risks} />
+        <ListCard title="下一步行动" items={result.next_actions} />
         <CannotDetermineCard env={result} />
       </div>
     ) : null;
@@ -605,39 +649,97 @@ function StarTab() {
 // Tab 3: 技术面辅导
 // ════════════════════════════════════════════════════════════════════════════════
 
+// ── 英文枚举 → 中文标签映射表 (#65) ─────────────────────────────────────────────
+
+const PRIORITY_LABEL: Record<string, string> = {
+  critical: '必备',
+  high: '重要',
+  medium: '一般',
+  low: '次要',
+};
+
+const QUESTION_TYPE_LABEL: Record<string, string> = {
+  algorithm: '算法',
+  system_design: '系统设计',
+  coding: '编程',
+  cs_fundamentals: '计算机基础',
+};
+
+const DIFFICULTY_LABEL: Record<string, string> = {
+  easy: '简单',
+  medium: '中等',
+  hard: '困难',
+};
+
+const SEVERITY_LABEL: Record<string, string> = {
+  critical: '严重缺失',
+  moderate: '有所欠缺',
+  minor: '轻微不足',
+};
+
+const WEIGHT_LABEL: Record<string, string> = {
+  primary: '主要维度',
+  secondary: '次要维度',
+  minor: '参考维度',
+};
+
 function priorityColor(p: string): string {
   if (p === 'critical') return 'var(--color-danger)';
   if (p === 'high') return 'var(--color-brand)';
   return 'var(--color-ink-3)';
 }
 
-function TechTab() {
-  const [jobTitle, setJobTitle] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [weeks, setWeeks] = useState('');
-  const [intel, setIntel] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<TechCoachResult | null>(null);
+interface TechState {
+  jobTitle: string;
+  companyName: string;
+  weeks: string;
+  intel: string;
+  loading: boolean;
+  error: string | null;
+  result: TechCoachResult | null;
+}
+
+const TECH_INIT: TechState = {
+  jobTitle: '',
+  companyName: '',
+  weeks: '',
+  intel: '',
+  loading: false,
+  error: null,
+  result: null,
+};
+
+function TechTab({ state, patch }: { state: TechState; patch: (p: Partial<TechState>) => void }) {
+  const { jobTitle, companyName, weeks, intel, loading, error, result } = state;
+  const setJobTitle = (v: string) => patch({ jobTitle: v });
+  const setCompanyName = (v: string) => patch({ companyName: v });
+  const setWeeks = (v: string) => patch({ weeks: v });
+  const setIntel = (v: string) => patch({ intel: v });
 
   async function submit() {
     if (!jobTitle.trim()) {
-      setError('请填写目标技术岗位');
+      patch({ error: '请填写目标技术岗位' });
       return;
     }
-    setError(null);
-    setLoading(true);
-    setResult(null);
+    // #99: 整数范围校验
+    if (weeks.trim()) {
+      const weeksNum = Number(weeks);
+      if (!Number.isInteger(weeksNum) || weeksNum < 1 || weeksNum > 52) {
+        patch({ error: '备考周数必须为 1–52 之间的整数' });
+        return;
+      }
+    }
+    patch({ error: null, loading: true, result: null });
     try {
       const payload: TechCoachRequest = { job_title: jobTitle.trim() };
       if (companyName.trim()) payload.company_name = companyName.trim();
-      if (weeks.trim()) payload.available_weeks = Number(weeks);
+      if (weeks.trim()) payload.available_weeks = Math.round(Number(weeks));
       if (intel.trim()) payload.interview_intelligence = { notes: intel.trim() };
-      setResult(await api.post<TechCoachResult>('/interview-prep/tech-coach', payload));
+      patch({ result: await api.post<TechCoachResult>('/interview-prep/tech-coach', payload) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失败，请稍后重试');
+      patch({ error: err instanceof Error ? err.message : '生成失败，请稍后重试' });
     } finally {
-      setLoading(false);
+      patch({ loading: false });
     }
   }
 
@@ -647,36 +749,40 @@ function TechTab() {
     ) : result ? (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <SummaryCard env={result} />
-        <div style={cardStyle}>
-          {sectionTitle('备考计划（按优先级）')}
-          {result.preparation_plan.map((p, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '10.5px', fontWeight: 700, color: priorityColor(p.priority), background: `${priorityColor(p.priority)}18`, padding: '2px 8px', borderRadius: '99px', flexShrink: 0 }}>
-                {p.priority}
-              </span>
-              <span style={{ fontSize: '13.5px', color: 'var(--color-ink)', fontWeight: 600 }}>{p.area}</span>
-              <span style={{ fontSize: '12px', color: 'var(--color-ink-3)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>{p.estimated_hours}h</span>
-            </div>
-          ))}
-        </div>
+        {(result.preparation_plan ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('备考计划（按优先级）')}
+            {(result.preparation_plan ?? []).map((p, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, color: priorityColor(p.priority), background: `${priorityColor(p.priority)}18`, padding: '2px 8px', borderRadius: '99px', flexShrink: 0 }}>
+                  {PRIORITY_LABEL[p.priority] ?? p.priority}
+                </span>
+                <span style={{ fontSize: '13.5px', color: 'var(--color-ink)', fontWeight: 600 }}>{p.area}</span>
+                <span style={{ fontSize: '12px', color: 'var(--color-ink-3)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>{p.estimated_hours}h</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-        <div style={cardStyle}>
-          {sectionTitle('练习题（类型题，非真题）')}
-          {result.practice_questions.map((q, i) => (
-            <div key={i} style={{ marginBottom: '8px' }}>
-              <span style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 600 }}>{q.title}</span>
-              <span style={{ fontSize: '11px', color: 'var(--color-ink-3)', marginLeft: '8px' }}>
-                {q.type} · {q.difficulty}
-              </span>
-              <div style={{ fontSize: '11.5px', color: 'var(--color-ink-3)', marginTop: '2px' }}>{q.key_concepts.join(' / ')}</div>
-            </div>
-          ))}
-        </div>
+        {(result.practice_questions ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('练习题（类型题，非真题）')}
+            {(result.practice_questions ?? []).map((q, i) => (
+              <div key={i} style={{ marginBottom: '8px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 600 }}>{q.title}</span>
+                <span style={{ fontSize: '11px', color: 'var(--color-ink-3)', marginLeft: '8px' }}>
+                  {QUESTION_TYPE_LABEL[q.type] ?? q.type} · {DIFFICULTY_LABEL[q.difficulty] ?? q.difficulty}
+                </span>
+                <div style={{ fontSize: '11.5px', color: 'var(--color-ink-3)', marginTop: '2px' }}>{(q.key_concepts ?? []).join(' / ')}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={cardStyle}>
           {sectionTitle('公司专项重点')}
-          {result.company_specific_focus.length > 0 ? (
-            result.company_specific_focus.map((f, i) => (
+          {(result.company_specific_focus ?? []).length > 0 ? (
+            (result.company_specific_focus ?? []).map((f, i) => (
               <div key={i} style={{ marginBottom: '8px' }}>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)' }}>{f.focus_area}</div>
                 <div style={{ fontSize: '12px', color: 'var(--color-ink-2)' }}>{f.rationale}</div>
@@ -689,7 +795,9 @@ function TechTab() {
             </p>
           )}
         </div>
+        <ListCard title="建议" items={result.recommendations} />
         <ListCard title="风险提示" items={result.risks} />
+        <ListCard title="下一步行动" items={result.next_actions} />
         <CannotDetermineCard env={result} />
       </div>
     ) : null;
@@ -706,7 +814,19 @@ function TechTab() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <Field label="目标技术岗位 *" value={jobTitle} onChange={setJobTitle} placeholder="后端工程师 / 算法工程师" />
           <Field label="目标公司" value={companyName} onChange={setCompanyName} placeholder="字节跳动" />
-          <Field label="可用备考周数" value={weeks} onChange={setWeeks} placeholder="8" type="number" />
+          <div>
+            <label style={labelStyle}>可用备考周数</label>
+            <input
+              style={inputStyle}
+              type="number"
+              step={1}
+              min={1}
+              max={52}
+              value={weeks}
+              placeholder="8"
+              onChange={(e) => setWeeks(e.target.value)}
+            />
+          </div>
         </div>
         <div style={{ marginTop: '12px' }}>
           <label style={labelStyle}>真实面经（可选，公司专项重点的唯一来源）</label>
@@ -740,27 +860,41 @@ const CASE_TYPES: { value: CaseInterviewType; label: string }[] = [
   { value: 'business_analysis', label: '商业案例分析' },
 ];
 
-function CaseTab() {
-  const [interviewType, setInterviewType] = useState<CaseInterviewType>('product_design');
-  const [targetCompany, setTargetCompany] = useState('');
-  const [focusArea, setFocusArea] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<CaseCoachResult | null>(null);
+interface CaseState {
+  interviewType: CaseInterviewType;
+  targetCompany: string;
+  focusArea: string;
+  loading: boolean;
+  error: string | null;
+  result: CaseCoachResult | null;
+}
+
+const CASE_INIT: CaseState = {
+  interviewType: 'product_design',
+  targetCompany: '',
+  focusArea: '',
+  loading: false,
+  error: null,
+  result: null,
+};
+
+function CaseTab({ state, patch }: { state: CaseState; patch: (p: Partial<CaseState>) => void }) {
+  const { interviewType, targetCompany, focusArea, loading, error, result } = state;
+  const setInterviewType = (v: CaseInterviewType) => patch({ interviewType: v });
+  const setTargetCompany = (v: string) => patch({ targetCompany: v });
+  const setFocusArea = (v: string) => patch({ focusArea: v });
 
   async function submit() {
-    setError(null);
-    setLoading(true);
-    setResult(null);
+    patch({ error: null, loading: true, result: null });
     try {
       const payload: CaseCoachRequest = { interview_type: interviewType };
       if (targetCompany.trim()) payload.target_company = targetCompany.trim();
       if (focusArea.trim()) payload.focus_area = focusArea.trim();
-      setResult(await api.post<CaseCoachResult>('/interview-prep/case-coach', payload));
+      patch({ result: await api.post<CaseCoachResult>('/interview-prep/case-coach', payload) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '生成失败，请稍后重试');
+      patch({ error: err instanceof Error ? err.message : '生成失败，请稍后重试' });
     } finally {
-      setLoading(false);
+      patch({ loading: false });
     }
   }
 
@@ -770,49 +904,61 @@ function CaseTab() {
     ) : result ? (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <SummaryCard env={result} />
-        <div style={cardStyle}>
-          {sectionTitle('框架库')}
-          {result.framework_library.map((f, i) => (
-            <div key={i} style={{ marginBottom: '10px' }}>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)' }}>{f.name}</div>
-              <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', margin: '2px 0', lineHeight: 1.5 }}>{f.structure}</div>
-              {f.common_mistake && <div style={{ fontSize: '12px', color: 'var(--color-danger)' }}>常见误用：{f.common_mistake}</div>}
-            </div>
-          ))}
-        </div>
-
-        <div style={cardStyle}>
-          {sectionTitle('练习案例')}
-          {result.practice_cases.map((c, i) => (
-            <div key={i} style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)' }}>{c.title}</div>
-              <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', margin: '3px 0' }}>{c.question}</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>
-                解题路径：{c.suggested_approach.join(' → ')}
+        {(result.framework_library ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('框架库')}
+            {(result.framework_library ?? []).map((f, i) => (
+              <div key={i} style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)' }}>{f.name}</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', margin: '2px 0', lineHeight: 1.5 }}>{f.structure}</div>
+                {f.common_mistake && <div style={{ fontSize: '12px', color: 'var(--color-danger)' }}>常见误用：{f.common_mistake}</div>}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        <div style={cardStyle}>
-          {sectionTitle('常见错误')}
-          {result.common_mistakes.map((m, i) => (
-            <div key={i} style={{ marginBottom: '8px' }}>
-              <div style={{ fontSize: '13px', color: 'var(--color-danger)', fontWeight: 600 }}>✗ {m.mistake}</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>{m.why_bad}</div>
-              <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)' }}>✓ {m.fix}</div>
-            </div>
-          ))}
-        </div>
+        {(result.practice_cases ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('练习案例')}
+            {(result.practice_cases ?? []).map((c, i) => (
+              <div key={i} style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)' }}>{c.title}</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', margin: '3px 0' }}>{c.question}</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>
+                  解题路径：{(c.suggested_approach ?? []).join(' → ')}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-        <div style={cardStyle}>
-          {sectionTitle('面试官评分维度')}
-          {result.evaluation_criteria.map((c, i) => (
-            <div key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '4px' }}>
-              · <span style={{ fontWeight: 700, color: 'var(--color-ink)' }}>{c.dimension}</span>（{c.weight}）
-            </div>
-          ))}
-        </div>
+        {(result.common_mistakes ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('常见错误')}
+            {(result.common_mistakes ?? []).map((m, i) => (
+              <div key={i} style={{ marginBottom: '8px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--color-danger)', fontWeight: 600 }}>✗ {m.mistake}</div>
+                <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>{m.why_bad}</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)' }}>✓ {m.fix}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(result.evaluation_criteria ?? []).length > 0 && (
+          <div style={cardStyle}>
+            {sectionTitle('面试官评分维度')}
+            {(result.evaluation_criteria ?? []).map((c, i) => (
+              <div key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '4px' }}>
+                · <span style={{ fontWeight: 700, color: 'var(--color-ink)' }}>{c.dimension}</span>
+                {c.weight ? `（${WEIGHT_LABEL[c.weight] ?? c.weight}）` : ''}
+              </div>
+            ))}
+          </div>
+        )}
+        <ListCard title="建议" items={result.recommendations} />
+        <ListCard title="风险提示" items={result.risks} />
+        <ListCard title="下一步行动" items={result.next_actions} />
         <CannotDetermineCard env={result} />
       </div>
     ) : null;
@@ -864,8 +1010,20 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'case', label: '案例面', icon: <Lightbulb size={15} /> },
 ];
 
+// 父组件持有 4 个 tab 的完整状态（表单 + 结果 + loading/error），
+// 切 tab 时子组件不卸载（display:none），已生成的 AI 结果与表单输入全程保留。
+function usePatch<T>(initial: T): [T, (p: Partial<T>) => void] {
+  const [state, setState] = useState<T>(initial);
+  const patch = (p: Partial<T>) => setState((prev) => ({ ...prev, ...p }));
+  return [state, patch];
+}
+
 export default function InterviewPrepPage() {
   const [tab, setTab] = useState<TabId>('playbook');
+  const [playbookState, patchPlaybook] = usePatch<PlaybookState>(PLAYBOOK_INIT);
+  const [starState, patchStar] = usePatch<StarState>(STAR_INIT);
+  const [techState, patchTech] = usePatch<TechState>(TECH_INIT);
+  const [caseState, patchCase] = usePatch<CaseState>(CASE_INIT);
 
   return (
     <>
@@ -918,11 +1076,19 @@ export default function InterviewPrepPage() {
           ))}
         </div>
 
-        {/* Active tab */}
-        {tab === 'playbook' && <PlaybookTab />}
-        {tab === 'star' && <StarTab />}
-        {tab === 'tech' && <TechTab />}
-        {tab === 'case' && <CaseTab />}
+        {/* 4 个 tab 全程挂载，仅用 display 切换可见性，切回时结果与表单仍在 */}
+        <div style={{ display: tab === 'playbook' ? 'block' : 'none' }}>
+          <PlaybookTab state={playbookState} patch={patchPlaybook} />
+        </div>
+        <div style={{ display: tab === 'star' ? 'block' : 'none' }}>
+          <StarTab state={starState} patch={patchStar} />
+        </div>
+        <div style={{ display: tab === 'tech' ? 'block' : 'none' }}>
+          <TechTab state={techState} patch={patchTech} />
+        </div>
+        <div style={{ display: tab === 'case' ? 'block' : 'none' }}>
+          <CaseTab state={caseState} patch={patchCase} />
+        </div>
       </div>
 
       <style>{`

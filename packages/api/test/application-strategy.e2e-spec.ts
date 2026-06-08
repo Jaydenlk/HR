@@ -15,7 +15,7 @@ import { request, loginUser } from './test-utils';
 // failMode: simulates AI outage
 
 let failMode = false;
-let mockMode: 'happy' | 'company_names' | 'insufficient' = 'happy';
+let mockMode: 'happy' | 'company_names' | 'insufficient' | 'evasion' | 'bad_counts' = 'happy';
 
 const HAPPY_RESULT = {
   summary: '基于你的画像制定了分阶段投递策略，重点投递互联网中厂和外资咨询。',
@@ -85,9 +85,49 @@ const COMPANY_NAMES_RESULT = {
       tier: 'target',
       description: '互联网大厂',
       rationale: '高匹配',
-      example_types: ['腾讯', '阿里巴巴', '字节跳动', '中型互联网公司（B轮及以上）'],
+      // 包含：纯品牌短词、带括号的品牌+注册后缀、含注册后缀的品牌、以及合法描述词
+      example_types: [
+        '腾讯',                          // 纯品牌短词 ≤6字 → 剔除
+        '阿里巴巴',                       // 纯品牌 ≤6字 → 剔除
+        '字节跳动',                       // 纯品牌 ≤6字 → 剔除
+        '阿里巴巴（集团）',               // 括号前是品牌名 → 剔除
+        '腾讯科技有限公司',               // 含注册后缀无描述词 → 剔除
+        '中型互联网公司（B轮及以上）',    // 含描述词 → 保留
+        '大型互联网平台公司（DAU千万级）', // 含描述词 → 保留
+      ],
       priority: 1,
     },
+  ],
+};
+
+// AI 用"品牌名+描述词"句式试图绕过黑名单（修复 #38：反转 guard 后仍应被剔除）
+const EVASION_RESULT = {
+  ...HAPPY_RESULT,
+  confidence: 'high',
+  target_company_tiers: [
+    {
+      tier: 'target',
+      description: '互联网大厂',
+      rationale: '高匹配',
+      example_types: [
+        '头部互联网平台如腾讯',        // 描述词包裹具体品牌 → 仍剔除
+        '知名科技公司字节跳动',        // 描述词包裹具体品牌 → 仍剔除
+        '大型外资咨询公司麦肯锡',      // 描述词包裹具体品牌 → 仍剔除
+        '中型互联网公司（B轮及以上）', // 纯类别描述 → 保留
+      ],
+      priority: 1,
+    },
+  ],
+};
+
+// AI 返回非法/超上限的 target_count（应 clamp 到 1-15 或省略该周）
+const BAD_COUNTS_RESULT = {
+  ...HAPPY_RESULT,
+  application_sequence: [
+    { week: '第1周', focus: '超上限', target_count: 50, channels: ['内推'] },       // 50 → clamp 15
+    { week: '第2周', focus: '缺失', target_count: undefined, channels: ['BOSS直聘'] }, // 缺失 → 省略该周
+    { week: '第3周', focus: '负数', target_count: -3, channels: ['猎聘'] },          // 非法 → 省略该周
+    { week: '第4周', focus: '正常', target_count: 5, channels: ['内推'] },          // 合法 → 保留 5
   ],
 };
 
@@ -118,6 +158,8 @@ const mockAiService = {
     if (toolName === 'application_strategy') {
       if (mockMode === 'company_names') return Promise.resolve(COMPANY_NAMES_RESULT);
       if (mockMode === 'insufficient') return Promise.resolve(INSUFFICIENT_RESULT);
+      if (mockMode === 'evasion') return Promise.resolve(EVASION_RESULT);
+      if (mockMode === 'bad_counts') return Promise.resolve(BAD_COUNTS_RESULT);
       return Promise.resolve(HAPPY_RESULT);
     }
     return Promise.resolve({});
@@ -233,7 +275,7 @@ describe('Application Strategy (e2e)', () => {
     });
   });
 
-  // ─── Anti-fabrication guard: company names stripped ───────────────────────
+  // ─── Anti-fabrication guard: company names stripped (#38 regression) ────────
 
   describe('Anti-fabrication guard', () => {
     it('AI returns specific company names in example_types → guard strips them', async () => {
@@ -249,13 +291,20 @@ describe('Application Strategy (e2e)', () => {
       const tiers: Array<{ example_types: string[] }> = res.body.target_company_tiers;
       const allExamples = tiers.flatMap((t) => t.example_types);
 
-      // Specific company names should be stripped
+      // Pure brand short-words → stripped
       expect(allExamples).not.toContain('腾讯');
       expect(allExamples).not.toContain('阿里巴巴');
       expect(allExamples).not.toContain('字节跳动');
 
-      // Descriptive examples should be preserved
+      // Parenthesised brand+suffix → stripped (fix #38: brackets alone no longer exempt)
+      expect(allExamples).not.toContain('阿里巴巴（集团）');
+
+      // Brand with registration suffix, no type qualifier → stripped (fix #38)
+      expect(allExamples).not.toContain('腾讯科技有限公司');
+
+      // Descriptive entries with type qualifiers → preserved
       expect(allExamples).toContain('中型互联网公司（B轮及以上）');
+      expect(allExamples).toContain('大型互联网平台公司（DAU千万级）');
     });
 
     it('confidence insufficient → target_company_tiers always empty (no fabricated companies)', async () => {
@@ -269,6 +318,139 @@ describe('Application Strategy (e2e)', () => {
       expect(res.status).toBe(201);
       expect(res.body.confidence).toBe('insufficient');
       expect(res.body.target_company_tiers).toHaveLength(0);
+    });
+
+    it('#38 "描述词+品牌名"绕过句式 → 仍被剔除，且 confidence 降级', async () => {
+      mockMode = 'evasion';
+
+      const res = await request(app.getHttpServer())
+        .post('/api/applications/strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ user_profile: '3年后端开发经验' });
+
+      expect(res.status).toBe(201);
+
+      const tiers: Array<{ example_types: string[] }> = res.body.target_company_tiers;
+      const allExamples = tiers.flatMap((t) => t.example_types);
+
+      // 品牌锚词无论是否包裹描述词，一律剔除
+      expect(allExamples).not.toContain('头部互联网平台如腾讯');
+      expect(allExamples).not.toContain('知名科技公司字节跳动');
+      expect(allExamples).not.toContain('大型外资咨询公司麦肯锡');
+      // 没有任何残留含品牌锚词的条目
+      for (const e of allExamples) {
+        expect(/腾讯|字节跳动|麦肯锡/.test(e)).toBe(false);
+      }
+      // 纯类别描述保留
+      expect(allExamples).toContain('中型互联网公司（B轮及以上）');
+      // 检出具体公司 → confidence 从 high 降级
+      expect(res.body.confidence).not.toBe('high');
+    });
+  });
+
+  // ─── target_count clamp / drop guard ──────────────────────────────────────
+
+  describe('target_count guard', () => {
+    it('target_count=50 → clamp 到 15；缺失/负数 → 省略该周并记入 cannot_determine', async () => {
+      mockMode = 'bad_counts';
+
+      const res = await request(app.getHttpServer())
+        .post('/api/applications/strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ user_profile: '3年后端开发经验' });
+
+      expect(res.status).toBe(201);
+
+      const seq: Array<{ week: string; target_count: number }> = res.body.application_sequence;
+      // 缺失(第2周)与负数(第3周)被省略，仅保留第1周(clamp)与第4周(合法)
+      expect(seq).toHaveLength(2);
+      const byWeek = Object.fromEntries(seq.map((w) => [w.week, w.target_count]));
+      expect(byWeek['第1周']).toBe(15); // 50 clamp 到上限 15
+      expect(byWeek['第4周']).toBe(5);  // 合法值原样保留
+      expect(byWeek['第2周']).toBeUndefined();
+      expect(byWeek['第3周']).toBeUndefined();
+
+      // 所有保留项的 target_count 都在 1-15 区间
+      for (const w of seq) {
+        expect(w.target_count).toBeGreaterThanOrEqual(1);
+        expect(w.target_count).toBeLessThanOrEqual(15);
+      }
+
+      // 被省略的周记入 cannot_determine（不杜撰默认值）
+      const cd: string[] = res.body.cannot_determine;
+      expect(cd.some((c) => c.includes('第2周'))).toBe(true);
+      expect(cd.some((c) => c.includes('第3周'))).toBe(true);
+    });
+  });
+
+  // ─── DTO validation (#39 #40 regression) ──────────────────────────────────
+
+  describe('DTO validation', () => {
+    it('#40 user_profile >8000 chars → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications/strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ user_profile: 'A'.repeat(8001) });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('#40 user_profile exactly 8000 chars → 201', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications/strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ user_profile: 'A'.repeat(8000) });
+
+      // AiService is mocked so will return happy result
+      expect(res.status).toBe(201);
+    });
+
+    it('#39 current_applications with non-string element → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications/strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          user_profile: '3年后端开发经验',
+          current_applications: ['合法公司', 123, true],
+        });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('#39 current_applications with >100 items → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications/strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          user_profile: '3年后端开发经验',
+          current_applications: Array.from({ length: 101 }, (_, i) => `公司${i}`),
+        });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('#39 current_applications with 100 string items → 201', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications/strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          user_profile: '3年后端开发经验',
+          current_applications: Array.from({ length: 100 }, (_, i) => `公司${i}`),
+        });
+
+      expect(res.status).toBe(201);
+    });
+
+    it('current_applications 单项 >200 字 → 400 (per-item MaxLength)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications/strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          user_profile: '3年后端开发经验',
+          current_applications: ['合法公司', 'A'.repeat(201)],
+        });
+
+      expect(res.status).toBe(400);
     });
   });
 
@@ -308,8 +490,8 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
     process.env.DB_PATH = ':memory:';
-    process.env.CLOUDDREAM_API_KEY = 'live-key-required';
-    process.env.JWT_SECRET = 'test-secret';
+    // 用 .env 中的真实 CLOUDDREAM_API_KEY / JWT_SECRET 真跑 AI
+    // (此前误用 dummy 'live-key-required' 覆盖真实 key,导致主通道恒 401,并非真正的 live 测试)
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
@@ -318,7 +500,7 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
     await app.init();
 
     token = await loginUser(app, 'strategy-live@coach.dev', 'Live Strategy User');
-  });
+  }, 30000);
 
   afterAll(async () => {
     await app.close();
@@ -345,5 +527,5 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
     for (const company of KNOWN_COMPANIES) {
       expect(allExamples).not.toContain(company);
     }
-  });
+  }, 120000);
 });

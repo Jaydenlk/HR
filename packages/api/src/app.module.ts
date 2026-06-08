@@ -24,14 +24,10 @@ import { OpportunityModule } from './opportunity/opportunity.module';
 import { IntelligenceModule } from './intelligence/intelligence.module';
 import { OfferComparatorModule } from './offer-comparator/offer-comparator.module';
 import { NetworkingModule } from './networking/networking.module';
-import { RoleTransitionModule } from './role-transition/role-transition.module';
 import { InterviewPrepModule } from './interview-prep/interview-prep.module';
 import { LearningRoadmapModule } from './learning-roadmap/learning-roadmap.module';
-import { QuestionBankModule } from './question-bank/question-bank.module';
 import { FollowUpModule } from './follow-up/follow-up.module';
-import { PersonalBrandModule } from './personal-brand/personal-brand.module';
 import { IndustryTrendModule } from './industry-trend/industry-trend.module';
-import { EducationPathModule } from './education-path/education-path.module';
 
 @Module({
   imports: [
@@ -81,14 +77,10 @@ import { EducationPathModule } from './education-path/education-path.module';
     IntelligenceModule,
     OfferComparatorModule,
     NetworkingModule,
-    RoleTransitionModule,
     InterviewPrepModule,
     LearningRoadmapModule,
-    QuestionBankModule,
     FollowUpModule,
-    PersonalBrandModule,
     IndustryTrendModule,
-    EducationPathModule,
   ],
 })
 export class AppModule {}

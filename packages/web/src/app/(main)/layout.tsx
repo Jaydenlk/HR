@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -22,15 +22,12 @@ import {
   Menu,
   X,
   Scale,
-  Users,
-  GitMerge,
   ClipboardList,
   Route,
-  Library,
   Mail,
-  Sparkles,
   TrendingUp,
-  BookMarked,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 
 interface NavItem {
@@ -57,13 +54,13 @@ function buildMainNav(interviewCount: number): NavItem[] {
   ];
 }
 
-interface ToolNavGroup {
-  section: string;
-  items: NavItem[];
+interface ToolNav {
+  core: NavItem[];
+  more: NavItem[];
 }
 
-// 工具区按求职场景分三组(做减法:18 项不删,但按"准备→投递面试→薪资决策"分组,消除无差别信息瀑布)
-function buildToolNav(applicationCount: number): ToolNavGroup[] {
+// 工具区做减法:6 个高频核心常驻,其余收进「更多功能」默认折叠——默认只露核心,消除信息瀑布。
+function buildToolNav(applicationCount: number): ToolNav {
   const tracker: NavItem = {
     id: 'tracker',
     label: '投递追踪',
@@ -71,41 +68,25 @@ function buildToolNav(applicationCount: number): ToolNavGroup[] {
     icon: <Briefcase size={16} />,
     ...(applicationCount > 0 ? { badge: String(applicationCount) } : {}),
   };
-  return [
-    {
-      section: '准备 · 定位',
-      items: [
-        { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} /> },
-        { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} /> },
-        { id: 'career', label: '职业地图', href: '/career', icon: <Map size={16} /> },
-        { id: 'role-transition', label: '转岗顾问', href: '/role-transition', icon: <GitMerge size={16} /> },
-        { id: 'learning-roadmap', label: '学习路线', href: '/learning-roadmap', icon: <Route size={16} /> },
-        { id: 'education-path', label: '读研vs就业', href: '/education-path', icon: <BookMarked size={16} /> },
-      ],
-    },
-    {
-      section: '投递 · 面试',
-      items: [
-        { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
-        tracker,
-        { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
-        { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
-        { id: 'question-bank', label: '面试题库', href: '/question-bank', icon: <Library size={16} /> },
-        { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
-        { id: 'networking', label: '人脉内推', href: '/networking', icon: <Users size={16} /> },
-        { id: 'follow-up', label: '跟进消息', href: '/follow-up', icon: <Mail size={16} /> },
-      ],
-    },
-    {
-      section: '薪资 · 决策',
-      items: [
-        { id: 'salary', label: '薪资雷达', href: '/salary', icon: <BarChart2 size={16} /> },
-        { id: 'offer-comparator', label: 'Offer 比对', href: '/offer-comparator', icon: <Scale size={16} /> },
-        { id: 'industry-trend', label: '行业趋势', href: '/industry-trend', icon: <TrendingUp size={16} /> },
-        { id: 'personal-brand', label: '个人品牌', href: '/personal-brand', icon: <Sparkles size={16} /> },
-      ],
-    },
-  ];
+  return {
+    core: [
+      { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} /> },
+      { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} /> },
+      { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
+      tracker,
+      { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
+      { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
+    ],
+    more: [
+      { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
+      { id: 'career', label: '职业地图', href: '/career', icon: <Map size={16} /> },
+      { id: 'learning-roadmap', label: '学习路线', href: '/learning-roadmap', icon: <Route size={16} /> },
+      { id: 'follow-up', label: '跟进消息', href: '/follow-up', icon: <Mail size={16} /> },
+      { id: 'salary', label: '薪资雷达', href: '/salary', icon: <BarChart2 size={16} /> },
+      { id: 'offer-comparator', label: 'Offer 比对', href: '/offer-comparator', icon: <Scale size={16} /> },
+      { id: 'industry-trend', label: '行业趋势', href: '/industry-trend', icon: <TrendingUp size={16} /> },
+    ],
+  };
 }
 
 // Recent threads will be fetched from API when chat feature is built.
@@ -131,6 +112,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [interviewCount, setInterviewCount] = useState(0);
   const [applicationCount, setApplicationCount] = useState(0);
+  const [showMore, setShowMore] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -423,77 +405,131 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           );
         })}
 
-        {/* Tools section — 按求职场景分组(做减法:消除无差别信息瀑布) */}
-        {buildToolNav(applicationCount).map((group) => (
-          <Fragment key={group.section}>
-            <div
-              style={{
-                fontSize: '11px',
-                color: 'var(--color-ink-4)',
-                fontWeight: 600,
-                margin: '14px 10px 4px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {group.section}
-            </div>
-            {group.items.map((item) => {
-              const active = isActive(item);
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '11px',
-                padding: '8px 12px',
-                borderRadius: '10px',
-                fontSize: '13.5px',
-                color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
-                fontWeight: active ? 600 : 500,
-                background: active ? 'var(--color-surface)' : 'transparent',
-                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
-                textDecoration: 'none',
-                letterSpacing: '-0.003em',
-                transition: 'background 0.1s, color 0.1s',
-              }}
-            >
-              <span
+        {/* Tools — 做减法:核心常驻 + 更多默认折叠,默认只露核心 */}
+        {(() => {
+          const { core, more } = buildToolNav(applicationCount);
+          const renderTool = (item: NavItem) => {
+            const active = isActive(item);
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  width: '18px',
-                  justifyContent: 'center',
-                  color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
-                  flexShrink: 0,
+                  gap: '11px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  fontSize: '13.5px',
+                  color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
+                  fontWeight: active ? 600 : 500,
+                  background: active ? 'var(--color-surface)' : 'transparent',
+                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
+                  textDecoration: 'none',
+                  letterSpacing: '-0.003em',
+                  transition: 'background 0.1s, color 0.1s',
                 }}
               >
-                {item.icon}
-              </span>
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.badge && (
                 <span
                   style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '10px',
-                    color: 'var(--color-ink-3)',
-                    background: 'var(--color-surface-3)',
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '18px',
+                    justifyContent: 'center',
+                    color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
                     flexShrink: 0,
                   }}
                 >
-                  {item.badge}
+                  {item.icon}
                 </span>
-              )}
-                </Link>
-              );
-            })}
-          </Fragment>
-        ))}
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.badge && (
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '10px',
+                      color: 'var(--color-ink-3)',
+                      background: 'var(--color-surface-3)',
+                      padding: '2px 7px',
+                      borderRadius: '999px',
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          };
+          return (
+            <>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--color-ink-4)',
+                  fontWeight: 600,
+                  margin: '14px 10px 4px',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                工具
+              </div>
+              {core.map(renderTool)}
+              <button
+                onClick={() => setShowMore((v) => !v)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '11px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  fontSize: '13.5px',
+                  color: 'var(--color-ink-3)',
+                  fontWeight: 500,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'inherit',
+                  letterSpacing: '-0.003em',
+                }}
+              >
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '18px',
+                    justifyContent: 'center',
+                    color: 'var(--color-ink-3)',
+                    flexShrink: 0,
+                  }}
+                >
+                  {showMore ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </span>
+                <span style={{ flex: 1 }}>{showMore ? '收起' : '更多功能'}</span>
+                {!showMore && (
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '10px',
+                      color: 'var(--color-ink-3)',
+                      background: 'var(--color-surface-3)',
+                      padding: '2px 7px',
+                      borderRadius: '999px',
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {more.length}
+                  </span>
+                )}
+              </button>
+              {showMore && more.map(renderTool)}
+            </>
+          );
+        })()}
 
         {/* Recent conversations */}
         {conversations.length > 0 && (

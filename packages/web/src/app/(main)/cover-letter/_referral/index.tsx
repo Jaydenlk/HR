@@ -11,7 +11,7 @@ import { Loader2, Users, Copy, ChevronDown, ChevronUp, AlertCircle } from 'lucid
 
 // ─── Tab types ────────────────────────────────────────────────────────────────
 
-type Tab = 'message' | 'referral';
+type ReferralSubTab = 'message' | 'referral';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -153,6 +153,7 @@ function SegmentedPicker<T extends string>({
 }
 
 function ConfidenceBadge({ confidence }: { confidence: string }) {
+  const color = CONFIDENCE_COLORS[confidence] ?? 'var(--color-ink-3)';
   return (
     <span
       style={{
@@ -163,8 +164,8 @@ function ConfidenceBadge({ confidence }: { confidence: string }) {
         borderRadius: '999px',
         fontSize: '11.5px',
         fontWeight: 700,
-        background: `${CONFIDENCE_COLORS[confidence]}22`,
-        color: CONFIDENCE_COLORS[confidence],
+        background: `${color}22`,
+        color,
       }}
     >
       {CONFIDENCE_LABELS[confidence] ?? confidence}
@@ -173,7 +174,7 @@ function ConfidenceBadge({ confidence }: { confidence: string }) {
 }
 
 function TagList({ items, label }: { items: string[]; label: string }) {
-  if (!items.length) return null;
+  if (!items?.length) return null;
   return (
     <div style={{ marginBottom: '12px' }}>
       <div style={labelStyle}>{label}</div>
@@ -242,9 +243,12 @@ function MessageTab() {
 
   function handleCopy() {
     if (!result?.message_draft) return;
+    if (!navigator.clipboard) return;
     navigator.clipboard.writeText(result.message_draft).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      // 非 HTTPS 或浏览器不支持时静默失败
     });
   }
 
@@ -254,6 +258,7 @@ function MessageTab() {
         display: 'grid',
         gridTemplateColumns: '1fr 1.3fr',
         gap: '14px',
+        height: '100%',
         minHeight: 0,
       }}
     >
@@ -404,9 +409,9 @@ function MessageTab() {
                 <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
                   信息不足，暂时无法生成消息草稿
                 </p>
-                {result.cannot_determine.length > 0 && (
+                {(result.cannot_determine ?? []).length > 0 && (
                   <div style={{ textAlign: 'left', width: '100%' }}>
-                    <TagList items={result.cannot_determine} label="需补充" />
+                    <TagList items={result.cannot_determine ?? []} label="需补充" />
                   </div>
                 )}
               </div>
@@ -513,10 +518,10 @@ function MessageTab() {
 
                 {showDetails && (
                   <div style={cardStyle}>
-                    <TagList items={result.key_points} label="消息要点" />
-                    <TagList items={result.what_not_to_say} label="避免表达" />
-                    <TagList items={result.recommendations} label="额外建议" />
-                    {result.risks.length > 0 && <TagList items={result.risks} label="注意风险" />}
+                    <TagList items={result.key_points ?? []} label="消息要点" />
+                    <TagList items={result.what_not_to_say ?? []} label="避免表达" />
+                    <TagList items={result.recommendations ?? []} label="额外建议" />
+                    <TagList items={result.risks ?? []} label="注意风险" />
                   </div>
                 )}
               </>
@@ -567,6 +572,63 @@ function MessageTab() {
 
 // ─── Referral strategy tab ────────────────────────────────────────────────────
 
+function ReferralPathCard({ path }: { path: ReferralPath }) {
+  function pathTypeColor(pt: string): string {
+    if (pt === 'direct') return 'var(--color-success)';
+    if (pt === 'indirect') return 'var(--color-brand)';
+    return 'var(--color-warn, #f59e0b)';
+  }
+
+  return (
+    <div
+      style={{
+        padding: '14px 16px',
+        background: 'var(--color-surface-2)',
+        borderRadius: '12px',
+        marginBottom: '8px',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+        <div>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: '999px',
+              background: `${pathTypeColor(path.path_type)}22`,
+              color: pathTypeColor(path.path_type),
+              marginRight: '6px',
+            }}
+          >
+            {PATH_TYPE_LABELS[path.path_type] ?? path.path_type}
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>
+            {path.target_company}
+          </span>
+        </div>
+        <div style={{ textAlign: 'right' as const }}>
+          <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>转化率</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-ink)' }}>
+            {path.estimated_success_rate}
+          </div>
+        </div>
+      </div>
+      <div style={{ fontSize: '13px', color: 'var(--color-ink)', marginBottom: '4px' }}>
+        {path.contact_description}
+      </div>
+      {path.relationship_strength && (
+        <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', marginBottom: '4px' }}>
+          关系强度：{STRENGTH_LABELS[path.relationship_strength] ?? path.relationship_strength}
+        </div>
+      )}
+      <div style={{ fontSize: '12.5px', color: 'var(--color-brand)', marginTop: '6px' }}>
+        建议：{path.suggested_action}
+      </div>
+    </div>
+  );
+}
+
 function ReferralTab() {
   const [targetCompanies, setTargetCompanies] = useState('');
   const [targetPosition, setTargetPosition] = useState('');
@@ -609,69 +671,13 @@ function ReferralTab() {
     }
   }
 
-  function pathTypeColor(pt: string): string {
-    if (pt === 'direct') return 'var(--color-success)';
-    if (pt === 'indirect') return 'var(--color-brand)';
-    return 'var(--color-warn, #f59e0b)';
-  }
-
-  function ReferralPathCard({ path }: { path: ReferralPath }) {
-    return (
-      <div
-        style={{
-          padding: '14px 16px',
-          background: 'var(--color-surface-2)',
-          borderRadius: '12px',
-          marginBottom: '8px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-          <div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: `${pathTypeColor(path.path_type)}22`,
-                color: pathTypeColor(path.path_type),
-                marginRight: '6px',
-              }}
-            >
-              {PATH_TYPE_LABELS[path.path_type] ?? path.path_type}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>
-              {path.target_company}
-            </span>
-          </div>
-          <div style={{ textAlign: 'right' as const }}>
-            <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>转化率</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-ink)' }}>
-              {path.estimated_success_rate}
-            </div>
-          </div>
-        </div>
-        <div style={{ fontSize: '13px', color: 'var(--color-ink)', marginBottom: '4px' }}>
-          {path.contact_description}
-        </div>
-        {path.relationship_strength && (
-          <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', marginBottom: '4px' }}>
-            关系强度：{STRENGTH_LABELS[path.relationship_strength] ?? path.relationship_strength}
-          </div>
-        )}
-        <div style={{ fontSize: '12.5px', color: 'var(--color-brand)', marginTop: '6px' }}>
-          建议：{path.suggested_action}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1.3fr',
         gap: '14px',
+        height: '100%',
         minHeight: 0,
       }}
     >
@@ -780,10 +786,10 @@ function ReferralTab() {
             </div>
 
             {/* Referral paths */}
-            {result.referral_paths.length > 0 ? (
+            {(result.referral_paths ?? []).length > 0 ? (
               <div style={cardStyle}>
-                <div style={labelStyle}>可执行内推路径（{result.referral_paths.length} 条）</div>
-                {result.referral_paths.map((path, i) => (
+                <div style={labelStyle}>可执行内推路径（{(result.referral_paths ?? []).length} 条）</div>
+                {(result.referral_paths ?? []).map((path, i) => (
                   <ReferralPathCard key={i} path={path} />
                 ))}
               </div>
@@ -802,10 +808,10 @@ function ReferralTab() {
             )}
 
             {/* Cold outreach */}
-            {result.cold_outreach_targets.length > 0 && (
+            {(result.cold_outreach_targets ?? []).length > 0 && (
               <div style={cardStyle}>
                 <div style={labelStyle}>冷接触建议</div>
-                {result.cold_outreach_targets.map((t, i) => (
+                {(result.cold_outreach_targets ?? []).map((t, i) => (
                   <div
                     key={i}
                     style={{
@@ -831,16 +837,16 @@ function ReferralTab() {
             )}
 
             {/* Network gaps */}
-            {result.network_gaps.length > 0 && (
+            {(result.network_gaps ?? []).length > 0 && (
               <div style={cardStyle}>
                 <div style={labelStyle}>人脉缺口</div>
-                {result.network_gaps.map((gap, i) => (
+                {(result.network_gaps ?? []).map((gap, i) => (
                   <div key={i} style={{ marginBottom: '10px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '4px' }}>
                       {gap.target_company}：{gap.gap_description}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      {gap.fill_strategy.map((s, j) => (
+                      {(gap.fill_strategy ?? []).map((s, j) => (
                         <div key={j} style={{ fontSize: '12.5px', color: 'var(--color-ink-3)', paddingLeft: '10px' }}>
                           · {s}
                         </div>
@@ -852,10 +858,10 @@ function ReferralTab() {
             )}
 
             {/* Recommendations */}
-            {result.recommendations.length > 0 && (
+            {((result.recommendations ?? []).length > 0 || (result.risks ?? []).length > 0) && (
               <div style={cardStyle}>
-                <TagList items={result.recommendations} label="策略建议" />
-                {result.risks.length > 0 && <TagList items={result.risks} label="注意风险" />}
+                <TagList items={result.recommendations ?? []} label="策略建议" />
+                <TagList items={result.risks ?? []} label="注意风险" />
               </div>
             )}
           </div>
@@ -902,10 +908,10 @@ function ReferralTab() {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Exported panel (inner sub-tab bar + content) ─────────────────────────────
 
-export default function NetworkingPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('message');
+export function ReferralPanel() {
+  const [activeTab, setActiveTab] = useState<ReferralSubTab>('message');
 
   return (
     <div
@@ -913,30 +919,10 @@ export default function NetworkingPage() {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        padding: '40px 32px 24px',
-        boxSizing: 'border-box',
         overflow: 'hidden',
       }}
     >
-      {/* Header */}
-      <div style={{ flexShrink: 0, marginBottom: '24px' }}>
-        <h1
-          style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: 'var(--color-ink)',
-            letterSpacing: '-0.4px',
-            marginBottom: '4px',
-          }}
-        >
-          人脉内推
-        </h1>
-        <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)' }}>
-          内推申请消息撰写 · 人脉路径分析 · 防止编造关系
-        </p>
-      </div>
-
-      {/* Tab bar */}
+      {/* Inner sub-tab bar */}
       <div
         style={{
           display: 'flex',
@@ -952,7 +938,7 @@ export default function NetworkingPage() {
         {([
           { key: 'message', label: '内推消息' },
           { key: 'referral', label: '内推路径' },
-        ] as Array<{ key: Tab; label: string }>).map((tab) => (
+        ] as Array<{ key: ReferralSubTab; label: string }>).map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -975,14 +961,10 @@ export default function NetworkingPage() {
         ))}
       </div>
 
-      {/* Tab content */}
+      {/* Sub-tab content */}
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {activeTab === 'message' ? <MessageTab /> : <ReferralTab />}
       </div>
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 }

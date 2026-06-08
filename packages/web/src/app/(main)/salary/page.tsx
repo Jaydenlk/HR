@@ -385,19 +385,20 @@ function MarketBenchmark({
   userTotalComp: number | null;
 }) {
   const pcts = MARKET_PERCENTILES[selectedRole];
-  if (!pcts) return null;
 
-  const maxComp = pcts.P90.total_comp;
-  const markers = [
-    { label: 'P25', value: pcts.P25.total_comp, color: 'var(--color-ink-4)' },
-    { label: 'P50', value: pcts.P50.total_comp, color: 'var(--color-ink-3)' },
-    { label: 'P75', value: pcts.P75.total_comp, color: 'var(--color-brand)' },
-    { label: 'P90', value: pcts.P90.total_comp, color: '#f59e0b' },
-  ];
+  const maxComp = pcts ? pcts.P90.total_comp : 0;
+  const markers = pcts
+    ? [
+        { label: 'P25', value: pcts.P25.total_comp, color: 'var(--color-ink-4)' },
+        { label: 'P50', value: pcts.P50.total_comp, color: 'var(--color-ink-3)' },
+        { label: 'P75', value: pcts.P75.total_comp, color: 'var(--color-brand)' },
+        { label: 'P90', value: pcts.P90.total_comp, color: '#f59e0b' },
+      ]
+    : [];
 
   // Determine user position
   let userPosition: string | null = null;
-  if (userTotalComp != null) {
+  if (pcts && userTotalComp != null) {
     if (userTotalComp >= pcts.P90.total_comp) userPosition = 'P90+';
     else if (userTotalComp >= pcts.P75.total_comp) userPosition = 'P75-P90';
     else if (userTotalComp >= pcts.P50.total_comp) userPosition = 'P50-P75';
@@ -465,6 +466,25 @@ function MarketBenchmark({
         </div>
       </div>
 
+      {!pcts ? (
+        /* Placeholder — selectedRole 为空或未知（如点击「全部」），仍保留上方角色 tab 供用户回到具体岗位 */
+        <div
+          style={{
+            padding: '28px 20px',
+            background: 'var(--color-surface-2)',
+            borderRadius: '12px',
+            border: '1px dashed var(--color-line)',
+            textAlign: 'center',
+            color: 'var(--color-ink-3)',
+            fontSize: '13px',
+            fontWeight: 500,
+            lineHeight: 1.6,
+          }}
+        >
+          选择上方岗位查看薪资基准
+        </div>
+      ) : (
+        <>
       {/* Percentile cards */}
       <div
         style={{
@@ -658,6 +678,8 @@ function MarketBenchmark({
           </span>
         </div>
       )}
+        </>
+      )}
     </div>
   );
 }
@@ -674,25 +696,21 @@ function SortIcon({ col, sortKey, sortAsc }: { col: SortKey; sortKey: SortKey; s
 function MarketTable({
   entries,
   roleFilter,
+  onRoleFilterChange,
+  onSubmitOffer,
 }: {
   entries: SalaryEntry[];
   roleFilter: string;
+  onRoleFilterChange: (role: string) => void;
+  onSubmitOffer: () => void;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>('total_comp');
   const [sortAsc, setSortAsc] = useState(false);
-  const [filterRole, setFilterRole] = useState(roleFilter);
-
-  // Sync with external roleFilter prop
-  useEffect(() => {
-    void (async () => {
-      setFilterRole(roleFilter);
-    })();
-  }, [roleFilter]);
 
   const marketEntries = entries.filter((e) => e.source === 'market');
 
-  const filtered = filterRole
-    ? marketEntries.filter((e) => e.role === filterRole)
+  const filtered = roleFilter
+    ? marketEntries.filter((e) => e.role === roleFilter)
     : marketEntries;
 
   const sorted = [...filtered].sort((a, b) => {
@@ -703,10 +721,9 @@ function MarketTable({
   });
 
   function toggleSort(key: SortKey) {
-    if (sortKey === key) setsSortAsc(!sortAsc);
+    if (sortKey === key) setSortAsc(!sortAsc);
     else { setSortKey(key); setSortAsc(false); }
   }
-  function setsSortAsc(v: boolean) { setSortAsc(v); }
 
   const thStyle = (col: SortKey): React.CSSProperties => ({
     padding: '10px 16px',
@@ -784,13 +801,13 @@ function MarketTable({
           <Filter size={12} color="var(--color-ink-4)" />
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => setFilterRole('')}
+              onClick={() => onRoleFilterChange('')}
               style={{
                 padding: '4px 10px',
                 borderRadius: '16px',
-                border: filterRole === '' ? 'none' : '1px solid var(--color-line)',
-                background: filterRole === '' ? 'var(--color-brand)' : 'transparent',
-                color: filterRole === '' ? '#fff' : 'var(--color-ink-3)',
+                border: roleFilter === '' ? 'none' : '1px solid var(--color-line)',
+                background: roleFilter === '' ? 'var(--color-brand)' : 'transparent',
+                color: roleFilter === '' ? '#fff' : 'var(--color-ink-3)',
                 fontSize: '11.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -802,13 +819,13 @@ function MarketTable({
             {ROLES.map((r) => (
               <button
                 key={r}
-                onClick={() => setFilterRole(r)}
+                onClick={() => onRoleFilterChange(r)}
                 style={{
                   padding: '4px 10px',
                   borderRadius: '16px',
-                  border: filterRole === r ? 'none' : '1px solid var(--color-line)',
-                  background: filterRole === r ? 'var(--color-brand)' : 'transparent',
-                  color: filterRole === r ? '#fff' : 'var(--color-ink-3)',
+                  border: roleFilter === r ? 'none' : '1px solid var(--color-line)',
+                  background: roleFilter === r ? 'var(--color-brand)' : 'transparent',
+                  color: roleFilter === r ? '#fff' : 'var(--color-ink-3)',
                   fontSize: '11.5px',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -825,13 +842,41 @@ function MarketTable({
       {sorted.length === 0 ? (
         <div
           style={{
-            padding: '40px',
+            padding: '36px 40px',
             textAlign: 'center',
-            color: 'var(--color-ink-4)',
-            fontSize: '13.5px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '10px',
           }}
         >
-          市场薪资数据正在完善中，敬请期待
+          <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--color-ink-3)', fontWeight: 600 }}>
+            暂无{roleFilter ? `「${roleFilter}」的` : ''}市场 offer 数据
+          </p>
+          <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--color-ink-4)', lineHeight: 1.5 }}>
+            提交你的 offer，帮助补全这一岗位的真实薪资样本
+          </p>
+          <button
+            onClick={onSubmitOffer}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'var(--color-brand)',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              marginTop: '4px',
+            }}
+          >
+            <Plus size={14} />
+            提交我的 offer
+          </button>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -1641,6 +1686,48 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
           ))}
         </div>
       )}
+
+      {/* Next actions */}
+      {data.next_actions.length > 0 && (
+        <div
+          style={{
+            padding: '14px 16px',
+            background: 'var(--color-surface)',
+            borderRadius: '12px',
+            border: '1px solid var(--color-line)',
+          }}
+        >
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            下一步行动
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {data.next_actions.map((a, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
+                <span
+                  style={{
+                    flexShrink: 0,
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: 'var(--color-surface-3)',
+                    color: 'var(--color-ink-3)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: 'var(--font-mono)',
+                    marginTop: '1px',
+                  }}
+                >
+                  {i + 1}
+                </span>
+                {a}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2412,6 +2499,7 @@ export default function SalaryPage() {
                   { label: 'P50', val: stats.median_total_comp },
                   { label: 'P75', val: stats.p75_total_comp },
                   { label: 'P90', val: stats.p90_total_comp },
+                  { label: '均值', val: stats.avg_total_comp },
                 ].map((item) => (
                   <span
                     key={item.label}
@@ -2427,7 +2515,12 @@ export default function SalaryPage() {
             )}
 
             {/* Market comparison table */}
-            <MarketTable entries={entries} roleFilter={selectedRole} />
+            <MarketTable
+              entries={entries}
+              roleFilter={selectedRole}
+              onRoleFilterChange={setSelectedRole}
+              onSubmitOffer={() => setDialogOpen(true)}
+            />
 
             {/* User's own offers — only shown if they've submitted any */}
             <UserOffersTable entries={entries} />

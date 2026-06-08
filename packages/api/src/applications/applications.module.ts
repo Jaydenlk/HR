@@ -6,9 +6,11 @@ import { ApplicationsController } from './applications.controller';
 import { ApplicationsService } from './applications.service';
 import { StrategyService } from './strategy.service';
 import { AiModule } from '../ai/ai.module';
+import { Resume } from '../resumes/entities/resume.entity';
+import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Application, ApplicationEvent]), AiModule],
+  imports: [TypeOrmModule.forFeature([Application, ApplicationEvent, Resume, Diagnosis]), AiModule],
   controllers: [ApplicationsController],
   providers: [ApplicationsService, StrategyService],
   exports: [ApplicationsService, StrategyService],

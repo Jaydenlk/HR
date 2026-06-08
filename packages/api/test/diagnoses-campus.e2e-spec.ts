@@ -78,8 +78,10 @@ describe('Diagnoses Campus (e2e)', () => {
     });
   });
 
-  // ─── AI live:真实调用 CloudDreamAI ─────────────────────────────────
-  describe('AI live — 职业标尺诊断(真跑)', () => {
+  // ─── AI live:真实调用 CloudDreamAI(默认跳过,RUN_AI_LIVE=1 开启) ─────────
+  // 门控原因:不门控会让默认 e2e 套件在 auto-v2 中转抖动时环境性 flaky,与其它 AI-live 块对齐。
+  const LIVE = process.env.RUN_AI_LIVE === '1';
+  (LIVE ? describe : describe.skip)('AI live — 职业标尺诊断(真跑)', () => {
     it('有效简历不带 jd_text → 201 + profession_standard 结果', async () => {
       const resumeRes = await request(app.getHttpServer())
         .post('/api/resumes')

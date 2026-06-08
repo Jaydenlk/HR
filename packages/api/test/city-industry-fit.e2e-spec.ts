@@ -116,6 +116,56 @@ const OUT_OF_CONSTRAINT_RESULT = {
   ],
 };
 
+// recommendation 引用一个会被 Guard 2 过滤掉的城市（上海超出 constraint），
+// fit_matrix 只剩北京/杭州。Guard 7 应丢弃这段 AI 文本并按最高分重写。
+const STALE_RECOMMENDATION_RESULT = {
+  ...OUT_OF_CONSTRAINT_RESULT,
+  recommendation:
+    '综合评分最高组合为：上海 × 金融科技（综合适配度 70 分）。建议优先考虑上海。',
+};
+
+// fit_matrix 全被过滤为空（evidence_basis 全空）+ AI 仍给出引用某城市的 recommendation。
+// Guard 7 应在矩阵为空时返回中性提示，而非透传引用了被过滤城市的 AI 文本。
+const EMPTY_MATRIX_RECOMMENDATION_RESULT = {
+  ...HAPPY_RESULT,
+  fit_matrix: [
+    { ...HAPPY_RESULT.fit_matrix[0], evidence_basis: [] },
+    { ...HAPPY_RESULT.fit_matrix[1], evidence_basis: [] },
+  ],
+  recommendation:
+    '综合评分最高组合为：北京 × 互联网（综合适配度 78 分）。建议优先考虑北京。',
+};
+
+// #93: key_companies 含"具体品牌名"与"类别/规模描述"混合，
+// 收紧后的 stripCompanyNames 应只保留类别描述，剔除所有专有品牌名（含旧逻辑漏判的长品牌名）。
+const MIXED_COMPANIES_RESULT = {
+  ...HAPPY_RESULT,
+  industry_hub_analysis: [
+    {
+      city: '北京',
+      key_companies: [
+        // 应保留（类别/规模描述）
+        '中型互联网公司（B轮及以上）',
+        '头部电商平台',
+        '国企',
+        '上市新能源车企',
+        '500 强企业', // 数字+规模词共现 → 类别
+        '一线城市本地龙头', // 一线/本地 → 类别
+        // 应剔除（专有品牌名，含旧"裸数字即类别"漏判的带数字品牌名）
+        '字节跳动', // 短中文品牌（旧逻辑能删）
+        'Microsoft', // 长英文品牌（旧逻辑漏判：>6 且纯字母 → 误留）
+        '拼多多科技', // 5 字无后缀品牌（旧逻辑漏判）
+        '海康威视', // 4 字品牌
+        '360', // 带数字品牌（旧"裸数字即类别"漏判 → 误留）
+        '58同城', // 带数字品牌（旧逻辑漏判）
+        '4399', // 带数字品牌（旧逻辑漏判）
+      ],
+      cluster_effect: '互联网集聚效应强',
+      career_ceiling: '大厂晋升体系完善',
+    },
+  ],
+};
+
 // fit_score 由 AI 返回的值 vs 服务端重算：AI 给 99，服务端应按公式重算
 const INFLATED_SCORE_RESULT = {
   ...HAPPY_RESULT,
@@ -272,6 +322,87 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
         expect(item.fit_breakdown).toHaveProperty('career_ceiling');
         expect(item.fit_breakdown).toHaveProperty('cost_sustainability');
         expect(item.fit_breakdown).toHaveProperty('constraint_satisfaction');
+      }
+    });
+
+    it('cost_of_living_impact.typical_salary_range redacts sourceless salary numbers (#19)', async () => {
+      // HAPPY_RESULT 的 typical_salary_range 含 "25k-45k/月"/"20k-38k/月" 等无来源薪资数字。
+      // 本模块无 data_sources 溯源通道，guard 必须抑制载荷：含数字的薪资文本被替换为引导提示，
+      // 绝不照样输出编造的薪资数字。
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/city-industry-fit')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ profile: { skills: ['Java'], current_role: '后端工程师' } });
+
+      expect(res.status).toBe(201);
+      const items: Array<{ city: string; typical_salary_range: string }> =
+        res.body.cost_of_living_impact ?? [];
+      expect(items.length).toBeGreaterThan(0);
+      for (const c of items) {
+        // 原始编造数字必须被抹除
+        expect(c.typical_salary_range).not.toContain('25k');
+        expect(c.typical_salary_range).not.toContain('45k');
+        expect(c.typical_salary_range).not.toContain('20k');
+        expect(c.typical_salary_range).not.toContain('38k');
+        // 不再残留任何数字
+        expect(/\d/.test(c.typical_salary_range)).toBe(false);
+        // 替换为统一引导提示
+        expect(c.typical_salary_range).toContain('薪资对标');
+      }
+    });
+
+    it('cost_of_living_impact housing/purchasing notes strip sourceless precise amounts (#19)', async () => {
+      // HAPPY_RESULT 的 housing_cost_note 含 "租金约 5k-10k/月，房价均价约 7-10 万/平" 等
+      // 无来源精确金额——与 typical_salary_range 平行的第二条编造数字通道。
+      // guard 必须收口：含数字的成本文本剥离精确金额并替换为定性引导，纯定性文本追加免责声明。
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/city-industry-fit')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ profile: { skills: ['Java'], current_role: '后端工程师' } });
+
+      expect(res.status).toBe(201);
+      const items: Array<{
+        city: string;
+        housing_cost_note: string;
+        purchasing_power_note: string;
+      }> = res.body.cost_of_living_impact ?? [];
+      expect(items.length).toBeGreaterThan(0);
+
+      for (const c of items) {
+        // housing_cost_note：原始含精确金额（5k/10k/7-10 万 等）→ 必须被剥离，不再残留任何数字
+        expect(c.housing_cost_note).not.toContain('5k');
+        expect(c.housing_cost_note).not.toContain('10k');
+        expect(c.housing_cost_note).not.toContain('万');
+        expect(/\d/.test(c.housing_cost_note)).toBe(false);
+        // 仍带统一免责声明，避免被前端当作确定结论
+        expect(c.housing_cost_note).toContain('非实时来源');
+        expect(c.housing_cost_note).toContain('仅供参考');
+
+        // purchasing_power_note：原始为纯定性文本（无数字）→ 保留内容 + 追加免责声明
+        expect(c.purchasing_power_note).toContain('非实时来源');
+        expect(c.purchasing_power_note).toContain('仅供参考');
+        expect(/\d/.test(c.purchasing_power_note)).toBe(false);
+      }
+
+      // 定位北京条目：原 purchasing_power_note 的定性内容应被保留
+      const beijing = items.find((c) => c.city.includes('北京'));
+      expect(beijing).toBeDefined();
+      expect(beijing!.purchasing_power_note).toContain('实际购买力偏低');
+    });
+
+    it('industry_hub_analysis cluster_effect/career_ceiling marked as rough estimate (#19)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/city-industry-fit')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ profile: { skills: ['Java'], current_role: '后端工程师' } });
+
+      expect(res.status).toBe(201);
+      const hubs: Array<{ cluster_effect: string; career_ceiling: string }> =
+        res.body.industry_hub_analysis ?? [];
+      expect(hubs.length).toBeGreaterThan(0);
+      for (const h of hubs) {
+        expect(h.cluster_effect.startsWith('（粗略估算）')).toBe(true);
+        expect(h.career_ceiling.startsWith('（粗略估算）')).toBe(true);
       }
     });
 
@@ -454,6 +585,161 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
         // Must not be the inflated value of 99
         expect(item.fit_score).not.toBe(99);
       }
+    });
+  });
+
+  // ─── Anti-fabrication guard: stricter company-name stripping (#93) ───────────
+
+  describe('Anti-fabrication: stripCompanyNames keeps categories, strips brands (#93)', () => {
+    let appMixed: INestApplication;
+    let tokenMixed: string;
+
+    beforeAll(async () => {
+      const mockMixed = {
+        complete: jest.fn().mockResolvedValue('mock'),
+        completeStructured: jest.fn().mockResolvedValue(MIXED_COMPANIES_RESULT),
+      };
+
+      const moduleRefMixed = await Test.createTestingModule({ imports: [AppModule] })
+        .overrideProvider(AiService)
+        .useValue(mockMixed)
+        .compile();
+
+      appMixed = moduleRefMixed.createNestApplication();
+      appMixed.setGlobalPrefix('api');
+      appMixed.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+      await appMixed.init();
+
+      tokenMixed = await loginUser(appMixed, 'city-fit-mixed@coach.dev', 'Mixed Companies User');
+    }, 30000);
+
+    afterAll(async () => {
+      await appMixed.close();
+    });
+
+    it('keeps category/scale descriptors, strips specific brand names (incl. old false-negatives)', async () => {
+      const res = await request(appMixed.getHttpServer())
+        .post('/api/salary/city-industry-fit')
+        .set('Authorization', `Bearer ${tokenMixed}`)
+        .send({ profile: { skills: ['Java'], current_role: '后端工程师' } });
+
+      expect(res.status).toBe(201);
+      const hubs: Array<{ key_companies: string[] }> = res.body.industry_hub_analysis ?? [];
+      expect(hubs.length).toBeGreaterThan(0);
+      const companies = hubs.flatMap((h) => h.key_companies);
+
+      // 类别/规模描述应保留
+      expect(companies).toContain('中型互联网公司（B轮及以上）');
+      expect(companies).toContain('头部电商平台');
+      expect(companies).toContain('国企'); // 旧逻辑误伤：2 字纯中文 → 错误剔除
+      expect(companies).toContain('上市新能源车企');
+      expect(companies).toContain('500 强企业'); // 数字+规模词共现 → 类别保留
+      expect(companies).toContain('一线城市本地龙头');
+
+      // 专有品牌名应剔除（含旧逻辑漏判的长品牌名）
+      expect(companies).not.toContain('字节跳动');
+      expect(companies).not.toContain('Microsoft'); // 旧逻辑漏判
+      expect(companies).not.toContain('拼多多科技'); // 旧逻辑漏判
+      expect(companies).not.toContain('海康威视');
+      // 带数字品牌名应剔除（旧"裸数字即类别"逻辑漏判）
+      expect(companies).not.toContain('360');
+      expect(companies).not.toContain('58同城');
+      expect(companies).not.toContain('4399');
+    });
+  });
+
+  // ─── Anti-fabrication guard: recommendation reconciled with filtered matrix ──
+
+  describe('Anti-fabrication: recommendation referencing a filtered-out city is rewritten', () => {
+    let appStaleRec: INestApplication;
+    let tokenStaleRec: string;
+
+    beforeAll(async () => {
+      const mockStaleRec = {
+        complete: jest.fn().mockResolvedValue('mock'),
+        completeStructured: jest.fn().mockResolvedValue(STALE_RECOMMENDATION_RESULT),
+      };
+
+      const moduleRefStaleRec = await Test.createTestingModule({ imports: [AppModule] })
+        .overrideProvider(AiService)
+        .useValue(mockStaleRec)
+        .compile();
+
+      appStaleRec = moduleRefStaleRec.createNestApplication();
+      appStaleRec.setGlobalPrefix('api');
+      appStaleRec.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+      await appStaleRec.init();
+
+      tokenStaleRec = await loginUser(appStaleRec, 'city-fit-stalerec@coach.dev', 'Stale Rec User');
+    }, 30000);
+
+    afterAll(async () => {
+      await appStaleRec.close();
+    });
+
+    it('AI recommends 上海 (filtered out by constraint) → server rewrites to a kept city', async () => {
+      const res = await request(appStaleRec.getHttpServer())
+        .post('/api/salary/city-industry-fit')
+        .set('Authorization', `Bearer ${tokenStaleRec}`)
+        .send({
+          profile: {
+            skills: ['Java'],
+            current_role: '后端工程师',
+            constraints: { location: '北京、杭州' }, // 不含上海
+          },
+        });
+
+      expect(res.status).toBe(201);
+      const cities = (res.body.fit_matrix as Array<{ city: string }>).map((m) => m.city);
+      expect(cities).not.toContain('上海'); // 仍被矩阵 guard 剔除
+      // recommendation 不得引用被过滤掉的上海，必须引用过滤后矩阵中的城市
+      expect(res.body.recommendation).not.toContain('上海');
+      const recRefsFitCity = cities.some((c: string) => (res.body.recommendation as string).includes(c));
+      expect(recRefsFitCity).toBe(true);
+    });
+  });
+
+  describe('Anti-fabrication: recommendation with empty filtered matrix → neutral hint', () => {
+    let appEmptyRec: INestApplication;
+    let tokenEmptyRec: string;
+
+    beforeAll(async () => {
+      const mockEmptyRec = {
+        complete: jest.fn().mockResolvedValue('mock'),
+        completeStructured: jest
+          .fn()
+          .mockResolvedValue(EMPTY_MATRIX_RECOMMENDATION_RESULT),
+      };
+
+      const moduleRefEmptyRec = await Test.createTestingModule({ imports: [AppModule] })
+        .overrideProvider(AiService)
+        .useValue(mockEmptyRec)
+        .compile();
+
+      appEmptyRec = moduleRefEmptyRec.createNestApplication();
+      appEmptyRec.setGlobalPrefix('api');
+      appEmptyRec.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+      await appEmptyRec.init();
+
+      tokenEmptyRec = await loginUser(appEmptyRec, 'city-fit-emptyrec@coach.dev', 'Empty Rec User');
+    }, 30000);
+
+    afterAll(async () => {
+      await appEmptyRec.close();
+    });
+
+    it('all matrix items filtered out → recommendation is neutral hint, not stale AI text', async () => {
+      const res = await request(appEmptyRec.getHttpServer())
+        .post('/api/salary/city-industry-fit')
+        .set('Authorization', `Bearer ${tokenEmptyRec}`)
+        .send({ profile: { skills: ['Java'], current_role: '后端工程师' } });
+
+      expect(res.status).toBe(201);
+      expect(res.body.fit_matrix).toEqual([]);
+      // 不得透传引用了被过滤城市（北京）的 AI 推荐文本
+      expect(res.body.recommendation).not.toContain('综合适配度 78 分');
+      // 必须是服务端中性提示
+      expect(res.body.recommendation).toContain('没有符合条件');
     });
   });
 

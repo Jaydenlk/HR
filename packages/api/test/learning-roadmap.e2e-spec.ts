@@ -308,6 +308,232 @@ describe('LearningRoadmap (e2e) — deterministic guard tests', () => {
       expect(phase.completion_criteria).toBe('完成练习题');
     });
   });
+
+  // ─── #11/#79: roadmap item missing phases → no 500, item skipped ───────────
+
+  describe('#11/#79 Guard: roadmap shape defects do not crash', () => {
+    it('roadmap item with NO phases field → 200, malformed item skipped', async () => {
+      mockResult = makeAiResult({
+        roadmap: [
+          { skill_name: 'TypeScript', priority: 1, total_weeks: 2 }, // phases missing
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      // Pre-fix this threw 500 on item.phases.map(...)
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.roadmap)).toBe(true);
+      // Item had no valid phases → skipped → empty roadmap → cannot_determine note
+      expect(res.body.roadmap).toHaveLength(0);
+      expect(
+        (res.body.cannot_determine as string[]).some((c) => c.includes('roadmap')),
+      ).toBe(true);
+    });
+
+    it('roadmap item with phases=null → 200, item skipped (no crash)', async () => {
+      mockResult = makeAiResult({
+        roadmap: [{ skill_name: 'TypeScript', priority: 1, phases: null }],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      expect(res.body.roadmap).toHaveLength(0);
+    });
+
+    it('roadmap item missing skill_name → skipped, valid item kept', async () => {
+      mockResult = makeAiResult({
+        roadmap: [
+          { priority: 1, phases: [{ phase_name: 'x', goal: 'y', estimated_weeks: 1, completion_criteria: '提交可运行的代码仓库' }] }, // no skill_name
+          {
+            skill_name: 'React Hooks',
+            phases: [
+              {
+                phase_name: '基础阶段',
+                goal: '掌握 Hooks',
+                estimated_weeks: 2,
+                completion_criteria: '完成一个使用 Hooks 的开源 demo 并公开仓库',
+              },
+            ],
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      expect(res.body.roadmap).toHaveLength(1);
+      expect(res.body.roadmap[0].skill_name).toBe('React Hooks');
+    });
+  });
+
+  // ─── #12/#77: resource anti-fabrication (strip URLs, flag specific names) ──
+
+  describe('#12/#77 Guard: resource_list anti-fabrication', () => {
+    it('http(s) URL in description/quality_criteria is stripped', async () => {
+      mockResult = makeAiResult({
+        resource_list: [
+          {
+            skill_name: 'TypeScript',
+            resource_type: 'official_docs',
+            description: '官方文档见 https://www.typescriptlang.org/zh/docs 很全面',
+            quality_criteria: '参考 http://example.com/rank 排名靠前',
+            language: 'zh',
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      const r = res.body.resource_list[0] as { description: string; quality_criteria: string };
+      expect(r.description).not.toMatch(/https?:\/\//);
+      expect(r.quality_criteria).not.toMatch(/https?:\/\//);
+      expect(r.description).toContain('已移除链接');
+    });
+
+    it('specific course/book name gets a disclaimer annotation', async () => {
+      mockResult = makeAiResult({
+        resource_list: [
+          {
+            skill_name: 'TypeScript',
+            resource_type: 'video',
+            description: '推荐《深入理解 TypeScript》这门课程',
+            quality_criteria: '内容系统',
+            language: 'zh',
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      const r = res.body.resource_list[0] as { description: string };
+      expect(r.description).toContain('不代表实际存在');
+    });
+
+    it('resource missing skill_name/description → skipped', async () => {
+      mockResult = makeAiResult({
+        resource_list: [
+          { resource_type: 'book', description: '某书', quality_criteria: 'ok' }, // no skill_name
+          { skill_name: 'TS', resource_type: 'book', quality_criteria: 'ok' }, // no description
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      expect(res.body.resource_list).toHaveLength(0);
+    });
+  });
+
+  // ─── #50: field fallback / confidence validation ──────────────────────────
+
+  describe('#50 Guard: field fallback and confidence validation', () => {
+    it('invalid confidence value → downgraded to low', async () => {
+      mockResult = makeAiResult({ confidence: 'super-high' });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      expect(res.body.confidence).toBe('low');
+    });
+
+    it('missing array fields → defaulted to empty arrays (no 500)', async () => {
+      mockResult = makeAiResult({
+        recommendations: undefined,
+        risks: undefined,
+        next_actions: undefined,
+        follow_up_questions: undefined,
+        cannot_determine: undefined,
+        evidence_used: undefined,
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.recommendations)).toBe(true);
+      expect(Array.isArray(res.body.risks)).toBe(true);
+      expect(Array.isArray(res.body.evidence_used)).toBe(true);
+    });
+
+    it('total_estimated_weeks <= 0 or non-number → omitted', async () => {
+      mockResult = makeAiResult({ total_estimated_weeks: 0 });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      expect(res.body.total_estimated_weeks).toBeUndefined();
+    });
+  });
+
+  // ─── #89: empty roadmap/resource_list → cannot_determine ──────────────────
+
+  describe('#89 Guard: empty lists produce cannot_determine notes', () => {
+    it('empty roadmap AND empty resource_list → both flagged', async () => {
+      mockResult = makeAiResult({ roadmap: [], resource_list: [] });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      const cd = res.body.cannot_determine as string[];
+      expect(cd.some((c) => c.includes('roadmap'))).toBe(true);
+      expect(cd.some((c) => c.includes('resource_list'))).toBe(true);
+    });
+  });
+
+  // ─── #88: preferred_language enum validation ──────────────────────────────
+
+  describe('#88 Guard: preferred_language restricted to zh|en', () => {
+    it('invalid preferred_language → 400 (not silent English fallback)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...VALID_BODY, preferred_language: 'fr' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('preferred_language=zh → 200', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...VALID_BODY, preferred_language: 'zh' });
+
+      expect(res.status).toBe(200);
+    });
+  });
 });
 
 // ── AI-live suite (default skip unless RUN_AI_LIVE=1) ─────────────────────────

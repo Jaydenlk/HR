@@ -5,11 +5,15 @@ import { SalaryEntry } from './entities/salary-entry.entity';
 import { CreateSalaryEntryDto } from './dto/create-salary-entry.dto';
 import { SalaryEntryResponseDto } from './dto/salary-entry-response.dto';
 
+// 隐私(#59): 小样本聚合可反推单个发布者的精确薪资。count < MIN_AGGREGATE_SAMPLE 的分组
+// 不返回精确均值(avg_base/avg_total 置 null),仅保留 count，避免去匿名化。
+export const MIN_AGGREGATE_SAMPLE = 3;
+
 export interface SalaryStats {
   company: string;
   role: string;
-  avg_base: number;
-  avg_total: number;
+  avg_base: number | null;
+  avg_total: number | null;
   count: number;
 }
 
@@ -79,13 +83,18 @@ export class SalaryService {
       .orderBy('count', 'DESC')
       .getRawMany<{ company: string; role: string; avg_base: string; avg_total: string; count: string }>();
 
-    return rows.map((r) => ({
-      company: r.company,
-      role: r.role,
-      avg_base: Math.round(parseFloat(r.avg_base)),
-      avg_total: Math.round(parseFloat(r.avg_total)),
-      count: parseInt(r.count, 10),
-    }));
+    return rows.map((r) => {
+      const count = parseInt(r.count, 10);
+      // 隐私(#59): 小样本(count < MIN_AGGREGATE_SAMPLE)聚合等同于暴露单条记录,均值置 null。
+      const tooSmall = count < MIN_AGGREGATE_SAMPLE;
+      return {
+        company: r.company,
+        role: r.role,
+        avg_base: tooSmall ? null : Math.round(parseFloat(r.avg_base)),
+        avg_total: tooSmall ? null : Math.round(parseFloat(r.avg_total)),
+        count,
+      };
+    });
   }
 
   async findOne(id: string, userId: string): Promise<SalaryEntryResponseDto> {

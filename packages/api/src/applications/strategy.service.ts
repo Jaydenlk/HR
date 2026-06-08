@@ -56,27 +56,51 @@ const VALID_CONFIDENCE = new Set(['high', 'medium', 'low', 'insufficient']);
 const VALID_TIERS = new Set(['stretch', 'target', 'safety']);
 const VALID_PRIORITY = new Set(['high', 'medium', 'low']);
 
-// ── 防编造 guard：剔除 example_types 中出现的具体公司名 ─────────────────────────
-// 判定为具体公司名的条件(满足任一即剔除):
-// 1. 短词（≤6字），且不含括号/描述性词（中型/大型/行业/等）
-// 2. 含企业注册后缀（公司/集团/股份/有限/Corp/Inc/Ltd）且 ≤ 15 字
-// 保留：含括号的描述（如"中型互联网公司（B轮及以上）"）或明显描述性词（行业/类型/规模）
-const COMPANY_SUFFIXES = /(公司|集团|股份|有限|Corp\.|Inc\.|Ltd\.|LLC)/;
-const DESCRIPTIVE_MARKERS = /[（(]|中型|大型|小型|头部|腰部|行业|领域|类型|规模|以上|以下|\d|初创/;
+// ── 防编造 guard：检测 example_types 中疑似具体实体公司名 ───────────────────────
+//
+// 反转策略(修复 #38 子串绕过)：不再做"事后子串删"，而是逐条判定"是否疑似具体品牌/实体"，
+// 命中即剔整条。即使带类型/规模描述词(TYPE_QUALIFIERS)，只要仍夹带具体品牌锚点，
+// 同样剔除——杜绝"品牌名+知名/头部/互联网平台"句式绕过。
+//
+// 已知头部品牌(锚词)：命中即为具体公司名，无论是否包裹描述词。
+const KNOWN_BRANDS = /腾讯|阿里巴巴|阿里|蚂蚁|字节跳动|字节|抖音|百度|京东|美团|拼多多|网易|华为|小米|滴滴|快手|携程|微博|小红书|哔哩哔哩|B站|谷歌|Google|微软|Microsoft|苹果|Apple|亚马逊|Amazon|Meta|Facebook|麦肯锡|McKinsey|波士顿咨询|BCG|贝恩|Bain|德勤|普华永道|安永|毕马威|高盛|摩根/i;
+// 企业注册后缀：带这些后缀通常指向一家具体注册主体。
+const COMPANY_SUFFIXES = /(公司|集团|股份|有限|事务所|Corp\.?|Inc\.?|Ltd\.?|LLC|Co\.)/;
+// 类型/规模描述词：合法的"公司类型"描述应当至少含其一。
+const TYPE_QUALIFIERS = /中型|大型|小型|头部|腰部|初创|外资|国内|传统|金融行业|互联网平台|科技子|数字化|顶级|知名|行业龙头|民营|国有|上市|制造业|咨询公司|科技公司|创业公司|平台|厂商|企业/;
 
-function stripCompanyNames(examples: unknown[]): string[] {
-  return (examples ?? [])
-    .filter((e): e is string => typeof e === 'string' && e.trim().length > 0)
-    .filter((e) => {
-      const s = e.trim();
-      // If it has descriptive markers (parentheses, size qualifiers, numbers), it's a description — keep
-      if (DESCRIPTIVE_MARKERS.test(s)) return true;
-      // Short pure-noun (≤6 chars, only CJK/letters): likely a specific company brand — strip
-      if (s.length <= 6 && /^[一-龥a-zA-Z·]+$/.test(s)) return false;
-      // Contains formal company-suffix without descriptive context — strip
-      if (COMPANY_SUFFIXES.test(s) && s.length <= 15 && !DESCRIPTIVE_MARKERS.test(s)) return false;
-      return true;
-    });
+// 判定单条 example 是否疑似具体实体公司名(应剔除)。
+function looksLikeConcreteCompany(raw: string): boolean {
+  const s = raw.trim();
+  if (s.length === 0) return true;
+  // 1. 命中已知头部品牌锚词 → 一律视为具体公司名(即使包裹"头部/知名/互联网平台"等描述词)。
+  if (KNOWN_BRANDS.test(s)) return true;
+  // 2. 短纯名词(≤6 字，纯汉字/字母/·)且无任何类型描述词 → 疑似裸品牌词。
+  if (s.length <= 6 && /^[一-龥a-zA-Z·]+$/.test(s) && !TYPE_QUALIFIERS.test(s)) return true;
+  // 去掉括号补充后的主干，用于后缀+描述词的组合判断。
+  const base = s.replace(/[（(][^）)]*[）)]/g, '').trim();
+  // 3. 含企业注册后缀但缺少类型描述词 → 指向具体注册主体(如"某某科技有限公司")。
+  if (COMPANY_SUFFIXES.test(s) && !TYPE_QUALIFIERS.test(base)) return true;
+  // 4. 括号前主干是短裸品牌词(如"阿里巴巴（集团）") → 剔除。
+  if (base.length <= 8 && /^[一-龥a-zA-Z·]+$/.test(base) && !TYPE_QUALIFIERS.test(base)) return true;
+  return false;
+}
+
+// 过滤 example_types，剔除疑似具体公司名，返回 { kept, hadConcrete }。
+function sanitizeExampleTypes(examples: unknown[]): { kept: string[]; hadConcrete: boolean } {
+  const strings = (examples ?? []).filter(
+    (e): e is string => typeof e === 'string' && e.trim().length > 0,
+  );
+  const kept: string[] = [];
+  let hadConcrete = false;
+  for (const e of strings) {
+    if (looksLikeConcreteCompany(e)) {
+      hadConcrete = true;
+      continue;
+    }
+    kept.push(e.trim());
+  }
+  return { kept, hadConcrete };
 }
 
 @Injectable()
@@ -108,20 +132,26 @@ export class StrategyService {
 // ── 时间窗口检测 ──────────────────────────────────────────────────────────────
 
 function detectWindowNote(timeline?: string): string {
-  const now = new Date();
-  const month = now.getMonth() + 1; // 1-based
+  // 显式使用 Asia/Shanghai 时区取月份，避免服务器本地时区干扰
+  // toLocaleDateString 仅取 month:'numeric' 在 zh-CN 下返回如"6月"，parseInt 可安全解析前缀数字
+  const month = parseInt(
+    new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', month: 'numeric' }),
+    10,
+  );
+  // 备用保障：若 parseInt 得到 NaN（极罕见环境问题），回退到 UTC 月份
+  const safeMonth = Number.isFinite(month) ? month : new Date().getUTCMonth() + 1;
 
-  const active = WINDOWS.find((w) => w.months.includes(month));
+  const active = WINDOWS.find((w) => w.months.includes(safeMonth));
   if (active) return `当前处于${active.label}窗口期，策略有效。`;
 
-  if (timeline) return `当前非主招聘窗口期（现在是${month}月），请结合具体截止时间调整。`;
-  return `当前非主招聘窗口期（现在是${month}月），请注意时间窗口，建议提前规划或切换社招策略。`;
+  if (timeline) return `当前非主招聘窗口期（现在是${safeMonth}月），请结合具体截止时间调整。`;
+  return `当前非主招聘窗口期（现在是${safeMonth}月），请注意时间窗口，建议提前规划或切换社招策略。`;
 }
 
 // ── 服务端确定性 guard ────────────────────────────────────────────────────────
 
 function applyGuards(raw: RawStrategyOutput, windowNote: string): ApplicationStrategyResult {
-  const confidence = VALID_CONFIDENCE.has(raw.confidence ?? '')
+  let confidence = VALID_CONFIDENCE.has(raw.confidence ?? '')
     ? (raw.confidence as ApplicationStrategyResult['confidence'])
     : 'low';
 
@@ -130,27 +160,44 @@ function applyGuards(raw: RawStrategyOutput, windowNote: string): ApplicationStr
     return buildInsufficient(raw);
   }
 
-  // Guard 2: target_company_tiers — 剔除具体公司名，强制 tier 合法枚举
+  // Guard 2: target_company_tiers — 剔除疑似具体公司名，强制 tier 合法枚举。
+  // 反编造：若任一 tier 命中具体品牌/实体，剔除该条并降 confidence(high→medium，其余→low)。
+  let strippedConcrete = false;
   const tiers: CompanyTier[] = (raw.target_company_tiers ?? [])
     .filter((t) => VALID_TIERS.has(t.tier ?? ''))
-    .map((t) => ({
-      tier: t.tier as CompanyTier['tier'],
-      description: t.description ?? '',
-      rationale: t.rationale ?? '',
-      // 防编造 guard：example_types 只允许描述性文字，剔除具体公司名
-      example_types: stripCompanyNames(t.example_types ?? []),
-      priority: typeof t.priority === 'number' ? t.priority : undefined,
-    }));
+    .map((t) => {
+      const { kept, hadConcrete } = sanitizeExampleTypes(t.example_types ?? []);
+      if (hadConcrete) strippedConcrete = true;
+      return {
+        tier: t.tier as CompanyTier['tier'],
+        description: t.description ?? '',
+        rationale: t.rationale ?? '',
+        example_types: kept,
+        priority: typeof t.priority === 'number' ? t.priority : undefined,
+      };
+    });
+  if (strippedConcrete) {
+    confidence = confidence === 'high' ? 'medium' : 'low';
+  }
 
-  // Guard 3: application_sequence — target_count 必须是正整数
-  const sequence: ApplicationSequenceWeek[] = (raw.application_sequence ?? []).map((w) => ({
-    week: w.week ?? '',
-    focus: w.focus ?? '',
-    target_count: typeof w.target_count === 'number' && w.target_count > 0
-      ? Math.round(w.target_count)
-      : 3,
-    channels: (w.channels ?? []).filter((c): c is string => typeof c === 'string'),
-  }));
+  // Guard 3: application_sequence — target_count 缺失/非法则省略该 week(不杜撰默认值)，
+  // 合法值在 1-15 区间内确定性 clamp。被省略的 week 记入 cannot_determine。
+  const sequence: ApplicationSequenceWeek[] = [];
+  const droppedWeeks: string[] = [];
+  for (const w of raw.application_sequence ?? []) {
+    const count = clampTargetCount(w.target_count);
+    if (count === undefined) {
+      const label = typeof w.week === 'string' && w.week.trim().length > 0 ? w.week.trim() : '某周';
+      droppedWeeks.push(label);
+      continue;
+    }
+    sequence.push({
+      week: w.week ?? '',
+      focus: w.focus ?? '',
+      target_count: count,
+      channels: (w.channels ?? []).filter((c): c is string => typeof c === 'string'),
+    });
+  }
 
   // Guard 4: daily_action_plan — priority 合法枚举
   const dailyPlan: DailyAction[] = (raw.daily_action_plan ?? []).map((a) => ({
@@ -180,12 +227,26 @@ function applyGuards(raw: RawStrategyOutput, windowNote: string): ApplicationStr
     risks: (raw.risks ?? []).filter((r): r is string => typeof r === 'string'),
     next_actions: (raw.next_actions ?? []).filter((a): a is string => typeof a === 'string'),
     follow_up_questions: (raw.follow_up_questions ?? []).filter((q): q is string => typeof q === 'string'),
-    cannot_determine: (raw.cannot_determine ?? []).filter((c): c is string => typeof c === 'string'),
+    cannot_determine: [
+      ...(raw.cannot_determine ?? []).filter((c): c is string => typeof c === 'string'),
+      ...droppedWeeks.map((w) => `${w}：投递目标数量缺失或非法，已省略该周建议`),
+    ],
     target_company_tiers: tiers,
     application_sequence: sequence,
     daily_action_plan: dailyPlan,
     risk_assessment: riskAssessment,
   };
+}
+
+// target_count 区间：日均合理上限按周(约 15 份/周)封顶，缺失/非法返回 undefined(交由调用方省略该周)。
+const TARGET_COUNT_MIN = 1;
+const TARGET_COUNT_MAX = 15;
+
+function clampTargetCount(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined;
+  const rounded = Math.round(value);
+  if (rounded < TARGET_COUNT_MIN) return undefined;
+  return Math.min(rounded, TARGET_COUNT_MAX);
 }
 
 function buildInsufficient(raw: RawStrategyOutput): ApplicationStrategyResult {

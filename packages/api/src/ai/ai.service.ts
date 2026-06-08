@@ -17,6 +17,8 @@ interface CompleteStructuredParams {
   toolName: string;
   toolDescription: string;
   schema: Record<string, unknown>;
+  // 结构化输出默认上限 8192:4合1/比对类重 schema 在 4096 下易被截断。可按调用方上调。
+  maxTokens?: number;
 }
 
 interface Provider {
@@ -41,8 +43,8 @@ export class AiService {
       throw new Error('CLOUDDREAM_API_KEY is required but not set');
     }
 
-    // 主通道:CloudDreamAI 中转(auto-v2)。超时即失败(maxRetries=0),交由降级逻辑切备用,
-    // 避免中转挂起时长时间阻塞。超时阈值可经 AI_PRIMARY_TIMEOUT_MS 调整。
+    // 主通道:CloudDreamAI 中转(auto-v2)。默认 maxRetries=0 快速失败,交由降级逻辑切备用,
+    // 避免中转挂起时长时间阻塞。超时/重试经 AI_PRIMARY_TIMEOUT_MS / AI_PRIMARY_MAX_RETRIES 调整。
     this.primary = {
       name: ai.primary.model,
       model: ai.primary.model,
@@ -50,11 +52,13 @@ export class AiService {
         apiKey: ai.primary.apiKey,
         baseURL: ai.primary.baseURL,
         timeout: ai.primary.timeoutMs,
-        maxRetries: 0,
+        maxRetries: ai.primary.maxRetries,
       }),
     };
 
     // 备用通道:DeepSeek(Anthropic 兼容端点)。仅当配置了 DEEPSEEK_API_KEY 时启用。
+    // 默认 maxRetries=3:SDK 对瞬时连接错误(Connection error/ECONNRESET/5xx/429)自动指数退避重试,
+    // 使单次网络抖动不再直接冒泡成 503。可经 AI_FALLBACK_MAX_RETRIES 调整。
     this.fallback = ai.fallback.apiKey
       ? {
           name: ai.fallback.model,
@@ -63,7 +67,7 @@ export class AiService {
             apiKey: ai.fallback.apiKey,
             baseURL: ai.fallback.baseURL,
             timeout: ai.fallback.timeoutMs,
-            maxRetries: 1,
+            maxRetries: ai.fallback.maxRetries,
           }),
         }
       : null;
@@ -94,7 +98,7 @@ export class AiService {
   }
 
   async completeStructured<T>(params: CompleteStructuredParams): Promise<T> {
-    const { system, prompt, toolName, toolDescription, schema } = params;
+    const { system, prompt, toolName, toolDescription, schema, maxTokens = 8192 } = params;
 
     const tool: Anthropic.Tool = {
       name: toolName,
@@ -104,7 +108,7 @@ export class AiService {
 
     const build = (model: string): Anthropic.MessageCreateParamsNonStreaming => ({
       model,
-      max_tokens: 4096,
+      max_tokens: maxTokens,
       system,
       messages: [{ role: 'user', content: prompt }],
       tools: [tool],
@@ -112,7 +116,7 @@ export class AiService {
     });
 
     return this.withFailover('completeStructured', (provider) =>
-      this.attemptStructured<T>(provider, build(provider.model), toolName),
+      this.attemptStructured<T>(provider, build(provider.model), toolName, schema),
     );
   }
 
@@ -139,20 +143,65 @@ export class AiService {
     provider: Provider,
     messageParams: Anthropic.MessageCreateParamsNonStreaming,
     toolName: string,
+    schema: Record<string, unknown>,
   ): Promise<T> {
-    // 中转偶发对强制 tool_use 返回空块({} 或无 tool_use),个位数概率、与业务无关:最多取 3 次非空。
-    // 全空视为该通道失败(抛错),交由 withFailover 决定是否降级。
+    // 中转偶发对强制 tool_use 返回空块、缺 required 字段或被 max_tokens 截断的残缺 JSON:最多取 3 次完整。
+    // 全部失败视为该通道失败(抛错),交由 withFailover 决定是否降级——绝不把残缺/截断结果当成功返回(防编造红线)。
     const ATTEMPTS = 3;
     for (let i = 0; i < ATTEMPTS; i++) {
-      const input = this.extractToolInput<T>(
-        await this.limiter.run(() => provider.client.messages.create(messageParams)),
-        toolName,
-      );
-      if (input !== null) {
+      const response = await this.limiter.run(() => provider.client.messages.create(messageParams));
+      // 截断检测:max_tokens 处截断的 tool_use 是残缺 JSON,继续用会静默落库不完整数据,必须当失败处理。
+      if (response.stop_reason === 'max_tokens') {
+        throw new Error(
+          `通道 ${provider.name} 工具 "${toolName}" 输出在 max_tokens 处被截断,结构化结果不完整`,
+        );
+      }
+      const input = this.extractToolInput<T>(response, toolName);
+      if (input !== null && this.validateAgainstSchema(input, schema)) {
         return input;
       }
     }
-    throw new Error(`通道 ${provider.name} 对工具 "${toolName}" 连续 ${ATTEMPTS} 次返回空结果`);
+    throw new Error(`通道 ${provider.name} 对工具 "${toolName}" 连续 ${ATTEMPTS} 次返回空/不完整结果`);
+  }
+
+  // 运行期 schema 校验:Anthropic input_schema 仅作提示不强制,模型可漏 required 字段。
+  // 校验"required 字段存在 + 容器/标量类型正确",递归进嵌套对象与数组元素。
+  // 校验失败 → 当作该次失败(retry / 降级 / 最终 503),而非把残缺对象 `as T` 透传给下游导致 .map/.length 崩。
+  private validateAgainstSchema(value: unknown, schema: Record<string, unknown>): boolean {
+    const type = schema.type as string | undefined;
+    if (type === 'object') {
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+      const obj = value as Record<string, unknown>;
+      const required = (schema.required as string[] | undefined) ?? [];
+      const props = (schema.properties as Record<string, Record<string, unknown>> | undefined) ?? {};
+      for (const key of required) {
+        const v = obj[key];
+        // 缺字段(undefined)一律视为不完整 → 重试/降级。
+        // 但 null 是"无数据"的合法信号(防编造:如 salary_range_estimate 无来源时返回 null);
+        // 仅当该字段是数组类型时 null 才非法(下游会对其 .map/.length 而崩),其余 null 放行。
+        if (v === undefined) return false;
+        if (v === null && (props[key]?.type as string | undefined) === 'array') return false;
+      }
+      for (const [key, sub] of Object.entries(props)) {
+        const v = obj[key];
+        if (v !== undefined && v !== null && !this.validateAgainstSchema(v, sub)) return false;
+      }
+      return true;
+    }
+    if (type === 'array') {
+      if (!Array.isArray(value)) return false;
+      const items = schema.items as Record<string, unknown> | undefined;
+      if (items) {
+        for (const el of value) {
+          if (!this.validateAgainstSchema(el, items)) return false;
+        }
+      }
+      return true;
+    }
+    if (type === 'string') return typeof value === 'string';
+    if (type === 'number' || type === 'integer') return typeof value === 'number';
+    if (type === 'boolean') return typeof value === 'boolean';
+    return true; // 未知/未声明 type → 不阻拦
   }
 
   private unavailable(op: string, err: unknown): ServiceUnavailableException {

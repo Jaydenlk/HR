@@ -274,4 +274,144 @@ describe('Applications (e2e)', () => {
       expect(ids).not.toContain(ownerAppId);
     });
   });
+
+  // ─── getStats whitelist guard (#82 regression) ────────────────────────────
+
+  describe('getStats stage whitelist guard (#82)', () => {
+    it('stats returns numeric counts for all known stages, ignores unknown stages', async () => {
+      // Create applications at various stages
+      await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '统计公司A', role: '工程师', stage: 'applied' });
+      await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '统计公司B', role: '工程师', stage: 'offer' });
+
+      const res = await request(app.getHttpServer())
+        .get('/api/applications/stats')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      // All six known stage keys must be present and be non-negative numbers
+      const knownStages = ['wishlist', 'applied', 'interview', 'final', 'offer', 'rejected'];
+      for (const stage of knownStages) {
+        expect(typeof res.body[stage]).toBe('number');
+        expect(res.body[stage]).toBeGreaterThanOrEqual(0);
+      }
+      // No extra unknown keys injected from DB
+      const keys = Object.keys(res.body);
+      for (const key of keys) {
+        expect(knownStages).toContain(key);
+      }
+    });
+  });
+
+  // ─── resume_id / diagnosis_id ownership guard (#112 regression) ──────────
+
+  describe('update resume_id/diagnosis_id ownership guard (#112)', () => {
+    let appId: string;
+
+    beforeAll(async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '归属测试公司', role: 'Dev' });
+      appId = res.body.id;
+    });
+
+    it('PATCH with non-existent resume_id → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/applications/${appId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ resume_id: '00000000-0000-0000-0000-000000000099' });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('PATCH with non-existent diagnosis_id → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/applications/${appId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ diagnosis_id: '00000000-0000-0000-0000-000000000099' });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('PATCH without resume_id/diagnosis_id → 200 (unaffected)', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/applications/${appId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: '更新备注' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.notes).toBe('更新备注');
+    });
+  });
+
+  // ─── create() resume_id/diagnosis_id ownership guard (#112 IDOR symmetry) ──
+  // create() 此前不校验引用归属，与 update() 不对称 → 跨用户引用(IDOR)。现已对称。
+  describe('create resume_id ownership guard (#112 IDOR)', () => {
+    let ownerResumeId: string;
+
+    beforeAll(async () => {
+      // token 用户(apps1)创建一份属于自己的简历，供归属测试使用。
+      const res = await request(app.getHttpServer())
+        .post('/api/resumes')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          title: '归属测试简历',
+          raw_text: '这是一份用于跨用户归属校验的测试简历正文，包含足够长度以通过最小长度校验要求。',
+        });
+      expect(res.status).toBe(201);
+      ownerResumeId = res.body.id;
+    });
+
+    it('create with another user\'s resume_id → 403 (IDOR blocked)', async () => {
+      // otherToken(apps2)尝试引用 apps1 的简历 → 必须拒绝。
+      const res = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ company: '越权公司', role: '工程师', resume_id: ownerResumeId });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('create with non-existent resume_id → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          company: '不存在引用公司',
+          role: '工程师',
+          resume_id: '00000000-0000-0000-0000-000000000099',
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('create with non-existent diagnosis_id → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          company: '不存在诊断公司',
+          role: '工程师',
+          diagnosis_id: '00000000-0000-0000-0000-000000000099',
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('create with own valid resume_id → 201', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '合法引用公司', role: '工程师', resume_id: ownerResumeId });
+
+      expect(res.status).toBe(201);
+      expect(res.body.company).toBe('合法引用公司');
+    });
+  });
 });

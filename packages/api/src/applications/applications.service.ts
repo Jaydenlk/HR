@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Application, ApplicationStage } from './entities/application.entity';
 import { ApplicationEvent } from './entities/application-event.entity';
+import { Resume } from '../resumes/entities/resume.entity';
+import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { ApplicationResponseDto, ApplicationEventResponseDto } from './dto/application-response.dto';
@@ -23,10 +25,36 @@ export class ApplicationsService {
     private readonly repo: Repository<Application>,
     @InjectRepository(ApplicationEvent)
     private readonly eventRepo: Repository<ApplicationEvent>,
+    @InjectRepository(Resume)
+    private readonly resumeRepo: Repository<Resume>,
+    @InjectRepository(Diagnosis)
+    private readonly diagnosisRepo: Repository<Diagnosis>,
   ) {}
+
+  // Guard #112: 校验 resume_id / diagnosis_id 归属当前用户，拒绝跨用户引用(IDOR)。
+  // create 与 update 共用，确保两条写路径对称。仅校验 dto 中显式提供(非 undefined)的引用。
+  private async assertOwnedRefs(
+    userId: string,
+    refs: { resume_id?: string; diagnosis_id?: string },
+  ): Promise<void> {
+    if (refs.resume_id !== undefined) {
+      const resume = await this.resumeRepo.findOne({ where: { id: refs.resume_id } });
+      if (!resume || resume.user_id !== userId) {
+        throw new ForbiddenException('resume_id 不属于当前用户');
+      }
+    }
+    if (refs.diagnosis_id !== undefined) {
+      const diagnosis = await this.diagnosisRepo.findOne({ where: { id: refs.diagnosis_id } });
+      if (!diagnosis || diagnosis.user_id !== userId) {
+        throw new ForbiddenException('diagnosis_id 不属于当前用户');
+      }
+    }
+  }
 
   async create(userId: string, dto: CreateApplicationDto): Promise<ApplicationResponseDto> {
     const stage: ApplicationStage = dto.stage ?? 'wishlist';
+
+    await this.assertOwnedRefs(userId, { resume_id: dto.resume_id, diagnosis_id: dto.diagnosis_id });
 
     const application = await this.repo.save(
       this.repo.create({
@@ -79,6 +107,8 @@ export class ApplicationsService {
     if (!application) throw new NotFoundException();
     const oldStage = application.stage;
 
+    await this.assertOwnedRefs(userId, { resume_id: dto.resume_id, diagnosis_id: dto.diagnosis_id });
+
     Object.assign(application, dto);
     await this.repo.save(application);
 
@@ -119,8 +149,14 @@ export class ApplicationsService {
       rejected: 0,
     };
 
+    const KNOWN_STAGES = new Set<ApplicationStage>([
+      'wishlist', 'applied', 'interview', 'final', 'offer', 'rejected',
+    ]);
+
     for (const row of rows) {
-      stats[row.stage] = parseInt(row.count, 10);
+      if (KNOWN_STAGES.has(row.stage)) {
+        stats[row.stage] = parseInt(row.count, 10);
+      }
     }
 
     return stats;

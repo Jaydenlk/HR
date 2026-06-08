@@ -80,21 +80,38 @@ function emptyForm(): OfferFormData {
   };
 }
 
+function parsePositiveNumber(s: string): number | undefined {
+  const n = Number(s);
+  return s.trim() !== '' && !isNaN(n) && n > 0 ? n : undefined;
+}
+
+function parseNonNegativeNumber(s: string): number | undefined {
+  const n = Number(s);
+  return s.trim() !== '' && !isNaN(n) && n >= 0 ? n : undefined;
+}
+
 function formToItem(f: OfferFormData): OfferItem {
   const item: OfferItem = {
     id: f.id,
     company: f.company,
     base_monthly: Number(f.base_monthly),
   };
-  if (f.months_per_year) item.months_per_year = Number(f.months_per_year);
-  if (f.annual_bonus) item.annual_bonus = Number(f.annual_bonus);
+  const monthsPerYear = parsePositiveNumber(f.months_per_year);
+  if (monthsPerYear !== undefined) item.months_per_year = monthsPerYear;
+  const annualBonus = parseNonNegativeNumber(f.annual_bonus);
+  if (annualBonus !== undefined) item.annual_bonus = annualBonus;
   if (f.city) item.city = f.city;
   if (f.level) item.level = f.level;
-  if (f.weekly_hours) item.weekly_hours = Number(f.weekly_hours);
-  if (f.probation_discount) item.probation_discount = Number(f.probation_discount) / 100;
-  if (f.probation_months) item.probation_months = Number(f.probation_months);
-  if (f.social_insurance_monthly) item.social_insurance_monthly = Number(f.social_insurance_monthly);
-  if (f.equity_annual) item.equity_annual = Number(f.equity_annual);
+  const weeklyHours = parsePositiveNumber(f.weekly_hours);
+  if (weeklyHours !== undefined) item.weekly_hours = weeklyHours;
+  const probationDiscountPct = parsePositiveNumber(f.probation_discount);
+  if (probationDiscountPct !== undefined) item.probation_discount = probationDiscountPct / 100;
+  const probationMonths = parsePositiveNumber(f.probation_months);
+  if (probationMonths !== undefined) item.probation_months = probationMonths;
+  const socialInsurance = parseNonNegativeNumber(f.social_insurance_monthly);
+  if (socialInsurance !== undefined) item.social_insurance_monthly = socialInsurance;
+  const equityAnnual = parseNonNegativeNumber(f.equity_annual);
+  if (equityAnnual !== undefined) item.equity_annual = equityAnnual;
   if (f.equity_type) item.equity_type = f.equity_type;
   if (f.notes) item.notes = f.notes;
   return item;
@@ -282,7 +299,16 @@ function OfferCard({
 // ── Result Panel ──────────────────────────────────────────────────────────────
 
 function ResultPanel({ result }: { result: OfferCompareResult }) {
-  const { comparison, weighted_scores, recommendation, hourly_rate_comparison, missing_info } = result;
+  // #28: null-guard all array/object fields to prevent white-screen on partial API response
+  const comparison: OfferCompareEntry[] = result.comparison ?? [];
+  const weighted_scores = result.weighted_scores ?? [];
+  const recommendation = result.recommendation ?? null;
+  const hourly_rate_comparison = result.hourly_rate_comparison ?? [];
+  const missing_info = result.missing_info ?? [];
+
+  const risks: string[] = result.risks ?? [];
+  const next_actions: string[] = result.next_actions ?? [];
+  const follow_up_questions: string[] = result.follow_up_questions ?? [];
 
   // Build lookup map
   const compMap = new Map<string, OfferCompareEntry>(comparison.map((c) => [c.offer_id, c]));
@@ -349,57 +375,59 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
         </p>
       </div>
 
-      {/* Recommendation */}
-      <div style={cardStyle}>
-        {sectionTitle('推荐意见')}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px',
-          }}
-        >
+      {/* Recommendation — skip entire block when absent (#28) */}
+      {recommendation && (
+        <div style={cardStyle}>
+          {sectionTitle('推荐意见')}
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(16,185,129,0.1)',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
+              alignItems: 'flex-start',
+              gap: '10px',
             }}
           >
-            <Scale size={18} color="#10b981" />
-          </div>
-          <div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '4px' }}>
-              优选：{compMap.get(recommendation.preferred_offer_id)?.company ?? recommendation.preferred_offer_id}
-              <span
-                style={{
-                  marginLeft: '8px',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: confidenceColor(recommendation.confidence),
-                }}
-              >
-                ({confidenceLabel(recommendation.confidence)}确信度)
-              </span>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: 'rgba(16,185,129,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Scale size={18} color="#10b981" />
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
-              {recommendation.rationale}
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '4px' }}>
+                优选：{compMap.get(recommendation.preferred_offer_id)?.company ?? recommendation.preferred_offer_id}
+                <span
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: confidenceColor(recommendation.confidence),
+                  }}
+                >
+                  ({confidenceLabel(recommendation.confidence)}确信度)
+                </span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
+                {recommendation.rationale}
+              </div>
+              {recommendation.caveats && recommendation.caveats.length > 0 && (
+                <ul style={{ margin: '8px 0 0', paddingLeft: '18px', fontSize: '12.5px', color: 'var(--color-ink-3)' }}>
+                  {recommendation.caveats.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {recommendation.caveats && recommendation.caveats.length > 0 && (
-              <ul style={{ margin: '8px 0 0', paddingLeft: '18px', fontSize: '12.5px', color: 'var(--color-ink-3)' }}>
-                {recommendation.caveats.map((c, i) => (
-                  <li key={i}>{c}</li>
-                ))}
-              </ul>
-            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Comparison table */}
       <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
@@ -432,18 +460,18 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                     style={{
                       padding: '10px 18px',
                       textAlign: 'right',
-                      background: recommendation.preferred_offer_id === id
+                      background: recommendation?.preferred_offer_id === id
                         ? 'rgba(16,185,129,0.06)'
                         : 'var(--color-surface-2)',
                       borderBottom: '1px solid var(--color-line)',
                       fontSize: '12px',
                       fontWeight: 700,
-                      color: recommendation.preferred_offer_id === id ? '#10b981' : 'var(--color-ink)',
+                      color: recommendation?.preferred_offer_id === id ? '#10b981' : 'var(--color-ink)',
                       whiteSpace: 'nowrap',
                     }}
                   >
                     {compMap.get(id)?.company ?? id}
-                    {recommendation.preferred_offer_id === id && ' ★'}
+                    {recommendation?.preferred_offer_id === id && ' ★'}
                   </th>
                 ))}
               </tr>
@@ -489,7 +517,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                             color: 'var(--color-ink)',
                             fontFamily: typeof val === 'number' ? 'var(--font-mono)' : 'inherit',
                             fontWeight: 600,
-                            background: recommendation.preferred_offer_id === id
+                            background: recommendation?.preferred_offer_id === id
                               ? 'rgba(16,185,129,0.03)'
                               : 'transparent',
                           }}
@@ -521,7 +549,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                   borderRadius: '10px',
                   padding: '14px',
                   textAlign: 'center',
-                  border: recommendation.preferred_offer_id === ws.offer_id
+                  border: recommendation?.preferred_offer_id === ws.offer_id
                     ? '2px solid #10b981'
                     : '1px solid var(--color-line)',
                 }}
@@ -534,7 +562,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                     fontFamily: 'var(--font-mono)',
                     fontSize: '28px',
                     fontWeight: 800,
-                    color: recommendation.preferred_offer_id === ws.offer_id ? '#10b981' : 'var(--color-ink)',
+                    color: recommendation?.preferred_offer_id === ws.offer_id ? '#10b981' : 'var(--color-ink)',
                     lineHeight: 1,
                   }}
                 >
@@ -544,11 +572,6 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
               </div>
             ))}
           </div>
-          {result.confidence === 'low' || result.confidence === 'insufficient' ? (
-            <p style={{ fontSize: '12px', color: 'var(--color-ink-4)', marginTop: '10px', margin: '10px 0 0' }}>
-              信息不足时不展示评分，请补充关键字段后重新比较。
-            </p>
-          ) : null}
         </div>
       )}
 
@@ -586,21 +609,21 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
       )}
 
       {/* Risks & next actions */}
-      {(result.risks.length > 0 || result.next_actions.length > 0) && (
+      {(risks.length > 0 || next_actions.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-          {result.risks.length > 0 && (
+          {risks.length > 0 && (
             <div style={cardStyle}>
               {sectionTitle('风险提示')}
               <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.7 }}>
-                {result.risks.map((r, i) => <li key={i}>{r}</li>)}
+                {risks.map((r, i) => <li key={i}>{r}</li>)}
               </ul>
             </div>
           )}
-          {result.next_actions.length > 0 && (
+          {next_actions.length > 0 && (
             <div style={cardStyle}>
               {sectionTitle('建议下一步')}
               <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.7 }}>
-                {result.next_actions.map((a, i) => <li key={i}>{a}</li>)}
+                {next_actions.map((a, i) => <li key={i}>{a}</li>)}
               </ul>
             </div>
           )}
@@ -640,12 +663,12 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
               </div>
             ))}
           </div>
-          {result.follow_up_questions.length > 0 && (
+          {follow_up_questions.length > 0 && (
             <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(245,158,11,0.15)' }}>
               <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '6px' }}>
                 追问建议
               </div>
-              {result.follow_up_questions.map((q, i) => (
+              {follow_up_questions.map((q, i) => (
                 <div key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
                   · {q}
                 </div>
@@ -684,11 +707,24 @@ export default function OfferComparatorPage() {
   // ── Submit ───────────────────────────────────────────────────────────────
 
   async function handleCompare() {
-    // Validate: all companies + base_monthly must be filled
-    const invalid = forms.find((f) => !f.company.trim() || !f.base_monthly);
-    if (invalid) {
-      setError('请填写每个 offer 的公司名称和月薪');
-      return;
+    // Validate: company required; base_monthly must be a valid positive number (#68)
+    for (const f of forms) {
+      if (!f.company.trim()) {
+        setError('请填写每个 offer 的公司名称');
+        return;
+      }
+      const salary = Number(f.base_monthly);
+      if (!f.base_monthly.trim() || isNaN(salary) || salary <= 0) {
+        setError(`"${f.company || '某个 offer'}"的月薪必须填写有效正数（元）`);
+        return;
+      }
+      if (f.probation_discount.trim()) {
+        const pct = Number(f.probation_discount);
+        if (isNaN(pct) || pct <= 0 || pct > 100) {
+          setError(`"${f.company || '某个 offer'}"的试用期折扣必须在 1-100 之间`);
+          return;
+        }
+      }
     }
 
     setError(null);
@@ -893,12 +929,12 @@ export default function OfferComparatorPage() {
             <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', margin: '0 0 10px' }}>
               {result.summary}
             </p>
-            {result.follow_up_questions.length > 0 && (
+            {(result.follow_up_questions ?? []).length > 0 && (
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '6px' }}>
                   请补充以下信息后重试：
                 </div>
-                {result.follow_up_questions.map((q, i) => (
+                {(result.follow_up_questions ?? []).map((q, i) => (
                   <div key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
                     · {q}
                   </div>

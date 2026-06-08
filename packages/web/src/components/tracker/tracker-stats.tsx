@@ -17,6 +17,7 @@ const TILES: StatTile[] = [
   { key: 'interview', label: '面试中', color: 'var(--color-warn)',   bg: 'var(--color-warn-soft)' },
   { key: 'final',     label: '终面',  color: '#a855f7',             bg: '#f3e8ff' },
   { key: 'offer',     label: 'Offer', color: 'var(--color-success)', bg: 'var(--color-success-soft)' },
+  { key: 'rejected',  label: '已拒',  color: 'var(--color-danger)', bg: 'var(--color-danger-soft)' },
 ];
 
 export function TrackerStats({ stats }: TrackerStatsProps) {
@@ -24,7 +25,7 @@ export function TrackerStats({ stats }: TrackerStatsProps) {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
+        gridTemplateColumns: 'repeat(6, 1fr)',
         gap: '12px',
         marginBottom: '20px',
       }}

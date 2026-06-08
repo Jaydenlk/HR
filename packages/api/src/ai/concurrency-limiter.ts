@@ -54,7 +54,8 @@ export class ConcurrencyLimiter {
   }
 
   private release(): void {
-    this.active--;
+    // 下溢护栏:防御性保证 active 不降至负数(重复调用/异常场景)
+    this.active = Math.max(0, this.active - 1);
     const next = this.waiters.shift();
     if (next) next();
   }

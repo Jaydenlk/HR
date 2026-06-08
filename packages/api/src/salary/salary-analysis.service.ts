@@ -103,24 +103,41 @@ function applyGuards(raw: RawAnalysisOutput, dto: AnalyzeSalaryDto): SalaryAnaly
     ? (raw.confidence as SalaryAnalysisResult['confidence'])
     : 'low';
 
-  // Guard 2: salary_range — 四要素(year+city+role+source)缺任一 → grade 强制为 C
+  // Guard 2: salary_range 防编造收口
   let salary_range: SalaryRange | null = null;
   if (raw.salary_range != null) {
     const r = raw.salary_range;
-    const hasAllFourFactors =
-      r.year?.trim() &&
-      r.city?.trim() &&
-      r.role?.trim() &&
-      (raw.data_sources ?? []).length > 0 &&
-      (raw.data_sources ?? []).some((s) => s.source_name?.trim());
+    // 至少要有一条带名字的来源条目(实时来源 A/B,或历史知识库 C/D)才允许给出区间。
+    const hasSource = (raw.data_sources ?? []).some((s) => s.source_name?.trim());
+    // 防编造红线(system prompt rule 3 / rule 6):完全无来源 → 绝不给精确分位数。
+    // range 置空、confidence=insufficient,而非"只降 grade/freshness 却照样吐 p25/p50/p75"。
+    if (!hasSource) {
+      return buildResult(raw, 'insufficient', null);
+    }
+    // 信息不足,或数字缺失/非法/逆序(需非负且 p25<=p50<=p75)→ 不输出区间(有来源,保留 summary 等其余结构,confidence 至多 low)。
+    // 用内联负向 guard 而非布尔 const,使 TS 在此后把 r.p25/p50/p75 收窄为 number。
+    if (
+      confidence === 'insufficient' ||
+      typeof r.p25 !== 'number' ||
+      typeof r.p50 !== 'number' ||
+      typeof r.p75 !== 'number' ||
+      r.p25 < 0 ||
+      r.p50 < 0 ||
+      r.p75 < 0 ||
+      r.p25 > r.p50 ||
+      r.p50 > r.p75
+    ) {
+      const c: SalaryAnalysisResult['confidence'] =
+        confidence === 'high' || confidence === 'medium' ? 'low' : confidence;
+      return buildResult(raw, c, null);
+    }
 
-    // 强制: 四要素缺任一 → grade = C
+    // 有来源 + 数字合法:按 rule 1/2 做四要素与新鲜度降级(rule 2 允许历史知识库区间,但 stale + 低置信)。
+    const hasAllFourFactors = !!(r.year?.trim() && r.city?.trim() && r.role?.trim());
     const grade =
       hasAllFourFactors && VALID_GRADES.has(r.grade ?? '')
         ? (r.grade as SalaryRange['grade'])
         : 'C';
-
-    // freshness: 只有实时来源(grade A/B)且 freshness 合法时才 'fresh'/保留，否则 'stale'
     const hasRealSource = (raw.data_sources ?? []).some(
       (s) => s.grade === 'A' || s.grade === 'B',
     );
@@ -128,36 +145,26 @@ function applyGuards(raw: RawAnalysisOutput, dto: AnalyzeSalaryDto): SalaryAnaly
       hasRealSource && VALID_FRESHNESS_RANGE.has(r.freshness ?? '')
         ? (r.freshness as SalaryRange['freshness'])
         : 'stale';
-
-    // 无实时来源 → confidence 不高于 low
     const adjustedConfidence: SalaryAnalysisResult['confidence'] =
       !hasRealSource && (confidence === 'high' || confidence === 'medium')
         ? 'low'
         : confidence;
 
-    if (
-      typeof r.p25 === 'number' &&
-      typeof r.p50 === 'number' &&
-      typeof r.p75 === 'number'
-    ) {
-      salary_range = {
-        p25: r.p25,
-        p50: r.p50,
-        p75: r.p75,
-        unit: r.unit === 'annual_rmb' ? 'annual_rmb' : 'monthly_rmb',
-        year: r.year ?? String(new Date().getFullYear()),
-        city: r.city ?? dto.city ?? '',
-        role: r.role ?? dto.role,
-        grade,
-        freshness,
-      };
-
-      // Return early with adjusted confidence if no real source
-      return buildResult(raw, adjustedConfidence, salary_range);
-    }
+    salary_range = {
+      p25: r.p25,
+      p50: r.p50,
+      p75: r.p75,
+      unit: r.unit === 'annual_rmb' ? 'annual_rmb' : 'monthly_rmb',
+      year: r.year ?? String(new Date().getFullYear()),
+      city: r.city ?? dto.city ?? '',
+      role: r.role ?? dto.role,
+      grade,
+      freshness,
+    };
+    return buildResult(raw, adjustedConfidence, salary_range);
   }
 
-  // Guard 3: confidence insufficient → salary_range must be null
+  // Guard 3: confidence insufficient → salary_range 必为 null
   if (confidence === 'insufficient') {
     salary_range = null;
   }
@@ -174,22 +181,29 @@ function buildResult(
     ? (raw.data_freshness as SalaryAnalysisResult['data_freshness'])
     : 'unavailable';
 
+  // 防编造红线:无法给出薪资区间(无来源 → salary_range=null,或 confidence=insufficient)时,
+  // breakdown 的精确薪资数字(base_monthly 等)与 comparison 的对比数值同属"无来源编造通道",
+  // 必须一并抑制,否则等于把 salary_range 堵死的编造从旁路漏出。
+  const suppressNumbers = salary_range === null || confidence === 'insufficient';
+
   return {
     summary: raw.summary ?? '',
     confidence,
     salary_range,
-    breakdown: raw.breakdown ?? null,
+    breakdown: suppressNumbers ? null : (raw.breakdown ?? null),
     data_sources: (raw.data_sources ?? []).map((s) => ({
       source_name: s.source_name ?? '',
       url: s.url,
       date: s.date,
       grade: VALID_GRADES.has(s.grade ?? '') ? (s.grade as 'A' | 'B' | 'C' | 'D') : 'C',
     })),
-    comparison: (raw.comparison ?? []).map((c) => ({
-      dimension: c.dimension ?? '',
-      value: c.value ?? '',
-      grade: VALID_GRADES.has(c.grade ?? '') ? (c.grade as 'A' | 'B' | 'C' | 'D') : 'C',
-    })),
+    comparison: suppressNumbers
+      ? []
+      : (raw.comparison ?? []).map((c) => ({
+          dimension: c.dimension ?? '',
+          value: c.value ?? '',
+          grade: VALID_GRADES.has(c.grade ?? '') ? (c.grade as 'A' | 'B' | 'C' | 'D') : 'C',
+        })),
     recommendations: raw.recommendations ?? [],
     risks: raw.risks ?? [],
     next_actions: raw.next_actions ?? [],

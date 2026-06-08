@@ -292,7 +292,7 @@ export default function LearningRoadmapPage() {
     try {
       const data = await api.post<BuildRoadmapResult>('/learning-roadmap/build', body);
 
-      if (data.confidence === 'insufficient') {
+      if (data.confidence === 'insufficient' || (data.roadmap?.length ?? 0) === 0) {
         setResult(data);
         setState('insufficient');
       } else {
@@ -507,15 +507,30 @@ export default function LearningRoadmapPage() {
           </div>
         </div>
 
-        {result.follow_up_questions.length > 0 && (
+        {(result.follow_up_questions ?? []).length > 0 && (
           <div style={{ marginBottom: '16px' }}>
             <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '8px' }}>
               需要补充以下信息：
             </div>
             <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
-              {result.follow_up_questions.map((q, i) => (
+              {(result.follow_up_questions ?? []).map((q, i) => (
                 <li key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '4px' }}>
                   {q}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {(result.cannot_determine ?? []).length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '8px' }}>
+              以下方面无法判断：
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
+              {(result.cannot_determine ?? []).map((item, i) => (
+                <li key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '4px' }}>
+                  {item}
                 </li>
               ))}
             </ul>
@@ -545,9 +560,10 @@ export default function LearningRoadmapPage() {
 
   if (state === 'result' && result) {
     const resourcesBySkill: Record<string, RoadmapResource[]> = {};
-    for (const r of result.resource_list) {
-      if (!resourcesBySkill[r.skill_name]) resourcesBySkill[r.skill_name] = [];
-      resourcesBySkill[r.skill_name].push(r);
+    for (const r of (result.resource_list ?? [])) {
+      const key = r.skill_name ?? '其他';
+      if (!resourcesBySkill[key]) resourcesBySkill[key] = [];
+      resourcesBySkill[key].push(r);
     }
 
     return (
@@ -603,7 +619,7 @@ export default function LearningRoadmapPage() {
               </strong>
             </span>
             <span style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>
-              涵盖 {result.roadmap.length} 项技能
+              涵盖 {(result.roadmap ?? []).length} 项技能
             </span>
           </div>
         </div>
@@ -623,6 +639,131 @@ export default function LearningRoadmapPage() {
           >
             以下 {result.backlog.length} 项技能已加入待学清单（优先完成以上路线后继续）：
             {' '}{result.backlog.join('、')}
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {(result.recommendations ?? []).length > 0 && (
+          <div
+            style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-line)',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '12px',
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-ink-4)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              AI 建议
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
+              {(result.recommendations ?? []).map((rec, i) => (
+                <li key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '3px' }}>
+                  {rec}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Risks */}
+        {(result.risks ?? []).length > 0 && (
+          <div
+            style={{
+              background: '#fffbeb',
+              border: '1px solid #fcd34d',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '12px',
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              注意风险
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
+              {(result.risks ?? []).map((risk, i) => (
+                <li key={i} style={{ fontSize: '13px', color: '#78350f', marginBottom: '3px' }}>
+                  {risk}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Cannot determine */}
+        {(result.cannot_determine ?? []).length > 0 && (
+          <div
+            style={{
+              background: '#fffbeb',
+              border: '1px solid #fcd34d',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '12px',
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              无法判断
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
+              {(result.cannot_determine ?? []).map((item, i) => (
+                <li key={i} style={{ fontSize: '13px', color: '#78350f', marginBottom: '3px' }}>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Follow-up questions */}
+        {(result.follow_up_questions ?? []).length > 0 && (
+          <div
+            style={{
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-line)',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '12px',
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-ink-4)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              补充信息
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
+              {(result.follow_up_questions ?? []).map((q, i) => (
+                <li key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '3px' }}>
+                  {q}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Evidence used */}
+        {(result.evidence_used ?? []).length > 0 && (
+          <div
+            style={{
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-line)',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '12px',
+            }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-ink-4)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              参考依据
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {(result.evidence_used ?? []).map((ev, i) => (
+                <div key={i} style={{ fontSize: '12px', color: 'var(--color-ink-2)' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--color-ink)' }}>{ev.field}</span>
+                  {' · '}
+                  <span>{ev.value}</span>
+                  {ev.relevance && (
+                    <span style={{ color: 'var(--color-ink-3)' }}>（{ev.relevance}）</span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -655,7 +796,7 @@ export default function LearningRoadmapPage() {
               <RoadmapSection key={i} item={item} />
             ))}
 
-            {result.next_actions.length > 0 && (
+            {(result.next_actions ?? []).length > 0 && (
               <div
                 style={{
                   background: 'var(--color-surface)',
@@ -669,7 +810,7 @@ export default function LearningRoadmapPage() {
                   立即行动
                 </h3>
                 <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
-                  {result.next_actions.map((a, i) => (
+                  {(result.next_actions ?? []).map((a, i) => (
                     <li key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '4px' }}>
                       {a}
                     </li>
@@ -707,7 +848,7 @@ export default function LearningRoadmapPage() {
               </div>
             ))}
 
-            {result.resource_list.length === 0 && (
+            {(result.resource_list ?? []).length === 0 && (
               <p style={{ fontSize: '13px', color: 'var(--color-ink-3)', padding: '20px 0' }}>
                 暂无资源推荐
               </p>

@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  Link as LinkIcon,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -73,6 +74,12 @@ const DEMAND_LABELS: Record<string, string> = {
   unknown: '待研判',
 };
 
+// 枚举缺失时的统一兜底文案（#22）
+const UNLABELED = '未标注';
+
+// 颜色映射缺失时的中性兜底色，避免拼出 'undefined22' 非法色值（#98）
+const FALLBACK_COLOR = 'var(--color-ink-4)';
+
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 const cardStyle: React.CSSProperties = {
@@ -127,6 +134,7 @@ const btnPrimaryStyle = (loading: boolean): React.CSSProperties => ({
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ConfidenceBadge({ confidence }: { confidence: string }) {
+  const color = CONFIDENCE_COLORS[confidence] ?? FALLBACK_COLOR;
   return (
     <span
       style={{
@@ -137,11 +145,11 @@ function ConfidenceBadge({ confidence }: { confidence: string }) {
         borderRadius: '999px',
         fontSize: '11.5px',
         fontWeight: 700,
-        background: `${CONFIDENCE_COLORS[confidence]}22`,
-        color: CONFIDENCE_COLORS[confidence],
+        background: `color-mix(in srgb, ${color} 13%, transparent)`,
+        color,
       }}
     >
-      {CONFIDENCE_LABELS[confidence] ?? confidence}
+      {CONFIDENCE_LABELS[confidence] ?? '置信度未知'}
     </span>
   );
 }
@@ -167,12 +175,14 @@ function GrowthSignalCard({ signal }: { signal: IndustryGrowthSignal }) {
             fontWeight: 700,
             padding: '2px 8px',
             borderRadius: '999px',
-            background: 'var(--color-success-soft, #d1fae5)',
-            color: 'var(--color-success)',
+            background: signal.strength
+              ? 'var(--color-success-soft, #d1fae5)'
+              : 'var(--color-surface-3)',
+            color: signal.strength ? 'var(--color-success)' : 'var(--color-ink-4)',
             flexShrink: 0,
           }}
         >
-          {STRENGTH_LABELS[signal.strength] ?? signal.strength}
+          {signal.strength ? STRENGTH_LABELS[signal.strength] ?? signal.strength : UNLABELED}
         </span>
       </div>
       <div style={{ fontSize: '11.5px', color: 'var(--color-ink-4)', marginTop: '4px' }}>
@@ -203,12 +213,14 @@ function RiskSignalCard({ signal }: { signal: IndustryRiskSignal }) {
             fontWeight: 700,
             padding: '2px 8px',
             borderRadius: '999px',
-            background: 'var(--color-warn-soft, #fef3c7)',
-            color: 'var(--color-warn, #f59e0b)',
+            background: signal.severity
+              ? 'var(--color-warn-soft, #fef3c7)'
+              : 'var(--color-surface-3)',
+            color: signal.severity ? 'var(--color-warn, #f59e0b)' : 'var(--color-ink-4)',
             flexShrink: 0,
           }}
         >
-          {SEVERITY_LABELS[signal.severity] ?? signal.severity}
+          {signal.severity ? SEVERITY_LABELS[signal.severity] ?? signal.severity : UNLABELED}
         </span>
       </div>
       <div style={{ fontSize: '11.5px', color: 'var(--color-ink-4)', marginTop: '4px' }}>
@@ -246,12 +258,12 @@ function EntryRoleCard({ role }: { role: IndustryEntryRole }) {
           fontWeight: 700,
           padding: '2px 8px',
           borderRadius: '999px',
-          background: 'var(--color-brand-soft)',
-          color: 'var(--color-brand-ink)',
+          background: role.demand_level ? 'var(--color-brand-soft)' : 'var(--color-surface-3)',
+          color: role.demand_level ? 'var(--color-brand-ink)' : 'var(--color-ink-4)',
           flexShrink: 0,
         }}
       >
-        {DEMAND_LABELS[role.demand_level] ?? role.demand_level}
+        {role.demand_level ? DEMAND_LABELS[role.demand_level] ?? role.demand_level : UNLABELED}
       </span>
     </div>
   );
@@ -275,6 +287,62 @@ function TagList({ items, label }: { items: string[]; label: string }) {
             }}
           >
             {item}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EvidenceList({ items }: { items: IndustryTrendResult['evidence_used'] }) {
+  if (!items.length) return null;
+  return (
+    <div style={cardStyle}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '7px',
+          marginBottom: '12px',
+        }}
+      >
+        <LinkIcon size={15} color="var(--color-ink-3)" />
+        <span style={labelStyle}>数据来源（{items.length} 条）</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {items.map((ev, i) => (
+          <div
+            key={i}
+            style={{
+              padding: '10px 12px',
+              background: 'var(--color-surface-2)',
+              borderRadius: '10px',
+            }}
+          >
+            <div style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 500 }}>
+              {ev.source}
+            </div>
+            <div style={{ marginTop: '4px', fontSize: '11.5px' }}>
+              {ev.url ? (
+                <a
+                  href={ev.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: 'var(--color-brand)',
+                    textDecoration: 'none',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {ev.url}
+                </a>
+              ) : (
+                <span style={{ color: 'var(--color-ink-4)' }}>无可核验链接</span>
+              )}
+              {ev.date && (
+                <span style={{ color: 'var(--color-ink-4)' }}> · {ev.date}</span>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -494,6 +562,54 @@ export default function IndustryTrendPage() {
                 </div>
               )}
 
+              {/* Cannot-determine: honest degradation, render in any branch (#64) */}
+              {result.cannot_determine.length > 0 && (
+                <div
+                  style={{
+                    ...cardStyle,
+                    borderColor: 'var(--color-line-2)',
+                    background: 'var(--color-surface-2)',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    <Info size={15} color="var(--color-ink-3)" />
+                    <span style={labelStyle}>无法判定（数据不足）</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {result.cannot_determine.map((item, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          fontSize: '13px',
+                          color: 'var(--color-ink-2)',
+                          lineHeight: '1.6',
+                          paddingLeft: '14px',
+                          position: 'relative',
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            color: 'var(--color-ink-4)',
+                          }}
+                        >
+                          ·
+                        </span>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Trend summary (if not empty) */}
               {result.trend_summary && (
                 <div style={cardStyle}>
@@ -505,47 +621,58 @@ export default function IndustryTrendPage() {
               )}
 
               {/* Hiring outlook */}
-              <div
-                style={{
-                  ...cardStyle,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                }}
-              >
-                <div
-                  style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '12px',
-                    background: `${HIRING_OUTLOOK_COLORS[result.hiring_outlook]}22`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  {result.hiring_outlook === 'declining' || result.hiring_outlook === 'contracting' ? (
-                    <TrendingDown size={20} color={HIRING_OUTLOOK_COLORS[result.hiring_outlook]} />
-                  ) : (
-                    <TrendingUp size={20} color={HIRING_OUTLOOK_COLORS[result.hiring_outlook]} />
-                  )}
-                </div>
-                <div>
-                  <div style={{ fontSize: '11.5px', color: 'var(--color-ink-3)', marginBottom: '2px' }}>
-                    招聘前景
-                  </div>
+              {(() => {
+                const outlookColor =
+                  HIRING_OUTLOOK_COLORS[result.hiring_outlook] ?? FALLBACK_COLOR;
+                const outlookLabel =
+                  HIRING_OUTLOOK_LABELS[result.hiring_outlook] ?? '前景未知';
+                const isNegative =
+                  result.hiring_outlook === 'declining' ||
+                  result.hiring_outlook === 'contracting';
+                return (
                   <div
                     style={{
-                      fontSize: '18px',
-                      fontWeight: 700,
-                      color: HIRING_OUTLOOK_COLORS[result.hiring_outlook],
+                      ...cardStyle,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
                     }}
                   >
-                    {HIRING_OUTLOOK_LABELS[result.hiring_outlook] ?? result.hiring_outlook}
+                    <div
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        background: `color-mix(in srgb, ${outlookColor} 13%, transparent)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isNegative ? (
+                        <TrendingDown size={20} color={outlookColor} />
+                      ) : (
+                        <TrendingUp size={20} color={outlookColor} />
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--color-ink-3)', marginBottom: '2px' }}>
+                        招聘前景
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '18px',
+                          fontWeight: 700,
+                          color: outlookColor,
+                        }}
+                      >
+                        {outlookLabel}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Growth signals */}
               {result.growth_signals.length > 0 && (
@@ -606,6 +733,9 @@ export default function IndustryTrendPage() {
                   ))}
                 </div>
               )}
+
+              {/* Data sources — verifiable evidence (#21) */}
+              <EvidenceList items={result.evidence_used} />
 
               {/* Expandable details */}
               <button

@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { AiService } from '../ai/ai.service';
-import { CompareOffersDto, OfferItemDto } from './dto/compare-offers.dto';
+import { CompareOffersDto, OfferItemDto, OfferWeightsDto } from './dto/compare-offers.dto';
 
 // ── Output shape ──────────────────────────────────────────────────────────────
 
@@ -79,6 +79,12 @@ export class OfferComparatorService {
       throw new BadRequestException('Offer 比对至少需要 2 个 offer');
     }
 
+    // Guard 1b (#92): offer id 必须唯一，重复会导致映射覆盖与张冠李戴
+    const ids = dto.offers.map((o) => o.id);
+    if (new Set(ids).size !== ids.length) {
+      throw new BadRequestException('每个 offer 的 id 必须唯一，存在重复 id');
+    }
+
     const result = await this.ai.completeStructured<AiResult>({
       system: this.buildSystem(dto),
       prompt: this.buildPrompt(dto),
@@ -93,39 +99,191 @@ export class OfferComparatorService {
   // ── 服务端确定性 guard ──────────────────────────────────────────────────────
 
   private applyGuards(result: AiResult, offers: OfferItemDto[]): AiResult {
-    const weeklyHoursMap = new Map(offers.map((o) => [o.id, o.weekly_hours]));
+    // 服务端权威映射：id → offer / company / 周工时（用于复算与防张冠李戴）
+    const offerMap = new Map(offers.map((o) => [o.id, o]));
+    const companyMap = new Map(offers.map((o) => [o.id, o.company]));
+    const validIds = new Set(offers.map((o) => o.id));
 
-    // Guard 2: confidence < medium → 删除 weighted_scores 中的 total_score 伪分
-    // (low/insufficient 时评分可靠性不足，不得呈现精确分值误导决策)
-    const shouldStrip =
+    const lowConfidence =
       result.confidence === 'low' || result.confidence === 'insufficient';
+    const insufficient = result.confidence === 'insufficient';
 
-    const weighted_scores = (result.weighted_scores ?? []).map((ws) => {
-      if (shouldStrip) {
-        const { total_score: _stripped, ...rest } = ws;
-        void _stripped;
-        return rest as AiWeightedScore;
-      }
-      return ws;
-    });
+    // Guard #17: 过滤掉不在输入 offers 中的幻觉行；company 一律用服务端映射覆盖
+    // Guard #15: comparison 中可确定计算的字段服务端复算覆盖模型值
+    // Guard #56: 低置信时剥离 comparison[].dimensions 中所有 AI 精确数字（不只 stability_score）
+    const comparison: AiComparison[] = (result.comparison ?? [])
+      .filter((c) => validIds.has(c.offer_id))
+      .map((c) => {
+        const offer = offerMap.get(c.offer_id) as OfferItemDto;
+        const dimensions: AiDimensions = {
+          ...c.dimensions,
+          annual_total_compensation: this.calcAnnualTotal(offer),
+          probation_loss: this.calcProbationLoss(offer),
+        };
 
-    // Guard 3: 工时未知时强制 hourly_rate_rmb = null（不得估算）
-    const hourly_rate_comparison = (result.hourly_rate_comparison ?? []).map((hr) => {
-      const inputHours = weeklyHoursMap.get(hr.offer_id);
-      if (!inputHours) {
-        return { ...hr, weekly_hours: undefined, hourly_rate_rmb: null };
-      }
-      return hr;
-    });
+        // #15/#56: social_insurance_annual 输入可得时服务端复算覆盖模型值（= 月缴 × 12）；
+        // 输入不可得时一律剥离模型伪精确值(与 effective_monthly 同策略,与置信度无关 —— 服务端无法
+        // 复算的精确金额绝不采信模型,否则 high/medium 置信下编造的五险一金年缴会作为权威值泄漏)。
+        const socialInsuranceAnnual = this.calcSocialInsuranceAnnual(offer);
+        if (socialInsuranceAnnual != null) {
+          dimensions.social_insurance_annual = socialInsuranceAnnual;
+        } else {
+          delete dimensions.social_insurance_annual;
+        }
 
-    return { ...result, weighted_scores, hourly_rate_comparison };
+        // effective_monthly 无法由输入确定计算（依赖个人所得税档位与实际缴费基数）
+        // 与置信度无关，一律剥离，防止模型杜撰精确到手数字作为权威值返回
+        delete dimensions.effective_monthly;
+
+        if (lowConfidence) {
+          // 低置信：剥离所有主观/伪精确分值，保留定性字段（growth_potential）
+          delete dimensions.stability_score;
+        }
+        return { offer_id: c.offer_id, company: companyMap.get(c.offer_id) as string, dimensions };
+      });
+
+    // Guard #17 + #56: weighted_scores 过滤幻觉行、覆盖 company；
+    // 低置信时剥离 total_score 与 dimension_scores（伪精确分值）
+    const weighted_scores: AiWeightedScore[] = (result.weighted_scores ?? [])
+      .filter((ws) => validIds.has(ws.offer_id))
+      .map((ws) => {
+        const base: AiWeightedScore = {
+          offer_id: ws.offer_id,
+          company: companyMap.get(ws.offer_id) as string,
+        };
+        if (lowConfidence) return base;
+        if (ws.total_score != null) base.total_score = ws.total_score;
+        if (ws.dimension_scores != null) base.dimension_scores = ws.dimension_scores;
+        return base;
+      });
+
+    // Guard #16 + #17 + #91: hourly_rate_comparison 过滤幻觉行、覆盖 company；
+    // 工时未知（== null）→ 强制 null；工时已知 → 服务端复算覆盖模型时薪，从不采信模型值
+    const hourly_rate_comparison: AiHourlyRate[] = (result.hourly_rate_comparison ?? [])
+      .filter((hr) => validIds.has(hr.offer_id))
+      .map((hr) => {
+        const offer = offerMap.get(hr.offer_id) as OfferItemDto;
+        const company = companyMap.get(hr.offer_id) as string;
+        const hours = offer.weekly_hours;
+        if (hours == null) {
+          return { offer_id: hr.offer_id, company, weekly_hours: undefined, hourly_rate_rmb: null };
+        }
+        return {
+          offer_id: hr.offer_id,
+          company,
+          weekly_hours: hours,
+          hourly_rate_rmb: this.calcHourlyRate(offer, hours),
+        };
+      });
+
+    // Guard #17: missing_info 过滤幻觉 offer_id
+    const missing_info: AiMissingInfo[] = (result.missing_info ?? []).filter((m) =>
+      validIds.has(m.offer_id),
+    );
+
+    // Guard #17 + #35: 校正 recommendation
+    const recommendation = this.guardRecommendation(
+      result.recommendation,
+      validIds,
+      insufficient,
+    );
+
+    // #35: insufficient 时把"无法确定推荐"记入 cannot_determine
+    const cannot_determine = [...(result.cannot_determine ?? [])];
+    if (insufficient && !cannot_determine.includes('信息不足，无法给出可靠的 offer 推荐')) {
+      cannot_determine.push('信息不足，无法给出可靠的 offer 推荐');
+    }
+
+    return {
+      ...result,
+      comparison,
+      weighted_scores,
+      hourly_rate_comparison,
+      missing_info,
+      recommendation,
+      cannot_determine,
+    };
+  }
+
+  // ── 服务端确定性复算（#15/#16）──────────────────────────────────────────────
+
+  /** 年总包 = 月薪 × 年薪月数(默认12) + 年终奖(默认0)。RSU/期权不纳入。 */
+  private calcAnnualTotal(offer: OfferItemDto): number {
+    const months = offer.months_per_year ?? 12;
+    const bonus = offer.annual_bonus ?? 0;
+    return offer.base_monthly * months + bonus;
+  }
+
+  /** 时薪 = 年总包 / (周工时 × 52)。调用方传入已校验的 weeklyHours。 */
+  private calcHourlyRate(offer: OfferItemDto, weeklyHours: number): number {
+    const annual = this.calcAnnualTotal(offer);
+    return Number((annual / (weeklyHours * 52)).toFixed(2));
+  }
+
+  /**
+   * #15: 五险一金年缴 = 公司月缴 × 12（输入可确定计算）。
+   * 月缴缺失 → 无法确定，返回 undefined（不编造，交由低置信剥离逻辑处理模型值）。
+   */
+  private calcSocialInsuranceAnnual(offer: OfferItemDto): number | undefined {
+    if (offer.social_insurance_monthly == null) {
+      return undefined;
+    }
+    return Number((offer.social_insurance_monthly * 12).toFixed(2));
+  }
+
+  /**
+   * 试用期损失 = 月薪 × (1 - 折扣比例) × 试用月数。
+   * 折扣或月数缺失 → 无法确定，返回 undefined（不编造为 0）。
+   */
+  private calcProbationLoss(offer: OfferItemDto): number | undefined {
+    if (offer.probation_discount == null || offer.probation_months == null) {
+      return undefined;
+    }
+    const loss =
+      offer.base_monthly * (1 - offer.probation_discount) * offer.probation_months;
+    return Number(loss.toFixed(2));
+  }
+
+  /**
+   * #17 + #35: 校验 preferred_offer_id 合法性；
+   * insufficient 或非法 id → 收口为空推荐，绝不编造赢家。
+   */
+  private guardRecommendation(
+    rec: AiRecommendation | undefined,
+    validIds: Set<string>,
+    insufficient: boolean,
+  ): AiRecommendation {
+    if (insufficient || !rec || !validIds.has(rec.preferred_offer_id)) {
+      return {
+        preferred_offer_id: '',
+        rationale: '信息不足，无法给出可靠推荐',
+        confidence: 'uncertain',
+        caveats: rec?.caveats ?? [],
+      };
+    }
+    return rec;
+  }
+
+  /**
+   * #55: 权重和≠1 时归一化（按比例缩放使其和为 1），再生成描述文案。
+   * 全为 0 时退回默认权重，避免除零。
+   */
+  private describeWeights(w: OfferWeightsDto): string {
+    const comp = w.compensation ?? 0.4;
+    const growth = w.growth ?? 0.3;
+    const stability = w.stability ?? 0.2;
+    const wlb = w.work_life_balance ?? 0.1;
+    const sum = comp + growth + stability + wlb;
+    const factor = sum > 0 ? 1 / sum : 1;
+    const pct = (x: number): string => (x * factor * 100).toFixed(0);
+    return `用户自定义权重（已归一化为和=1）：薪酬 ${pct(comp)}%，成长 ${pct(growth)}%，稳定性 ${pct(stability)}%，工作生活平衡 ${pct(wlb)}%`;
   }
 
   // ── Prompt builders ────────────────────────────────────────────────────────
 
   private buildSystem(dto: CompareOffersDto): string {
     const weightsDesc = dto.weights
-      ? `用户自定义权重：薪酬 ${(dto.weights.compensation ?? 0.4) * 100}%，成长 ${(dto.weights.growth ?? 0.3) * 100}%，稳定性 ${(dto.weights.stability ?? 0.2) * 100}%，工作生活平衡 ${(dto.weights.work_life_balance ?? 0.1) * 100}%`
+      ? this.describeWeights(dto.weights)
       : '使用默认权重：薪酬 40%、成长 30%、稳定性 20%、工作生活平衡 10%';
 
     return `你是一位专注中国职场的职业发展教练，帮助求职者科学比较多个 offer。

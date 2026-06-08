@@ -1,7 +1,8 @@
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsArray, MaxLength, ArrayMaxSize } from 'class-validator';
 
 export class ApplicationStrategyDto {
   @IsString()
+  @MaxLength(8000)
   user_profile: string;
 
   @IsString()
@@ -9,6 +10,9 @@ export class ApplicationStrategyDto {
   application_timeline?: string;
 
   @IsArray()
+  @IsString({ each: true })
+  @MaxLength(200, { each: true })
+  @ArrayMaxSize(100)
   @IsOptional()
   current_applications?: string[];
 }

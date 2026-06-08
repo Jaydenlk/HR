@@ -1,0 +1,526 @@
+TOTAL 113  {"P0":3,"P1":32,"P2":44,"P3":34}
+BY SCOPE: {"be-ai-core":{"kept":4,"refuted":0},"be-applications":{"kept":5,"refuted":0},"be-follow-up":{"kept":7,"refuted":0},"be-industry-trend":{"kept":6,"refuted":0},"be-interview-prep":{"kept":7,"refuted":0},"be-learning-roadmap":{"kept":6,"refuted":0},"be-networking":{"kept":6,"refuted":0},"be-offer-comparator":{"kept":8,"refuted":0},"be-salary":{"kept":6,"refuted":0},"fe-applications":{"kept":5,"refuted":0},"fe-follow-up":{"kept":4,"refuted":0},"fe-industry-trend":{"kept":4,"refuted":0},"fe-interview-prep":{"kept":3,"refuted":0},"fe-learning-roadmap":{"kept":4,"refuted":0},"fe-coverletter-referral":{"kept":6,"refuted":0},"fe-offer-comparator":{"kept":5,"refuted":0},"fe-salary":{"kept":6,"refuted":0},"fe-diagnoses":{"kept":3,"refuted":1},"fe-shared":{"kept":5,"refuted":0},"xcut-authz":{"kept":4,"refuted":1},"xcut-antifab":{"kept":7,"refuted":0},"xcut-subtraction":{"kept":2,"refuted":0}}
+
+BY CATEGORY: {"fabrication-guard":23,"correctness":59,"type-safety":9,"consistency":12,"security":5,"simplification":3,"docs":1,"dead-button":1}
+
+[1] P0 CONFIRMED {fabrication-guard} be-salary
+    packages/api/src/salary/salary-analysis.service.ts:138
+    SUM: 无任何来源时,服务端 guard 仍原样返回 AI 编造的 p25/p50/p75 薪资数字,只降 grade/freshness/confidence 而不置空 range
+    IMPACT: 当 AI 返回 data_sources:[] (零来源) 但给出 salary_range.p25/p50/p75 数字时,Guard 2 只把 grade 降为 C、freshness 降为 stale、confidence 至多降为 low(118-136),随后在 138-156 行直接把这些杜撰的精确薪资数字塞进 salary_range 提前 return。违背 system prompt(216 行『完全无数据时:salary_range 必须为 null』、222-223 行『禁止在无来源时给出精确薪资数字』)与 CLAUDE.md『每个 AI 功能必须在数据缺失时拒绝编造』。用户看到带具体分位数(如 p50=27000)的薪资区间,误以为是真实市场数据,实际为模型幻觉,确定性 guard 形同虚设。
+    FIX: 在 Guard 2 中:当 (raw.data_sources??[]).length===0 或无任何含 source_name 的来源时,强制 salary_range=null 且 confidence 至多 insufficient/low,绝不返回 p25/p50/p75。即把 hasAllFourFactors 中『缺 source』这一支从『降级 grade』升级为『置空整个 range』。
+
+[2] P0 CONFIRMED {correctness} xcut-subtraction
+    package.json:16
+    SUM: 根 package.json 新增的 @jayden/hr-career-skills file: 依赖指向 .worktrees 下不存在的 .tgz,且 .worktrees/ 被 gitignore,任何 pnpm install 必失败
+    IMPACT: 触发条件:任何人执行 pnpm install / CI 构建 / 新克隆。实测该 tgz 文件本地已 MISSING(.worktrees/career-skills-npm-installer/career-skills-marketplace/ 目录存在但无 jayden-hr-career-skills-1.0.0-beta.1.tgz),且 .gitignore 第10行忽略 .worktrees/,故新克隆环境根本没有该目录。pnpm 解析 file: 依赖时报 ENOENT,install 直接中断,整个 monorepo(api+web)无法安装、无法构建、无法部署。这是阻塞级故障。
+    FIX: 该依赖无任何代码引用(grep @jayden/hr-career-skills 在 packages/ 下 0 命中),应直接从根 package.json dependencies 中删除这一行(package.json:16);skills marketplace 产物与本 SaaS 无关,不应混入运行时依赖。
+
+[3] P0 CONFIRMED {correctness} xcut-subtraction
+    pnpm-lock.yaml:11
+    SUM: pnpm-lock.yaml 未包含新增的 @jayden/hr-career-skills 依赖,lockfile 与 package.json 已不同步
+    IMPACT: 触发条件:CI/生产用 pnpm install --frozen-lockfile(标准做法,CI 环境默认 true)。lockfile 根 importers `.:` 的 dependencies 段仅有 express(pnpm-lock.yaml:10-13),而 package.json 已新增该依赖。frozen 模式下 pnpm 报 ERR_PNPM_OUTDATED_LOCKFILE 并退出,CI 构建直接红。即便不用 frozen,普通 install 也会因上一条 tgz MISSING 而失败。两条叠加=安装链条彻底断裂。
+    FIX: 删除 package.json 中该破损依赖(见上条)后,lockfile 与 package.json 即恢复一致,无需重新生成 lock;若确需保留某依赖,必须用真实可解析的来源并 pnpm install 重新生成 lockfile 后一并提交。
+
+[4] P1 CONFIRMED {correctness} be-ai-core
+    packages/api/src/ai/ai.service.ts:170
+    SUM: completeStructured 缺少 stop_reason==='max_tokens' 截断检测,被截断的结构化 JSON 被当成合法结果返回
+    IMPACT: 当模型对大 schema(offer-comparator/learning-roadmap/interview-prep 4合1等)生成的工具入参超过 4096 token 时,Anthropic 在 stop_reason='max_tokens' 处截断 tool_use,SDK 仍返回一个含部分键的 tool_use block。extractToolInput 看到 keys.length>0 即判定成功,把数组被截半、字段缺失的残缺 JSON 当 T 返回给调用方。下游虽有 Array.isArray 防御(opportunity-evaluator line 108-110),但残缺数组(如 next_actions 只剩 2/5 条、最后一条对象不完整)会原样落库,既不触发降级也不报错——静默数据损坏,违反'数据缺失须拒绝编造'红线。
+    FIX: extractToolInput/attemptStructured 中检查 response.stop_reason==='max_tokens',若截断则抛错交由 withFailover/重试处理;并把 completeStructured 的 max_tokens 提为可配置(像 complete 那样接受 maxTokens 参数),给重 schema 场景调高。
+
+[5] P1 CONFIRMED {correctness} be-follow-up
+    packages/api/src/follow-up/follow-up.service.ts:122
+    SUM: AI 返回缺失/非字符串 message_draft 时 applyGuards 抛 TypeError 导致 500
+    IMPACT: auto-v2/DeepSeek 在强制 tool_use 下偶发返回缺字段或字段类型不符的 JSON（schema 在本项目运行期完全不强制）。一旦 message_draft 为 undefined 或非 string，line 122 的 .replace / line 127 的 .length 立即抛 TypeError，冒泡成 500，用户拿到服务器错误而非可用草稿或可控的降级结果。
+    FIX: applyGuards 入口对 result.message_draft 做类型守卫：`if (typeof result.message_draft !== 'string') { return { ...result, confidence: 'insufficient', message_draft: '', cannot_determine: [...(result.cannot_determine ?? []), 'AI 未返回有效消息正文'] }; }`；或在 completeStructured 后用 OUTPUT_SCHEMA 做一次运行期 ajv 校验再交给 guard。
+
+[6] P1 CONFIRMED {correctness} be-follow-up
+    packages/api/src/follow-up/follow-up.service.ts:121
+    SUM: 催促词 guard 用裸子串删除，破坏中文语义且产出残句
+    IMPACT: 直接删子串而非整句重写：实测产出残缺句子，意思被扭曲，合法表达(尽快/马上)被无差别抹除。属于服务端对 AI 成品的破坏性确定性篡改，最终发送给招聘方/面试官，损害用户专业形象。
+    FIX: 改为『检测到禁用词→将 confidence 降级 + 在 risks/cannot_determine 标注 + 触发一次带更强约束的重生成』，而非在成品上裸删两字；若必须本地兜底，至少删除包含该词的整个最小句段并补标点。
+
+[7] P1 CONFIRMED {fabrication-guard} be-industry-trend
+    packages/api/src/industry-trend/industry-trend.service.ts:69
+    SUM: 防编造 guard 只检查 evidence_used 里是否存在任意一条 http URL,不校验每条 growth/risk signal 的 source 是否真的对应到带 URL 的证据
+    IMPACT: 当模型在 evidence_used 中随手编造一条以 http 开头的链接(如 https://36kr.com/report/2024,无需真实存在),hasWebSources 即为 true,Guard 1 直接跳过,随后 growth_signals/risk_signals/hiring_outlook/recommended_entry_roles 全量原样透传。模型用训练数据印象编造的'招聘量同比增长30%'+任意 source(甚至与 evidence_used 完全无关)都会被当成有据可查的结论返回给用户。系统提示 line 116 声称'信号必须与 evidence_used 来源对应',但服务端 guard 从未执行该校验。
+    FIX: 在 applyGuards 中对每条 growth_signal/risk_signal 做来源交叉校验:其 source 必须能在带 http URL 的 evidence_used 条目中按 source 字符串或 URL host 匹配;匹配不上的信号应剔除或降 confidence。仅凭'存在任意一条 http'就放行所有信号,等同于一个幌子链接解锁全部内容。
+
+[8] P1 CONFIRMED {fabrication-guard} be-industry-trend
+    packages/api/src/industry-trend/industry-trend.service.ts:81
+    SUM: 有 web 来源的成功路径完全没有时效性免责/陈旧数据校验,signal.date 可为多年前却照常作为'当前趋势'返回
+    IMPACT: GrowthSignal.date / RiskSignal.date 在整个 service 中从未被解析或校验。当 hasWebSources=true 时模型可返回 date='2019'/'2021' 的旧信号,guard 原样透传,trend_summary 也是模型原文、无任何'数据截至 X、可能已过时'免责。用户会把陈旧/过期判断误当作实时结论用于求职决策。仅降级分支(line 82)有'非实时'声明,正常分支完全缺失。
+    FIX: 在成功路径对 signal.date 做陈旧校验(距今超过 N 月标记/剔除或降 confidence),并在 trend_summary 末尾统一拼接时效性免责(如'以上基于截至 {最新 evidence date} 的公开来源,行业数据可能已变化')。
+
+[9] P1 CONFIRMED {fabrication-guard} be-interview-prep
+    packages/api/src/interview-prep/interview-prep.service.ts:241
+    SUM: 薪资估算「有来源」判定用 \d{4} 兜底，任何≥4位数字的薪资数都被当作有来源而保留,防编造形同虚设
+    IMPACT: guardPlaybook 判定 hasSource 的正则 /来源|数据|截至|samples|样本|\d{4}/ 中的 \d{4} 会匹配任意4位连续数字。中国月薪/年薪几乎都是4-5位:AI 返回纯杜撰的「约 15000 元/月」「大约 4000-6000 月薪」「估计 8000 到 12000」均含4位数字→hasSource=true→salary_range_estimate 原样保留,而这些字符串里根本没有任何来源标注。结果:无任何数据来源的编造薪资数字直接返回给用户,违反红线3(数据缺失须拒绝编造)。仅当数字恰好≤3位(如「年薪30万」)才会被正确置null,反而是少数。
+    FIX: 移除 \d{4}(本意大概匹配年份,实则误吞任意4位数)。改为只接受显式来源标注或带「年」上下文的年份模式,例如 /来源|数据来源|截至|样本|samples|(19|20)\d{2}\s*年?/;并补测『含4位薪资数字但无来源应被置null』。e2e line 453 同一缺陷正则需同步修。
+
+[10] P1 PLAUSIBLE {correctness} be-interview-prep
+    packages/api/src/interview-prep/interview-prep.service.ts:283
+    SUM: guardStar 对 story.result 调 extractNumbers 时无 ?? '' 兜底,AI 漏返 result 字段即 TypeError→500
+    IMPACT: completeStructured 不做运行时 schema 校验(ai.service.ts:170-181 直接 input as T)。AI 偶发返回缺 result 或 result=null 的 story 对象时,extractNumbers(story.result) 执行 undefined.match(...) 抛 TypeError,withFailover 之外未捕获→端点 500 而非优雅降级。紧邻的 action 在 line 284 写了 (story.action ?? '') 做了兜底,result 却没有,前后不一致暴露这是疏漏。STAR 是核心防编造端点,一次畸形 AI 输出就让整次请求崩。
+    FIX: 改为 extractNumbers(story.result ?? '');与 action 对齐。根因在 AiService 无 schema 校验,理想是 completeStructured 增加运行时校验(如 ajv),但本模块至少应像 action 一样防御。
+
+[11] P1 CONFIRMED {correctness} be-learning-roadmap
+    packages/api/src/learning-roadmap/learning-roadmap.service.ts:105
+    SUM: sanitizeRoadmap 对嵌套 item.phases 未做空值守卫，AI 漏返 phases 会抛 TypeError 导致 500
+    IMPACT: AiService.extractToolInput 仅校验 tool input 为非空对象(ai.service.ts:174)，并不按 OUTPUT_SCHEMA 强制校验。一旦模型对某个 roadmap 项返回缺失/非数组的 phases(schema 标 required 但服务端不强制)，第 105 行 item.phases.map(...) 抛 'Cannot read properties of undefined (reading map)'，build() 内无 try/catch，请求以未处理 500 返回，而非降级或可控错误。兄弟模块 industry-trend 对同类嵌套数组统一用 (result.x ?? []).map 守卫(industry-trend.service.ts:89)，此处独缺。
+    FIX: 在 sanitizeRoadmap 内对每个 item 用 (item.phases ?? []).map，并对返回的 roadmap 项做形状校验(phases 非数组/为空时跳过该项或归入 cannot_determine)，避免 AI 输出形状不符直接导致 500。
+
+[12] P1 CONFIRMED {fabrication-guard} be-learning-roadmap
+    packages/api/src/learning-roadmap/learning-roadmap.service.ts:138
+    SUM: resource_list 防编造仅靠 prompt，无任何服务端守卫拦截杜撰的 URL/具体课程名
+    IMPACT: 本模块核心风险即'资源链接杜撰'。系统提示第138行虽禁止给出具体 URL 或课程名，但服务端 sanitizeRoadmap 只清洗 completion_criteria(validateCriteria)，对 resource_list 的 description/quality_criteria 零校验，OUTPUT_SCHEMA 也未约束。模型(尤其降级到 DeepSeek 时)极易在 description 里写出 'https://...' 或具体课程名/书名(可能是不存在的)，这些会原样返回给前端展示，正属 CLAUDE.md 红线'AI 不得编造'与'mock/假数据'。对照 industry-trend 对无 web 来源时强制 confidence=insufficient 并清空信号(industry-trend.service.ts:73-85)，本模块缺等价的确定性兜底。
+    FIX: 新增 sanitizeResources：用正则剔除/标记 description 与 quality_criteria 中的 http(s) URL；对疑似具体课程名/书名给出'仅描述类型，不保证存在'的提示或降级处理；同时在 schema/prompt 双侧收紧，做到服务端确定性拦截而非纯靠提示词。
+
+[13] P1 CONFIRMED {correctness} be-networking
+    packages/api/src/networking/networking.service.ts:265
+    SUM: 有人脉分支直接 for-of 迭代 AI 返回的 raw.referral_paths,未做数组防御,模型漏字段时抛 TypeError
+    IMPACT: AI 偶发漏 referral_paths 字段或返回非数组时,line 265 抛 TypeError,请求 500;与同仓三处 `?? []` 防御不一致。
+    FIX: 迭代前归一化:`const paths = Array.isArray(raw.referral_paths) ? raw.referral_paths : []; raw.referral_paths = paths;` 再遍历;cold_outreach_targets/network_gaps/recommendations/risks/cannot_determine 同样 `?? []`,与 sibling 服务对齐。
+
+[14] P1 PLAUSIBLE {fabrication-guard} be-networking
+    packages/api/src/networking/networking.service.ts:234
+    SUM: 无人脉分支只清空 referral_paths,未在服务端阻止 AI 在 cold_outreach_targets 里虚报高成功率/编造具体联系人画像
+    IMPACT: 无人脉分支 cold_outreach_targets[].approach/target_profile_type 无任何服务端防编造校验,AI 可在 approach 写具体姓名或『内部有人』式暗示;成功率虚报因该结构无成功率字段不成立。
+    FIX: 对无人脉分支 cold_outreach_targets[].approach/target_profile_type 做关键词体检(具体人名/『内部有人』/夸大保证),命中则剥离或降级;与有人脉分支共用同一组确定性 guard。
+
+[15] P1 CONFIRMED {fabrication-guard} be-offer-comparator
+    packages/api/src/offer-comparator/offer-comparator.service.ts:82
+    SUM: 所有薪资数字(年总包/试用期损失/时薪/加权分)完全由 AI 生成且服务端从不复算或校验,违反“计算正确性+防编造”底线
+    IMPACT: 模型对 base_monthly=20000、months_per_year=14、annual_bonus=50000 这类输入,完全可能输出与 20000×14+50000=330000 不符的 annual_total_compensation(算错或编造),服务端照单全收返回给用户。用户据此做几十万年薪级别的 offer 决策,数字可信度=0。这正是 CLAUDE.md “薪资数字是否编造/计算正确性”的核心红线。
+    FIX: 对可由输入确定性计算的字段在服务端复算并以服务端值覆盖模型输出:annual_total_compensation = base_monthly×(months_per_year??12)+(annual_bonus??0);probation_loss = base_monthly×(1-probation_discount)×probation_months(字段齐全时);hourly_rate_rmb = 年总包/(weekly_hours×52)(weekly_hours 已知时)。模型仅负责定性维度(growth_potential/稳定性解释)。这样数字来自服务端而非模型,彻底消除编造空间。
+
+[16] P1 CONFIRMED {fabrication-guard} be-offer-comparator
+    packages/api/src/offer-comparator/offer-comparator.service.ts:113
+    SUM: Guard 3 只在工时缺失时把时薪置 null;工时已知时直接采信模型 hourly_rate_rmb,从不复算,时薪可被编造
+    IMPACT: 用户提供了 weekly_hours=60 的 offer 时,模型给出的 hourly_rate_rmb 无人核对——可能与真实时薪差几倍。Guard 名为‘工时未知时强制 null(不得估算)’,但工时已知时恰恰放任了估算/编造,防护只覆盖了一半场景。同样 weeklyHoursMap.get(hr.offer_id) 对模型臆造的 offer_id 返回 undefined→被当‘缺工时’处理,反而掩盖了幻觉行的存在。
+    FIX: 工时已知分支也用服务端复算覆盖:hourly_rate_rmb = round(serverAnnualTotal / (inputHours×52));annual total 同样取服务端复算值而非模型值。
+
+[17] P1 CONFIRMED {fabrication-guard} be-offer-comparator
+    packages/api/src/offer-comparator/offer-comparator.service.ts:95
+    SUM: guard 从不校验模型输出的 offer_id/company 是否在输入 offers 中——模型可幻觉出额外 offer 行或张冠李戴公司名,全部原样返回
+    IMPACT: 若模型多输出一行 offer_id='offer_X'(输入中不存在)或把 A 公司的薪资挂到 B 公司名下,服务端不拦截。recommendation.preferred_offer_id 也可能指向不存在的 offer,前端按 id 渲染会错位或落空。违反‘所有数据来自用户输入,严禁凭空推断’。
+    FIX: 构建 validIds=new Set(offers.map(o=>o.id));过滤掉所有 offer_id 不在 validIds 的 comparison/weighted_scores/hourly_rate_comparison/missing_info 行;company 一律用服务端 idToCompany 映射覆盖模型回显;校验 recommendation.preferred_offer_id ∈ validIds,否则降级 confidence 或置空并记 caveat。
+
+[18] P1 CONFIRMED {correctness} be-salary
+    packages/api/src/salary/salary-analysis.service.ts:160
+    SUM: Guard 3『insufficient → range 必为 null』被前面的提前 return 短路成死代码,无法拦截 insufficient+有数字 的组合
+    IMPACT: 当 AI 返回 confidence:'insufficient' 同时给出合法 p25/p50/p75 时,执行流在 156 行提前 return(携带 insufficient + 非空 range),走不到 160-163 的 Guard 3。而真正到达 Guard 3 时,salary_range 必定仍是初始值 null(107 行声明后,只有 138 行三数字校验失败或 108 行 range 为 null 两条路径会落到这里,两者都不给 salary_range 赋值),所以 Guard 3 永远是 no-op。违反『insufficient 必须无区间』不变量,且给人『已防住』错觉。
+    FIX: 把 insufficient 检查前移到构造 salary_range 之前(或在 142 行构造块内加 confidence!=='insufficient' 前置条件);并补单测覆盖 insufficient+合法数字 的输入,断言 salary_range===null。
+
+[19] P1 CONFIRMED {fabrication-guard} be-salary
+    packages/api/src/salary/city-industry-fit.service.ts:167
+    SUM: cost_of_living_impact.typical_salary_range 是无来源/无 grade/无 freshness 的自由文本薪资数字,完全无防编造 guard
+    IMPACT: applyGuards 对 cost_of_living_impact 仅做『城市必须出现在 fit_matrix』的过滤(167-174),随后原样 map 出 typical_salary_range(177 行 `c.typical_salary_range ?? ''`)。该字段为模型自由生成的薪资范围文本(如『15k-30k/月』),无任何来源校验、年份、分级或新鲜度标注——是与主 salary_range 平行的第二条薪资编造通道,且连主通道四要素降级都没有。industry_hub_analysis 的 cluster_effect/career_ceiling(193-194)同为无约束自由文本。
+    FIX: 对 typical_salary_range 要么删除该字段、要么要求其 evidence_basis/来源并施加与 salary-analysis 一致的『无来源即不输出数字』收口;至少在 prompt+guard 双重要求该字段引用 profile 或标注为粗略估算。
+
+[20] P1 CONFIRMED {fabrication-guard} fe-applications
+    packages/web/src/app/(main)/applications/page.tsx:391
+    SUM: AI 后端返回的 cannot_determine 与 confidence 在 done 状态完全不渲染，防编造透明度信号被丢弃
+    IMPACT: 后端 strategy.service.ts(实际路径 packages/api/src/applications/strategy.service.ts，非候选所写的根目录 strategy.service.ts) 在 applyGuards 中：confidence 非法时降级为 'low'(124-126行)、cannot_determine 在 done 路径透传(183行)。前端 done 视图(391-612行)只渲染 summary/tiers/sequence/dailyPlan/risk_assessment，从不显示 confidence 也从不显示 cannot_determine；insufficient 视图(321-388行)也不渲染 cannot_determine。后果:AI 诚实标注'X 无法判定'时用户永远看不到;confidence='low'(可能是降级/不可靠) 与 'high' 在 UI 上无差别。违反红线3(数据缺失须让用户感知拒绝编造而非静默呈现)。
+    FIX: 在 done 视图显示 result.confidence(尤其 low 给出低置信提示)，并在 cannot_determine.length>0 时渲染'无法判定项'区块；insufficient 态同样回退渲染 cannot_determine。
+
+[21] P1 CONFIRMED {fabrication-guard} fe-industry-trend
+    packages/web/src/app/(main)/industry-trend/page.tsx:564
+    SUM: 增长/风险信号展示 source·date 字符串,但从不渲染 evidence_used 的可点击来源 URL,用户无法核验
+    IMPACT: 当 confidence != insufficient 时(后端 Guard1 此分支要求 evidence_used 至少含一条 http URL),信号卡片把 signal.source/signal.date 当作纯文本展示(GrowthSignalCard 第178-179行 `{signal.source} · {signal.date}`、RiskSignalCard 第214-215行),但页面通篇没有渲染 result.evidence_used(已确认全文 0 处引用)。后端把 evidence URL 作为信任信号的唯一依据,前端却把支撑 URL 全部丢弃,用户看到一条条带数字/日期的'增长信号'却无任何可点击来源去核实——这正是 CLAUDE.md'编造数字而无来源'红线针对的场景。signal.source 本身是 schema 里的自由文本(OUTPUT_SCHEMA growth_signals.items.properties.source 仅约束为 string,第175-176行),不可点,展示了来源之名却隐藏了来源之实。
+    FIX: 在结果区(尤其每条信号下方或单独'数据来源'卡片)渲染 result.evidence_used,把 url 渲染成可点击 <a href={e.url} target=_blank rel=noopener>,并展示 source/date;无 url 的条目要明确标注'无可核验链接'。让信号的 source 与 evidence_used 建立可视关联。
+
+[22] P1 CONFIRMED {type-safety} fe-industry-trend
+    packages/web/src/lib/types.ts:1142
+    SUM: 前端类型把 strength/severity/demand_level 声明为必填,但后端 JSON schema 标其为可选,AI 漏字段时渲染空徽章且 TS 无法捕获
+    IMPACT: types.ts 第1142/1149/1157 行 strength/severity/demand_level 为非可选,但后端 OUTPUT_SCHEMA 中 growth_signals.items.required=['signal','source','date'](第191行)、risk_signals.items.required=['signal','source','date'](第204行)、recommended_entry_roles.items.required=['role_name','rationale'](第221行)均未把这三个枚举字段列为必填。AI 合法返回缺这些字段时,前端 STRENGTH_LABELS[signal.strength] ?? signal.strength → undefined ?? undefined → undefined,徽章 pill 渲染为空白(GrowthSignalCard 第175行、RiskSignalCard 第211行、EntryRoleCard 第254行)。类型谎称字段必在,TS 不报错,运行期出
+    FIX: 把 types.ts 中 IndustryGrowthSignal.strength / IndustryRiskSignal.severity / IndustryEntryRole.demand_level 改为可选(?: ),或在后端 schema 把这三个字段加入对应 required;前端徽章对 undefined 提供兜底文案(如'未标注')而非渲染空 pill。
+
+[23] P1 CONFIRMED {correctness} fe-interview-prep
+    packages/web/src/app/(main)/interview-prep/page.tsx:534
+    SUM: 对 AI 结果的嵌套对象/数组无空值守卫，缺字段时渲染期抛 TypeError，整路由白屏（无 error boundary）
+    IMPACT: 触发条件：AI（auto-v2/DeepSeek 经中转）返回非空但缺少 schema required 的顶层/嵌套字段。后端 extractToolInput 仅 `Object.keys(input).length>0` 后 `return input as T`（ai.service.ts:174-175），Anthropic input_schema 仅为提示不强制校验；attemptStructured 只对“全空块”重试 3 次（ai.service.ts:147-157），对“非空但缺一个键”的部分对象既不重试也不校验。各 guard 只兜底了部分字段：guardStar 仅处理 story_bank/evidence_used（service.ts:282-307），coverage_map 与 gaps 经 `...result` 原样透传；guardTech 兜底 preparation_plan/company_specific_focus 但不含 practice_questions（service.ts:343-359）；guardCase 仅处理 fram
+    FIX: 前端对所有直接 .map/.length/.join 的结果字段加 `(result.xxx ?? [])`、对 company_profile/coverage_map/salary_negotiation_notes 等对象加可选链或渲染前判空降级到 InsufficientPanel；更稳妥是在后端各 guardXxx 里像 story_bank 一样对全部 required 数组/对象统一兜默认值，使前端契约可信。并补 app 级 error.tsx 防单字段缺失白屏整站。
+
+[24] P1 CONFIRMED {correctness} fe-learning-roadmap
+    packages/web/src/app/(main)/learning-roadmap/page.tsx:510
+    SUM: insufficient 状态下直接访问 result.follow_up_questions.length，但该字段并非运行时强制存在，可整页崩溃
+    IMPACT: 当模型返回 confidence:'insufficient' 却(很常见地)省略空的 follow_up_questions 数组时 → 第510行抛 'Cannot read properties of undefined (reading length)'。无 error 边界，用户在'信息不足'这一最该优雅降级的路径上反而得到白屏。
+    FIX: 渲染前防御:result.follow_up_questions?.length 或 const followUps = result.follow_up_questions ?? []。根因彻底修法:在 service.build() 返回前对 follow_up_questions/next_actions/resource_list 等数组字段统一 ?? []，或在 completeStructured 层做 schema 校验/回填。
+
+[25] P1 CONFIRMED {correctness} fe-learning-roadmap
+    packages/web/src/app/(main)/learning-roadmap/page.tsx:658
+    SUM: result 状态下 result.next_actions.length 与 result.resource_list 均无防御，模型省略任一字段即崩溃(roadmap 已被后端兜底)
+    IMPACT: completeStructured 不校验，主/备用通道返回 JSON 若缺 next_actions / resource_list(LLM 对空数组常省略)，对应行抛 undefined.length / for...of undefined，整页崩溃且无 error 边界兜底。roadmap 已被 sanitizeRoadmap(result.roadmap ?? []) 在后端兜底为 []，相对安全。
+    FIX: 渲染前统一兜底:const nextActions = result.next_actions ?? []; const resourceList = result.resource_list ?? []; 再用局部变量。或后端在 build() 返回前对这几个数组字段填默认 []。
+
+[26] P1 CONFIRMED {correctness} fe-coverletter-referral
+    packages/web/src/app/(main)/cover-letter/page.tsx:110
+    SUM: 重新生成后的求职信永远进不了历史列表（id 永不匹配）
+    IMPACT: 用户点「重新生成」→ 预览区显示新信(setCurrentLetter 正常)，但 prev.map 用 letter.id 找不到匹配项，新版本不会被加入历史列表；且 currentLetter 变成一个不在 letters 中的新 id，导致 currentLetter?.id===letter.id 对不上任何历史项，「当前」高亮标记全部丢失。刷新后 findAll 才会把这条隐身 v2 返回，造成「我刚生成的版本去哪了」的困惑。
+    FIX: 改为新增而非替换：setLetters((prev) => [letter, ...prev]); 与 handleGenerate 第 95 行保持一致。
+
+[27] P1 CONFIRMED {correctness} fe-coverletter-referral
+    packages/web/src/app/(main)/cover-letter/_referral/index.tsx:783
+    SUM: 结果数组字段无空值保护，AI 漏返回任一数组即整页 render 崩溃白屏
+    IMPACT: schema.required 不被运行时强制；备用通道 DeepSeek 更易不严格遵守 tool schema，主通道偶发也可能漏字段。一旦 AI 返回对象缺少 referral_paths / cold_outreach_targets / network_gaps / recommendations / risks / cannot_determine / key_points 中任意一个，前端在 render 阶段对 undefined 取 .length 抛 TypeError；无 error boundary，整条路由崩成白屏，用户花了一次 AI 调用却看到空白。
+    FIX: 对所有数组访问加空值兜底，如 (result.referral_paths ?? []).length / .map(...)，TagList 改 if (!items?.length) return null；或更彻底——在 networking.service.ts 对 completeStructured 返回值补全数组缺失字段（填 []）后再返回。
+
+[28] P1 PLAUSIBLE {correctness} fe-offer-comparator
+    packages/web/src/app/(main)/offer-comparator/page.tsx:288
+    SUM: ResultPanel 直接 comparison.map / recommendation.* / result.risks.length 等,未对 AI 可能省略的字段做空值保护,字段缺失即整页白屏崩溃
+    IMPACT: 触发条件:completeStructured 对返回 JSON 不做 schema 校验(ai.service.ts:170-181 仅检查 input 是非空对象后 `input as T`),且主备通道可降级到 DeepSeek(异模型,schema 遵从更弱)。后端 applyGuards 只对 weighted_scores / hourly_rate_comparison 做了 `?? []`(service.ts:103,113),其余 required 数组/对象(comparison、recommendation、risks、next_actions、follow_up_questions、missing_info)未兜底。一旦模型漏返其中任一字段(例如漏 risks),前端在 line 288 `comparison.map`、line 378 `recommendation.preferred_offer_id`、line 589 `result.risks.length || result.next_actions.length`、line 611 `missi
+    FIX: 对所有 AI 返回的数组/对象在 ResultPanel 入口统一兜底:`const comparison = result.comparison ?? []` 等,recommendation 缺失时整块跳过;最稳妥是后端 applyGuards 对全部 required 字段补全默认值(空数组/占位 recommendation)再让前端加 `?? []` 双保险。
+
+[29] P1 PLAUSIBLE {correctness} fe-offer-comparator
+    packages/web/src/app/(main)/offer-comparator/page.tsx:896
+    SUM: insufficient 分支同样裸用 result.follow_up_questions.length,字段缺失时崩溃
+    IMPACT: 触发条件:confidence==='insufficient'(信息不足正是最该可靠展示的兜底分支)且模型漏返 follow_up_questions。line 896 `{result.follow_up_questions.length > 0 && (` 对 undefined 取 length 抛 TypeError,导致本该提示用户'补充信息'的降级界面也白屏。这与本项目红线'AI 数据缺失时必须优雅拒绝'直接冲突——拒绝路径自身崩了。
+    FIX: `const followUps = result.follow_up_questions ?? []` 后再判 length;summary 也用 `result.summary ?? '信息不足,无法完成比较'` 兜底。
+
+[30] P1 CONFIRMED {consistency} fe-salary
+    packages/web/src/app/(main)/salary/page.tsx:834
+    SUM: 市场 Offer 对比空态使用红线禁止的“敬请期待”占位文案
+    IMPACT: 触发条件：DB 未 seed / market 为空，或筛到无 market 数据的 role 使 sorted.length===0。CLAUDE.md 与 anti-slacking 红线禁止“建设中/敬请期待”，PJR/审计会直接判红线违规。语义上是空态而非纯占位，但文案踩红线。
+    FIX: 改为合规空态文案，如“暂无该岗位的市场 offer 数据，提交你的 offer 帮助补全”并保留提交 CTA，去掉“敬请期待”。
+
+[31] P1 CONFIRMED {correctness} fe-salary
+    packages/web/src/app/(main)/salary/page.tsx:683
+    SUM: MarketTable 用 prop 派生 state + useEffect 单向覆盖，导致表格筛选与上方基准 role 选择互相打架
+    IMPACT: 时序/单向数据流问题：表格筛选被父级 role 切换静默覆盖，且表格筛选不反映到基准卡片与“你的定位”指示器，上下不一致、交互不符直觉。属 React prop-derived-state 反模式。
+    FIX: 去掉本地 filterRole 与该 effect，统一由父级单一 selectedRole 受控（setSelectedRole 透传给表格筛选回调），两处共用同一 source of truth。
+
+[32] P1 CONFIRMED {correctness} fe-shared
+    packages/web/src/lib/api.ts:47
+    SUM: request() 对任何 2xx 响应都无条件 res.json(),DELETE 返回空 body 时抛 JSON 解析异常,导致删除成功但前端静默失败
+    IMPACT: 用户在简历详情页点删除 → 服务端简历已删除,但 res.json() 对空 body 抛 SyntaxError → handleDelete 进入 catch,router.push 不执行,页面停留原地、无成功反馈,用户以为删除失败可能重复操作或困惑。
+    FIX: 在 request 中对空响应短路:`if (res.status === 204) return undefined as T;` 或 `const text = await res.text(); return text ? (JSON.parse(text) as T) : (undefined as T);`。同时建议后端 DELETE 统一 @HttpCode(204) 与 conversations 对齐。
+
+[33] P1 CONFIRMED {correctness} xcut-antifab
+    packages/api/src/networking/networking.service.ts:265
+    SUM: 有人脉分支直接 for...of 遍历 AI 原始 referral_paths,无防御默认值,模型漏字段即 500
+    IMPACT: AiService.extractToolInput(ai.service.ts:170-181) 把 block.input 直接 `as T` 返回、不校验 schema 必填项。当 known_contacts 非空走到 analyzeReferralStrategy 的有人脉分支(line 256-275),若模型这一次未返回 referral_paths 键,line 265 `for (const path of raw.referral_paths)` 抛 'undefined is not iterable',整个内推策略请求 500,而非降级或空结果。无人脉分支(line 234)明确做了 `raw.referral_paths = []` 归一化,唯独有人脉分支漏防,前后不一致。
+    FIX: 改为 `const paths = Array.isArray(raw.referral_paths) ? raw.referral_paths : []; raw.referral_paths = paths;` 再遍历;或在两个分支返回前统一对所有数组字段(referral_paths/cold_outreach_targets/network_gaps/recommendations/risks/cannot_determine)做 `?? []` normalize。
+
+[34] P1 CONFIRMED {correctness} xcut-antifab
+    packages/api/src/industry-trend/industry-trend.service.ts:88
+    SUM: applyGuards 第二段对 result.growth_signals.length 解引用无 ?.,模型漏 growth_signals 即 500
+    IMPACT: 当 evidence_used 含 http url(hasWebSources=true)而模型省略了 growth_signals 时,代码越过 Guard 1 早返回(line 73-85 仅在 !hasWebSources 时返回),执行到 line 88 `!hasWebSources || result.growth_signals.length === 0`;此时 !hasWebSources 为 false,|| 必须求值右操作数,对 undefined 取 .length 抛 TypeError → 500。同一行下方 line 89 recommended_entry_roles 用了 `?? []`,唯独 growth_signals 漏防。schema 标 required(line 162)不保证返回。
+    FIX: 改为 `!hasWebSources || (result.growth_signals ?? []).length === 0`;并在返回前统一把 growth_signals/risk_signals/recommended_entry_roles `?? []` 归一化。
+
+[35] P1 CONFIRMED {fabrication-guard} xcut-antifab
+    packages/api/src/offer-comparator/offer-comparator.service.ts:95
+    SUM: confidence=insufficient 时只剔除 total_score,仍返回带 preferred_offer_id 的确定性推荐,自相矛盾地'编造赢家'
+    IMPACT: applyGuards 在 low/insufficient 仅删除 weighted_scores.total_score(line 100-110),但 recommendation 对象(preferred_offer_id + rationale,schema 必填 line 264)原样透传(line 121 `return { ...result, weighted_scores, hourly_rate_comparison }` 未触碰 recommendation)。控制器(offer-comparator.controller.ts:18)直接 return 透传。结果:offer 数据严重缺失/置信度 insufficient 时,产品仍明确告诉用户'推荐选 Offer X',违反红线3(数据缺失须拒绝编造)。这是直接影响选 offer 重大决策的护城河缺口。
+    FIX: 在 applyGuards 中:当 confidence==='insufficient'(或 result.recommendation.confidence==='uncertain')时,把 recommendation 收口为 {preferred_offer_id:'', rationale:'信息不足,无法给出可靠推荐', confidence:'uncertain', caveats:[...]},并将缺口写入 cannot_determine/missing_info,再随 line 121 返回。
+
+[36] P2 CONFIRMED {consistency} be-ai-core
+    packages/api/src/config/env.validation.ts:18
+    SUM: env.validation 漏校验多个被 ai.config 直接读取的环境变量(AI_PRIMARY/FALLBACK_MAX_RETRIES、CLOUDDREAM_MODEL/BASE_URL、DEEPSEEK_* 等)
+
+[37] P2 PLAUSIBLE {correctness} be-ai-core
+    packages/api/src/config/ai.config.ts:47
+    SUM: timeoutMs/maxRetries 用 Number() 解析后无 NaN/非法值兜底,非法环境变量直接污染 SDK 客户端(注:候选所述'NaN timeout 致长时间阻塞'的影响方向与实际相反)
+
+[38] P2 CONFIRMED {fabrication-guard} be-applications
+    packages/api/src/applications/strategy.service.ts:67
+    SUM: stripCompanyNames 的描述性标记判定会放行带括号/数字的真实公司名,绕过防编造护栏
+
+[39] P2 CONFIRMED {type-safety} be-applications
+    packages/api/src/applications/dto/application-strategy.dto.ts:11
+    SUM: current_applications 仅 @IsArray() 无 @IsString({each:true}) 与 @ArrayMaxSize,元素类型/数量不受校验
+
+[40] P2 CONFIRMED {security} be-applications
+    packages/api/src/applications/dto/application-strategy.dto.ts:5
+    SUM: user_profile 无 @MaxLength,可将最大 ~2MB 文本直送 AI prompt(平台侧成本/限流放大)
+
+[41] P2 CONFIRMED {fabrication-guard} be-follow-up
+    packages/api/src/follow-up/follow-up.service.ts:110
+    SUM: 数据缺失防编造仅靠'high→medium'软降级，confidence=insufficient 服务端永不可达
+
+[42] P2 CONFIRMED {correctness} be-follow-up
+    packages/api/src/follow-up/follow-up.service.ts:127
+    SUM: 150字截断会在逗号/硬切处产生残句，且与禁用词剔除顺序导致二次超界不复检
+
+[43] P2 CONFIRMED {correctness} be-follow-up
+    packages/api/src/follow-up/follow-up.service.ts:87
+    SUM: 归属校验 catch 吞掉所有异常(含 DB 故障)统一伪装成 403
+
+[44] P2 CONFIRMED {fabrication-guard} be-industry-trend
+    packages/api/src/industry-trend/industry-trend.service.ts:43
+    SUM: market_radar_used 字段完全由 LLM 自报,从不接入真实 market radar,且 guard 从不将其纠正为 false
+
+[45] P2 CONFIRMED {correctness} be-industry-trend
+    packages/api/src/industry-trend/industry-trend.service.ts:88
+    SUM: Guard 2 的条件 `!hasWebSources || ...` 中 !hasWebSources 是死分支;且 Guard 2 在 e2e 中实际从未被真正执行
+
+[46] P2 CONFIRMED {type-safety} be-industry-trend
+    packages/api/src/industry-trend/industry-trend.service.ts:217
+    SUM: OUTPUT_SCHEMA 中 demand_level 未列入 required,但接口 RecommendedEntryRole.demand_level 声明为非可选,成功路径可透传 undefined
+
+[47] P2 CONFIRMED {fabrication-guard} be-interview-prep
+    packages/api/src/interview-prep/interview-prep.service.ts:282
+    SUM: STAR 数字防编造只覆盖 result 与 action,situation/task 里的杜撰量化数字不受任何校验
+
+[48] P2 PLAUSIBLE {security} be-interview-prep
+    packages/api/src/interview-prep/interview-prep.service.ts:424
+    SUM: interview_intelligence/user_profile/experiences 等用户输入未做任何注入隔离即拼入 prompt,且被标注为「可信来源」
+
+[49] P2 CONFIRMED {fabrication-guard} be-interview-prep
+    packages/api/src/interview-prep/interview-prep.service.ts:315
+    SUM: tech-coach 非技术岗判定为关键词黑名单,产品经理/数据分析等明显非编码岗仍放行去做技术面备考;且 NON_TECH_KEYWORDS 含重复的『行政』
+
+[50] P2 CONFIRMED {correctness} be-learning-roadmap
+    packages/api/src/learning-roadmap/learning-roadmap.service.ts:86
+    SUM: build() 直接展开 AI 返回的 result 作为最终响应，未校验 confidence/必填字段，AI 漏返即返回不完整结构
+
+[51] P2 CONFIRMED {correctness} be-learning-roadmap
+    packages/api/src/learning-roadmap/learning-roadmap.service.ts:70
+    SUM: backlog 截断逻辑的注释声称'prompt instructs AI to prioritize'，但 prompt 实际从不提及优先级或截断
+
+[52] P2 CONFIRMED {correctness} be-networking
+    packages/api/src/networking/networking.service.ts:299
+    SUM: isColdContactRateInflated 只取区间第一个数字,导致 '10-20%'、'15-25%' 等上界超 15% 的虚报漏判
+
+[53] P2 CONFIRMED {correctness} be-networking
+    packages/api/src/networking/dto/referral-strategy.dto.ts:8
+    SUM: target_companies 缺 @ArrayNotEmpty/@ArrayMinSize,空数组通过校验后 join 得空串,AI 拿到无目标公司的 prompt
+
+[54] P2 PLAUSIBLE {fabrication-guard} be-networking
+    packages/api/src/networking/networking.service.ts:190
+    SUM: writeMessage 只在 confidence==='insufficient' 时清空 message_draft,low/medium 置信下不校验是否真有共同背景即放行草稿
+
+[55] P2 CONFIRMED {correctness} be-offer-comparator
+    packages/api/src/offer-comparator/dto/compare-offers.dto.ts:14
+    SUM: OfferWeightsDto 各权重无 @Min/@Max 且不要求和为 1;部分提供时 ?? 逐字段回退导致权重和≠1,prompt 误导且无人察觉
+
+[56] P2 CONFIRMED {consistency} be-offer-comparator
+    packages/api/src/offer-comparator/offer-comparator.service.ts:100
+    SUM: Guard 2 在低置信度时只删 total_score,却保留 dimension_scores 与 comparison[].dimensions 中的精确数字,‘不得呈现精确分值’只执行了一半
+
+[57] P2 CONFIRMED {security} be-offer-comparator
+    packages/api/src/offer-comparator/dto/compare-offers.dto.ts:115
+    SUM: user_priorities 仅 @IsArray()@IsOptional(),元素无 @IsString 校验,非字符串元素与原文被 join 后直接拼入 AI prompt(注入面+类型脏数据)
+
+[58] P2 CONFIRMED {correctness} be-salary
+    packages/api/src/salary/salary-analysis.service.ts:138
+    SUM: p25/p50/p75 仅校验 typeof number,未校验非负与单调(p25<=p50<=p75),负数/零/逆序区间均放行
+
+[59] P2 PLAUSIBLE {security} be-salary
+    packages/api/src/salary/salary.service.ts:69
+    SUM: getStats() 与 findAll() 公开聚合/列出含 self/peer 用户提交记录,小样本(count=1)下可反推单个发布者精确薪资,削弱匿名承诺
+
+[60] P2 CONFIRMED {correctness} fe-applications
+    packages/web/src/app/(main)/applications/page.tsx:529
+    SUM: 风险区块整体受 main_risks.length>0 把守，导致 mitigation 数据可能被静默丢弃或渲染空列表
+
+[61] P2 CONFIRMED {consistency} fe-applications
+    packages/web/src/app/(main)/applications/page.tsx:734
+    SUM: 创建/移动卡片失败用原生 alert() 报错，与页面内联错误状态机风格割裂且阻塞 UI
+
+[62] P2 PLAUSIBLE {correctness} fe-applications
+    packages/web/src/app/(main)/applications/page.tsx:74
+    SUM: done 态在 confidence='low' 且所有数组为空时会展示一份近乎空白却被当作'生成成功'的策略
+
+[63] P2 PLAUSIBLE {correctness} fe-follow-up
+    packages/web/src/app/(main)/follow-up/page.tsx:238
+    SUM: handleCopy 调用 navigator.clipboard.writeText 但无 .catch，且未判空 clipboard
+
+[64] P2 CONFIRMED {fabrication-guard} fe-industry-trend
+    packages/web/src/app/(main)/industry-trend/page.tsx:633
+    SUM: result.cannot_determine(AI 显式声明'无法判定'的事项)在页面任何分支都不渲染,诚实降级信号被静默丢弃
+
+[65] P2 CONFIRMED {consistency} fe-interview-prep
+    packages/web/src/app/(main)/interview-prep/page.tsx:812
+    SUM: 多处英文枚举值（priority/type/difficulty/severity/weight）原样渲染给中文用户，违反“中文 only/不得输出英文维度 key”红线
+
+[66] P2 PLAUSIBLE {correctness} fe-coverletter-referral
+    packages/web/src/app/(main)/cover-letter/page.tsx:120
+    SUM: clipboard 复制无 catch，HTTP 部署/无权限时静默失败且产生未处理 Promise 拒绝
+
+[67] P2 CONFIRMED {consistency} fe-coverletter-referral
+    packages/web/src/app/(main)/cover-letter/page.tsx:450
+    SUM: 历史列表向用户直接展示英文枚举 tone（warm/professional/direct），违反中文 only 红线
+
+[68] P2 CONFIRMED {correctness} fe-offer-comparator
+    packages/web/src/app/(main)/offer-comparator/page.tsx:688
+    SUM: 提交前校验仅判 base_monthly 是否为空字符串,未拦截非法/0 月薪,formToItem 用 Number() 可产出 0 或 NaN 送后端
+
+[69] P2 CONFIRMED {simplification} fe-salary
+    packages/web/src/app/(main)/salary/page.tsx:706
+    SUM: toggleSort 通过无意义的 setsSortAsc 包装函数间接调用 setSortAsc，纯胶水/死代码
+
+[70] P2 CONFIRMED {simplification} fe-salary
+    packages/web/src/app/(main)/salary/page.tsx:686
+    SUM: useEffect 内用 void async IIFE 包裹纯同步的 setState，无 await 目的
+
+[71] P2 CONFIRMED {correctness} fe-diagnoses
+    packages/web/src/app/(main)/diagnoses/[id]/diagnosis-detail.tsx:573
+    SUM: 创建投递时把 null 的公司/职位降级成空字符串提交,触发后端 @MinLength(1) 校验失败
+
+[72] P2 CONFIRMED {correctness} fe-diagnoses
+    packages/web/src/app/(main)/diagnoses/[id]/diagnosis-detail.tsx:600
+    SUM: 问 Coach 失败时静默吞错,用户看到 loading 闪一下后无任何反馈
+
+[73] P2 CONFIRMED {consistency} fe-shared
+    packages/web/src/lib/api.ts:71
+    SUM: upload() 绕过 errorMessage 与 401 处理:失败抛英文原始状态,token 过期时既不清 token 也不跳登录
+
+[74] P2 CONFIRMED {docs} fe-shared
+    packages/web/src/app/(main)/layout.tsx:62
+    SUM: 注释声称「8 个核心常驻」,但 core 数组实际只有 6 项,注释与代码不符
+
+[75] P2 CONFIRMED {correctness} xcut-authz
+    packages/api/src/industry-trend/industry-trend.service.ts:88
+    SUM: applyGuards 中 result.growth_signals.length 未做 nullish 兜底,AI 漏返该字段时抛 TypeError
+
+[76] P2 CONFIRMED {correctness} xcut-authz
+    packages/api/src/follow-up/follow-up.service.ts:121
+    SUM: 催促词 guard 用全局 replace 直接删子串,会切坏正常句子语义
+
+[77] P2 CONFIRMED {fabrication-guard} xcut-antifab
+    packages/api/src/learning-roadmap/learning-roadmap.service.ts:138
+    SUM: 仅靠 prompt 禁止具体课程名/URL,无任何服务端剔除,模型违规即把编造/失效链接输出给用户
+
+[78] P2 CONFIRMED {correctness} xcut-antifab
+    packages/api/src/interview-prep/interview-prep.service.ts:284
+    SUM: guardStar 对 story.result 调 extractNumbers 但未防 undefined,action 有 ?? '' 而 result 没有,模型漏 result 即 500
+
+[79] P2 CONFIRMED {correctness} xcut-antifab
+    packages/api/src/learning-roadmap/learning-roadmap.service.ts:105
+    SUM: sanitizeRoadmap 对 item.phases.map 解引用无默认值,模型漏某 roadmap 项的 phases 即 500
+
+[80] P3 PLAUSIBLE {correctness} be-ai-core
+    packages/api/src/ai/concurrency-limiter.ts:56
+    SUM: release() 无条件 active-- 后立即给 waiter active++,逻辑正确但缺乏 active 下溢护栏
+
+[81] P3 PLAUSIBLE {correctness} be-applications
+    packages/api/src/applications/strategy.service.ts:111
+    SUM: detectWindowNote 用进程本地时区判定招聘窗口,UTC 部署在月初/月末会误判秋招/春招标签
+
+[82] P3 PLAUSIBLE {type-safety} be-applications
+    packages/api/src/applications/applications.service.ts:123
+    SUM: getStats 用 row.stage 直接做对象索引写入,未校验其为已知 stage 键
+
+[83] P3 CONFIRMED {consistency} be-follow-up
+    packages/api/src/follow-up/follow-up.service.ts:39
+    SUM: system prompt 承诺禁'急'，但确定性 guard 从不剔除独立'急'；/尽快回复/ 为死正则
+
+[84] P3 PLAUSIBLE {correctness} be-follow-up
+    packages/api/src/follow-up/follow-up.service.ts:1
+    SUM: 导入 BadRequestException 但全文未使用(违反 CLAUDE.md 0 ESLint 错误红线)
+
+[85] P3 PLAUSIBLE {fabrication-guard} be-industry-trend
+    packages/api/src/industry-trend/industry-trend.service.ts:174
+    SUM: AnalyzeIndustryDto.industry / region / timeframe 直接插入 prompt,无内容约束,存在 prompt 注入面
+
+[86] P3 CONFIRMED {correctness} be-interview-prep
+    packages/api/src/interview-prep/interview-prep.service.ts:348
+    SUM: available_weeks<2 仅保留 critical 项,若 AI 未返回任何 critical 则 preparation_plan 变空且无任何说明
+
+[87] P3 CONFIRMED {simplification} be-interview-prep
+    packages/api/src/interview-prep/interview-prep.service.ts:207
+    SUM: 单个 service 815 行承载 4 个独立子能力(playbook/star/tech/case)的 prompt+guard+schema,违背单一职责
+
+[88] P3 CONFIRMED {correctness} be-learning-roadmap
+    packages/api/src/learning-roadmap/dto/build-roadmap.dto.ts:24
+    SUM: preferred_language 接受任意字符串，非 'zh'/'en' 时静默回退英文，可能违反'中文 only'红线
+
+[89] P3 CONFIRMED {correctness} be-learning-roadmap
+    packages/api/src/learning-roadmap/learning-roadmap.service.ts:156
+    SUM: resource_list/roadmap 无 minItems 约束，AI 可返回空清单仍通过，违背'每技能至少1-2条资源'承诺
+
+[90] P3 CONFIRMED {type-safety} be-networking
+    packages/api/src/networking/networking.service.ts:66
+    SUM: MESSAGE_SCHEMA 声明 message_draft 为 {type:'string'} 不可空,但 TS 接口与运行时均用 null,schema 与实现自相矛盾
+
+[91] P3 CONFIRMED {correctness} be-offer-comparator
+    packages/api/src/offer-comparator/offer-comparator.service.ts:116
+    SUM: `!inputHours` 把 weekly_hours===0 误判为‘未知’,且 weekly_hours 无 @Min 校验,0/负工时未被拦截
+
+[92] P3 CONFIRMED {correctness} be-offer-comparator
+    packages/api/src/offer-comparator/offer-comparator.service.ts:96
+    SUM: offer id 无唯一性校验,重复 id 在 weeklyHoursMap 中后者覆盖前者,且 prompt 中出现重复 Offer ID 造成模型引用歧义
+
+[93] P3 CONFIRMED {correctness} be-salary
+    packages/api/src/salary/city-industry-fit.service.ts:55
+    SUM: stripCompanyNames 用长度<=6 + 纯中英字符的启发式剥离公司名,误伤/漏判明显
+
+[94] P3 CONFIRMED {correctness} fe-applications
+    packages/web/src/app/(main)/applications/page.tsx:345
+    SUM: insufficient 态在 follow_up_questions 为空时缺乏可行动指引，仅有一句 summary
+
+[95] P3 CONFIRMED {correctness} fe-follow-up
+    packages/web/src/app/(main)/follow-up/page.tsx:216
+    SUM: 必填校验错误文案用脆弱的字符串 replace 拼装，文案与场景耦合
+
+[96] P3 CONFIRMED {correctness} fe-follow-up
+    packages/web/src/app/(main)/follow-up/page.tsx:469
+    SUM: insufficient 分支当 cannot_determine 为空数组时，页面只剩一句『信息不足，无法生成消息』无任何指引
+
+[97] P3 CONFIRMED {consistency} fe-follow-up
+    packages/web/src/app/(main)/follow-up/page.tsx:223
+    SUM: 前端从不传 application_id，DTO/prompt 支持的投递关联能力完全闲置
+
+[98] P3 PLAUSIBLE {correctness} fe-industry-trend
+    packages/web/src/app/(main)/industry-trend/page.tsx:140
+    SUM: ConfidenceBadge/招聘前景在 confidence 或 hiring_outlook 取到未知值时拼出 'undefined22' 非法色值,徽章退化为无背景无色
+
+[99] P3 CONFIRMED {correctness} fe-interview-prep
+    packages/web/src/app/(main)/interview-prep/page.tsx:634
+    SUM: 可用备考周数无客户端整数/范围校验，输入小数（如 2.5）被后端 @IsInt 拒为 400
+
+[100] P3 CONFIRMED {correctness} fe-learning-roadmap
+    packages/web/src/app/(main)/learning-roadmap/page.tsx:549
+    SUM: resourcesBySkill 以 r.skill_name 作为对象 key，缺失时会聚合到字符串 'undefined' 分组下
+
+[101] P3 CONFIRMED {consistency} fe-learning-roadmap
+    packages/web/src/app/(main)/learning-roadmap/page.tsx:546
+    SUM: result 含 recommendations / risks / evidence_used 但前端完全不渲染，信息丢失(产品完整性，非缺陷)
+
+[102] P3 PLAUSIBLE {correctness} fe-coverletter-referral
+    packages/web/src/app/(main)/cover-letter/_referral/index.tsx:166
+    SUM: ConfidenceBadge 颜色对未知 confidence 无兜底，可能生成非法 CSS 颜色
+
+[103] P3 CONFIRMED {consistency} fe-coverletter-referral
+    packages/web/src/app/(main)/cover-letter/page.tsx:87
+    SUM: 求职信永远不带简历，「针对 JD 量身定制」承诺仅实现一半（无简历接线入口）
+
+[104] P3 CONFIRMED {correctness} fe-offer-comparator
+    packages/web/src/app/(main)/offer-comparator/page.tsx:547
+    SUM: '信息不足时不展示评分'提示为不可达死代码
+
+[105] P3 PLAUSIBLE {consistency} fe-offer-comparator
+    packages/web/src/app/(main)/offer-comparator/page.tsx:94
+    SUM: 试用期折扣百分比无范围约束,>100 或负值会被原样换算后送 AI
+
+[106] P3 CONFIRMED {dead-button} fe-salary
+    packages/web/src/app/(main)/salary/page.tsx:854
+    SUM: SalaryAnalysisResult.next_actions 在类型/接口中存在但前端从未渲染
+
+[107] P3 CONFIRMED {type-safety} fe-salary
+    packages/web/src/app/(main)/salary/page.tsx:10
+    SUM: SalaryStats.avg_total_comp 声明但全页未使用(死字段)
+
+[108] P3 PLAUSIBLE {correctness} fe-diagnoses
+    packages/web/src/app/(main)/diagnoses/[id]/diagnosis-detail.tsx:71
+    SUM: DimensionRow 对 max=0 未做除零保护,会产生 NaN 宽度并把 NaN 传入配色函数
+
+[109] P3 CONFIRMED {type-safety} fe-shared
+    packages/web/src/lib/types.ts:500
+    SUM: CoverLetter.tone 前端定义为 string,后端为字面量联合 CoverLetterTone,类型被放宽
+
+[110] P3 PLAUSIBLE {type-safety} fe-shared
+    packages/web/src/lib/api.ts:65
+    SUM: upload() 中 localStorage.getItem 未做 typeof window 守卫,与 request() 不一致
+
+[111] P3 CONFIRMED {type-safety} xcut-authz
+    packages/api/src/follow-up/follow-up.service.ts:1
+    SUM: BadRequestException 导入后从未使用(无效导入)
+
+[112] P3 PLAUSIBLE {security} xcut-authz
+    packages/api/src/applications/applications.service.ts:82
+    SUM: update 用 Object.assign 写入 resume_id/diagnosis_id,未校验该引用是否属于本人
+
+[113] P3 CONFIRMED {fabrication-guard} xcut-antifab
+    packages/api/src/follow-up/follow-up.service.ts:115
+    SUM: 感谢信缺面试细节仅把 high→medium,不阻止/不洗白已编造的'我们讨论了X',且催促词剔除留下病句残片

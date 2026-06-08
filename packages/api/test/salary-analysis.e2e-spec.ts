@@ -51,14 +51,14 @@ const HAPPY_RESULT = {
   data_freshness: 'stale',
 };
 
-// 四要素缺 source：grade 应被强制降为 C
+// 完全无来源：AI 仍吐出精确分位数 → 服务端必须置空 range 并标 insufficient（防编造红线）
 const NO_SOURCE_RESULT = {
   ...HAPPY_RESULT,
   salary_range: {
     ...HAPPY_RESULT.salary_range,
-    grade: 'A', // AI 返回 A，但服务端 guard 应强制降为 C（因为 data_sources 为空）
+    grade: 'A', // AI 谎称 A 级；但 data_sources 为空，服务端绝不能采信任何数字
   },
-  data_sources: [], // 缺 source → grade 必须被 guard 强制为 C
+  data_sources: [], // 完全无来源 → salary_range 必须被 guard 置为 null
 };
 
 const mockAiService = {
@@ -228,17 +228,16 @@ describe('Salary Analysis (e2e, mocked AI)', () => {
       await appNoSource.close();
     });
 
-    it('AI returns grade=A but data_sources empty → server guard forces grade=C', async () => {
+    it('AI 吐出精确分位数但 data_sources 为空 → 服务端置空 salary_range + confidence=insufficient（P0 防编造回归）', async () => {
       const res = await request(appNoSource.getHttpServer())
         .post('/api/salary/analyze')
         .set('Authorization', `Bearer ${tokenNoSource}`)
         .send({ role: '后端工程师', city: '北京' });
 
       expect(res.status).toBe(201);
-      // Server guard must downgrade grade to C when source is missing
-      if (res.body.salary_range !== null) {
-        expect(res.body.salary_range.grade).toBe('C');
-      }
+      // 完全无来源时,绝不返回任何编造的 p25/p50/p75
+      expect(res.body.salary_range).toBeNull();
+      expect(res.body.confidence).toBe('insufficient');
     });
 
     it('AI returns no sources → confidence must not exceed low', async () => {

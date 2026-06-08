@@ -38,6 +38,13 @@ const TIER_COLORS: Record<ApplicationCompanyTier['tier'], string> = {
   safety: 'var(--color-success, #16a34a)',
 };
 
+const CONFIDENCE_LABELS: Record<ApplicationStrategyResult['confidence'], string> = {
+  high: '高',
+  medium: '中',
+  low: '低',
+  insufficient: '信息不足',
+};
+
 function StrategyPanel() {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<StrategyState>('idle');
@@ -342,8 +349,10 @@ function StrategyPanel() {
                   {result.summary}
                 </p>
               </div>
-              {result.follow_up_questions.length > 0 && (
-                <div>
+
+              {/* Cannot-determine items — honest degradation signal */}
+              {result.cannot_determine.length > 0 && (
+                <div style={{ marginBottom: '12px' }}>
                   <p
                     style={{
                       fontSize: '12px',
@@ -354,20 +363,59 @@ function StrategyPanel() {
                       textTransform: 'uppercase',
                     }}
                   >
-                    需要补充
+                    无法判定项
                   </p>
                   <ul style={{ margin: 0, paddingLeft: '16px' }}>
-                    {result.follow_up_questions.map((q, i) => (
+                    {result.cannot_determine.map((c, i) => (
+                      <li
+                        key={i}
+                        style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
+                      >
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div>
+                <p
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--color-ink-3)',
+                    marginBottom: '6px',
+                    letterSpacing: '0.02em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  需要补充
+                </p>
+                <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                  {result.follow_up_questions.length > 0 ? (
+                    result.follow_up_questions.map((q, i) => (
                       <li
                         key={i}
                         style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
                       >
                         {q}
                       </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                    ))
+                  ) : (
+                    <>
+                      <li style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
+                        补充学历、专业、实习/项目经历等核心背景信息
+                      </li>
+                      <li style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
+                        明确目标岗位方向与期望城市
+                      </li>
+                      <li style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
+                        填写投递时间安排（如秋招/春招及截止时间）
+                      </li>
+                    </>
+                  )}
+                </ul>
+              </div>
               <button
                 onClick={handleReset}
                 style={{
@@ -388,9 +436,85 @@ function StrategyPanel() {
           )}
 
           {/* Done state — full strategy result */}
-          {state === 'done' && result && (
+          {state === 'done' && result && (() => {
+            const hasContent =
+              result.target_company_tiers.length > 0 ||
+              result.application_sequence.length > 0 ||
+              result.daily_action_plan.length > 0 ||
+              result.risk_assessment.main_risks.length > 0 ||
+              result.risk_assessment.mitigation.length > 0;
+
+            // #62 — confidence='low' 且所有结果数组为空时不可当作成功，给出补充提示
+            if (!hasContent) {
+              return (
+                <div style={{ marginTop: '16px' }}>
+                  <div
+                    style={{
+                      padding: '14px 16px',
+                      background: 'var(--color-warn-soft)',
+                      borderRadius: '10px',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: '0 0 8px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        color: 'var(--color-ink)',
+                      }}
+                    >
+                      信息不足，暂未生成可执行的策略内容
+                    </p>
+                    <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
+                      {result.summary || '请补充更完整的用户画像（学历、专业、实习/项目、目标岗位与城市）后重新生成。'}
+                    </p>
+                  </div>
+                  {result.cannot_determine.length > 0 && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <p
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: 'var(--color-ink-3)',
+                          marginBottom: '6px',
+                          letterSpacing: '0.02em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        无法判定项
+                      </p>
+                      <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                        {result.cannot_determine.map((c, i) => (
+                          <li key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <button
+                    onClick={handleReset}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: '1.5px solid var(--color-line)',
+                      background: 'transparent',
+                      color: 'var(--color-ink-2)',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    重新填写
+                  </button>
+                </div>
+              );
+            }
+
+            return (
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Summary */}
+              {/* Summary + confidence */}
               <div
                 style={{
                   padding: '12px 16px',
@@ -398,10 +522,52 @@ function StrategyPanel() {
                   borderRadius: '10px',
                 }}
               >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: 'var(--color-ink-2)',
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-line)',
+                      padding: '2px 9px',
+                      borderRadius: '99px',
+                    }}
+                  >
+                    置信度：{CONFIDENCE_LABELS[result.confidence]}
+                  </span>
+                </div>
+                {result.confidence === 'low' && (
+                  <p
+                    style={{
+                      margin: '0 0 8px',
+                      fontSize: '12px',
+                      color: 'var(--color-warn)',
+                      lineHeight: 1.5,
+                      fontWeight: 500,
+                    }}
+                  >
+                    画像信息有限，以下策略置信度较低，建议补充更多背景后再参考。
+                  </p>
+                )}
                 <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--color-ink)', lineHeight: 1.6 }}>
                   {result.summary}
                 </p>
               </div>
+
+              {/* Cannot-determine items — honest degradation signal */}
+              {result.cannot_determine.length > 0 && (
+                <section>
+                  <SectionTitle icon={<AlertCircle size={13} />} label="无法判定项" />
+                  <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                    {result.cannot_determine.map((c, i) => (
+                      <li key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               {/* Company tiers */}
               {result.target_company_tiers.length > 0 && (
@@ -525,69 +691,74 @@ function StrategyPanel() {
                 </section>
               )}
 
-              {/* Risk assessment */}
-              {result.risk_assessment.main_risks.length > 0 && (
+              {/* Risk assessment — main_risks 与 mitigation 各自按自身长度渲染 */}
+              {(result.risk_assessment.main_risks.length > 0 ||
+                result.risk_assessment.mitigation.length > 0) && (
                 <section>
                   <SectionTitle icon={<AlertCircle size={13} />} label="风险与应对" />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div
-                      style={{
-                        padding: '12px 14px',
-                        background: 'var(--color-danger-soft)',
-                        borderRadius: '9px',
-                      }}
-                    >
-                      <p
+                    {result.risk_assessment.main_risks.length > 0 && (
+                      <div
                         style={{
-                          margin: '0 0 6px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          color: 'var(--color-danger)',
-                          letterSpacing: '0.03em',
+                          padding: '12px 14px',
+                          background: 'var(--color-danger-soft)',
+                          borderRadius: '9px',
                         }}
                       >
-                        主要风险
-                      </p>
-                      <ul style={{ margin: 0, paddingLeft: '14px' }}>
-                        {result.risk_assessment.main_risks.map((r, i) => (
-                          <li
-                            key={i}
-                            style={{ fontSize: '12px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
-                          >
-                            {r}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div
-                      style={{
-                        padding: '12px 14px',
-                        background: 'var(--color-success-soft, #f0fdf4)',
-                        borderRadius: '9px',
-                      }}
-                    >
-                      <p
+                        <p
+                          style={{
+                            margin: '0 0 6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--color-danger)',
+                            letterSpacing: '0.03em',
+                          }}
+                        >
+                          主要风险
+                        </p>
+                        <ul style={{ margin: 0, paddingLeft: '14px' }}>
+                          {result.risk_assessment.main_risks.map((r, i) => (
+                            <li
+                              key={i}
+                              style={{ fontSize: '12px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
+                            >
+                              {r}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {result.risk_assessment.mitigation.length > 0 && (
+                      <div
                         style={{
-                          margin: '0 0 6px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          color: 'var(--color-success, #16a34a)',
-                          letterSpacing: '0.03em',
+                          padding: '12px 14px',
+                          background: 'var(--color-success-soft, #f0fdf4)',
+                          borderRadius: '9px',
                         }}
                       >
-                        应对措施
-                      </p>
-                      <ul style={{ margin: 0, paddingLeft: '14px' }}>
-                        {result.risk_assessment.mitigation.map((m, i) => (
-                          <li
-                            key={i}
-                            style={{ fontSize: '12px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
-                          >
-                            {m}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                        <p
+                          style={{
+                            margin: '0 0 6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--color-success, #16a34a)',
+                            letterSpacing: '0.03em',
+                          }}
+                        >
+                          应对措施
+                        </p>
+                        <ul style={{ margin: 0, paddingLeft: '14px' }}>
+                          {result.risk_assessment.mitigation.map((m, i) => (
+                            <li
+                              key={i}
+                              style={{ fontSize: '12px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}
+                            >
+                              {m}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </section>
               )}
@@ -609,7 +780,8 @@ function StrategyPanel() {
                 重新生成
               </button>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
     </div>
@@ -699,6 +871,7 @@ export default function ApplicationsPage() {
   const [stats, setStats] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [defaultStage, setDefaultStage] = useState<string>('wishlist');
 
@@ -727,20 +900,22 @@ export default function ApplicationsPage() {
 
   async function handleCreate(data: Record<string, string>) {
     try {
+      setActionError(null);
       await api.post('/applications', data);
       setFormOpen(false);
       await fetchData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '创建失败');
+      setActionError(err instanceof Error ? err.message : '创建失败，请稍后重试');
     }
   }
 
   async function handleStageChange(id: string, stage: string) {
     try {
+      setActionError(null);
       await api.patch(`/applications/${id}`, { stage });
       await fetchData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '更新失败');
+      setActionError(err instanceof Error ? err.message : '移动卡片失败，请稍后重试');
     }
   }
 
@@ -834,6 +1009,48 @@ export default function ApplicationsPage() {
         <div style={{ flexShrink: 0 }}>
           <TrackerStats stats={stats} />
         </div>
+
+        {/* Inline action error (create / move card failures) */}
+        {actionError && (
+          <div
+            style={{
+              flexShrink: 0,
+              marginTop: '16px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: '12px',
+              padding: '11px 14px',
+              background: 'var(--color-danger-soft)',
+              borderRadius: '10px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <AlertCircle
+                size={15}
+                color="var(--color-danger)"
+                style={{ marginTop: '1px', flexShrink: 0 }}
+              />
+              <span style={{ fontSize: '13px', color: 'var(--color-danger)', lineHeight: 1.5, fontWeight: 500 }}>
+                {actionError}
+              </span>
+            </div>
+            <button
+              onClick={() => setActionError(null)}
+              style={{
+                flexShrink: 0,
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--color-danger)',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              知道了
+            </button>
+          </div>
+        )}
 
         {/* Strategy panel */}
         <div style={{ flexShrink: 0, marginTop: '16px' }}>

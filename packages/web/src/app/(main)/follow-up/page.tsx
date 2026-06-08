@@ -16,6 +16,18 @@ import {
   Clock,
 } from 'lucide-react';
 
+// ─── Validation messages ──────────────────────────────────────────────────────
+
+const VALIDATION_MESSAGES = {
+  thank_you_details_required:
+    '面试详情是感谢信的核心，请描述面试时间、面试官及关键对话内容',
+} as const;
+
+// ─── Insufficient-state default guidance ─────────────────────────────────────
+
+const INSUFFICIENT_DEFAULT_GUIDANCE =
+  '请在左侧补充相关背景信息（如面试时间、面试官、公司岗位），再重新生成';
+
 // ─── Scenario config ──────────────────────────────────────────────────────────
 
 interface ScenarioConfig {
@@ -213,7 +225,7 @@ export default function FollowUpPage() {
 
   async function handleSubmit() {
     if (config.detailsRequired && !interviewDetails.trim()) {
-      setError(`${config.detailsLabel.replace('（必填，感谢信核心）', '')}是感谢信的核心，请提供面试详情`);
+      setError(VALIDATION_MESSAGES.thank_you_details_required);
       return;
     }
     setError(null);
@@ -224,6 +236,9 @@ export default function FollowUpPage() {
         scenario,
         interview_details: interviewDetails.trim() || undefined,
         contact: contact.trim() || undefined,
+        // TODO(application_id): 后端 DTO 支持 application_id 关联投递记录，但前端目前
+        // 无投递管理模块，无法提供此 ID。待投递跟踪功能上线后，从路由参数或 context
+        // 读取 application_id 并在此传入，以解锁跟进消息与投递记录的联动能力。
       });
       setResult(data);
     } catch (err) {
@@ -235,9 +250,15 @@ export default function FollowUpPage() {
 
   function handleCopy() {
     if (!result?.message_draft) return;
+    if (!navigator.clipboard) {
+      setError('当前环境不支持自动复制，请手动选中文本后复制');
+      return;
+    }
     navigator.clipboard.writeText(result.message_draft).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      setError('复制失败，请手动选中文本后复制');
     });
   }
 
@@ -466,10 +487,14 @@ export default function FollowUpPage() {
                   <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
                     信息不足，无法生成消息
                   </p>
-                  {result.cannot_determine.length > 0 && (
+                  {result.cannot_determine.length > 0 ? (
                     <div style={{ textAlign: 'left', width: '100%' }}>
                       <TagList items={result.cannot_determine} label="需补充的信息" />
                     </div>
+                  ) : (
+                    <p style={{ fontSize: '13px', color: 'var(--color-ink-3)', marginTop: '4px' }}>
+                      {INSUFFICIENT_DEFAULT_GUIDANCE}
+                    </p>
                   )}
                 </div>
               ) : (

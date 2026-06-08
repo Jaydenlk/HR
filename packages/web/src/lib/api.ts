@@ -21,9 +21,34 @@ async function errorMessage(res: Response): Promise<string> {
   return `API ${res.status}: ${text}`;
 }
 
+function authToken(): string | null {
+  return typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+}
+
+// 统一未授权处理:401 时清 token 并跳登录(登录页除外),再抛带后端 message 的错误。永远抛出。
+async function handleError(res: Response): Promise<never> {
+  if (res.status === 401 && typeof window !== 'undefined') {
+    // Don't redirect when already on the login page — let the page
+    // catch the error and display it to the user instead.
+    const onLoginPage = window.location.pathname === '/login';
+    if (!onLoginPage) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+  }
+  throw new Error(await errorMessage(res));
+}
+
+// 解析响应体:204 / 空 body(常见于 DELETE)安全返回 undefined,避免对空串调用 JSON.parse 抛 SyntaxError
+// 导致"后端已成功但前端误判失败"。
+async function parseBody<T>(res: Response): Promise<T> {
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = authToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
@@ -32,19 +57,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   });
-  if (!res.ok) {
-    if (res.status === 401 && typeof window !== 'undefined') {
-      // Don't redirect when already on the login page — let the page
-      // catch the error and display it to the user instead.
-      const onLoginPage = window.location.pathname === '/login';
-      if (!onLoginPage) {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-      }
-    }
-    throw new Error(await errorMessage(res));
-  }
-  return res.json();
+  if (!res.ok) return handleError(res);
+  return parseBody<T>(res);
 }
 
 export const api = {
@@ -58,17 +72,17 @@ export const api = {
     path: string,
     file: File,
     fields?: Record<string, string>,
-  ) => {
+  ): Promise<T> => {
     const form = new FormData();
     form.append('file', file);
     if (fields) Object.entries(fields).forEach(([k, v]) => form.append(k, v));
-    const token = localStorage.getItem('token');
+    const token = authToken();
     const res = await fetch(`${API_BASE}${path}`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
     });
-    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-    return res.json() as Promise<T>;
+    if (!res.ok) return handleError(res);
+    return parseBody<T>(res);
   },
 };

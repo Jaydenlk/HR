@@ -15,6 +15,7 @@ const STAGES = [
   { id: 'interview', label: '面试中', dotColor: 'var(--color-warn)' },
   { id: 'final',     label: '终面',   dotColor: '#a855f7' },
   { id: 'offer',     label: 'Offer',  dotColor: 'var(--color-success)' },
+  { id: 'rejected',  label: '已拒',   dotColor: 'var(--color-danger)' },
 ];
 
 export function KanbanBoard({ applications, onStageChange, onAdd }: KanbanBoardProps) {
@@ -27,7 +28,7 @@ export function KanbanBoard({ applications, onStageChange, onAdd }: KanbanBoardP
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
+        gridTemplateColumns: 'repeat(6, 1fr)',
         gap: '12px',
         overflow: 'hidden',
         flex: 1,

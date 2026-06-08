@@ -68,8 +68,8 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 function DimensionRow({ label, score, max }: { label: string; score: number; max: number }) {
-  const pct = Math.round((score / max) * 100);
-  const { color } = getScoreColor(pct);
+  const pct = max > 0 ? Math.round((score / max) * 100) : 0;
+  const { color } = max > 0 ? getScoreColor(pct) : { color: 'var(--color-ink-4)' };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
       <div style={{ width: '80px', fontSize: '12.5px', color: 'var(--color-ink-3)', flexShrink: 0 }}>
@@ -568,11 +568,17 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
 
   async function handleCreateApplication() {
     if (!diagnosis) return;
+    const company = diagnosis.jd_company?.trim() ?? '';
+    const role = diagnosis.jd_role?.trim() ?? '';
+    if (!company || !role) {
+      alert('请先补全公司名称和职位名称后再创建投递');
+      return;
+    }
     setApplyLoading(true);
     try {
       await api.post('/applications', {
-        company: diagnosis.jd_company ?? '',
-        role: diagnosis.jd_role ?? '',
+        company,
+        role,
         stage: 'wishlist',
         diagnosis_id: diagnosis.id,
       });
@@ -599,6 +605,7 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
       window.location.href = '/chat/' + conversation.id;
     } catch {
       setChatLoading(false);
+      alert('启动 Coach 对话失败，请稍后重试');
     }
   }
 
