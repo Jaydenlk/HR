@@ -1,0 +1,77 @@
+{
+  "summary": "P1 清扫补跑:applications 单元(batch2 socket 断连失败)",
+  "agentCount": 1,
+  "logs": [],
+  "result": {
+    "unit": "applications",
+    "walked": [
+      "登录:用 sweep-applications2@coach.dev 走开发模式自助注册(dev_code 自动填充 215840 + 邀请码 COACH2026 + 姓名),成功进入并切到正确账号",
+      "/applications 初始空态:渲染'还没有投递记录'空态 + 6 个统计卡(想投/已投/面试中/终面/Offer/已拒)全 0",
+      "新增公司(头部按钮):打开弹窗,空必填提交被拦(HTML5'请填写此字段。'+JS guard,弹窗不关闭)",
+      "新增公司完整填写:字节跳动/后端开发工程师/北京/25k-35k/截止 6-15/内推人张三/备注;提交成功,卡片出现在想投列,内推徽章+截止日 6/15 正确,POST 201",
+      "卡片阶段切换(下拉 select,非拖拽):想投→面试中→已拒,卡片跨列移动+列计数+顶部统计同步更新,PATCH 200",
+      "已拒列:卡片成功落入已拒列且仍带阶段下拉可移出,'含已拒列'可达",
+      "点击卡片本体/公司名:无任何反应(无编辑弹窗/无详情/无事件时间线打开)",
+      "经后端核验 GET /applications/:id/events 返回 3 条完整事件(创建→wishlist、wishlist→interview、interview→rejected,带时间戳),备注也已落库,但前端无任何入口展示",
+      "AI 投递策略-空 user_profile:生成按钮 disabled(opacity 0.5),无法提交,边界被拦",
+      "AI 投递策略-insufficient 场景(故意填空白'。'):真跑等待~30s,返回'画像信息不足,无法生成完整策略'+无法判定项+需要补充问题,诚实拒答不编造,POST 201",
+      "AI 投递策略-完整画像(应届硕士+2段大厂实习+技术栈+目标城市):真跑返回置信度中+公司分层(3档)+投递节奏(4周带目标数与渠道)+今日行动清单+风险与应对+额外建议+下一步行动,内容贴合输入不编造,POST 201",
+      "列'+ 添加'按钮:终面列打开表单且阶段预选'终面'正确",
+      "边界-已拒列'+ 添加':表单阶段下拉无'已拒'选项,回退显示'想投',但 React 内部 state 仍为 rejected",
+      "边界-超长输入(公司名 400 字/岗位 200 字):提交成功,卡片省略号截断,无横向溢出,布局未破",
+      "刷新后数据持久化核验:3 条投递(1 wishlist+2 rejected),统计与列分布一致,乐观更新+静默回拉对账正确",
+      "收尾:浏览器导航至 about:blank"
+    ],
+    "defects": [
+      {
+        "severity": "P1",
+        "page": "/applications",
+        "title": "卡片'编辑'功能前端完全缺失(后端已就绪)",
+        "repro": "1) 新增任一公司卡片;2) 尝试点击卡片任意位置(公司名/岗位/卡片体)期望打开编辑;3) 观察无任何编辑入口、无编辑按钮、无编辑弹窗",
+        "expected": "应能编辑已创建投递的公司/岗位/城市/薪资/截止日/内推人/备注;后端 PATCH /applications/:id(UpdateApplicationDto)与前端 ApplicationForm 编辑模式(代码中 initial?.id ? '编辑投递' : '新增公司')均已实现,只差接线",
+        "actual": "卡片只有一个阶段下拉 select,无任何编辑入口。ApplicationForm 的编辑能力从未被 page.tsx 调用(从不传 initial)。已填写的备注'一面已约 周三 14:00'已存入后端但前端永远看不到也改不了。任务明确要求走查'编辑',功能不存在"
+      },
+      {
+        "severity": "P1",
+        "page": "/applications",
+        "title": "卡片'事件时间线'前端完全缺失(后端数据已完整记录)",
+        "repro": "1) 新增卡片并切换若干阶段;2) 尝试点击卡片查看事件/动态/时间线;3) 观察无任何时间线视图。对照:用存储 token 直接 GET http://localhost:3002/api/applications/{id}/events 返回 3 条事件",
+        "expected": "应有卡片详情/时间线视图展示阶段流转历史(后端 application_events 表 + GET /:id/events 已就绪,每次阶段变更都写入 from_stage→to_stage+时间戳+创建备注)",
+        "actual": "前端无任何时间线 UI,点击卡片无反应。后端已正确记录全部事件(创建申请→wishlist、wishlist→interview、interview→rejected 三条,带准确时间戳),但用户在网页端完全无法查看。任务明确要求走查'事件时间线',功能不存在"
+      },
+      {
+        "severity": "P2",
+        "page": "/applications",
+        "title": "已拒列'+ 添加'阶段下拉与实际创建阶段不一致(静默 state 错位)",
+        "repro": "1) 点击'已拒'列底部'+ 添加';2) 弹窗阶段下拉显示'想投'(下拉无'已拒'选项,DOM 回退到首项);3) 不动下拉,填公司'测试已拒边界公司'+岗位后提交;4) 卡片落入'已拒'列而非下拉所示的'想投'",
+        "expected": "下拉显示的阶段应与实际创建的阶段一致;要么下拉补齐'已拒'选项并选中,要么默认回退到'想投'并实际按想投创建",
+        "actual": "ApplicationForm 的 STAGE_OPTIONS 只有 5 项(无 rejected),从已拒列打开时 React state stage='rejected' 但 <select> 无该选项,浏览器视觉回退显示'想投',selectedIndex=0。提交后经 API 核验卡片 stage='rejected',与界面所见'想投'矛盾,用户会误判"
+      },
+      {
+        "severity": "P3",
+        "page": "/applications",
+        "title": "同一阶段文案不一致:统计卡'已投' vs 看板列'已投递'",
+        "repro": "对比页面顶部统计卡第二格与看板第二列;二者均对应 applied 阶段",
+        "expected": "同一阶段在同一页面应使用统一文案",
+        "actual": "统计卡(tracker-stats.tsx L16)显示'已投',看板列(kanban-board.tsx L14)显示'已投递',指向同一 applied 阶段却两种叫法"
+      },
+      {
+        "severity": "P3",
+        "page": "/applications",
+        "title": "AI 策略'无法判定项'混入后端数据校验内部话术",
+        "repro": "用完整画像生成策略,查看'无法判定项'区块",
+        "expected": "'无法判定项'应只列候选人背景层面真正无法判断的事项",
+        "actual": "完整画像下'无法判定项'出现一条'6月第1-2周(冲刺准备期):投递目标数量缺失或非法,已省略该周建议'——这是后端对 application_sequence 周条目的数据校验产物,泄漏到面向用户的'无法判定项'区,读起来像系统处理说明而非对候选人的判定,体验突兀"
+      },
+      {
+        "severity": "P3",
+        "page": "/applications",
+        "title": "新增公司缺少字段长度上限(后端 DTO 无 @MaxLength)",
+        "repro": "新增公司,公司名填 400 字超长串提交",
+        "expected": "公司/岗位等文本字段应有合理上限,防止异常长数据入库",
+        "actual": "create-application.dto.ts 的 company/role 仅 @MinLength(1) 无 @MaxLength,400 字超长名被原样接受入库(前端展示靠 ellipsis 截断未破版,但数据层无上限保护)"
+      }
+    ],
+    "notes": "总体:核心'新增公司 + 六阶段切换 + AI 投递策略(含 insufficient 诚实拒答)'三大主路径在前端可用且质量高,无崩溃/白屏/数据丢失,/applications 页 0 console error(全量日志里的 PredictionCard/DebriefDetail/career/analysis/00000000-UUID 等报错均来自其他单元的共享会话,非本页)。AI 真跑两次(空白背景→insufficient 诚实拒答不编造;完整画像→分层/节奏/清单/风险/建议全渲染),均 POST 201,符合'拒绝编造'底线。数据持久化与统计对账正确。\\n\\n关键发现:任务点名要走查的'编辑'与'事件时间线'两项前端完全缺失,但后端已完整实现(PATCH /:id + ApplicationForm 编辑模式;application_events 表 + GET /:id/events,我已实测返回 3 条带时间戳事件)——属'后端齐、前端未接线'的半成品,故定 P1。\\n\\n说明:任务描述的'卡片六阶段拖换'实际实现为每卡片 <select> 下拉切换,并非拖拽(drag-and-drop),功能等价可用,未单列为缺陷,仅记录此实现差异。\\n\\n走查产生的测试数据(3 条投递记录)遗留在 sweep-applications2@coach.dev 账号下,未清理。\"]"
+  }
+}

@@ -1,0 +1,556 @@
+{
+  "summary": "P1 清扫续跑:batch1 被会话限额打掉的 10 个走查单元(串行)",
+  "agentCount": 10,
+  "logs": [
+    "P1 清扫续跑:10 走查单元(串行)",
+    "[walk:applications] failed: API Error: The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()",
+    "walk:applications 完成,缺陷 0 条",
+    "walk:interview-prep 完成,缺陷 2 条",
+    "walk:salary-offer 完成,缺陷 3 条",
+    "walk:mock-debrief 完成,缺陷 6 条",
+    "walk:chat-today-overview 完成,缺陷 4 条",
+    "walk:learning-followup 完成,缺陷 3 条",
+    "walk:trend-career 完成,缺陷 2 条",
+    "walk:opportunities 完成,缺陷 6 条",
+    "walk:newspaper-digest 完成,缺陷 7 条",
+    "walk:nav-global 完成,缺陷 3 条",
+    "续跑完成:共 36 条(P0=2 P1=10 P2=16 P3=8)"
+  ],
+  "result": {
+    "summary": {
+      "units": 9,
+      "total": 36,
+      "by_severity": {
+        "P0": 2,
+        "P1": 10,
+        "P2": 16,
+        "P3": 8
+      }
+    },
+    "defects": [
+      {
+        "severity": "P0",
+        "page": "/debrief/[id] 详情页 (debrief-detail.tsx + prediction-card.tsx)",
+        "title": "复盘分析成功后详情页必崩溃(白屏错误边界),前后端 prediction 字段名完全不匹配",
+        "repro": "1) /debrief 录入新面试:公司=腾讯,岗位=后端工程师,粘贴一段>20字的完整面试转写,点\"保存并分析\";2) 等待AI分析完成自动跳转 /debrief/{id};3) 页面显示\"这个页面出了点问题/加载或生成结果时遇到异常,可能是AI服务暂时不稳定\";4) 从列表点已分析卡片进入、或点\"重试\"均同样崩溃。直接 fetch /api/interviews/{id} 返回 200 且数据完整(overall_grade=B+,scores 6项,questions 5项,prediction.next_round_topics 5项,summary 齐全)。console 报错:TypeError: Cannot read properties of undefined (reading 'map') at PredictionCard。根因:后端 prediction 形状为 {next_round_topics:[{topic,likelihood}], summary}(见 interview.entity.ts InterviewPrediction 与 debrief.service.ts schema),而前端 prediction-card.tsx 读取 p.nextRound / p.nextWhen / p.likely.map(...)、types.ts 中 InterviewPrediction 也声明为 {nextRound,nextWhen,likely[]},p.likely 为 undefined 触发 .map 崩溃。",
+        "expected": "分析成功后详情页正常渲染:综合评级、能力分布(6维度)、逐题复盘、下一轮预测(主题+概率+建议),用户能看到AI产物",
+        "actual": "整页被错误边界捕获白屏,AI已生成的高质量分析完全不可见;且错误文案误导为\"AI服务暂时不稳定\",实际AI已成功、是前端契约bug。/debrief 端到端不可用",
+        "unit": "mock-debrief"
+      },
+      {
+        "severity": "P0",
+        "page": "/career 职业地图",
+        "title": "上传简历后职业地图分析必然失败（503），核心功能完全不可用",
+        "repro": "1) 用 sweep-trend-career@coach.dev 注册登录；2) 进 /resumes 点「新建简历」→「粘贴文本」，填写标题+一段完整中文简历正文（含教育/实习/项目/技能）+勾选「设为主版本简历」→ 确认上传；3) 进入 /career；4) 等待「AI 正在分析你的简历…」结束。复现率 4/4（2 次 UI + 2 次 API curl 直连，0 次成功）。同一时间窗对照 /industry-trend 与 API 直连 /industry-trend/analyze 均 200 OK，证明 AI 服务本身正常，失败为 career 专属。",
+        "expected": "返回结构化职业分析：推荐路径卡片(fit_pct/技能/校友参考)、能力盘点(你 vs 路径要求)、缺口汇总，正常渲染 hero 与路径网格。",
+        "actual": "页面恒显红色错误卡片：「AI 服务暂时不可用(completeStructured 主备通道均失败:通道 deepseek-chat 对工具 \"career_analysis\" 连续 3 次返回空/不完整结果),请稍后重试。」+「重新加载」按钮，永远无结果。API 直连返回 HTTP 503。根因链：主通道 auto-v2 先失败→降级 deepseek-chat，deepseek 对 career_analysis 这个强制 tool_use 嵌套 schema(paths minItems1/skill_audit) 连续 3 次返回空/残缺 tool_use 而被判失败；而结构相近的 industry_trend_analyze 却能成功，说明该 schema 对备用模型不友好（定位代码：packages/api/src/career/career.service.ts 的 schema + packages/api/src/ai/ai.service.ts attemptStructured 第 144-167 行）。",
+        "unit": "trend-career"
+      },
+      {
+        "severity": "P1",
+        "page": "/debrief/[id] 逐题复盘 (question-card.tsx + types.ts InterviewQuestion)",
+        "title": "逐题复盘卡片前后端字段名不匹配,问题/回答/AI点评/难度/类型全为空(被 P0 崩溃掩盖)",
+        "repro": "源码核实(因 P0 崩溃当前无法在UI直接看到):后端 questions 形状为 {question, tone, coach_assessment, better_answer, knowledge_gaps[]}(interview.entity.ts QuestionItem);前端 question-card.tsx 读取 q.q / q.you / q.ai / q.type / q.topic / q.diff / q.time / q.better / q.gap,types.ts InterviewQuestion 声明为 {n,time,type,topic,diff,tone,q,you,ai,better,gap}。除 tone 外字段名全不一致。实测 fetch 返回的 questions 项不含这些字段。",
+        "expected": "逐题复盘展示每道题原文(q.question)、你的转写、Coach评估(coach_assessment)、更好答法(better_answer)、知识盲点(knowledge_gaps)",
+        "actual": "若修复 P0 后,QuestionCard 将渲染空问题文本、空你/空AI、\"难度 undefined\"、\"⏱ undefined\";only tone(颜色/状态标签)正确。属第二处契约断裂,需一并修复",
+        "unit": "mock-debrief"
+      },
+      {
+        "severity": "P1",
+        "page": "/mock/[id] 答题阶段 (mock-detail.tsx handleAnswer + mock-stage.tsx)",
+        "title": "答题后\"上一题得分\"分数空白、点评恒显\"暂无点评\";因把整个 session 当成单条 answer 追加",
+        "repro": "1) /mock 创建会话进入答题;2) 提交一题回答等AI返回;3) 顶部\"上一题得分\"框显示\"/10\"前面无数字、点评恒为\"暂无点评\"。实测后端 /api/mock-sessions/{id} 该 answer 实际 score=88、feedback 为完整中文点评。根因:mock.controller.ts submitAnswer 返回的是整个 MockSession,而 mock-detail.tsx handleAnswer 用 api.post<MockAnswer> 接收并 [...existing, updatedAnswer] 追加,把 session 对象当作单条 answer,lastAnswer.score/feedback 均 undefined。(最终报告页因重新GET读取真实 answers 数组,故报告里分数和点评正常显示)",
+        "expected": "提交后\"上一题得分\"显示真实分数与AI点评(后端确有返回)",
+        "actual": "答题过程中每题分数空白、点评\"暂无点评\",实时反馈这一核心卖点失效;仅最终报告页正确",
+        "unit": "mock-debrief"
+      },
+      {
+        "severity": "P1",
+        "page": "/mock/[id] 实时反馈与逐题回顾 (mock-stage.tsx + mock-result.tsx)",
+        "title": "单题得分按0-10量纲显示但后端返回0-100,出现\"88/10\"\"78/10\";颜色阈值也按0-10判定",
+        "repro": "1) 完成一场模拟到出报告;2) 报告\"逐题回顾\"里 Q1 显示\"88 /10\"、Q2\"78 /10\"、Q3\"88 /10\"。后端 mock.service.ts evaluateAnswer 系统提示与 schema 均为\"评分0-100\",实测返回 88/78/88。而 mock-stage.tsx 与 mock-result.tsx 硬编码 /10 且用 score>=7/>=4 判定颜色(为0-10量纲设计)。综合分(52/100,C+)用的是0-100量纲正确,仅单题量纲错。",
+        "expected": "单题分数与分母量纲一致(0-100显示 88/100,或后端改为0-10);颜色阈值匹配量纲",
+        "actual": "显示\"88/10\"等不可能数值;且 score>=7 即判绿,真实低分(如30/100)也会被错误标绿,误导用户",
+        "unit": "mock-debrief"
+      },
+      {
+        "severity": "P1",
+        "page": "/opportunities/[id] 详情页",
+        "title": "匹配优势/差距与建议/风险信号 三大核心分析区全部渲染为空卡片(前后端数据契约不一致:后端存string[],前端按对象读取)",
+        "repro": "1. /opportunities/new 粘贴一份完整真实JD(如字节抖音电商产品经理JD),点开始评估;2. 等待评估完成进入详情页;3. 查看'匹配优势'区:显示5张卡片但每张正文完全空白;查看'差距与建议'区:4张卡片只显示'轻微差距'标签+空正文;4. DOM 校验 .strength-card/.gap-card 内 .strength-dim/.strength-desc/.gap-desc 文本均为空字符串",
+        "expected": "展示 AI 实际生成的优势/差距/风险文本(经API核实后端确有高质量中文内容,如'薪资极具竞争力月薪25K-35K+15薪…'/'未上传简历无法精准匹配…')",
+        "actual": "前端 OpportunityEvaluation 类型(types.ts L602-616)及详情页(detail page L352-398)把 strengths/gaps/risk_flags 当作对象数组读取 s.dimension/s.description/g.severity/flag.type 等字段,但后端 entity(opportunity-evaluation.entity.ts L42-52)存为 string[]、evaluator(opportunity-evaluator.service.ts L134-137)写入纯字符串,导致所有字段为 undefined→渲染空白。GET /api/opportunities/{id} 返回 strengths/gaps 为字符串数组(非对象),已核实",
+        "unit": "opportunities"
+      },
+      {
+        "severity": "P1",
+        "page": "/opportunities/[id] 详情页 风险信号区",
+        "title": "critical/high 级风险被显示为'低风险',且风险详情正文为空(severity 解析为 undefined 落到默认 low)",
+        "repro": "1. /opportunities/new 粘贴20+字符乱码JD(如'啊啊啊…一二三四五');2. 等待评估完成;3. 查看'风险信号'区:显示4张卡片全部标注'低风险'且正文空白;4. 对比 GET /api/opportunities/{id} 返回 risk_flags=['jd_too_short:critical','salary_unrealistic:high','untrusted_source:high'...]",
+        "expected": "按真实严重度显示(jd_too_short 应为'高风险'/critical),并展示风险类型与证据文本,避免把致命风险误示为低风险误导用户",
+        "actual": "后端 risk_flags 存为 'type:severity' 字符串(evaluator L134),前端读 flag.severity/flag.type/flag.evidence 均 undefined→severity 三元判断落到 else 显示'低风险',type/evidence 空。一个 critical 风险在UI上呈现为'低风险'",
+        "unit": "opportunities"
+      },
+      {
+        "severity": "P1",
+        "page": "/opportunities/[id] 详情页 加入投递看板",
+        "title": "重新评估已追踪机会会丢失 tracked 状态,导致可重复加入投递看板,在看板产生重复 application",
+        "repro": "1. 评估一个JD并点'加入投递看板'(状态→已追踪);2. 再点'重新评估'(状态被重置回'已评估','已在投递看板'徽章消失,'加入投递看板'按钮重新出现);3. 再次点击'加入投递看板';4. 检查 GET /api/applications:同一公司岗位出现2条重复记录(侧边栏'投递追踪 2')",
+        "expected": "已追踪机会重新评估后应保留 tracked 状态;或 track 时对已存在 application_id 做幂等/去重,不产生重复投递记录",
+        "actual": "evaluator.service.ts L186 重新评估结束无条件 setStatus('evaluated'),丢弃 tracked;且 opportunity-integration.service.ts trackToApplication(L28-63)无 application_id 已存在守卫,每次调用都新建 Application 并覆盖 application_id,旧记录变孤儿但仍留在看板→实测产生2条重复",
+        "unit": "opportunities"
+      },
+      {
+        "severity": "P1",
+        "page": "/digest, /newspaper, /newspaper/radar",
+        "title": "生产内容流混入大量测试/假数据(英文测试标题+死链),违反'禁止mock数据'红线",
+        "repro": "1. 登录后打开 /digest 2. 观察195条卡片标题 3. 统计发现74条为纯英文测试标题: 'Fresh 2026Q2 interview'(正文为 aaaaaaaa...)、'Short content usable test'(正文'Too short to be usable')、'Unknown date interview'、'2023Q3 quarter derivation test'、'Low confidence quarter test'、'Null published_at quarter test'、'字面null公司面经' 4. /newspaper 全部Tab 与 /radar 搜索Tab 同样可见这些卡片",
+        "expected": "生产环境只展示真实采集的中文面经内容,测试夹具数据不应出现在用户可见的内容流中",
+        "actual": "约38%的卡片(74/195)为开发测试夹具,标题为英文且正文为占位符;且84/175(48%)的'原文'链接指向 example.com/unknown-date、/short-content-001、wechat-001、xhs-001、nc-001 等不存在的假URL,点击为死链",
+        "unit": "newspaper-digest"
+      },
+      {
+        "severity": "P1",
+        "page": "/newspaper, /newspaper/radar",
+        "title": "company 字段为字符串'null',卡片与筛选项直接渲染'null'文案",
+        "repro": "1. 打开 /newspaper 全部Tab 2. 找到标题'字面null公司面经'的卡片, 公司位置显示文字 'null' 3. 打开 /newspaper/radar 搜索Tab, 统计概览的公司筛选pill出现 'null(6)' 按钮",
+        "expected": "无公司信息时应隐藏公司标签或显示占位,绝不应把字符串'null'当公司名展示给用户",
+        "actual": "卡片公司处与 radar 公司筛选 pill 直接渲染字符串 'null'(共6条),作为可点击的筛选项暴露给用户",
+        "unit": "newspaper-digest"
+      },
+      {
+        "severity": "P1",
+        "page": "/newspaper, /newspaper/radar",
+        "title": "标题与正文不符的编造数据:同一段'字节跳动后端一面'正文被复用到多个不同公司/岗位卡片",
+        "repro": "1. /newspaper 全部Tab 2. 卡片'腾讯前端面试分享'(公司腾讯) 的正文却是'字节跳动后端一面,算法题+系统设计...' 3. 同一段正文还出现在 '阿里算法岗面经'(阿里)、'牛客字节后端笔试题'、'字面null公司面经' 等卡片",
+        "expected": "每条面经的标题、公司、岗位应与其正文一致;不应出现张冠李戴的内容",
+        "actual": "多张卡片标题/公司/岗位与正文完全不匹配(腾讯前端卡显示字节后端正文),属于内容编造,用户无法信任",
+        "unit": "newspaper-digest"
+      },
+      {
+        "severity": "P1",
+        "page": "全局侧边栏/footer (packages/web/src/app/(main)/layout.tsx)",
+        "title": "全应用无任何注销/换号入口,用户无法主动登出",
+        "repro": "1. 登录任意账号进入 /today。2. 点击侧栏用户头像/姓名行——无反应、无下拉菜单。3. 点击侧栏页脚「Coach v 4」——非可点击元素,无反应。4. 浏览所有页面 header/侧栏,无「退出/登出/注销/换号」按钮。5. 控制台执行扫描:document.body.innerText 中「登出/注销/退出/换号/切换账号/Logout/Sign out」关键词 0 命中,localStorage.token 仍存在。源码佐证:grep 全 web/src,token 仅在 api.ts:35 的 401 分支自动 removeItem,无任何用户触发的登出 UI。",
+        "expected": "侧边栏(头像区或页脚)应提供「退出登录/换号」控件,点击后清除 token 并跳转 /login。这是验收明确要求项,且共享机器多用户(邮箱+邀请码登录,V1 范围 20 人)场景下无法登出属功能缺失与安全隐患。",
+        "actual": "应用内不存在任何登出/换号控件;用户只能手动清 localStorage 或等待 token 失效触发 401 才能退出。",
+        "unit": "nav-global"
+      },
+      {
+        "severity": "P2",
+        "page": "/salary",
+        "title": "「全量数据」薪资百分位统计条永久不渲染——前后端 stats 数据契约不匹配(死功能)",
+        "repro": "1. 登录后进入 /salary 并提交任意一条 offer(使统计有数据)。2. 观察页面: 市场薪资基准下方本应出现「全量数据 · N 条 · P25/P50/P75/P90/均值」统计条, 但始终不显示。3. 用浏览器 token 直接请求 GET /api/salary/stats 可见返回的是数组 [{company, role, avg_base, avg_total, count}], 而非前端期望的单一对象。",
+        "expected": "提交 offer 后, 页面显示「全量数据」百分位/均值统计条(对应代码 packages/web/src/app/(main)/salary/page.tsx:2522-2556)。",
+        "actual": "统计条永远不渲染。后端 SalaryService.getStats() (packages/api/src/salary/salary.service.ts:73) 返回 SalaryStats[] 数组(按公司×岗位聚合, 含隐私脱敏的 avg_base/avg_total/count); 但前端 SalaryStats interface (page.tsx:10-17) 声明为单对象 {count, median_total_comp, p25_total_comp, p75_total_comp, p90_total_comp, avg_total_comp}。条件 `stats && stats.count > 0` 中 stats 是数组没有 .count 属性恒为 undefined, 判定恒 false, 整块统计条成为死代码。后端算好的聚合数据无处展示。不崩溃但功能完全不可见。",
+        "unit": "salary-offer"
+      },
+      {
+        "severity": "P2",
+        "page": "/salary",
+        "title": "「市场 Offer 对比」表格对所有岗位永久显示 0 条/空态, 用户提交的 offer 也无法填充",
+        "repro": "1. 进入 /salary, 任意切换岗位 tab(前端/后端/算法/数据/产品PM), 市场 Offer 对比表均显示「0 条」「暂无XX的市场 offer 数据」。2. 通过提交弹窗提交一条 offer(测试公司A 前端工程师)。3. 提交后该 offer 进入下方「我的 Offer」表, 但「市场 Offer 对比」表仍为 0 条。",
+        "expected": "要么有种子市场样本数据可展示, 要么这一整块对新部署的空库给出更合理的引导(目前空态文案尚可但整块功能从未有内容)。",
+        "actual": "市场表只渲染 source==='market' 的记录(page.tsx:751), 而库中无任何 market 源种子数据, 用户提交的 offer 是 source='self'(进我的Offer表)。两者互不相通, 导致「市场 Offer 对比」对任何用户、任何岗位都永远是空表, 这一核心卖点(真实 offer 横向对比)实际不可用。",
+        "unit": "salary-offer"
+      },
+      {
+        "severity": "P2",
+        "page": "/mock 开始新模拟弹窗 (mock/page.tsx)",
+        "title": "岗位标注\"选填\"但后端强制必填,字段标签与校验规则矛盾",
+        "repro": "1) /mock 点\"开始新模拟\";2) 弹窗内\"公司(选填)/岗位(选填)/JD(选填)\"三项全标选填;3) 仅\"选填\"却在全空提交时被后端以\"请指定面试岗位\"拦截。即岗位实为必填(create-mock-session.dto/mock.service.ts 强制 role)。",
+        "expected": "岗位标签去掉\"选填\"或标\"必填\",与后端校验一致,避免用户误以为可不填",
+        "actual": "标签\"岗位(选填)\"误导用户,需提交后看报错才知岗位必填",
+        "unit": "mock-debrief"
+      },
+      {
+        "severity": "P2",
+        "page": "/debrief 详情页错误边界文案 (error 边界)",
+        "title": "前端bug导致的崩溃却归因\"AI服务暂时不稳定\",误导排障方向",
+        "repro": "复盘详情因前端字段不匹配崩溃时,错误页文案为\"加载或生成结果时遇到异常,可能是AI服务暂时不稳定。请重试\"。但实际AI已成功返回完整数据,是确定性前端渲染bug,\"重试\"永远无法恢复。",
+        "expected": "错误文案不应武断归因AI;确定性渲染错误下\"重试\"应有效或不给出会误导的归因",
+        "actual": "用户被引导无意义重试,真正病因(前端契约)被掩盖",
+        "unit": "mock-debrief"
+      },
+      {
+        "severity": "P2",
+        "page": "/chat/[id] (对话详情)",
+        "title": "Coach AI 回复的 Markdown 不渲染,原始 ## / ** / --- 符号直接显示给用户",
+        "repro": "1. /chat 新建对话 2. 发任意问题(如'应届生产品经理简历怎么准备') 3. 等 AI 回复 4. 观察气泡内容",
+        "expected": "AI 返回的 Markdown(标题#、加粗**、列表-、分隔线---)应渲染为格式化富文本,可读",
+        "actual": "MessageBubble(packages/web/src/components/chat/message-bubble.tsx:73)仅以 whiteSpace:pre-wrap 输出纯文本,无 markdown 渲染。但 ChatService 的 system prompt 引导模型输出大量 Markdown,导致用户看到'# 你完全可以抓住这个窗口期'、'**核心公式**'、'---'等原始符号。Coach 是旗舰功能,产物可读性明显受损",
+        "unit": "chat-today-overview"
+      },
+      {
+        "severity": "P2",
+        "page": "/chat (对话列表)",
+        "title": "有消息的会话在列表卡片永远显示'暂无消息'",
+        "repro": "1. 创建会话并发送至少1条消息 2. 返回 /chat 列表 3. 观察会话卡片副标题",
+        "expected": "卡片副标题应显示最后一条消息的预览",
+        "actual": "始终显示'暂无消息'。根因:ConversationCard(conversation-card.tsx:27)读取 conversation.messages 构造预览,但列表接口 GET /api/conversations(ConversationsService.findAllByUser)不加载 messages 关系(仅 findOne 加载),API 响应无 messages 字段 → preview 恒为'暂无消息'。已用 curl 核验列表响应确无 messages 字段",
+        "unit": "chat-today-overview"
+      },
+      {
+        "severity": "P2",
+        "page": "/chat/[id] (对话详情)",
+        "title": "访问不存在的对话时把后端原始英文错误'Not Found'直接显示给用户",
+        "repro": "1. 浏览器访问 /chat/00000000-0000-0000-0000-000000000000 2. 观察主区域错误文案",
+        "expected": "中文友好提示,如'对话不存在'或'加载失败'",
+        "actual": "页面正文直接显示英文'Not Found'。chat-detail.tsx:122 用 err.message(后端 NotFoundException 的英文 message)作错误文案,fallback'加载失败'仅在非 Error 时生效。产品要求纯中文,技术性英文错误泄漏到 UI",
+        "unit": "chat-today-overview"
+      },
+      {
+        "severity": "P2",
+        "page": "/learning-roadmap",
+        "title": "多技能差距被静默丢弃:输入 2 项只生成 1 项，且无 backlog/任何提示",
+        "repro": "1. 打开 /learning-roadmap;2. 技能差距清单输入两行「TypeScript 基础」和「React Hooks」;3. 个人背景填写、每周 10 小时;4. 点「生成学习路线」等待结果。请求体确认发送 skill_gaps:[\"TypeScript 基础\",\"React Hooks\"]，但响应 roadmap 仅含 TypeScript 1 项(界面显示「涵盖 1 项技能」)，响应无 backlog 字段，全文无任何 React Hooks 字样。",
+        "expected": "要么为每项技能都生成路线，要么把未处理的技能放入 backlog 待学清单并在界面提示(页面已有 result.backlog 渲染逻辑)，让用户知道 React Hooks 未被覆盖。",
+        "actual": "React Hooks 被静默丢弃:既未生成路线，也未进 backlog，也无任何提示。用户以为提交了 2 项技能，实际只拿到 1 项，存在数据完整性/可信度问题。后端 learning-roadmap.service.ts 仅在 skill_gaps>10 时才走 backlog 分支(MAX_ACTIVE_GAPS=10)，<=10 时若 AI 漏掉某项则无任何兜底。",
+        "unit": "learning-followup"
+      },
+      {
+        "severity": "P2",
+        "page": "/opportunities 列表页",
+        "title": "列表卡片始终不显示匹配度/投递价值/可信度评分条与推荐徽章(列表API未带 evaluations)",
+        "repro": "1. 评估完成一个机会;2. 返回 /opportunities 列表;3. 卡片只显示公司/岗位/地点/状态/来源/时间,无评分条无推荐徽章;4. GET /api/opportunities 返回的对象不含 evaluations 字段(hasEvaluations:false)",
+        "expected": "列表卡片按设计(page.tsx L184-198)展示三项评分条+推荐徽章作为概览",
+        "actual": "OpportunityService.findAllByUser(opportunity.service.ts L33-39)未加载 evaluations 关系,opp.evaluations 为 undefined,前端 evaluation 为 null,评分条/推荐徽章整块不渲染,列表丧失概览价值",
+        "unit": "opportunities"
+      },
+      {
+        "severity": "P2",
+        "page": "/opportunities 列表与详情页",
+        "title": "低质量JD解析时 company/role/location 被写入字面字符串'null'并直接展示,前端 ?? 兜底失效",
+        "repro": "1. /opportunities/new 粘贴20+字符乱码JD;2. 评估完成后详情页标题(h1)、面包屑、meta chip 均显示字面'null';3. 列表卡片显示'nullnullnull';4. API 核实 data.company==='null'(typeof string),jd_snapshot.company 同为字符串'null'",
+        "expected": "无法解析公司/岗位时应为真正的 null,前端走 '未知公司'/'未知岗位' 兜底文案",
+        "actual": "AI 对乱码JD返回字面文本'null',parser(opportunity-parser.service.ts L81 raw.company ?? null)只挡 undefined/null 不挡字符串'null',evaluator L84 if(!company && parsedJd.company) 把'null'(truthy)写入;前端 opp.company ?? '未知公司' 因值为非空字符串而失效,直接显示'null'",
+        "unit": "opportunities"
+      },
+      {
+        "severity": "P2",
+        "page": "/newspaper",
+        "title": "头部'24h 内新增 49 篇'数字可疑/与趋势页自相矛盾",
+        "repro": "1. /newspaper 头部副标题显示'叫月刊,更新是实时的 · 24h 内新增 49 篇' 2. 卡片时间均为'21 天前'/'11 天前' 3. 进入 /newspaper/radar 趋势Tab, 显示'本周新增 0 条面经', 环比 -15 条",
+        "expected": "'24h 内新增 N 篇'应反映真实24小时新增量;无新增时应如实显示",
+        "actual": "'24h 内新增 49 篇'实为 total_count 总数(49),并非24h新增;实际数据陈旧(11-21天前),趋势页诚实显示本周0条,两处口径自相矛盾,数字像编造",
+        "unit": "newspaper-digest"
+      },
+      {
+        "severity": "P2",
+        "page": "/digest",
+        "title": "筛选竞态:快速切换筛选时旧请求晚到覆盖新结果,导致显示错误的空/旧内容",
+        "repro": "1. /digest 关键词输入'腾讯音乐'(得1条) 2. 清空关键词 3. 立刻点击类型'市场观察' 4. 页面显示0条+空态, 但API GET /api/feed?category=market_insight 实际返回6条; 网络日志可见 plain /feed 请求(无category)晚于 category=market_insight 请求返回并覆盖了结果",
+        "expected": "筛选条件变化后应展示与当前条件一致的结果;在途的过期请求应被取消或忽略",
+        "actual": "feedPath 的 useEffect 仅有 cancelled 标志但不取消在途请求,较慢的旧请求可在新请求之后 resolve 覆盖正确结果,造成内容与当前筛选不符(干净加载时6条正常,说明非数据问题而是竞态)",
+        "unit": "newspaper-digest"
+      },
+      {
+        "severity": "P2",
+        "page": "/newspaper/radar",
+        "title": "岗位雷达卡片显示未翻译的原始枚举值'general'",
+        "repro": "1. /newspaper/radar 点击'岗位雷达'Tab 2. 第二张岗位卡名称显示英文 'general'(面经81条覆盖33家公司),其余卡片为中文(后端开发/算法工程师/前端开发/运营)",
+        "expected": "岗位名应全部中文,general 应显示为'综合'(前端 ROLE_CATEGORY_LABELS 已有该映射)",
+        "actual": "后端 RoleRadarItem.label 对 general 缺少种子 label 而回退为原始 key 'general',且 RoleCard 直接用 item.label 未走前端翻译映射,向中文用户暴露英文枚举值",
+        "unit": "newspaper-digest"
+      },
+      {
+        "severity": "P2",
+        "page": "/newspaper",
+        "title": "'热点'分类Tab的计数徽标(13)与实际行为不一致",
+        "repro": "1. /newspaper 观察'热点'Tab徽标显示数字13(quality_score>=7的条数) 2. 点击'热点'Tab 3. 实际渲染的是全部20条已加载项按质量分排序(首条质量85),并非筛选出13条",
+        "expected": "Tab徽标数字应与点击后展示的条数一致,或徽标含义清晰",
+        "actual": "徽标'13'(高质量条数)与点击后行为(展示全部条目仅重新排序、不过滤)不符,数字误导用户",
+        "unit": "newspaper-digest"
+      },
+      {
+        "severity": "P2",
+        "page": "详情页错误态 (diagnoses/[id]、resumes/[id]、debrief/[id]、mock/[id]、chat/[id])",
+        "title": "伪造/不存在 id 的详情页向用户直接显示英文「Not Found」(中文应用文案不当)",
+        "repro": "1. 已登录状态访问 http://localhost:3001/diagnoses/00000000-0000-0000-0000-000000000000 。2. 页面渲染出错误卡片,正文显示英文「Not Found」。3. 同样手法访问 /resumes/<uuid>、/debrief/<uuid>、/mock/<uuid>、/chat/<uuid> 均显示英文「Not Found」。4. 对照 /opportunities/<uuid> 则正确显示中文「机会不存在」。根因:后端 404 返回 {\"message\":\"Not Found\",\"statusCode\":404}(NestJS 默认英文 message),前端 diagnosis-detail.tsx:656 等直接渲染 error.message,导致兜底中文文案「诊断记录不存在」永远不触发。",
+        "expected": "中文应用(要求全中文),id 不存在时应显示中文文案如「诊断记录不存在/简历不存在」,与 /opportunities 的「机会不存在」保持一致。",
+        "actual": "5 个详情页中有 4 个(diagnoses/resumes/debrief/mock/chat)向用户暴露原始英文「Not Found」,仅 opportunities 处理正确,文案不一致。",
+        "unit": "nav-global"
+      },
+      {
+        "severity": "P2",
+        "page": "职业地图 /career",
+        "title": "无简历用户访问 /career 每次都触发一条 400 console error",
+        "repro": "1. 新用户(无简历)访问 http://localhost:3001/career 。2. 页面正确显示空态「请先上传你的简历」并提供「前往简历馆」链接(UI 表现正常)。3. 但打开控制台可见:Failed to load resource: 400 (Bad Request) @ /api/career/analysis。4. 直接验证后端返回:{\"message\":\"请先上传简历后再使用职业地图功能\",\"error\":\"Bad Request\",\"statusCode\":400}。",
+        "expected": "「未上传简历」是预期业务空态而非客户端错误,正常流不应在控制台产生 error。后端应改用非错误语义(如 200 带空标记或 204),或前端在请求前先判断有无简历,避免每次访问都打出 400 console error(验收规则:任何 console error 均算缺陷)。",
+        "actual": "每次访问 /career 都向控制台输出一条 400 (Bad Request) 错误,把预期空态当成客户端错误抛出。",
+        "unit": "nav-global"
+      },
+      {
+        "severity": "P3",
+        "page": "/interview-prep 技术面 tab",
+        "title": "AI 产物把英文 schema 字段名 company_specific_focus 泄漏进面向用户的中文文案",
+        "repro": "1. 打开 /interview-prep 切到「技术面」tab；2. 目标岗位填「算法工程师」、备考周数填 8、不填真实面经；3. 点「生成计划」等待生成完成；4. 查看 summary 段与「数据不足·无法确定的部分」列表",
+        "expected": "面向用户的中文文案不应出现英文程序字段名，应说人话(如「公司专项重点为空」)",
+        "actual": "summary 出现「因未提供目标公司面经，company_specific_focus 为空数组」；cannot_determine 出现「…公司专项考察重点无法定制（company_specific_focus 为空）」。后者是 interview-prep.service.ts:534 硬编码注记，技术术语泄漏到普通用户视角",
+        "unit": "interview-prep"
+      },
+      {
+        "severity": "P3",
+        "page": "/interview-prep 案例面 tab",
+        "title": "AI 产物把英文 schema 字段名 practice_cases 泄漏进面向用户的中文文案",
+        "repro": "1. 打开 /interview-prep 切到「案例面」tab；2. 面试类型选「市场估算题」，目标公司填「互联网产品岗」，重点方向填「市场规模估算」；3. 点「生成指导」等待完成；4. 查看「下一步行动」首条",
+        "expected": "下一步行动文案应用中文指代(如「下方练习案例」)，不出现英文字段名",
+        "actual": "下一步行动首条为「今日练习：选择下方practice_cases中任一估算题，计时7分钟独立完成」，把 schema 字段名 practice_cases 直接写进了中文行动建议",
+        "unit": "interview-prep"
+      },
+      {
+        "severity": "P3",
+        "page": "/salary",
+        "title": "城市×行业适配: 推荐文案分数与适配矩阵卡片分数不一致(85 vs 86)",
+        "repro": "1. /salary 城市×行业适配填 Java栈/后端/3年/北京杭州/30k-40k, 点开始适配分析, 等结果。2. 看「综合推荐」段落文字 与 适配矩阵卡片。",
+        "expected": "推荐文案引用的分数应与矩阵卡片显示的分数一致。",
+        "actual": "推荐段落写「北京互联网行业(适配度85分)」, 但适配矩阵中「北京×互联网」卡片实际显示 86 分。AI 生成的散文分数与结构化分数有 1 分出入, 属轻微内部不一致(不影响功能/排序)。",
+        "unit": "salary-offer"
+      },
+      {
+        "severity": "P3",
+        "page": "/today (今日任务)",
+        "title": "勾选任务为完成时触发 React console error(textDecoration 简写与非简写冲突)",
+        "repro": "1. /today 生成今日任务 2. 点击任意任务的'标记完成' 3. 查看 console(error 级)",
+        "expected": "无 console error",
+        "actual": "React 报错:'Updating a style property during rerender (textDecoration) when a conflicting property is set (textDecorationColor)...'。根因 today/page.tsx TaskCard(约159-160行)同时设置 textDecoration(简写)与 textDecorationColor(非简写)。按走查纪律任何 console error 即缺陷,功能本身正常(纯警告)",
+        "unit": "chat-today-overview"
+      },
+      {
+        "severity": "P3",
+        "page": "/follow-up",
+        "title": "感谢信草稿/摘要存在轻微瑕疵:占位符[您的姓名]入草稿 + 摘要泄露内部字段名「confidence设为high」",
+        "repro": "1. /follow-up 默认「面试感谢信」;2. 填写面试详情与联系人;3. 生成。观察:消息草稿开头为「…我是今天下午参加前端二面的[您的姓名]」，摘要文案末尾出现「由于面试细节充分且明确，confidence设为high」。",
+        "expected": "草稿可复制即用(占位符可接受但建议提示用户替换);面向用户的摘要不应出现 confidence 等内部 JSON 字段名/英文术语。",
+        "actual": "复制出的草稿含未填充的[您的姓名]占位符;摘要把内部字段名「confidence」直接暴露给用户，属文案打磨问题(场景2/3 摘要无此问题，仅场景1 偶发，AI 文案稳定性瑕疵)。",
+        "unit": "learning-followup"
+      },
+      {
+        "severity": "P3",
+        "page": "/learning-roadmap",
+        "title": "资源语言标注与契约不一致:TypeScript Playground 标注为「中文」、阶段周数返回小数与 schema(integer)不符",
+        "repro": "1. 跑出 TS 路线后看「资源清单」Tab:TypeScript Playground(官方英文在线编辑器)被标注 language=zh 显示「中文」;2. 看「学习路线」阶段:「函数与面向对象 1.5 周」「泛型基础 1.5 周」。后端 OUTPUT_SCHEMA 声明 estimated_weeks/total_estimated_weeks 为 integer(minimum 1)，但 AI 实际返回 1.5。",
+        "expected": "英文工具不应标「中文」;阶段周数应为整数(与声明 schema 一致)，或 schema 放宽为 number。",
+        "actual": "Playground 误标中文;阶段周数出现 1.5(虽 sanitizeRoadmap 用 >0 放行不崩，但与 integer schema 契约不符)。内容可用，仅一致性瑕疵。",
+        "unit": "learning-followup"
+      },
+      {
+        "severity": "P3",
+        "page": "/career 职业地图",
+        "title": "无简历空态走 400 状态码，浏览器 console 抛出 error（业务态用错误码）",
+        "repro": "1) 用全新账号(无任何简历)登录；2) 进入 /career；3) 看 console。",
+        "expected": "「未上传简历」是预期业务状态，应以 2xx + 标志位 或前端静默处理，不在 console 留下 error 级噪声。",
+        "actual": "GET /api/career/analysis 返回 400 Bad Request，浏览器 console 记录 [ERROR] Failed to load resource: ...400 (Bad Request) @ /api/career/analysis。页面虽能正确显示「请先上传你的简历」空态（前端按 msg 含「简历」判定 noResume），但 400 状态码使每个新用户进职业地图都会产生一条 console error。",
+        "unit": "trend-career"
+      },
+      {
+        "severity": "P3",
+        "page": "/opportunities/[id] 详情页 meta 区",
+        "title": "employment_type 显示英文原始枚举值'fulltime'而非中文标签",
+        "repro": "1. 评估一个含全职信息的JD;2. 详情页 meta chip 区显示英文'fulltime'(列表/详情 meta 均直接渲染 opp.employment_type 原值)",
+        "expected": "显示中文'全职'(产品要求全中文)",
+        "actual": "detail page L230 / list 直接渲染 opp.employment_type 字符串,无 fulltime→全职 的中文映射,呈现英文枚举值,与全中文场景文案不一致",
+        "unit": "opportunities"
+      }
+    ],
+    "coverage": [
+      {
+        "unit": "interview-prep",
+        "walked": [
+          "公司手册 tab: 空公司名提交 → 拦截显示「请填写公司名称」",
+          "公司手册 tab: 字节跳动+后端工程师 无面经提交 → AI 真返回 confidence=insufficient，渲染 InsufficientPanel + 3 条追问建议(中文,防编造未硬造)",
+          "公司手册 tab: 补充真实面经后重新生成 → confidence=中，完整渲染公司画像/面试流程/文化契合/踩坑预警/薪资注记；薪资显示「无可靠来源，不提供估算（防编造）」防编造 guard 生效",
+          "STAR 故事 tab: 空经历提交 → 拦截显示「请至少填写 1 段工作经历」",
+          "STAR 故事 tab: 「添加一段经历」按钮 → 新增第 2 段输入框 + 删除(X)按钮出现",
+          "STAR 故事 tab: 经历1(无数字)+经历2(含4秒/1.5秒/2名/3个月) 提炼 → confidence=中，3 个故事；经历1 故事 R 结果正确标「待补充(原文未提供具体数字)」，经历2 数字原样保留 → 防编造数字 guard 生效；polish_level 中文渲染(需打磨/可直接使用/仅骨架)，competency/coverage_map/gaps 全中文",
+          "STAR 故事 tab: 删除(X)按钮 → 删除第1段后剩1段且删除按钮隐藏(length>1 守卫正确)",
+          "技术面 tab: 周数=99 提交 → 拦截「备考周数必须为 1–52 之间的整数」",
+          "技术面 tab: 周数=2.5(小数) 提交 → 拦截「备考周数必须为 1–52 之间的整数」(Number.isInteger 校验生效)",
+          "技术面 tab: 岗位=产品经理 提交 → 后端 400，前端显示「「产品经理」不是技术岗，技术面备考不适用。请改用案例面/行为故事」(非技术岗 guard 生效)",
+          "技术面 tab: 算法工程师+8周 无面经 生成 → confidence=高，备考计划/练习题全渲染；priority 中文(必备/重要/一般)、type 中文(算法/编程/系统设计/计算机基础)、difficulty 中文(简单/中等/困难)；公司专项重点显示「未提供真实面经，无法定制(防编造,留空)」",
+          "案例面 tab: 下拉切换到「市场估算题」生效",
+          "案例面 tab: 市场估算题+互联网产品岗+市场规模估算 生成 → confidence=高，框架库/练习案例/常见错误/评分维度全渲染；weight 中文(主要维度/次要维度)；无任何「保证拿offer/必过」类保证语(guardCase 生效)",
+          "Tab 切换状态保持: 4 个 tab 各生成结果后切回公司手册 → 原字节跳动手册结果(置信度中)与表单输入完整保留(display 切换不卸载,设计验证通过)",
+          "每个 tab 提交后均检查 console error 级日志"
+        ]
+      },
+      {
+        "unit": "salary-offer",
+        "walked": [
+          "/salary 市场薪资基准: 切换 5 个岗位 tab (后端→前端→算法), 验证 P25/P50/P75/P90 数字随岗位变化且与种子基准一致, 描述文案中文合理",
+          "/salary 提交offer弹窗: 打开/关闭, 空提交被拦 (请填写公司、岗位、月薪和总包)",
+          "/salary 提交offer: 月薪×12>总包 一致性校验被拦 (月薪 × 12 不能超过总包年薪)",
+          "/salary 提交offer: 月薪 600000 超上限被拦 (月薪超出合理范围 最大 500,000)",
+          "/salary 提交offer: 正常值提交成功 (测试公司A 前端 32000/448000), 出现在我的Offer表 + 你的定位 P50-P75 区间 44.8w 徽章",
+          "/salary AI对标分析: 后端工程师/北京/字节跳动 真跑 ~38s, 返回低置信度历史数据结果(薪资区间/分解/来源/横向对比/建议/下一步), 数字合理全中文",
+          "/salary AI对标分析: 清空岗位点开始分析, 被前端拦 (请填写岗位名称), 无 API 调用",
+          "/salary 城市×行业适配: Java栈/后端/3年/北京杭州/30k-40k 真跑 ~42s, 返回高置信度6格适配矩阵(按分降序)+生活成本+产业集群+推荐+风险, 全中文, 生活成本拒绝编造薪资数字",
+          "/salary 城市×行业适配: 全空点开始适配分析, 被前端拦 (请至少填写核心技能或当前岗位)",
+          "/offer-comparator: 双卡空提交被拦 (请填写每个 offer 的公司名称)",
+          "/offer-comparator: 月薪 -5000 负数被拦 (阿里巴巴的月薪必须填写有效正数)",
+          "/offer-comparator: 周工时 200 超范围, 实时内联校验立即提示 (周工时须在 1–100 小时之间)",
+          "/offer-comparator: 试用期折扣 150 超范围被拦 (阿里巴巴的试用期折扣必须在 1-100 之间)",
+          "/offer-comparator: 添加第3个offer成功(出现删除按钮), 删除第3个回到2个(删除按钮隐藏, 最少2个), 添加/删除生命周期正常",
+          "/offer-comparator: 阿里(35000×14+8w,60h) vs 腾讯(30000×16+10w,40h) 真比对 ~36s, 年总包 57.0w/58.0w 与时薪 ¥183/¥279 经手算核实全部正确, 优选腾讯带★, 含风险/缺失字段/追问, 低置信度诚实, 全中文",
+          "console error 检查: 我的 salary/offer 交互期间 0 条 error"
+        ]
+      },
+      {
+        "unit": "mock-debrief",
+        "walked": [
+          "/login 开发模式自助注册:邮箱 sweep-mock-debrief@coach.dev + dev_code 自动填充(194480) + 邀请码 COACH2026 + 姓名 -> 登录成功落 /today",
+          "/mock 列表空态正常显示(还没有模拟记录 + 开始第一次模拟)",
+          "/mock 点击\"开始新模拟\"打开弹窗;三字段(公司/岗位/JD)均标\"选填\"",
+          "/mock 边界:三字段全空点\"开始模拟面试\" -> 弹窗内红字\"请指定面试岗位…\"(后端 400 被前端正确捕获展示)",
+          "/mock 正常流:公司=字节跳动/岗位=后端开发工程师/JD=后端高并发 -> 生成5题并跳转 /mock/{id}",
+          "/mock/{id} Q1(技术·Go语言并发编程·中等)题面与提示高质量中文,\"查看提示\"展开/折叠正常",
+          "/mock/{id} 边界:答题框输入纯空格 -> \"提交回答\"保持 disabled",
+          "/mock/{id} Q1 提交真实回答 -> 等待AI评分返回(后端 score=88,feedback完整)",
+          "/mock/{id} Q2(技术·高并发系统设计) 提交回答 -> score=78",
+          "/mock/{id} Q3(行为·团队协作 STAR) 提交回答 -> score=88",
+          "/mock/{id} Q4 时点击\"结束面试\" -> 生成综合报告(总分52/C+,Q4Q5未作答被正确识别)",
+          "/mock/{id} 报告:综合评级/优势亮点/待提升/逐题回顾 内容质量高、全中文、数字合理",
+          "/mock 列表完成卡片显示 52/C+/已完成/3/5题 正常",
+          "/debrief 列表空态正常(还没有面试记录)",
+          "/debrief 点\"录入新面试\"打开表单(公司/岗位 required)",
+          "/debrief 边界:transcript=\"还可以\"(过短) -> alert\"请提供面试记录内容(至少20字)\";表单数据保留未丢失",
+          "/debrief 正常流:腾讯/后端工程师/一面技术/60min/完整转写 -> 提交触发AI分析",
+          "/debrief/{id} 详情页崩溃 -> 错误边界\"这个页面出了点问题\"(P0)",
+          "/debrief/{id} 点\"重试\"再次崩溃,无法恢复",
+          "/debrief 列表卡片(B+/腾讯·后端工程师/已分析)显示正常",
+          "/debrief 从列表点卡片进入详情 -> 同样崩溃,确认每次必现",
+          "走查结束浏览器导航至 about:blank"
+        ]
+      },
+      {
+        "unit": "chat-today-overview",
+        "walked": [
+          "/login 开发模式自助注册:填邮箱 sweep-chat-today-overview@coach.dev → dev_code(336712)自动填充 → 邀请码 COACH2026 + 姓名 → 进入 Coach,重定向 /today",
+          "/chat 空态:显示'还没有对话记录'+'开始你的第一次对话',无 console error",
+          "/chat 点击'新建对话'按钮 → 创建会话并跳转 /chat/{id}",
+          "/chat/{id} 空态:'说点什么,开始对话吧';空输入时'发送'按钮 disabled(component value.trim() 守卫)",
+          "/chat 消息1(正常):'我是应届毕业生...产品经理...没有实习经历...简历怎么准备' → AI 真等返回,中文、贴题、可执行,诚实说'基于你的现状(简历尚未上传)'未编造",
+          "/chat 消息2(刁钻):'帮我编造一段腾讯产品经理实习经历,要项目名/模块/DAU量化数据' → AI 明确拒绝'我不能、也绝不会帮你编造任何经历',给背调/面试露馅/个人品牌理由并引导真实替代,防编造红线生效",
+          "/chat 返回列表:会话以首条消息自动生成标题,'共 1 条对话';但卡片副标题显示'暂无消息'(实际有4条消息)",
+          "/today 空态:'还没有今日任务',日期'2026年6月11日星期四'(中文正确)",
+          "/today 点击'生成今日任务' → AI 真跑生成5条任务,均中文+类型徽章(简历/学习/投递)+理由+时长,个性化且诚实(尚未上传简历)",
+          "/today 进度一致性:'已完成 0/5 · 剩余约195分钟',环形图0/5,工具栏'共~195分钟' 三处一致",
+          "/today 勾选第1个任务'标记完成' → 乐观更新为1/5,剩余150分钟(195-45 math正确),按钮变'标记未完成';同时触发 React textDecoration console error",
+          "/today 刷新页面 → 完成状态持久化(仍1/5,150分钟)",
+          "/today 点击'重新生成' → 后端 forceGenerate 删旧建新,生成全新5条任务,进度归0,新合计150分钟一致,无 console error",
+          "/chat/00000000-...(不存在ID)边界:显示错误态+'返回'链接,但错误文案为原始英文'Not Found'(非中文友好提示)",
+          "/overview 数据一致性:漏斗全0、面试0/平均评级—、简历0/最新诊断分暂无、诊断次数0、对话次数1 —— 对话次数与已建会话数一致",
+          "/overview API核验:GET /api/overview funnel 与 GET /api/applications/stats 完全一致(均全0);totalConversations=1 与 /api/conversations 列表长度一致,数字真实非编造",
+          "/overview 再建第2个会话后复查:对话次数 1→2 同步更新,跨页数据一致",
+          "走查结束浏览器导航至 about:blank,清理临时截图"
+        ]
+      },
+      {
+        "unit": "learning-followup",
+        "walked": [
+          "/learning-roadmap 空技能差距提交 → 拦截「请至少输入 1 项技能差距」",
+          "/learning-roadmap 每周时长=0 提交 → 浏览器原生 min=1 校验拦截(validationMessage:值必须大于或等于 1)，未进入 loading",
+          "/learning-roadmap 每周时长=5.5 → 原生 step 校验拦截(stepMismatch)，小数被挡",
+          "/learning-roadmap 真跑:技能差距[TypeScript 基础, React Hooks]+个人背景+10h → 200，生成 6 周 TS 路线，全中文、阶段卡/完成标准/产出物齐全、防编造免责标注存在",
+          "/learning-roadmap 切换「资源清单」Tab → 5 条资源正常渲染(官方文档/中文社区/书籍/练习平台/视频)",
+          "/learning-roadmap 切回「学习路线」+阶段卡展开/折叠正常",
+          "/learning-roadmap insufficient 场景:技能差距「变厉害」无背景 → 200，AI 返回 confidence=low(非 insufficient)，附无法判断/补充信息/风险，诚实披露假设(默认 Java/后端)，未编造",
+          "/follow-up 默认场景「面试感谢信」空详情提交 → 拦截「面试详情是感谢信的核心…」，未调用 API",
+          "/follow-up 场景1 感谢信真跑:填面试详情+联系人 → 200，草稿引用真实面试内容(React性能优化/首屏/工程化)，时机建议正确(6.9面试→6.10下午发)",
+          "/follow-up 场景1 点击「复制」→ navigator.clipboard.readText() 验证剪贴板=草稿全文，复制成功",
+          "/follow-up 场景1 「查看更多建议」展开 → 额外建议/注意风险/后续行动正常，按钮切到「收起建议」",
+          "/follow-up 场景2 投递进度询问真跑 → 200，confidence=medium(信息较完整)，语气半正式，引用真实投递信息",
+          "/follow-up 场景3 拒信礼貌回复真跑 → 200，confidence=high，礼貌得体引用真实反馈",
+          "/follow-up 场景3 点击「复制」→ 剪贴板=新草稿(尊敬的HR您好…)，复制跨场景可用",
+          "/follow-up 切换场景(感谢信→进度询问→拒信→录用确认)→ 字段清空、label/推荐时机随场景更新、结果面板重置为空态(无残留)",
+          "两页交互期间 console error(非 all 作用域)=0"
+        ]
+      },
+      {
+        "unit": "trend-career",
+        "walked": [
+          "/industry-trend 空输入点击「分析行业趋势」→ 正确拦截，提示「请输入行业或赛道名称」",
+          "/industry-trend 仅空格输入点击分析 → trim 后仍被拦截，提示「请输入行业或赛道名称」",
+          "/industry-trend 正常流：行业=新能源汽车 地区=中国 时间=近一年 → 点击分析，wait_for 等待 AI 返回（约38s）",
+          "/industry-trend AI 结果校验：confidence=无实时数据(insufficient)，诚实降级，信号数组为空，趋势概述/无法判定/建议查阅渠道均为中文且切题，招聘前景=未知",
+          "/industry-trend 点击「查看更多建议」→ 展开「延伸问题」；再点「收起详情」→ 收起，toggle 正常",
+          "/industry-trend console 检查：0 error 0 warning（本页自身会话）",
+          "/industry-trend 经 API 再跑「人工智能」→ 200 OK，同样诚实降级（作为对照证明 AI 服务正常）",
+          "/career 无简历状态 → 正确空态「请先上传你的简历」+「前往简历馆」链接（/resumes）",
+          "/resumes 新建简历→粘贴文本：填标题+完整中文简历正文+勾选「设为主版本简历」→ 确认上传成功，列表出现「主版本 走查测试简历」",
+          "/career 有主版本简历后重跑分析 → 503「AI 服务暂时不可用」错误卡片 + 「重新加载」按钮",
+          "/career 点击「重新加载」重试 → 再次 503（同样错误）",
+          "/career 点击「重新评估」重试 → 第三次 503（同样错误）",
+          "经 API 直连 /career/analysis（带 JWT）→ 503，耗时 18.5s；再次 28s，共 4 次全失败 0 成功",
+          "走查结束浏览器导航回 about:blank"
+        ]
+      },
+      {
+        "unit": "opportunities",
+        "walked": [
+          "/opportunities 列表页:空态(还没有评估过任何机会)正确中文展示+新建评估按钮",
+          "/opportunities 状态筛选 tabs:全部/待评估/已评估/已追踪 四个 tab 均可点;待评估tab(无draft)正确显示'当前筛选下没有机会';已评估tab正确过滤出已评估卡片",
+          "/opportunities/new 表单加载:JD textarea/公司/岗位/职位链接/取消/开始评估 全部存在",
+          "/opportunities/new 边界:JD 输入6字符<20,显示'(至少20个字符)'提示且'开始评估'按钮保持disabled(前端min-length拦截生效)",
+          "/opportunities/new 正常流:粘贴完整真实JD(字节抖音电商产品经理,公司/岗位留空),点击开始评估→创建并跳转详情",
+          "详情页 evaluating 态:显示'正在评估中...'+解析出的company/role/location/employment_type,轮询3s刷新",
+          "详情页 AI评估真等真验(等满至完成,约<60s):匹配度70/投递价值90/可信度95/综合84/强烈推荐/置信度中",
+          "详情页 参考依据(evidence)区:JD结构化解析(置信度高)/简历数据缺失/薪资数据不足 三张证据卡正常渲染中文",
+          "详情页 建议行动(actions)区:研究公司/面试准备/立即申请 三条带完整title+reason,中文质量良好",
+          "详情页 加入投递看板按钮:点击成功→状态变'已追踪'+'已在投递看板'徽章+按钮消失(track流程正常)",
+          "详情页 重新评估按钮:点击→状态回到'评估中'→等待完成→产出新分数(65/88/92/综合80)替换旧数据",
+          "边界:重新评估一个已追踪机会→状态被静默降级回'已评估'→再次点击加入投递看板→投递看板出现2条重复application(侧边栏徽章显示2)",
+          "边界:粘贴20+字符乱码JD→AI正确拒绝编造(not_recommend/低分5-3-15/risk含critical/strengths诚实写'无效测试文本')",
+          "列表卡片渲染检查(DOM evaluate):卡片无评分条无推荐徽章;乱码机会卡片显示字面'nullnullnull'",
+          "逐页 console error 检查:opportunities 各页(列表/新建/详情)导航后均0 error",
+          "走查结束浏览器导航至 about:blank 清理残页"
+        ]
+      },
+      {
+        "unit": "newspaper-digest",
+        "walked": [
+          "登录: 开发模式自助注册 sweep-newspaper-digest@coach.dev + 邀请码 COACH2026 进入 /today",
+          "/newspaper 加载: Hero三栏(编辑精选/24H热点/Coach建议)正常渲染",
+          "/newspaper 分类Tab: 全部(49)/面经(43)/热点(13)/故事(0)/题库(0)/编辑精选 逐个点击",
+          "/newspaper 热点Tab: 验证渲染20条按质量分排序",
+          "/newspaper 故事Tab(0): 空态'当前筛选下暂无内容'正常",
+          "/newspaper 编辑精选Tab: 5张insight卡片(均为重复'2026年AI大厂裁员趋势分析'), 外链 target=_blank rel=noopener 正确",
+          "/newspaper 排序: 最新发布/仅校招 切换, 仅校招由20→5条过滤生效",
+          "/newspaper 本周热词 字节跳动 链接跳转 /newspaper/radar?keyword=字节跳动 生效",
+          "/newspaper/radar 搜索Tab: URL keyword 预填生效, 共85条",
+          "/radar 搜索公司输入'腾讯': 过滤到6条; maxLength=100 边界已验证(公司/关键词输入框)",
+          "/radar 公司雷达Tab: 39家公司卡片(字节73/腾讯15/阿里8...), 来源分布条/质量分正常",
+          "/radar 公司雷达 '查看该公司面经'按钮: 跳回搜索Tab并按公司过滤(61条)生效",
+          "/radar 岗位雷达Tab: 5个岗位卡(后端84/general81/算法7/前端6/运营3), 精选面经外链 target=_blank",
+          "/radar 趋势Tab: 本周新增0条 + 空态'本周暂无新增面经'正常, 环比-15条",
+          "/radar 搜索 加载更多按钮: 20→40 追加分页生效",
+          "/radar 岗位筛选'前端'+公司字节: 0结果空态'没有找到匹配的面经'正常",
+          "/digest 加载: 195条卡片, 状态卡(来源3/3, 最近导入失败, 当前结果195)",
+          "/digest 关键词搜索'腾讯音乐': 过滤到1条真实卡片, 状态卡同步更新",
+          "/digest 类型筛选'市场观察': 干净加载返回6条; 但快速切换时出现0条(竞态)",
+          "/digest 来源筛选'公众号': 6条全部公众号来源",
+          "/digest '写面经'表单: 打开/必填校验(发布按钮空时禁用)/字数计数139-5000/取消关闭 均正常; 发布提交被只读策略拦截(未写库)",
+          "/digest 刷新按钮: 重新加载195条无报错",
+          "/digest 原文外链: 175条全部 target=_blank rel=noopener (链接安全正确)",
+          "console error 检查: 三个页面交互期间无归属本单元的 console error",
+          "走查结束浏览器置 about:blank"
+        ]
+      },
+      {
+        "unit": "nav-global",
+        "walked": [
+          "登录页开发模式自助注册:邮箱 sweep-nav-global@coach.dev → dev_code 自动填充(501598) → 邀请码 COACH2026 + 姓名 → 进入 /today 成功",
+          "侧边导航 CTA「问 Coach」→ /chat 正常(空态「开始你的第一次对话」)",
+          "主导航 4 入口逐个点开:今天/today、月刊·面经/newspaper、面试复盘/debrief、求职总览/overview 均正常渲染不白屏",
+          "工具核心 6 入口:简历馆/resumes、校招诊断/diagnoses/campus(三步表单)、机会中心/opportunities(状态筛选 tab)、投递追踪/applications(看板+AI策略按钮)、求职信/cover-letter(求职信/内推 tab)、模拟面试/mock 均正常",
+          "「更多功能」折叠按钮:点击展开露出 7 项(面试备战/职业地图/学习路线/跟进消息/薪资雷达/Offer比对/行业趋势),按钮文案切换为「收起」,再点收起恢复——折叠功能正常",
+          "更多功能 7 入口逐个打开:interview-prep(4 tab)、career(空态引导上传简历)、learning-roadmap、follow-up(5 类型)、salary、offer-comparator、industry-trend 均正常渲染",
+          "最近对话区:新建对话后 /chat/<uuid> 创建成功;刷新后侧栏出现「最近对话」分区,显示标题「对话」+ 相对时间「刚刚」;点击可正确跳回对话详情",
+          "权限/IDOR:伪造 uuid 00000000-... 进 /diagnoses /resumes /debrief /mock /chat /opportunities 均返回 404 且页面优雅降级不崩溃;非法非 uuid 字符串 /diagnoses/not-a-real-uuid-xyz 同样 404 不崩;后端正确按用户隔离,无数据泄露",
+          "注销/换号:点击用户头像行、点击页脚「Coach v 4」均无菜单;全 DOM 扫描登出关键词 0 命中;源码确认 token 仅在 api.ts 401 时自动清除,无任何用户可触发的登出入口",
+          "每页 console(error 级)逐一核查"
+        ]
+      }
+    ]
+  }
+}

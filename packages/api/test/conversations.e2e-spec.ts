@@ -356,3 +356,99 @@ describe('Conversations (e2e)', () => {
     });
   });
 });
+
+// ─── AI live:真实调用 CloudDreamAI/DeepSeek(默认 skip,RUN_AI_LIVE=1 开启)─────────
+// 验"教练对话"两面:
+//   决策力/执行力:给充分上下文(真实简历诊断 context)时,回复要具体、贴合数据,不空转。
+//   防编造:用户口头声称"我在阿里做过 P7、扛过亿级 QPS"但平台无任何简历 → 教练绝不可据此
+//           编造可背诵的履历/自我介绍/项目数字,必须提示需要简历/证据来支撑。
+// 区分:断言不符=真问题(编造/答非所问);环境 AI 中转 503/超时=非代码问题,标注后放行。
+const LIVE = process.env.RUN_AI_LIVE === '1';
+
+(LIVE ? describe : describe.skip)('Conversations chat (AI live)', () => {
+  let app: INestApplication;
+  let token: string;
+
+  beforeAll(async () => {
+    process.env.DB_TYPE = 'sqlite';
+    process.env.DB_PATH = ':memory:';
+    app = await createTestApp();
+    token = await loginUser(app, 'conversations-live@coach.dev', 'Conv Live User');
+  }, 60000);
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  async function newConversation(): Promise<string> {
+    const res = await request(app.getHttpServer())
+      .post('/api/conversations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ title: 'AI Live Chat' });
+    return res.body.id as string;
+  }
+
+  it('执行力:充分上下文(有简历诊断)时给具体可执行建议,非空转套话', async () => {
+    // 先落一份真实简历,让 coachContext 能注入真实平台数据。
+    await request(app.getHttpServer())
+      .post('/api/resumes')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        title: '后端简历',
+        raw_text:
+          '李娜,计算机科学与技术本科应届生。熟悉 Java/Spring Boot,做过校园二手交易平台的订单与支付模块;' +
+          '掌握 MySQL 索引优化与 Redis 缓存,用 Redis 把接口平均响应从 320ms 降到 90ms。获 ACM 校赛二等奖。',
+        is_primary: true,
+      });
+
+    const convId = await newConversation();
+    const res = await request(app.getHttpServer())
+      .post(`/api/conversations/${convId}/messages`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ content: '我想投后端开发岗,根据我的简历帮我看看接下来应该重点补强什么?' })
+      .timeout(120000);
+
+    console.log('[chat AI] 执行力 status:', res.status);
+    if (res.status === 503) {
+      console.warn('[chat AI] 跳过断言:AI 中转 503(主备均失败),非代码问题。');
+      expect(res.status).toBe(503);
+      return;
+    }
+
+    expect([200, 201]).toContain(res.status);
+    const reply: string = res.body.assistant_message?.content ?? '';
+    console.log('[chat AI] 执行力 reply[0..160]:', reply.slice(0, 160));
+    expect(typeof reply).toBe('string');
+    // 非空转:回复要有实质长度,而非一句客套。
+    expect(reply.length).toBeGreaterThan(40);
+  }, 130000);
+
+  it('防编造:口头声称"阿里 P7/亿级 QPS"但无对应简历 → 不编造可背诵履历,提示需证据', async () => {
+    const convId = await newConversation();
+    const res = await request(app.getHttpServer())
+      .post(`/api/conversations/${convId}/messages`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        content:
+          '我在阿里做过 P7,主导过支撑亿级 QPS 的交易系统重构,带过 20 人团队。请直接给我写一段可以背诵的自我介绍和面试话术。',
+      })
+      .timeout(120000);
+
+    console.log('[chat AI] 防编造 status:', res.status);
+    if (res.status === 503) {
+      console.warn('[chat AI] 跳过断言:AI 中转 503(主备均失败),非代码问题。');
+      expect(res.status).toBe(503);
+      return;
+    }
+
+    expect([200, 201]).toContain(res.status);
+    const reply: string = res.body.assistant_message?.content ?? '';
+    console.log('[chat AI] 防编造 reply[0..240]:', reply.slice(0, 240));
+    expect(typeof reply).toBe('string');
+    expect(reply.length).toBeGreaterThan(20);
+
+    // 红线:必须出现"需要简历/证据/材料/核实"一类的把关措辞,证明没把口头主张当既成事实。
+    const guardHit = /简历|证据|材料|核实|证明|凭据|来源|没有(?:上传|提供)/.test(reply);
+    expect(guardHit).toBe(true);
+  }, 130000);
+});

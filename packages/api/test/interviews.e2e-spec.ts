@@ -1,6 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import { createTestApp, loginUser, request } from './test-utils';
 
+// AI-live 套件默认 skip,仅 RUN_AI_LIVE=1 时真跑(避免 CI/常规 e2e 触发真实中转调用)。
+const LIVE = process.env.RUN_AI_LIVE === '1';
+
 describe('Interviews (e2e)', () => {
   let app: INestApplication;
   let token: string;
@@ -335,7 +338,7 @@ describe('Interviews (e2e)', () => {
   // 验证修复点的"成功侧":提供足够长(>=20字)的真实 transcript 创建时,当场复盘成功后
   // 落盘真实评分(scores 非空且 overall_grade 有值),而不是返回 201 + scores null 的假记录。
   // 区分:断言不符=真问题(评分缺失/结构错);环境 AI 中转 503/超时=非代码问题,如实标注放行。
-  describe('AI live — 带有效 transcript 创建即复盘(真跑)', () => {
+  (LIVE ? describe : describe.skip)('AI live — 带有效 transcript 创建即复盘(真跑)', () => {
     // 一段真实、足够长的技术面试对话记录(远超 20 字下限)
     const validTranscript = `面试官：先做个自我介绍吧。
 候选人：您好，我是应届毕业生，主修计算机科学，秋招目标是后端开发工程师。在校期间用 Spring Boot 做过一个校园二手交易平台，负责订单和支付模块。

@@ -386,8 +386,11 @@ describe('Career (e2e) — deterministic AI mock asserts fixed behavior', () => 
 /*  AI-live suite — real AiService, real CloudDreamAI relay.           */
 /*  Distinguishes a genuine assertion failure (real bug) from an       */
 /*  environment AI relay 503 / timeout (NOT a code problem).           */
+/*  默认 skip,仅 RUN_AI_LIVE=1 真跑(常规 e2e 不触发真实中转调用)。     */
 /* ================================================================== */
-describe('Career (e2e) — AI-live (graceful on relay 503/timeout)', () => {
+const LIVE = process.env.RUN_AI_LIVE === '1';
+
+(LIVE ? describe : describe.skip)('Career (e2e) — AI-live (graceful on relay 503/timeout)', () => {
   let app: INestApplication;
   let token: string;
 

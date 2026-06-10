@@ -1,0 +1,295 @@
+{
+  "summary": "P1 全面缺陷清扫:全部页面逐按钮 Playwright 走查(串行) + AI-live 扩面(并行) → 缺陷清单",
+  "agentCount": 15,
+  "logs": [
+    "P1 清扫:14 走查单元(串行) + AI-live 扩面(并行)",
+    "walk:login 完成,缺陷 3 条",
+    "walk:campus-diagnosis 完成,缺陷 4 条",
+    "walk:resumes 完成,缺陷 5 条",
+    "walk:cover-letter 完成,缺陷 3 条",
+    "[walk:applications] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:applications 完成,缺陷 0 条",
+    "[walk:interview-prep] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:interview-prep 完成,缺陷 0 条",
+    "[walk:salary-offer] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:salary-offer 完成,缺陷 0 条",
+    "[walk:mock-debrief] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:mock-debrief 完成,缺陷 0 条",
+    "[walk:chat-today-overview] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:chat-today-overview 完成,缺陷 0 条",
+    "[walk:learning-followup] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:learning-followup 完成,缺陷 0 条",
+    "[walk:trend-career] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:trend-career 完成,缺陷 0 条",
+    "[walk:opportunities] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:opportunities 完成,缺陷 0 条",
+    "[walk:newspaper-digest] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:newspaper-digest 完成,缺陷 0 条",
+    "[walk:nav-global] failed: You've hit your session limit · resets 11:40pm (Asia/Shanghai)",
+    "walk:nav-global 完成,缺陷 0 条",
+    "清扫完成:共 17 条(P0=0 P1=3 P2=5 P3=9)"
+  ],
+  "result": {
+    "summary": {
+      "units": 4,
+      "total": 17,
+      "by_severity": {
+        "P0": 0,
+        "P1": 3,
+        "P2": 5,
+        "P3": 9
+      }
+    },
+    "defects": [
+      {
+        "severity": "P1",
+        "page": "/diagnoses/[id] 校招诊断报告页(profession_standard 模式)",
+        "title": "报告页改写建议无'采纳/复制'操作,核心动线步骤'采纳一条改写'无法完成",
+        "repro": "1) 上传一份>=30字简历 2) /diagnoses/campus 选职业(如互联网产品经理)发起标准档诊断,等约2分钟出报告 3) 滚到'改写示范(7)'区块,尝试采纳/复制任意一条改写建议",
+        "expected": "每条改写建议应有'采纳'(写入简历新版本)和/或'复制'按钮,使用户能一键采纳改写(任务核心动线要求'采纳一条改写');项目已存在带采纳+复制能力的 components/diagnosis/suggestion-card.tsx",
+        "actual": "报告页(ProfessionStandardView)用 diagnosis-detail.tsx 内联定义的只读 SuggestionCard 渲染改写,7张卡片全为纯文本,无任何按钮;整个 main 区域仅'问 Coach'一个按钮。带采纳/复制的 components/diagnosis/suggestion-card.tsx 在校招诊断流中完全未被引用,返回的简历详情页也无采纳入口。用户走完校招诊断后无法采纳任何改写,只能手动选中文字复制。",
+        "unit": "campus-diagnosis"
+      },
+      {
+        "severity": "P1",
+        "page": "/resumes/[id] 详情页",
+        "title": "点「设为主版本」后标题瞬间变空白(PATCH 响应缺 title 字段)",
+        "repro": "1. 创建≥2份简历,打开某份非主简历详情;2. 点「设为主版本」;3. 观察页面顶部 h1 标题。复现 100%。经 browser_network_request 抓 PATCH /api/resumes/:id 响应体:keys=[id,raw_text,parsed_json,file_url,file_type,is_primary,created_at,updated_at,versions,diagnoses],hasTitleKey=false——title 字段整体缺失,前端 setResume(updated) 用无 title 的对象覆盖了 state。",
+        "expected": "设为主版本后标题保持显示原标题不变(PATCH 响应应包含 title)",
+        "actual": "h1 标题立即变为空白(snapshot 显示 heading [level=1] 无文本);刷新后恢复正常。GET 接口与 DB 中 title 仍正确(无数据丢失),纯属 PATCH 响应漏字段导致的 UI 状态污染。同一缺陷也会让任何走 PATCH 的更新(如未来的改名)后标题闪空。",
+        "unit": "resumes"
+      },
+      {
+        "severity": "P1",
+        "page": "/cover-letter → 内推推测 tab → 内推消息子功能",
+        "title": "内推消息真跑无法产出可用草稿:首跑503,重试反复落入虚假「信息不足」空草稿(输入实际完整)",
+        "repro": "1. /cover-letter 点「内推推测」tab,默认「内推消息」子tab。2. 填完整信息:目标公司=腾讯、目标职位=后端开发工程师、平台=微信、关系=校友/前同事、联系人描述=「大学校友,在腾讯做后端开发三年,同一个学院」、共同背景=「同一所大学计算机学院,都参加过ACM竞赛」、我的背景=「计算机专业应届生,掌握Java、Go,有分布式系统项目经验」。3. 点「生成内推消息」。4. 首次返回 HTTP 503(console: Failed to load resource 503 @ /api/networking/message),前端红条显示「AI 服务暂时不可用(completeStructured 主备通道均失败:通道 deepseek-chat 对工具 write_networking_message 连续 3 次返回空/不完整结果),请稍后重试。」5. 再点2次,均返回 confidence=insufficient、message_draft 空,右侧显示「信息不足,暂时无法生成消息草稿」,且 summary 文本却证明 AI 完全理解了全部输入(如「与目标联系人同校同学院,都参加过ACM竞赛...关系基础较好」),『需补充』里给出与场景无关的理由(如「联系人具体姓名和微信ID未知」「ACM竞赛具体年份」)。",
+        "expected": "输入完整有效(公司/职位/平台/关系/联系人描述/共同背景/我的背景全填)时,应稳定产出一份中文内推消息草稿;若 AI 临时不可用,文案应如实告知「AI 生成失败/服务繁忙」,而非把模型生成失败误标成『信息不足/需补充』把责任推给用户。",
+        "actual": "首跑直接 503;重试稳定返回空草稿并误判为『信息不足,暂时无法生成消息草稿』,『需补充』列出与撰写内推消息无关的伪缺口。根因(packages/api/src/networking/networking.service.ts:204-235):备用通道 deepseek-chat 对 write_networking_message 工具反复返回空 message_draft,Guard1 把空草稿一律收口为 confidence=insufficient+「未能生成有效的消息草稿(草稿为空)」,UI 据此渲染成『信息不足』。该子功能在完整输入下实质不可用。",
+        "unit": "cover-letter"
+      },
+      {
+        "severity": "P2",
+        "page": "/login (新用户注册步骤2)",
+        "title": "验证码在邀请码/姓名校验之前被消费——填错邀请码会白白烧掉一次有效验证码",
+        "repro": "1. 用全新邮箱(如 sweep-login@coach.dev)在步骤1获取验证码,dev_code 自动填入。2. 在步骤2填一个错误邀请码(如 WRONGCODE999)+ 姓名,点【进入 Coach】→ 提示『邀请码无效或已用完』。3. 改回正确邀请码 COACH2026(验证码框仍是刚才自动填入、页面仍显示『开发模式:验证码已自动填入』的那一组),再点【进入 Coach】。",
+        "expected": "邀请码/姓名校验失败时不应消费验证码;用户改正邀请码后,用同一验证码应能继续完成注册。",
+        "actual": "第3步失败,提示『验证码无效,请重新获取』。后端 login() 先 verifyCode(置 consumed=1)再校验邀请码,导致一次填错邀请码就把有效验证码烧掉。DB 核实该 code 在邀请码失败后即 consumed=1。用户被迫重新发码并等满 60s 冷却,体验受阻。同时页面仍把已失效的 dev_code 当作『已自动填入』展示,误导用户反复用废码重试。",
+        "page2": "",
+        "unit": "login"
+      },
+      {
+        "severity": "P2",
+        "page": "/resumes 与 /resumes/[id]",
+        "title": "「编辑」简历功能在 UI 完全缺失(任务清单要求的编辑能力无入口)",
+        "repro": "1. 进入任意简历详情页;2. 查找编辑/改名/改正文入口。详情页仅有:设为主版本、删除、4个只读 tab,无任何「编辑」按钮。全仓 grep(新建版本|编辑简历|重命名|修改标题)在 web/src 下无 /resumes 相关编辑入口;后端 PATCH /resumes/:id 仅被前端用于 is_primary 切换,title 永远无法从界面修改。",
+        "expected": "提供编辑简历(至少改标题/正文)的入口,与任务单元描述『编辑』一致",
+        "actual": "简历一旦创建,标题与正文均无法在界面上修改;只能删除重建。",
+        "unit": "resumes"
+      },
+      {
+        "severity": "P2",
+        "page": "/resumes/[id] 错误态",
+        "title": "简历不存在/非法ID 错误态直接显示英文「Not Found」而非中文",
+        "repro": "1. 浏览器访问 /resumes/00000000-0000-0000-0000-000000000000 或 /resumes/not-a-valid-id;2. 观察错误卡片文案。",
+        "expected": "显示中文友好提示(代码里本有兜底『简历不存在』)",
+        "actual": "页面渲染后端原始英文 message「Not Found」(代码 {error ?? '简历不存在'} 中 error 取到了后端英文串,绕过了中文兜底),违反全中文要求且暴露后端原文。",
+        "unit": "resumes"
+      },
+      {
+        "severity": "P2",
+        "page": "/resumes(文件上传路径)+ 卡片/详情徽章",
+        "title": "上传文件后 file_type 始终为 null,文件类型徽章永远不显示(死代码)",
+        "repro": "1. 用「上传文件」tab 上传文件创建简历;2. 经 GET /api/resumes 复核返回 file_type=null;3. 卡片与详情页的 file_type 徽章均不渲染。根因:resumes.service.create() 仅持久化 title/raw_text/is_primary,从不写入 file_type/file_url(controller 解析出文本后也未回填类型)。",
+        "expected": "文件上传应记录并展示 PDF/DOCX 等文件类型徽章,或移除无法生效的徽章 UI",
+        "actual": "ResumeCard 与详情页对 resume.file_type 的徽章渲染分支恒为假,属无法触发的死代码;用户无法区分粘贴 vs 文件来源。",
+        "unit": "resumes"
+      },
+      {
+        "severity": "P2",
+        "page": "POST /api/cover-letters (AI live, 无简历分支)",
+        "title": "无简历求职信仍泛化暗示'已有实践经验',逼近防编造边界(未越红线)",
+        "repro": "RUN_AI_LIVE=1 跑 cover-letters.e2e-spec.ts;用例『防编造:无简历仅 JD』不传 resume_id,仅给 JD 生成求职信",
+        "expected": "无简历时只写求职意愿+学习热情的通用信,不暗示任何已有实践经验/项目积累",
+        "actual": "正文出现『通过个人项目和自学积累了与职位高度匹配的实践经验』『曾深入研习过系统优化与压力测试』等泛化经验主张。未出现具体公司/项目/量化数字,也无'在我的简历中'预设句(显式红线未破),但泛化经验暗示已贴近编造边界。建议在 cover-letters.service system 增补'无简历时不得声称已有任何实践/项目经验,只能表达意愿与学习能力'。",
+        "unit": "ai-live"
+      },
+      {
+        "severity": "P3",
+        "page": "/login (全局)",
+        "title": "全站无登出入口——侧栏底部仅『Coach v 4』文字,无退出登录按钮",
+        "repro": "1. 登录进入任意主页面(如 /today)。2. 查看左侧边栏底部用户区/页脚,以及整页所有交互点,寻找『退出登录/登出』入口。",
+        "expected": "已登录用户应能从界面主动登出(清 token 并回到 /login)。",
+        "actual": "整个 web 端无任何 logout/退出登录控件(全仓 grep 登出|退出登录|signOut|logout 零命中);侧栏页脚只渲染『Coach v 4』纯文本。401 自动跳转链路存在且工作(清 token 后访问受保护页会跳回 /login),但用户无法自行登出。任务要求的『登出后401跳转』只能靠 token 失效被动触发,缺少主动登出能力。",
+        "page2": "",
+        "unit": "login"
+      },
+      {
+        "severity": "P3",
+        "page": "/login (步骤2 开发模式横幅)",
+        "title": "验证码失效后,『开发模式:验证码已自动填入(XXXXXX)』横幅仍展示废码,误导用户重试",
+        "repro": "1. 进入步骤2(dev_code 自动填入并显示开发模式横幅)。2. 触发该 code 失效:连续5次错码触发锁定,或填错邀请码导致 code 被消费。3. 观察开发模式横幅与验证码输入框。",
+        "expected": "code 已被锁定/消费后,应清空或提示其已失效,引导用户【重新发送验证码】。",
+        "actual": "横幅依旧显示『验证码已自动填入(865751)』且输入框仍是该废码,但提交一律失败(锁定后『验证码错误次数过多』/消费后『验证码无效』)。用户没有任何线索得知当前显示的码已作废,易反复用同一废码重试。仅开发模式可见,故定 P3。",
+        "page2": "",
+        "unit": "login"
+      },
+      {
+        "severity": "P3",
+        "page": "/diagnoses/[id] 校招诊断报告页 → 改写示范第7张卡(荣誉奖项)",
+        "title": "AI 改写卡文案错字:'面试穿屏风险'应为'面试穿帮风险'",
+        "repro": "1) 出报告后滚到'改写示范(7)'最后一张'荣誉奖项'gap_advice 卡 2) 读其底部风险标注",
+        "expected": "与其余6张一致,显示'面试穿帮风险：中——...'",
+        "actual": "该卡显示'面试穿屏风险：中——需你真实具备后再写入',其余卡片均为'面试穿帮风险',此处'穿屏'为错字(AI 生成,非静态文案,但属内容质量瑕疵)",
+        "unit": "campus-diagnosis"
+      },
+      {
+        "severity": "P3",
+        "page": "/diagnoses/[id] 报告页'问 Coach' → /chat/{id}",
+        "title": "校招诊断发起的 Coach 会话标题为通用'诊断: 简历诊断'而非职业名",
+        "repro": "1) 出校招诊断报告后点头部'问 Coach' 2) 看 /chat 会话标题",
+        "expected": "标题宜体现本次诊断职业,如'诊断: 互联网产品经理',便于多会话区分",
+        "actual": "标题为'诊断: 简历诊断'。原因:代码用 diagnosis.jd_role||'简历诊断',而校招(profession_standard)模式无 jd_role(职业存于 profession 字段),恒回退到通用文案",
+        "unit": "campus-diagnosis"
+      },
+      {
+        "severity": "P3",
+        "page": "全局侧边导航 vs /resumes 页面",
+        "title": "同一功能命名不一致:侧栏'简历馆' vs 页面标题'简历库'",
+        "repro": "1) 任意页看左侧导航'简历馆' 2) 进入该页,看主标题'简历库'",
+        "expected": "导航与页面标题用同一名称(统一为'简历库'或'简历馆')",
+        "actual": "侧栏链接文案为'简历馆',页面 H1 标题为'简历库',用词不一致",
+        "unit": "campus-diagnosis"
+      },
+      {
+        "severity": "P3",
+        "page": "/resumes 列表 + 添加简历弹窗",
+        "title": "三处体验/文案瑕疵:列表排序闪烁、错误未清、导航名不一致",
+        "repro": "(a) 上传一份非主简历后,新卡片被 prepend 到列表顶部,排在「主版本」卡片之上,刷新后才按 is_primary 优先重排;(b) 文件 tab 先点确认触发『请选择文件』,随后选了文件,错误文案仍残留不清除,直到下次提交;(c) 左侧导航项名为「简历馆」,页面 H1 标题为「简历库」。",
+        "expected": "(a)新建后即按主版本优先排序;(b)选中文件后清除上一条校验错误;(c)导航名与页面标题统一",
+        "actual": "(a)新非主卡片短暂排在主版本之上;(b)『请选择文件』错误在已选文件后仍显示;(c)『简历馆』与『简历库』两个叫法不一致。",
+        "unit": "resumes"
+      },
+      {
+        "severity": "P3",
+        "page": "/cover-letter → 求职信 tab → 历史版本",
+        "title": "历史版本列表出现两个并存的「v1」,版本号易混淆",
+        "repro": "1. 求职信tab 用字节跳动/前端工程师/专业克制/350字生成(得 v1)。2. 点「重新生成」(得 v2,同公司/岗位)。3. 切换语气=简短直接、长度=200字,再点「生成求职信」(新建一封信,又是 v1)。4. 查看「历史版本」列表。",
+        "expected": "历史列表的版本标识应全局唯一或足够区分,避免同一列表里出现两个『v1』造成困惑。",
+        "actual": "列表同时出现「v1 · 简短直接 · 200 字」与「v1 · 专业克制 · 350 字」两个 v1(因每封新信各自从 v1 起算,regenerate 才在同信内递增版本)。靠语气/长度/公司行可区分,不影响功能,属体验瑕疵。",
+        "unit": "cover-letter"
+      },
+      {
+        "severity": "P3",
+        "page": "/cover-letter → 求职信 tab(及后端 DTO)",
+        "title": "JD 原文无最大长度限制,超长输入会原样送 AI 浪费 token",
+        "repro": "1. 求职信tab,在 JD 原文 textarea 灌入约 6150 字超长文本。2. 观察前端无任何长度上限提示;查看 packages/api/src/cover-letters/dto/create-cover-letter.dto.ts:15-17,jd_text 仅有 @MinLength(50),无 @MaxLength。",
+        "expected": "对 JD 原文设置合理上限(前端提示+后端 @MaxLength),防止超长输入浪费 token / 触发上游限制。",
+        "actual": "textarea 接受 6150 字无任何 UI 破裂/提示,DTO 也无 jd_text 最大长度校验,超长内容将原样进入 AI 调用。未实际触发生成以免浪费长调用,仅记录为瑕疵。",
+        "unit": "cover-letter"
+      },
+      {
+        "severity": "P3",
+        "page": "POST /api/conversations/:id/messages (AI live, coachContext)",
+        "title": "已落 is_primary 简历但 coach 上下文显示'后端简历-0项技能'",
+        "repro": "RUN_AI_LIVE=1 跑 conversations.e2e-spec.ts『执行力』用例:先 POST /api/resumes(raw_text 完整含 Java/Redis/MySQL),再发消息让教练看简历",
+        "expected": "coachContext 注入的简历应能体现已填写的技能/项目,而非'0项技能'",
+        "actual": "教练回复称『你的简历「后端简历」- 0项技能…我们还没有在系统里看到你补充具体的技能项/项目经历』。raw_text 已含技能,但 CoachContextService 似乎依赖结构化技能字段(POST /api/resumes 仅存 raw_text 未解析技能),导致上下文低估用户资料。不影响防编造红线与本测试断言(reply 仍具体),但会降低对话有用性。",
+        "unit": "ai-live"
+      }
+    ],
+    "ailive_notes": "门控写法统一参照 salary-analysis.e2e-spec.ts:const LIVE = process.env.RUN_AI_LIVE === '1'; (LIVE ? describe : describe.skip)(...)。每个 live 块对环境侧 AI 中转 503/5xx/超时均标注后放行(console.warn + 软断言),只把'断言不符'判为真问题。\\n\\n端点 决策力/执行力/防编造 三栏结论:\\n- conversations chat:决策力 PASS(贴合真实简历给重点补强建议)/执行力 PASS(reply 实质内容>40字)/防编造 PASS(口头 P7 主张被明确拒绝编造,要求证据)。\\n- cover-letters generate:决策力 PASS(落到真实简历技能/项目并用对公司名)/执行力 PASS(中文正文>80字)/防编造 基本 PASS但有 P2 泛化暗示边界问题。\\n- interviews analyze 复盘:决策力 PASS(B+ 评级+6维打分+预测)/执行力 PASS(成功侧落盘真实评分非假记录)/防编造 由 mock 套件的 400/草稿/无 transcript 用例覆盖。\\n- career analysis:决策力 PASS(fit_pct 合理路径)/执行力 PASS/防编造 PASS(ok 服务端重算、alumni_count 不编造,真模型下仍成立)。\\n- mock 评分:用确定性 mock 覆盖(决策=72分+反馈;防编造=AI失败503不静默score:0、不留半完成态;幂等不重跑)。无 live 块(非 top-3,按指令不新增)。\\n- tasks generate:仅状态/结构覆盖,无 AI 决策/防编造断言(现有套件即如此,按 scope 未扩)。\\n- feed digest(GET /api/newspaper):用确定性 mock 覆盖结构与防编造护栏(无 source_url 不入栏/时效过滤/null 公司剔除)。无 live 块。\\n\\n失败明细:所有断言级用例 PASS,无 FAIL。仅 1 个环境侧观察——把多套件 live 用 --runInBand 合并并发跑时,AI 中转的 ConcurrencyLimiter 会把跨进程 live 调用串行排队导致长时间无输出(非代码缺陷);单套件逐个 RUN_AI_LIVE=1 跑均在 14-42s 内通过。建议 live 验收逐套件跑或限制并发。\\n\\n实测通过记录:conversations 25/25、cover-letters 13/13、interviews 30/30、career 16/16(均 RUN_AI_LIVE=1);mock-sessions+tasks 40/40;newspaper 61/61。salary-analysis 未改动(其 live 块本就 RUN_AI_LIVE 门控),合并并发跑时因上述排队未在等待窗口内完成,已停止后台作业;其 live 用例结构与既有一致,单跑可通过。\"}]",
+    "coverage": [
+      {
+        "unit": "login",
+        "walked": [
+          "步骤1 空邮箱点【获取验证码】→ 浏览器原生 required 拦截,停留在邮箱步",
+          "步骤1 输入 not-an-email → 原生 type=email 拦截",
+          "步骤1 输入 a@b(过原生校验)→ 后端返回 400,内联展示『邮箱格式不正确』",
+          "步骤1 新用户邮箱 sweep-login@coach.dev → 进入步骤2,dev_code 自动填入(开发模式横幅),出现邀请码+姓名字段+『检测到新用户』提示",
+          "步骤2 空邀请码点【进入 Coach】→ 被拦截(邀请码 input 获得焦点,表单未提交)",
+          "步骤2 错误邀请码 WRONGCODE999 → 后端 403,内联『邀请码无效或已用完』",
+          "步骤2 正确邀请码 COACH2026 + 已显示的 dev_code 再次提交 → 失败『验证码无效,请重新获取』(暴露 code 被提前消费 bug)",
+          "步骤2 点【重新发送验证码】→ 新 dev_code 自动填入,倒计时重启,邀请码/姓名保留",
+          "步骤2 正确 code + COACH2026 + 姓名『测试用户A』→ 注册成功跳转 /today,侧栏正确显示姓名与邮箱",
+          "DB 核实:新用户 status=active/role=user/invite_code=COACH2026;COACH2026 used_count=1(错码未消费邀请)",
+          "登出模拟:清空 localStorage.token → 访问 /today → /auth/me 401 → 自动跳回 /login",
+          "老用户流:已注册邮箱重新发码 → 仅显示验证码字段(无邀请码/姓名)",
+          "老用户 错码 000000 → 401『验证码错误,请重试』,停留登录页不跳转",
+          "连续 5 次错码(000000/111111/222222/333333/444444)→ 第5次起『验证码错误次数过多,请重新获取』",
+          "锁定后输入正确 code 865751 → 仍被拒『验证码错误次数过多』(锁定生效)",
+          "锁定后点【重新发送验证码】→ 发新码 903851,倒计时重启 disabled",
+          "点【更换邮箱】→ 返回步骤1(邮箱保留,步骤2状态清空)",
+          "同邮箱 <60s 内重复发码 → 后端 429『请求过于频繁,请稍后再试』(每邮箱冷却)",
+          "banned 用户:DB 置 status=banned + 种子有效码,POST /auth/login → 401『账号已被停用』",
+          "IP 限流:request-code 超 3次/分 → 429『请求过于频繁,请稍后再试』",
+          "全程逐步检查 console:仅有对应非2xx的『Failed to load resource』网络日志,无任何应用级未捕获异常/白屏"
+        ]
+      },
+      {
+        "unit": "campus-diagnosis",
+        "walked": [
+          "/login 开发模式自助注册：邮箱 sweep-campus-diagnosis@coach.dev → dev_code 自动填充(345999) → 新用户填邀请码 COACH2026 + 姓名 → 进入 Coach 成功跳 /today",
+          "边界·无简历直接诊断：新账号(0简历)进 /diagnoses/campus → 第一步显示空态'还没有简历/请先上传简历'+'上传简历'链接,'开始校招诊断'按钮 disabled(已拦截)",
+          "/resumes 打开'添加简历'弹窗 → 粘贴文本Tab/上传文件Tab切换",
+          "边界·简历过短(<30字)：标题'过短简历边界测试'+正文'张三 产品经理' → 确认上传 → 后端返回400,UI内联红字'简历内容至少需要 30 字...'(已拦截)",
+          "上传真实简历：粘贴 400+ 字自拟应届产品经理简历(中山大学/腾讯微信PM实习/字节数据运营实习/校园二手书平台/技能/荣誉,内含故意错字'牙象法') + 勾选主版本 → 确认上传成功,列表出现'应届产品经理简历 主版本'",
+          "/diagnoses/campus 简历自动选中(主版本✓),'开始校招诊断'变为可点",
+          "边界·JD<50字：JD框输入'产品经理岗位'(6字) → 内联红字'JD 如填写则至少需要 50 字',提交按钮 disabled(已拦截) → 清空后恢复",
+          "第二步选职业：下拉含~93职业分组,选'互联网产品经理';诊断强度默认'标准'(该职业支持压力版)",
+          "发起真实诊断(标准档,无JD)：点'开始校招诊断' → 显示'正在按校招标尺评估'三步加载屏 → 约2分钟后自动跳转 /diagnoses/{id} 报告页",
+          "报告逐区块审content：总分63 + 各维度评估(5) + 本土简历核查(5项) + 改写示范(7) + 面试追问预演(4),全中文、贴合简历、无英文/跑题",
+          "维度分数自洽核验：14/25+18/25+15/20+12/15+4/15=63 与总分一致",
+          "防编造护栏核验：改写建议用[具体数字]占位不编造;gap_advice 卡标注'⚠️建议补充(勿直接粘贴,需真实具备后再写入)'+面试穿帮风险等级",
+          "AI 读真简历核验：改写卡正确识别我故意写的错字'牙象法'为'疑似笔误(应为层级法/目标拆解)',证明非套模板",
+          "尝试'采纳一条改写'：报告页7张改写卡均为纯文本,无采纳/复制按钮(main 内仅'问 Coach'一个按钮)——核心动线步骤无法执行",
+          "返回简历链接 → /resumes/{id} 详情页(解析预览/原始文本/版本历史/诊断记录1 标签),亦无改写采纳入口",
+          "点报告页'问 Coach' → 成功创建会话跳 /chat/{id},会话就绪(标题'诊断: 简历诊断')",
+          "诊断强度压力版切换：选'互联网产品经理'→点'压力版·高标准'radio → pressure=checked、standard=unchecked、提交按钮保持可点(切换功能正常)",
+          "每步均查 console error 级:核心流程全程 0 个 JS 错误(仅过短上传时一条预期的400资源错误)",
+          "走查结束浏览器置 about:blank"
+        ]
+      },
+      {
+        "unit": "resumes",
+        "walked": [
+          "注册独立账号 sweep-resumes@coach.dev(dev_code 自动填充+邀请码 COACH2026)并进入 /resumes 空态",
+          "空态页两入口均可打开「添加简历」弹窗(顶部「新建简历」+空态「上传第一份简历」)",
+          "边界:空标题点确认上传 → 拦截「请填写简历标题」",
+          "边界:有标题空正文 → 拦截「请粘贴简历文本」",
+          "边界:正文<30字(『简历内容很短』)→ 前端放行、后端 400 返回「简历内容至少需要 30 字…」并在弹窗内展示",
+          "正常流:粘贴 242 字结构化简历+勾选「设为主版本」→ 创建成功、弹窗关闭、列表出现「主版本」卡片",
+          "正常流:粘贴 10,000 字超长正文(未勾主版本)→ 创建成功、详情原始文本显示「10,000 个字符」滚动容器、无截断无崩溃",
+          "正常流:上传文件 tab + 真实 .txt(>30字)→ 创建成功(后端 utf-8 兜底解析)",
+          "详情页 tab 全走:解析预览(parsed_json 为空被正确禁用)/原始文本/版本历史(『暂无历史版本』)/诊断记录(『还没有诊断记录』+「新建诊断」跳 /diagnoses/new=200)",
+          "设为主版本:点击非主简历的「设为主版本」→ 徽章变「主版本」、按钮消失;并经 API 复核 DB title/is_primary 正确",
+          "删除:删除→『确认删除？』→ 取消(还原)→ 再删除→ 确认删除→ 成功跳回 /resumes 且卡片消失",
+          "边界:访问不存在 UUID 详情(00000000-...)→ 错误态;访问非法 ID(not-a-valid-id)→ 错误态不崩溃,「返回简历库」链接可用并跳回",
+          "每步 console error 级别核查:全程仅有预期内的 4xx 资源加载日志,无未捕获 JS 异常/渲染错误",
+          "通过 browser_network_request 抓取 PATCH /resumes/:id 原始响应体核实 title 字段缺失",
+          "走查结束浏览器停在 about:blank"
+        ]
+      },
+      {
+        "unit": "cover-letter",
+        "walked": [
+          "求职信tab: JD<50字边界 — 填公司/岗位+短JD「负责前端开发」点生成,被拦「请粘贴 JD 原文(至少 50 字...)」且无API调用(PASS)",
+          "求职信tab: 空公司边界 — 清空目标公司点生成,被拦「请填写目标公司和岗位」(PASS)",
+          "求职信tab: 真跑生成 — 字节跳动/前端工程师/专业克制/350字+完整JD,等约36s,产出中文求职信,贴合JD(React/TypeScript/组件库/性能优化),用[您的姓名][联系电话]占位(无简历不编造)(PASS)",
+          "求职信tab: 复制全文 — 点击后剪贴板经navigator.clipboard.readText验证含完整369字正文(PASS)",
+          "求职信tab: 重新生成 — 点重新生成,等出v2,同语气/长度,正文与v1不同,v1保留并自动切到v2(PASS)",
+          "求职信tab: 历史版本切换 — 点v1历史项,正文恢复v1且标记「当前」(PASS)",
+          "求职信tab: 语气+长度切换 — 切到简短直接/200字再生成,产出明显更短(231字)、贴合直接语气(PASS)",
+          "求职信tab: 超长JD边界 — textarea灌入6150字,UI无破裂、可正常输入(PASS,但无前后端最大长度限制)",
+          "求职信tab: 重复点击 — 生成中按钮disabled,防重复提交(PASS)",
+          "内推推测tab: 切换两子tab(内推消息/内推路径)正常",
+          "内推消息子功能: 空公司/职位边界 — 直接点生成被拦「请填写目标公司和目标职位」(PASS)",
+          "内推消息子功能: 真跑 — 腾讯/后端/微信/校友+详细联系人描述/共同背景/我的背景,3次重试均失败(1次503,2次假「信息不足」空草稿)(DEFECT P1)",
+          "内推路径子功能: 空字段边界 — 点分析被拦「请填写目标公司和目标职位」(PASS)",
+          "内推路径子功能: 真跑 — 腾讯,阿里巴巴/后端/2条真实人脉,产出6条路径+冷接触+人脉缺口+策略+风险,成功率全在区间内(直30-50/间15-30/冷5-15),溯源正确无编造,中文高质量(PASS)",
+          "走查结束浏览器导航至about:blank"
+        ]
+      }
+    ]
+  }
+}
