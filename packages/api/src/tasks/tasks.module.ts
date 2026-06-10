@@ -8,6 +8,7 @@ import { AiModule } from '../ai/ai.module';
 import { ResumesModule } from '../resumes/resumes.module';
 import { ApplicationsModule } from '../applications/applications.module';
 import { InterviewsModule } from '../interviews/interviews.module';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { InterviewsModule } from '../interviews/interviews.module';
     ResumesModule,
     ApplicationsModule,
     InterviewsModule,
+    QuotaModule,
   ],
   controllers: [TasksController],
   providers: [TasksService, TaskGeneratorService],

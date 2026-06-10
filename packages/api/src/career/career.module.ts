@@ -3,9 +3,10 @@ import { CareerController } from './career.controller';
 import { CareerService } from './career.service';
 import { AiModule } from '../ai/ai.module';
 import { ResumesModule } from '../resumes/resumes.module';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
-  imports: [AiModule, ResumesModule],
+  imports: [AiModule, ResumesModule, QuotaModule],
   controllers: [CareerController],
   providers: [CareerService],
   exports: [CareerService],

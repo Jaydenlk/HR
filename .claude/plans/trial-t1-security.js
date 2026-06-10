@@ -1,9 +1,11 @@
 export const meta = {
   name: 'trial-t1-security',
-  description: '试运行 T1 安全硬化:邮箱验证码+邀请码DB化+配额(前后端并行,协调者管共享文件)',
+  description: '试运行 T1 安全硬化:邮箱验证码+邀请码DB化+配额(三轨并行+集成专轨,主代理零代码)',
   phases: [
     { title: '实现', detail: 'auth-api / login-web / quota 三轨并行(文件不相交)' },
     { title: '复审', detail: '逐轨只读审查' },
+    { title: '集成', detail: '集成 agent 接线共享文件+联调修复+受影响测试' },
+    { title: '集成复审', detail: '只读审查集成质量' },
   ],
 };
 
@@ -38,7 +40,8 @@ POST /api/auth/login  body {email, code, invite_code?, name?}
 - AiUsageInterceptor:AI 调用成功后写一条 ai_usage(失败/503 不计数)。
 - 应用范围(9 个 AI 端点控制器):diagnoses(campus)/applications strategy/follow-up/industry-trend/interview-prep(4子端点)/learning-roadmap/networking(2)/offer-comparator/salary(analyze+city-industry-fit)/cover-letters(generate)/mock 评分类端点。Grep 确认每个含 AiService 调用的 controller 都套上。
 
-【纪律】严格类型无 any;中文 only;新实体不动既有实体字段;**禁止改**:app.module.ts / main.ts / env.validation.ts / .env.example / package.json / test/test-utils.ts(协调者统一改);改完跑你范围的受影响测试;每条 step→verify 给证据。仓库根:${ROOT}。
+【纪律】严格类型无 any;中文 only;新实体不动既有实体字段;**禁止改**:app.module.ts / main.ts / env.validation.ts / .env.example / package.json / test/test-utils.ts(由后续集成轨 agent 统一改,把你需要的接线写进 module_wiring_needed);改完跑你范围的受影响测试;每条 step→verify 给证据。仓库根:${ROOT}。
+【已装依赖(按装机版本写代码,不确定 API 就读 node_modules 内 d.ts/文档)】nodemailer ^8.0.10、helmet ^8.2.0、@nestjs/throttler ^6.5.0(v6 配置为数组形式 ThrottlerModule.forRoot([{ttl,limit}]),ttl 单位毫秒)。
 `;
 
 const SCHEMA = {
@@ -109,7 +112,50 @@ const results = await pipeline(
 );
 
 const ok = (results || []).filter(Boolean);
-log(`T1 完成:${ok.map((r) => `${r.track}=${r.review?.verdict}`).join(' / ')}`);
+log(`三轨完成:${ok.map((r) => `${r.track}=${r.review?.verdict}`).join(' / ')},进入集成`);
+
+// ── 集成专轨(串行):接管全部共享文件 + 联调 + 受影响测试修复 ──────────────────
+const wiringSummary = JSON.stringify(
+  ok.map((r) => ({
+    track: r.track,
+    wiring_needed: r.impl?.module_wiring_needed ?? [],
+    files_created: r.impl?.files_created ?? [],
+    files_modified: r.impl?.files_modified ?? [],
+    reviewer_issues: (r.review?.issues ?? []).filter((i) => ['P0', 'P1', 'high', 'medium'].includes(i.severity)),
+    notes: r.impl?.notes ?? '',
+  })),
+  null,
+  1,
+);
+
+const integration = await agent(
+  `${CONTRACT}
+你是【集成轨】agent,三个并行轨(auth-api/login-web/quota)已完成,现在由你完成共享文件接线与全链路联调。你拥有完整读写权限,且是当前唯一写代码的 agent(无并发冲突)。
+
+三轨产出与接线需求:
+${wiringSummary}
+
+任务(step→verify 全程):
+1. app.module.ts:挂载三轨新模块(Mail/Invites(若独立)/Quota 等,按 wiring_needed)。→ verify: nest 能编译。
+2. main.ts:app.use(helmet());CORS 改为 CORS_ORIGINS env 白名单(逗号分隔;未配置且非 production 时回退 origin:true 并 Logger.warn;production 未配置则启动报错);production 启动检查 SMTP_HOST 必填(缺失即 throw,防上线后验证码发不出)。→ verify: 代码评审级自检+编译。
+3. ThrottlerModule 全局接入(app.module forRoot([{ttl:60000,limit:120}]) + APP_GUARD ThrottlerGuard),auth request-code/login 端点用 @Throttle 收紧(3/min 与 10/min)。→ verify: e2e 里能观察到 429(可写一个最小限流 e2e 或在 auth e2e 补)。
+4. env.validation.ts + .env.example:新增 SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS/SMTP_FROM/ADMIN_EMAILS/DAILY_AI_QUOTA/CORS_ORIGINS(全部 @IsOptional 合理类型;.env.example 带中文注释)。→ verify: env-validation.spec 仍绿(必要则补用例)。
+5. test/test-utils.ts:loginUser 切新流程(request-code→dev_code→login;新用户带 invite_code 'COACH2026'+name;依赖 dev bootstrap seed)。→ verify: 随机抽 4 个旧 e2e 套件(resumes/applications/salary/overview)运行全绿。
+6. 全量联调:跑 npx tsc --noEmit(0 错)+ auth.e2e + quota.e2e + 上述抽测套件;任何跨轨编译/行为冲突由你修(可改三轨文件)。→ verify: 全部命令输出贴证据。
+7. 前端联调自检:启动不必,只核对 login-web 页面调用的路径/字段与后端实现一致(Read 双方代码逐字段比对);不一致以契约为准修代码。→ verify: 字段对照表。
+纪律:严格类型无 any;中文 only;不做范围外重构;所有 verify 必须真实运行命令并贴输出关键行。`,
+  { label: 'integration', phase: '集成', schema: SCHEMA, model: 'opus' },
+);
+
+const integrationReview = await agent(
+  `只读独立审查(找茬)。集成轨刚完成共享文件接线与联调,自报:
+${JSON.stringify(integration, null, 1)}
+
+用 Read/Grep/Bash(只读命令+重跑测试) 核对:①app.module/main.ts/env.validation/.env.example/test-utils 五处接线是否真实落地且正确(helmet/CORS 白名单逻辑/throttler 配置形态(v6 数组+毫秒)/production SMTP 检查);②test-utils 新 loginUser 是否所有旧套件兼容(可抽 2 个套件重跑验证);③有无遗漏 wiring_needed 项;④登录前后端字段是否逐项一致。给 verdict 与问题清单。`,
+  { label: 'review:integration', phase: '集成复审', schema: REVIEW },
+);
+
+log(`T1 全部完成:集成=${integrationReview?.verdict}`);
 return {
   tracks: ok.map((r) => ({
     track: r.track,
@@ -117,6 +163,7 @@ return {
     issues: r.review?.issues ?? [],
     wiring: r.impl?.module_wiring_needed ?? [],
     files: { created: r.impl?.files_created ?? [], modified: r.impl?.files_modified ?? [] },
-    steps: r.impl?.steps ?? [],
   })),
+  integration: { steps: integration?.steps ?? [], notes: integration?.notes ?? '' },
+  integration_review: integrationReview,
 };

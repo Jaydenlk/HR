@@ -15,17 +15,23 @@ export class UsersService {
     return this.repo.findOneBy({ email: email.trim().toLowerCase() });
   }
 
-  async findOrCreate(email: string, name: string, invite_code: string): Promise<User> {
-    const normalizedEmail = email.trim().toLowerCase();
-    const trimmedName = name.trim();
-    const existing = await this.findByEmail(normalizedEmail);
-    if (existing) {
-      if (existing.name !== trimmedName) {
-        existing.name = trimmedName;
-        return this.repo.save(existing);
-      }
-      return existing;
+  // 注册新用户(首次登录):记录注册所用邀请码;命中 ADMIN_EMAILS → role=admin。
+  createUser(email: string, name: string, inviteCode: string, isAdmin: boolean): Promise<User> {
+    const user = this.repo.create({
+      email: email.trim().toLowerCase(),
+      name: name.trim(),
+      invite_code: inviteCode,
+      role: isAdmin ? 'admin' : 'user',
+    });
+    return this.repo.save(user);
+  }
+
+  // 老用户登录:命中 ADMIN_EMAILS 则补提升为 admin(幂等)。返回最新记录。
+  async promoteIfAdmin(user: User, isAdmin: boolean): Promise<User> {
+    if (isAdmin && user.role !== 'admin') {
+      user.role = 'admin';
+      return this.repo.save(user);
     }
-    return this.repo.save(this.repo.create({ email: normalizedEmail, name: trimmedName, invite_code }));
+    return user;
   }
 }

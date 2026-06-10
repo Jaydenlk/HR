@@ -74,6 +74,43 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsNumberString()
   HTTP_KEEPALIVE_TIMEOUT_MS?: string;
+
+  // ── 邮件 SMTP(可选;production 由 main.ts 检查 SMTP_HOST 必填) ────────
+  @IsOptional()
+  @IsString()
+  SMTP_HOST?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  SMTP_PORT?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_PASS?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_FROM?: string;
+
+  // ── 试运行运营(可选) ─────────────────────────────────────────────
+  // 管理员邮箱白名单,逗号分隔;登录时邮箱命中即提升 role=admin。
+  @IsOptional()
+  @IsString()
+  ADMIN_EMAILS?: string;
+
+  // 每日 AI 调用配额(整数,默认 20);QuotaGuard 经 ConfigService 读取。
+  @IsOptional()
+  @IsNumberString()
+  DAILY_AI_QUOTA?: string;
+
+  // CORS 来源白名单,逗号分隔;未配置且非 production 时回退 origin:true。
+  @IsOptional()
+  @IsString()
+  CORS_ORIGINS?: string;
 }
 
 export function validate(config: Record<string, unknown>): Record<string, unknown> {

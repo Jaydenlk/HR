@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { QuotaGuard } from '../quota/quota.guard';
+import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { DiagnosesService } from './diagnoses.service';
 import { CreateDiagnosisDto } from './dto/create-diagnosis.dto';
@@ -23,6 +25,8 @@ export class DiagnosesController {
   }
 
   @Post()
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   create(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateDiagnosisDto,
@@ -31,6 +35,8 @@ export class DiagnosesController {
   }
 
   @Post('campus')
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   createCampus(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateCampusDiagnosisDto,

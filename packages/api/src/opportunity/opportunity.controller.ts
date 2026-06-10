@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { QuotaGuard } from '../quota/quota.guard';
+import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { OpportunityService } from './opportunity.service';
 import { OpportunityEvaluatorService } from './opportunity-evaluator.service';
@@ -45,6 +47,8 @@ export class OpportunityController {
   }
 
   @Post(':id/evaluate')
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   async triggerEvaluation(
     @CurrentUser() user: { id: string },
     @Param('id') id: string,

@@ -89,4 +89,42 @@ describe('EnvironmentVariables validate()', () => {
     expect(result.DEEPSEEK_MODEL).toBeUndefined();
     expect(result.DEEPSEEK_BASE_URL).toBeUndefined();
   });
+
+  // ── 试运行新增字段(SMTP / ADMIN_EMAILS / DAILY_AI_QUOTA / CORS_ORIGINS) ──
+  it('SMTP / ADMIN_EMAILS / CORS_ORIGINS 合法字符串 → 通过', () => {
+    const result = validate({
+      ...BASE,
+      SMTP_HOST: 'smtp.exmail.qq.com',
+      SMTP_PORT: '465',
+      SMTP_USER: 'no-reply@coach.dev',
+      SMTP_PASS: 'app-pass',
+      SMTP_FROM: 'no-reply@coach.dev',
+      ADMIN_EMAILS: 'a@coach.dev,b@coach.dev',
+      CORS_ORIGINS: 'https://coach.example.com,https://www.coach.example.com',
+    });
+    expect(result.SMTP_HOST).toBe('smtp.exmail.qq.com');
+    expect(result.ADMIN_EMAILS).toBe('a@coach.dev,b@coach.dev');
+    expect(result.CORS_ORIGINS).toBe('https://coach.example.com,https://www.coach.example.com');
+  });
+
+  it('DAILY_AI_QUOTA 数字字符串 → 通过', () => {
+    const result = validate({ ...BASE, DAILY_AI_QUOTA: '20' });
+    expect(result.DAILY_AI_QUOTA).toBe('20');
+  });
+
+  it('SMTP_PORT 非数字字符串 → 抛错', () => {
+    expect(() => validate({ ...BASE, SMTP_PORT: 'abc' })).toThrow();
+  });
+
+  it('DAILY_AI_QUOTA 非数字字符串 → 抛错', () => {
+    expect(() => validate({ ...BASE, DAILY_AI_QUOTA: 'ten' })).toThrow();
+  });
+
+  it('试运行新增字段全部缺省 → 通过', () => {
+    const result = validate({ ...BASE });
+    expect(result.SMTP_HOST).toBeUndefined();
+    expect(result.ADMIN_EMAILS).toBeUndefined();
+    expect(result.DAILY_AI_QUOTA).toBeUndefined();
+    expect(result.CORS_ORIGINS).toBeUndefined();
+  });
 });

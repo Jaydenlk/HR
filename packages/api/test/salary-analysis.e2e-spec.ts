@@ -2,7 +2,7 @@ import { INestApplication, ValidationPipe, ServiceUnavailableException } from '@
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
-import { request, loginUser } from './test-utils';
+import { request, loginUser, uniqueMemoryDb } from './test-utils';
 
 // ─── Deterministic AiService mock ────────────────────────────────────────────
 //
@@ -184,7 +184,9 @@ describe('Salary Analysis (e2e, mocked AI)', () => {
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
-    process.env.DB_PATH = ':memory:';
+    // 每个 app 用独立 DB 文件:避免兄弟 describe 的 app.close() 关掉共享内存连接,
+    // 进而让本 app 后续(经 JwtStrategy 每请求查库的)认证请求报「connection is not open」。
+    process.env.DB_PATH = uniqueMemoryDb();
     process.env.CLOUDDREAM_API_KEY = 'test-key';
     process.env.CLOUDDREAM_MODEL = 'auto-v2';
 
@@ -300,6 +302,8 @@ describe('Salary Analysis (e2e, mocked AI)', () => {
     let tokenNoSource: string;
 
     beforeAll(async () => {
+      // 独立 DB 文件:本 app 的 afterAll close 不会波及外层主 app 的连接。
+      process.env.DB_PATH = uniqueMemoryDb();
       const moduleRef2 = await Test.createTestingModule({ imports: [AppModule] })
         .overrideProvider(AiService)
         .useValue(mockAiServiceNoSource)
@@ -346,17 +350,45 @@ describe('Salary Analysis (e2e, mocked AI)', () => {
   });
 
   // ─── AI outage → 503 ────────────────────────────────────────────────────────
-
+  // 用本块专属 app(注入永远 reject 的 AiService)而非复用主 app:
+  // 同进程内先后 init 多个 AppModule 会让 TypeORM 默认连接被后建 app 接管/关闭,
+  // 主 app 的连接在跑到此处时已失效,经 JwtStrategy 每请求查库会报 connection is not open。
+  // 各块自带 app 即各自持有当前活连接,互不影响。
   describe('AI outage', () => {
+    let appOutage: INestApplication;
+    let tokenOutage: string;
+
+    beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
+      const mockOutage = {
+        complete: jest.fn().mockResolvedValue('mock'),
+        completeStructured: jest
+          .fn()
+          .mockRejectedValue(
+            new ServiceUnavailableException('AI 服务暂时不可用(测试注入),请稍后重试。'),
+          ),
+      };
+
+      const moduleRefOutage = await Test.createTestingModule({ imports: [AppModule] })
+        .overrideProvider(AiService)
+        .useValue(mockOutage)
+        .compile();
+
+      appOutage = moduleRefOutage.createNestApplication();
+      appOutage.setGlobalPrefix('api');
+      appOutage.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+      await appOutage.init();
+
+      tokenOutage = await loginUser(appOutage, 'salary-outage@coach.dev', 'Outage User');
+    }, 30000);
+
     it('AI service fails → 503', async () => {
-      failMode = true;
-      const res = await request(app.getHttpServer())
+      const res = await request(appOutage.getHttpServer())
         .post('/api/salary/analyze')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${tokenOutage}`)
         .send({ role: '后端工程师', city: '北京' });
 
       expect(res.status).toBe(503);
-      failMode = false;
     });
   });
 });
@@ -367,6 +399,8 @@ async function bootApp(result: unknown, email: string): Promise<{
   app: INestApplication;
   token: string;
 }> {
+  // 每次 boot 独立 DB 文件:这些用例各自 app.close(),互不影响,也不影响其它 describe。
+  process.env.DB_PATH = uniqueMemoryDb();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(AiService)
     .useValue(makeMock(result))
@@ -492,7 +526,7 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
-    process.env.DB_PATH = ':memory:';
+    process.env.DB_PATH = uniqueMemoryDb();
 
     const { createTestApp } = await import('./test-utils');
     app = await createTestApp();

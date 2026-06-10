@@ -5,9 +5,10 @@ import { InterviewsController } from './interviews.controller';
 import { InterviewsService } from './interviews.service';
 import { DebriefService } from './debrief.service';
 import { AiModule } from '../ai/ai.module';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Interview]), AiModule],
+  imports: [TypeOrmModule.forFeature([Interview]), AiModule, QuotaModule],
   controllers: [InterviewsController],
   providers: [InterviewsService, DebriefService],
   exports: [InterviewsService],

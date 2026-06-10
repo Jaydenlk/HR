@@ -6,10 +6,13 @@ import {
   Param,
   Body,
   UseGuards,
+  UseInterceptors,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { QuotaGuard } from '../quota/quota.guard';
+import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ConversationsService } from './conversations.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
@@ -39,6 +42,8 @@ export class ConversationsController {
   }
 
   @Post(':id/messages')
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   sendMessage(
     @Param('id') id: string,
     @CurrentUser() user: { id: string },

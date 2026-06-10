@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { QuotaGuard } from '../quota/quota.guard';
+import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { CoverLettersService } from './cover-letters.service';
 import { CreateCoverLetterDto } from './dto/create-cover-letter.dto';
@@ -10,6 +12,8 @@ export class CoverLettersController {
   constructor(private readonly coverLetters: CoverLettersService) {}
 
   @Post()
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   generate(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateCoverLetterDto,
@@ -28,6 +32,8 @@ export class CoverLettersController {
   }
 
   @Post(':id/regenerate')
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   regenerate(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.coverLetters.regenerate(id, user.id);
   }

@@ -6,9 +6,10 @@ import { SalaryService } from './salary.service';
 import { SalaryAnalysisService } from './salary-analysis.service';
 import { CityIndustryFitService } from './city-industry-fit.service';
 import { AiModule } from '../ai/ai.module';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SalaryEntry]), AiModule],
+  imports: [TypeOrmModule.forFeature([SalaryEntry]), AiModule, QuotaModule],
   controllers: [SalaryController],
   providers: [SalaryService, SalaryAnalysisService, CityIndustryFitService],
   exports: [SalaryService, SalaryAnalysisService, CityIndustryFitService],

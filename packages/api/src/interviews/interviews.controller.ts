@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { QuotaGuard } from '../quota/quota.guard';
+import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { InterviewsService } from './interviews.service';
 import { CreateInterviewDto } from './dto/create-interview.dto';
@@ -39,6 +41,8 @@ export class InterviewsController {
 
   // IMPORTANT: /:id/analyze must be defined BEFORE generic /:id routes
   @Post(':id/analyze')
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   analyze(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.interviews.analyze(id, user.id);
   }

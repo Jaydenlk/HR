@@ -6,6 +6,24 @@ export interface User {
   locale: string;
 }
 
+// ─── Auth (两步式登录:邮箱验证码 + 邀请制) ──────────────────────────────
+// 与认证 API 契约一致:
+// POST /api/auth/request-code  body {email}
+//   → { registered, dev_code? }  registered 表示该邮箱是否已注册;
+//     dev_code 仅在 SMTP 未配置且非 production 时返回(开发态自动填充)。
+export interface RequestCodeResponse {
+  registered: boolean;
+  dev_code?: string;
+}
+
+// POST /api/auth/login  body {email, code, invite_code?, name?}
+//   → { access_token, user }  老用户(registered)只需 email+code;
+//     新用户(registered=false)必须带 invite_code + name。
+export interface LoginResponse {
+  access_token: string;
+  user: User;
+}
+
 export interface Resume {
   id: string;
   title: string;

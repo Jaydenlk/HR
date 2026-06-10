@@ -11,6 +11,7 @@ import { ChatService } from './chat.service';
 import { CoachContextService } from './coach-context.service';
 import { AiModule } from '../ai/ai.module';
 import { IntelligenceModule } from '../intelligence/intelligence.module';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { IntelligenceModule } from '../intelligence/intelligence.module';
     ]),
     AiModule,
     IntelligenceModule,
+    QuotaModule,
   ],
   controllers: [ConversationsController],
   providers: [ConversationsService, ChatService, CoachContextService],

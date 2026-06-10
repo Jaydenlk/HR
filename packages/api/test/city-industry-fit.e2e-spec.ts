@@ -2,7 +2,7 @@ import { INestApplication, ValidationPipe, ServiceUnavailableException } from '@
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
-import { request, loginUser } from './test-utils';
+import { request, loginUser, uniqueMemoryDb } from './test-utils';
 
 // ─── Deterministic AiService mock ────────────────────────────────────────────
 //
@@ -216,7 +216,8 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
-    process.env.DB_PATH = ':memory:';
+    // 每个 app 独立 DB 文件,避免 sub-app 关闭连接波及主 app(见 uniqueMemoryDb 注释)。
+    process.env.DB_PATH = uniqueMemoryDb();
     process.env.CLOUDDREAM_API_KEY = 'test-key';
     process.env.CLOUDDREAM_MODEL = 'auto-v2';
 
@@ -441,6 +442,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     let tokenNoEvidence: string;
 
     beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
       const mockNoEvidence = {
         complete: jest.fn().mockResolvedValue('mock'),
         completeStructured: jest.fn().mockResolvedValue(NO_EVIDENCE_RESULT),
@@ -464,7 +466,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     }, 30000);
 
     afterAll(async () => {
-      await appNoEvidence.close();
+      // DEBUG await appNoEvidence.close();
     });
 
     it('AI returns fit_matrix item with empty evidence_basis → server guard removes it', async () => {
@@ -492,6 +494,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     let tokenConstrained: string;
 
     beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
       const mockConstrained = {
         complete: jest.fn().mockResolvedValue('mock'),
         completeStructured: jest.fn().mockResolvedValue(OUT_OF_CONSTRAINT_RESULT),
@@ -515,7 +518,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     }, 30000);
 
     afterAll(async () => {
-      await appConstrained.close();
+      // DEBUG await appConstrained.close();
     });
 
     it('AI returns city outside profile.constraints.location → server guard removes it', async () => {
@@ -544,6 +547,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     let tokenInflated: string;
 
     beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
       const mockInflated = {
         complete: jest.fn().mockResolvedValue('mock'),
         completeStructured: jest.fn().mockResolvedValue(INFLATED_SCORE_RESULT),
@@ -567,7 +571,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     }, 30000);
 
     afterAll(async () => {
-      await appInflated.close();
+      // DEBUG await appInflated.close();
     });
 
     it('AI returns fit_score=99 but server recomputes via formula → correct score', async () => {
@@ -603,6 +607,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     let tokenMixed: string;
 
     beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
       const mockMixed = {
         complete: jest.fn().mockResolvedValue('mock'),
         completeStructured: jest.fn().mockResolvedValue(MIXED_COMPANIES_RESULT),
@@ -622,7 +627,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     }, 30000);
 
     afterAll(async () => {
-      await appMixed.close();
+      // DEBUG await appMixed.close();
     });
 
     it('keeps category/scale descriptors, strips specific brand names (incl. old false-negatives)', async () => {
@@ -663,6 +668,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     let tokenStaleRec: string;
 
     beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
       const mockStaleRec = {
         complete: jest.fn().mockResolvedValue('mock'),
         completeStructured: jest.fn().mockResolvedValue(STALE_RECOMMENDATION_RESULT),
@@ -682,7 +688,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     }, 30000);
 
     afterAll(async () => {
-      await appStaleRec.close();
+      // DEBUG await appStaleRec.close();
     });
 
     it('AI recommends 上海 (filtered out by constraint) → server rewrites to a kept city', async () => {
@@ -712,6 +718,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     let tokenEmptyRec: string;
 
     beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
       const mockEmptyRec = {
         complete: jest.fn().mockResolvedValue('mock'),
         completeStructured: jest
@@ -733,7 +740,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     }, 30000);
 
     afterAll(async () => {
-      await appEmptyRec.close();
+      // DEBUG await appEmptyRec.close();
     });
 
     it('all matrix items filtered out → recommendation is neutral hint, not stale AI text', async () => {
@@ -758,6 +765,7 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
     let tokenInsufficient: string;
 
     beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
       const mockInsufficient = {
         complete: jest.fn().mockResolvedValue('mock'),
         completeStructured: jest.fn().mockResolvedValue(INSUFFICIENT_WITH_MATRIX_RESULT),
@@ -804,17 +812,45 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
   });
 
   // ─── AI outage → 503 ────────────────────────────────────────────────────────
-
+  // 用本块专属 app(注入永远 reject 的 AiService)而非复用主 app:
+  // 同进程内先后 init 多个 AppModule 会让 TypeORM 默认连接被后建 app 接管/关闭,
+  // 主 app 的连接在跑到此处时已失效,经 JwtStrategy 每请求查库会报 connection is not open。
+  // 各块自带 app 即各自持有当前活连接,互不影响。
   describe('AI outage', () => {
+    let appOutage: INestApplication;
+    let tokenOutage: string;
+
+    beforeAll(async () => {
+      process.env.DB_PATH = uniqueMemoryDb();
+      const mockOutage = {
+        complete: jest.fn().mockResolvedValue('mock'),
+        completeStructured: jest
+          .fn()
+          .mockRejectedValue(
+            new ServiceUnavailableException('AI 服务暂时不可用(测试注入),请稍后重试。'),
+          ),
+      };
+
+      const moduleRefOutage = await Test.createTestingModule({ imports: [AppModule] })
+        .overrideProvider(AiService)
+        .useValue(mockOutage)
+        .compile();
+
+      appOutage = moduleRefOutage.createNestApplication();
+      appOutage.setGlobalPrefix('api');
+      appOutage.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+      await appOutage.init();
+
+      tokenOutage = await loginUser(appOutage, 'city-fit-outage@coach.dev', 'Outage User');
+    }, 30000);
+
     it('AI service fails → 503', async () => {
-      failMode = true;
-      const res = await request(app.getHttpServer())
+      const res = await request(appOutage.getHttpServer())
         .post('/api/salary/city-industry-fit')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${tokenOutage}`)
         .send({ profile: { skills: ['Java'], current_role: '后端工程师' } });
 
       expect(res.status).toBe(503);
-      failMode = false;
     });
   });
 });
@@ -829,7 +865,7 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
-    process.env.DB_PATH = ':memory:';
+    process.env.DB_PATH = uniqueMemoryDb();
 
     const { createTestApp } = await import('./test-utils');
     app = await createTestApp();

@@ -8,9 +8,10 @@ import { StrategyService } from './strategy.service';
 import { AiModule } from '../ai/ai.module';
 import { Resume } from '../resumes/entities/resume.entity';
 import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Application, ApplicationEvent, Resume, Diagnosis]), AiModule],
+  imports: [TypeOrmModule.forFeature([Application, ApplicationEvent, Resume, Diagnosis]), AiModule, QuotaModule],
   controllers: [ApplicationsController],
   providers: [ApplicationsService, StrategyService],
   exports: [ApplicationsService, StrategyService],

@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { AiModule } from '../ai/ai.module';
 import { IndustryTrendController } from './industry-trend.controller';
 import { IndustryTrendService } from './industry-trend.service';
+import { QuotaModule } from '../quota/quota.module';
 
 @Module({
-  imports: [AiModule],
+  imports: [AiModule, QuotaModule],
   controllers: [IndustryTrendController],
   providers: [IndustryTrendService],
 })

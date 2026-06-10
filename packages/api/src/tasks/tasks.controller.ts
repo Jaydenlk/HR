@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { QuotaGuard } from '../quota/quota.guard';
+import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { TasksService } from './tasks.service';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -28,6 +30,8 @@ export class TasksController {
 
   // POST /tasks/generate — force regenerate today's tasks
   @Post('generate')
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   forceGenerate(@CurrentUser() user: { id: string }) {
     return this.tasks.forceGenerate(user.id);
   }

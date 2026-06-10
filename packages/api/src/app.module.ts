@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { aiConfig } from './config/ai.config';
 import { validate } from './config/env.validation';
@@ -28,11 +30,19 @@ import { InterviewPrepModule } from './interview-prep/interview-prep.module';
 import { LearningRoadmapModule } from './learning-roadmap/learning-roadmap.module';
 import { FollowUpModule } from './follow-up/follow-up.module';
 import { IndustryTrendModule } from './industry-trend/industry-trend.module';
+import { QuotaModule } from './quota/quota.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [aiConfig], validate, cache: true }),
     ScheduleModule.forRoot(),
+    // 全局限流:默认每 IP 60s 内 120 次(ttl 毫秒)。auth 端点经 @Throttle 进一步收紧。
+    // skipIf:e2e 套件多用户共享 127.0.0.1 高频请求会误触限流,故 DISABLE_THROTTLE=1 时整体跳过
+    // (仅由 test/jest-setup-env.ts 注入);限流本身的 e2e 用独立模块强制开启验证,互不影响。
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60000, limit: 120 }],
+      skipIf: () => process.env.DISABLE_THROTTLE === '1',
+    }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
@@ -81,6 +91,11 @@ import { IndustryTrendModule } from './industry-trend/industry-trend.module';
     LearningRoadmapModule,
     FollowUpModule,
     IndustryTrendModule,
+    // @Global QuotaModule:各 AI feature module 已传递性 import,此处显式挂一次
+    // 保证非 feature 入口也能用,并与试运行接线约定一致。
+    QuotaModule,
   ],
+  // 全局限流守卫:与 ThrottlerModule.forRoot 配合,对所有路由生效。
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
