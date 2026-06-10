@@ -12,7 +12,10 @@ import { UpdateInterviewDto } from './dto/update-interview.dto';
 export class InterviewsController {
   constructor(private readonly interviews: InterviewsService) {}
 
+  // 无 transcript 的草稿也计 1 次 AI 配额——试运行防滥用优先于精确计量,与 opportunity create 同语义
   @Post()
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   create(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateInterviewDto,
@@ -30,7 +33,10 @@ export class InterviewsController {
     return this.interviews.findOne(id, user.id);
   }
 
+  // 纯元数据 PATCH 也计 1 次 AI 配额——试运行防滥用优先于精确计量,与 opportunity create 同语义
   @Patch(':id')
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   update(
     @Param('id') id: string,
     @CurrentUser() user: { id: string },

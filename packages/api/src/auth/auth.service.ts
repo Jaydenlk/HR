@@ -148,11 +148,12 @@ export class AuthService {
     await this.codes.save(record);
   }
 
-  // 每日 04:00(服务器时区)清理过期未消费码,避免 login_codes 表无限膨胀。
-  // ScheduleModule.forRoot() 已在 app.module 挂载,@Cron 由 SchedulerRegistry 接管。
+  // 每日 04:00(服务器时区)清理所有过期码(含已消费),避免 login_codes 表无限膨胀。
+  // 过期码无论是否消费均无业务价值,一并删除;ScheduleModule.forRoot() 已在 app.module 挂载,
+  // @Cron 由 SchedulerRegistry 接管。
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async purgeExpiredCodes(): Promise<void> {
-    await this.codes.delete({ consumed: false, expires_at: LessThan(new Date()) });
+    await this.codes.delete({ expires_at: LessThan(new Date()) });
   }
 
   // 密码学安全随机:randomInt(100000, 1000000) 均匀产出 6 位码(上界 exclusive)。

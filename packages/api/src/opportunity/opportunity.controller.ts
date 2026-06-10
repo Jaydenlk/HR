@@ -20,6 +20,8 @@ export class OpportunityController {
   ) {}
 
   @Post()
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   async create(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateOpportunityDto,

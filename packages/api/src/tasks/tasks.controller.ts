@@ -11,7 +11,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 export class TasksController {
   constructor(private readonly tasks: TasksService) {}
 
-  // GET /tasks/today — get today's tasks (auto-generate if none)
+  // GET /tasks/today — get today's tasks (DB query only, no auto-generate)
   @Get('today')
   getToday(@CurrentUser() user: { id: string }) {
     return this.tasks.getToday(user.id);

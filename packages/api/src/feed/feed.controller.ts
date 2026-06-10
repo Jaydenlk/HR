@@ -45,6 +45,8 @@ export class FeedController {
   }
 
   @Post('import')
+  @UseGuards(QuotaGuard)
+  @UseInterceptors(AiUsageInterceptor)
   import(@Body() dto: ImportFeedDto) {
     return this.ingestion.import(dto);
   }

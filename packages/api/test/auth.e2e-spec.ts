@@ -303,6 +303,32 @@ describe('Auth (e2e)', () => {
       expect(res.status).toBe(401);
       expect(res.body.message).toBe('账号已被停用');
     });
+
+    // 封禁即时生效:已签发的 token 在用户被封后,下一次请求即被 jwt.strategy.validate 拦截。
+    // 区别于上一个用例(测登录路径,不经 validate)——这里走「持已有 token 调受保护端点」路径。
+    it('已签发 token → 封禁 → 携该 token 调受保护端点 → 401「账号已被停用」', async () => {
+      // 登录拿 token(此时账号正常)。
+      const reg = await register('ban-live@coach.dev', '在线封禁', 'COACH2026');
+      expect(reg.status).toBe(201);
+      const token = reg.body.access_token as string;
+      expect(typeof token).toBe('string');
+
+      // 封禁前 token 可用:GET /me 返回 200。
+      const before = await request(app.getHttpServer())
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token}`);
+      expect(before.status).toBe(200);
+
+      // 直接改库封禁该用户。
+      await users.update({ email: 'ban-live@coach.dev' }, { status: 'banned' });
+
+      // 同一 token 再次请求受保护端点:jwt.strategy.validate 查到 banned → 401。
+      const after = await request(app.getHttpServer())
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${token}`);
+      expect(after.status).toBe(401);
+      expect(after.body.message).toBe('账号已被停用');
+    });
   });
 
   describe('POST /api/auth/login — ADMIN_EMAILS 提升', () => {

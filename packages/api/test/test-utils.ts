@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { unlinkSync } from 'fs';
 import * as supertest from 'supertest';
 import { AppModule } from '../src/app.module';
 
@@ -14,11 +15,25 @@ export const request: typeof supertest = (supertest as any).default ?? supertest
 // 关掉,后续主 app 的查询即报「database connection is not open」(在 JwtStrategy 每请求查库后暴露)。
 // 曾尝试 file:<name>?mode=memory&cache=shared,但 shared-cache 内存库仍按名共享连接生命周期,
 // close 一个会波及同名/同进程的其它连接,未能真正隔离。
-// 改用唯一临时文件:不同文件 = 不同连接,close 一个绝不影响另一个;jest 进程退出后由 OS 清理 tmp。
+// 改用唯一临时文件:不同文件 = 不同连接,close 一个绝不影响另一个。
+// Windows 不会自动清理 %TEMP%,临时 db 文件会留存;故进程退出时主动删除本进程创建的临时 db。
+const tempDbFiles: string[] = [];
+process.on('exit', () => {
+  for (const file of tempDbFiles) {
+    try {
+      unlinkSync(file);
+    } catch {
+      // 文件可能已被删除或仍被占用,忽略——尽力清理,不阻断退出。
+    }
+  }
+});
+
 let dbSeq = 0;
 export function uniqueMemoryDb(): string {
   dbSeq += 1;
-  return join(tmpdir(), `coach-e2e-${process.pid}-${dbSeq}.sqlite`);
+  const file = join(tmpdir(), `coach-e2e-${process.pid}-${dbSeq}.sqlite`);
+  tempDbFiles.push(file);
+  return file;
 }
 
 export async function createTestApp(): Promise<INestApplication> {
