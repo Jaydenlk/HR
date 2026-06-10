@@ -93,14 +93,13 @@ export class OfferComparatorService {
       schema: OUTPUT_SCHEMA,
     });
 
-    return this.applyGuards(result, dto.offers);
+    return this.applyGuards(result, dto.offers, dto.weights);
   }
 
   // ── 服务端确定性 guard ──────────────────────────────────────────────────────
 
-  private applyGuards(result: AiResult, offers: OfferItemDto[]): AiResult {
-    // 服务端权威映射：id → offer / company / 周工时（用于复算与防张冠李戴）
-    const offerMap = new Map(offers.map((o) => [o.id, o]));
+  private applyGuards(result: AiResult, offers: OfferItemDto[], weights?: OfferWeightsDto): AiResult {
+    // 服务端权威映射：id → company / 周工时（用于覆盖与防张冠李戴）
     const companyMap = new Map(offers.map((o) => [o.id, o.company]));
     const validIds = new Set(offers.map((o) => o.id));
 
@@ -108,73 +107,97 @@ export class OfferComparatorService {
       result.confidence === 'low' || result.confidence === 'insufficient';
     const insufficient = result.confidence === 'insufficient';
 
-    // Guard #17: 过滤掉不在输入 offers 中的幻觉行；company 一律用服务端映射覆盖
-    // Guard #15: comparison 中可确定计算的字段服务端复算覆盖模型值
-    // Guard #56: 低置信时剥离 comparison[].dimensions 中所有 AI 精确数字（不只 stability_score）
-    const comparison: AiComparison[] = (result.comparison ?? [])
-      .filter((c) => validIds.has(c.offer_id))
-      .map((c) => {
-        const offer = offerMap.get(c.offer_id) as OfferItemDto;
-        const dimensions: AiDimensions = {
-          ...c.dimensions,
-          annual_total_compensation: this.calcAnnualTotal(offer),
-          probation_loss: this.calcProbationLoss(offer),
-        };
+    // Guard #17 + #39: 以输入 offers 为基准，补齐 AI 漏掉的行（不静默丢失）；
+    // company 一律用服务端映射覆盖（#17 幻觉覆盖）；
+    // Guard #15: comparison 中可确定计算的字段服务端复算覆盖模型值；
+    // Guard #56: 低置信时剥离 comparison[].dimensions 中所有 AI 精确数字
+    const aiCmpMap = new Map(
+      (result.comparison ?? [])
+        .filter((c) => validIds.has(c.offer_id))
+        .map((c) => [c.offer_id, c]),
+    );
+    const comparison: AiComparison[] = offers.map((offer) => {
+      const c = aiCmpMap.get(offer.id);
+      // #39: AI 漏掉此 offer 时用空 dimensions 占位，标注 growth_potential 说明
+      const baseDimensions: AiDimensions = c
+        ? { ...c.dimensions }
+        : { growth_potential: 'AI 未给出/信息不足' };
 
-        // #15/#56: social_insurance_annual 输入可得时服务端复算覆盖模型值（= 月缴 × 12）；
-        // 输入不可得时一律剥离模型伪精确值(与 effective_monthly 同策略,与置信度无关 —— 服务端无法
-        // 复算的精确金额绝不采信模型,否则 high/medium 置信下编造的五险一金年缴会作为权威值泄漏)。
-        const socialInsuranceAnnual = this.calcSocialInsuranceAnnual(offer);
-        if (socialInsuranceAnnual != null) {
-          dimensions.social_insurance_annual = socialInsuranceAnnual;
-        } else {
-          delete dimensions.social_insurance_annual;
-        }
+      const dimensions: AiDimensions = {
+        ...baseDimensions,
+        annual_total_compensation: this.calcAnnualTotal(offer),
+        probation_loss: this.calcProbationLoss(offer),
+      };
 
-        // effective_monthly 无法由输入确定计算（依赖个人所得税档位与实际缴费基数）
-        // 与置信度无关，一律剥离，防止模型杜撰精确到手数字作为权威值返回
-        delete dimensions.effective_monthly;
+      // #15/#56: social_insurance_annual 输入可得时服务端复算覆盖模型值（= 月缴 × 12）；
+      // 输入不可得时一律剥离模型伪精确值(与 effective_monthly 同策略,与置信度无关 —— 服务端无法
+      // 复算的精确金额绝不采信模型,否则 high/medium 置信下编造的五险一金年缴会作为权威值泄漏)。
+      const socialInsuranceAnnual = this.calcSocialInsuranceAnnual(offer);
+      if (socialInsuranceAnnual != null) {
+        dimensions.social_insurance_annual = socialInsuranceAnnual;
+      } else {
+        delete dimensions.social_insurance_annual;
+      }
 
-        if (lowConfidence) {
-          // 低置信：剥离所有主观/伪精确分值，保留定性字段（growth_potential）
-          delete dimensions.stability_score;
-        }
-        return { offer_id: c.offer_id, company: companyMap.get(c.offer_id) as string, dimensions };
-      });
+      // effective_monthly 无法由输入确定计算（依赖个人所得税档位与实际缴费基数）
+      // 与置信度无关，一律剥离，防止模型杜撰精确到手数字作为权威值返回
+      delete dimensions.effective_monthly;
 
-    // Guard #17 + #56: weighted_scores 过滤幻觉行、覆盖 company；
-    // 低置信时剥离 total_score 与 dimension_scores（伪精确分值）
-    const weighted_scores: AiWeightedScore[] = (result.weighted_scores ?? [])
-      .filter((ws) => validIds.has(ws.offer_id))
-      .map((ws) => {
-        const base: AiWeightedScore = {
-          offer_id: ws.offer_id,
-          company: companyMap.get(ws.offer_id) as string,
-        };
-        if (lowConfidence) return base;
-        if (ws.total_score != null) base.total_score = ws.total_score;
-        if (ws.dimension_scores != null) base.dimension_scores = ws.dimension_scores;
+      if (lowConfidence) {
+        // 低置信：剥离所有主观/伪精确分值，保留定性字段（growth_potential）
+        delete dimensions.stability_score;
+      }
+      return { offer_id: offer.id, company: companyMap.get(offer.id) as string, dimensions };
+    });
+
+    // Guard #17 + #41 + #56: weighted_scores 以输入 offers 为基准补齐缺失行；
+    // 低置信时剥离 total_score 与 dimension_scores（伪精确分值）；
+    // high/medium 时服务端按权重复算 total_score（#41，纯数学确定性，不采信模型值）
+    const aiWsMap = new Map(
+      (result.weighted_scores ?? [])
+        .filter((ws) => validIds.has(ws.offer_id))
+        .map((ws) => [ws.offer_id, ws]),
+    );
+    const weighted_scores: AiWeightedScore[] = offers.map((offer) => {
+      const ws = aiWsMap.get(offer.id);
+      const base: AiWeightedScore = {
+        offer_id: offer.id,
+        // #39: AI 未给出该 offer 时用输入的 company（兜底已覆盖 #17 幻觉覆盖需求）
+        company: companyMap.get(offer.id) as string,
+      };
+      if (lowConfidence) return base;
+      if (!ws) {
+        // #39: AI 漏掉此 offer，标注信息不足，不静默丢失
+        base.dimension_scores = { _note: 'AI 未给出/信息不足' } as unknown as Record<string, number>;
         return base;
-      });
+      }
+      if (ws.dimension_scores != null) base.dimension_scores = ws.dimension_scores;
+      // #41: 服务端按权重归一化复算 total_score，覆盖模型值
+      if (ws.dimension_scores != null) {
+        base.total_score = this.recomputeTotalScore(ws.dimension_scores, weights);
+      } else if (ws.total_score != null) {
+        // dimension_scores 缺失时无法复算，保留模型值（信息不足时已在 lowConfidence 分支被剥离）
+        base.total_score = ws.total_score;
+      }
+      return base;
+    });
 
-    // Guard #16 + #17 + #91: hourly_rate_comparison 过滤幻觉行、覆盖 company；
+    // Guard #16 + #17 + #39 + #91: 以输入 offers 为基准补齐缺失行（#39，不静默丢失）；
+    // 幻觉行已被 offers 基准遍历排除（#17）；
     // 工时未知（== null）→ 强制 null；工时已知 → 服务端复算覆盖模型时薪，从不采信模型值
-    const hourly_rate_comparison: AiHourlyRate[] = (result.hourly_rate_comparison ?? [])
-      .filter((hr) => validIds.has(hr.offer_id))
-      .map((hr) => {
-        const offer = offerMap.get(hr.offer_id) as OfferItemDto;
-        const company = companyMap.get(hr.offer_id) as string;
-        const hours = offer.weekly_hours;
-        if (hours == null) {
-          return { offer_id: hr.offer_id, company, weekly_hours: undefined, hourly_rate_rmb: null };
-        }
-        return {
-          offer_id: hr.offer_id,
-          company,
-          weekly_hours: hours,
-          hourly_rate_rmb: this.calcHourlyRate(offer, hours),
-        };
-      });
+    const hourly_rate_comparison: AiHourlyRate[] = offers.map((offer) => {
+      const company = companyMap.get(offer.id) as string;
+      const hours = offer.weekly_hours;
+      if (hours == null) {
+        return { offer_id: offer.id, company, weekly_hours: undefined, hourly_rate_rmb: null };
+      }
+      return {
+        offer_id: offer.id,
+        company,
+        weekly_hours: hours,
+        hourly_rate_rmb: this.calcHourlyRate(offer, hours),
+      };
+    });
 
     // Guard #17: missing_info 过滤幻觉 offer_id
     const missing_info: AiMissingInfo[] = (result.missing_info ?? []).filter((m) =>
@@ -262,6 +285,31 @@ export class OfferComparatorService {
       };
     }
     return rec;
+  }
+
+  /**
+   * #41: 按声明权重归一化后对各维度分做加权复算 total_score，覆盖模型值。
+   * 维度分 key 枚举：compensation / growth / stability / work_life_balance。
+   * 缺失维度分时用 0 替代（已在 missing_info 标注），确保复算结果有界 [0, 100]。
+   */
+  private recomputeTotalScore(
+    dimensionScores: Record<string, number>,
+    weights: OfferWeightsDto | undefined,
+  ): number {
+    const comp = weights?.compensation ?? 0.4;
+    const growth = weights?.growth ?? 0.3;
+    const stability = weights?.stability ?? 0.2;
+    const wlb = weights?.work_life_balance ?? 0.1;
+    const sum = comp + growth + stability + wlb;
+    const factor = sum > 0 ? 1 / sum : 1;
+
+    const score =
+      (dimensionScores['compensation'] ?? 0) * comp * factor +
+      (dimensionScores['growth'] ?? 0) * growth * factor +
+      (dimensionScores['stability'] ?? 0) * stability * factor +
+      (dimensionScores['work_life_balance'] ?? 0) * wlb * factor;
+
+    return Number(score.toFixed(2));
   }
 
   /**

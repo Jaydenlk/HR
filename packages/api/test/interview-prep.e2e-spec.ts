@@ -208,14 +208,61 @@ describe('InterviewPrep (e2e) — deterministic guard tests', () => {
       },
     );
 
-    // ── 回归 #9（P2）：仅显式来源标记才算「有来源」并保留（年份本身≠来源）。
+    // ── 回归 #9（P2）：仅显式来源结构才算「有来源」并保留（年份本身≠来源）。
     it.each([
-      ['来源：BOSS直聘 2024，约 30-45 万'], // 显式「来源」标记 + 平台名
-      ['据脉脉平台调研，约 40-60 万'], // 「平台」「调研」标记
-      ['参考第三方薪酬报告，约 35 万'], // 「报告」标记
-      ['据招聘网站数据，约 25-40 万'], // 「招聘网站」「数据」标记
+      ['来源：BOSS直聘 2024，约 30-45 万'], // 结构①：显式「来源：」标号 + 内容
+      ['据脉脉平台调研，约 40-60 万'], // 结构③：具名平台「脉脉」+ 口径词「调研」
+      ['出处：拉勾 2025 薪酬榜单，约 25 万'], // 结构①：「出处：」标号
+      ['参考：第三方薪酬报告 2024，约 35 万'], // 结构①：「参考：」标号 + 内容
     ])(
       'guard ① regression #9: salary estimate with an explicit source marker (%s) → preserved',
+      async (salary_range_estimate) => {
+        mockResult = makePlaybookResult({
+          salary_negotiation_notes: { salary_range_estimate, negotiation_timing: 'offer 阶段' },
+        });
+        const res = await request(app.getHttpServer())
+          .post('/api/interview-prep/playbook')
+          .set('Authorization', auth())
+          .send({ company_name: '某公司', interview_intelligence: { rounds: 2 } });
+
+        expect(res.status).toBe(200);
+        expect(res.body.salary_negotiation_notes.salary_range_estimate).toBe(salary_range_estimate);
+      },
+    );
+
+    // ── 回归 #33（P2）：旧 hasSource 把裸通用词（数据/平台/报告/招聘网站）当作有来源，
+    // 套话即可绕过。收紧后必须有「显式来源结构」（来源：xxx / 具名平台+年份或口径 / 样本说明），
+    // 仅含裸通用词、无具名平台/年份/样本锚点 → 强制 null。
+    it.each([
+      ['参考第三方薪酬报告，约 35 万'], // 「报告」裸词、无具名平台/年份/样本 → null
+      ['据招聘网站数据，约 25-40 万'], // 「招聘网站」「数据」裸词 → null
+      ['根据市场数据，约 40-60 万'], // 「数据」裸词 → null
+      ['多个平台综合，约 30 万'], // 「平台」裸词（非具名平台）→ null
+      ['行业调研显示约 28 万'], // 「调研」但无具名平台 → null
+    ])(
+      'guard ① regression #33: bare generic source words without structure (%s) → forced null',
+      async (salary_range_estimate) => {
+        mockResult = makePlaybookResult({
+          salary_negotiation_notes: { salary_range_estimate, negotiation_timing: 'offer 阶段' },
+        });
+        const res = await request(app.getHttpServer())
+          .post('/api/interview-prep/playbook')
+          .set('Authorization', auth())
+          .send({ company_name: '某公司', interview_intelligence: { rounds: 2 } });
+
+        expect(res.status).toBe(200);
+        expect(res.body.salary_negotiation_notes.salary_range_estimate).toBeNull();
+      },
+    );
+
+    // ── 回归 #33（P2）：具名平台 + 年份 / 样本说明 等显式结构 → 保留。
+    it.each([
+      ['脉脉 2024 薪酬数据，约 40-60 万'], // 结构②：具名平台「脉脉」+ 年份 2024
+      ['BOSS直聘2025招聘数据，约 30-45 万'], // 结构②：具名平台 + 年份 2025
+      ['样本 320 份调研，约 35 万'], // 结构④：「样本」+ 数字 320
+      ['截至 2025 年统计，约 50 万'], // 结构④：「截至」+ 数字
+    ])(
+      'guard ① regression #33: explicit source structure (named platform+year / sample) (%s) → preserved',
       async (salary_range_estimate) => {
         mockResult = makePlaybookResult({
           salary_negotiation_notes: { salary_range_estimate, negotiation_timing: 'offer 阶段' },
@@ -261,6 +308,26 @@ describe('InterviewPrep (e2e) — deterministic guard tests', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.salary_negotiation_notes.salary_range_estimate).toBeNull();
+    });
+
+    // ── 回归 #34（P2）：negotiation_timing 在 TS SalaryNegotiationNotes 为可选，
+    // 旧 PLAYBOOK_SCHEMA 误把它列入 salary_negotiation_notes.required，模型合理省略它会
+    // 触发 AiService 的 missing-field 重试链最终可能 503。已从 schema required 移除。
+    // 契约层面：模型省略 negotiation_timing 时端点仍 200、guardPlaybook 不崩。
+    it('P2 #34: model omits negotiation_timing (now optional in schema) → 200, no crash', async () => {
+      mockResult = makePlaybookResult({
+        // 仅给 salary_range_estimate（带来源），negotiation_timing 完全缺失
+        salary_negotiation_notes: { salary_range_estimate: '来源：脉脉 2025，约 40 万' },
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/playbook')
+        .set('Authorization', auth())
+        .send({ company_name: '某公司', interview_intelligence: { rounds: 2 } });
+
+      expect(res.status).toBe(200);
+      // 带来源的估算保留；缺失的可选字段不应被强行填充
+      expect(res.body.salary_negotiation_notes.salary_range_estimate).toBe('来源：脉脉 2025，约 40 万');
+      expect(res.body.salary_negotiation_notes.negotiation_timing).toBeUndefined();
     });
 
     it('guard ①: no interview intel → confidence downgraded + cannot_determine flags culture', async () => {
@@ -495,6 +562,173 @@ describe('InterviewPrep (e2e) — deterministic guard tests', () => {
       expect(story.situation).not.toContain('待核实');
     });
 
+    // ── 回归 #60/#64/#311（P2）：跨字段串号——旧实现把所有经历的裸数字拍平进一个全局 Set，
+    // 「5 人」可被改写成「5 倍」蒙混过关（数字 5 在全局集合里）。收紧后量化表达式需带单位且
+    // 在「某一条」经历里原样出现，单位不同（5倍≠5人）即判编造。
+    it('guard ② regression #60/#64/#311: number reused with a different unit (5人→5倍) → scrubbed', async () => {
+      mockResult = makeStarResult({
+        story_bank: [
+          {
+            title: '主导重构',
+            competency: ['领导力'],
+            situation: '系统不稳定',
+            task: '牵头重构',
+            action: '我带领团队完成重构',
+            // result 杜撰「效率提升 5 倍」：输入只有「5 人」，5 倍属串号编造，必须收口
+            result: '效率提升 5 倍',
+            polish_level: 'ready',
+          },
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/star-stories')
+        .set('Authorization', auth())
+        .send({ experiences: ['我带领 5 人团队完成了系统重构'] }); // 「5 人」而非「5 倍」
+
+      expect(res.status).toBe(200);
+      const story = res.body.story_bank[0];
+      expect(story.result).toContain('待补充');
+      expect(story.result).not.toContain('5 倍');
+      expect(story.polish_level).toBe('needs_polish');
+    });
+
+    // ── 回归 #60/#64/#311（P2）：同单位且在同一条经历出现 → 保留（未误伤合法量化）。
+    it('guard ② regression #60/#64/#311: same number+unit present in input (5人) → preserved', async () => {
+      mockResult = makeStarResult({
+        story_bank: [
+          {
+            title: '主导重构',
+            competency: ['领导力'],
+            situation: '系统不稳定',
+            task: '牵头重构',
+            action: '我带领 5 人小组完成重构',
+            result: '显著降低了故障率',
+            polish_level: 'needs_polish',
+          },
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/star-stories')
+        .set('Authorization', auth())
+        .send({ experiences: ['我带领 5 人团队完成了系统重构'] });
+
+      expect(res.status).toBe(200);
+      const story = res.body.story_bank[0];
+      expect(story.action).toContain('5');
+      expect(story.action).not.toContain('待核实');
+    });
+
+    // ── 回归 #60/#64/#311（P2）：中文数字「三十万」编造（输入无此量）→ 必须被收口。
+    it('guard ② regression #60/#64/#311: fabricated Chinese numeral (三十万) → scrubbed', async () => {
+      mockResult = makeStarResult({
+        story_bank: [
+          {
+            title: '主导营收增长',
+            competency: ['数据驱动'],
+            situation: '业务停滞',
+            task: '负责增长',
+            action: '我重新设计了转化漏斗',
+            // result 杜撰「营收增长三十万」，输入无任何金额 → 必须收口
+            result: '推动营收增长三十万',
+            polish_level: 'ready',
+          },
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/star-stories')
+        .set('Authorization', auth())
+        .send({ experiences: ['我负责增长业务，重新设计了转化漏斗，显著提升了营收'] }); // 无量化
+
+      expect(res.status).toBe(200);
+      const story = res.body.story_bank[0];
+      expect(story.result).toContain('待补充');
+      expect(story.result).not.toContain('三十万');
+      expect(story.polish_level).toBe('needs_polish');
+    });
+
+    // ── 回归 #60/#64/#311（P2）：中文百分比「百分之三十」编造 → 必须被收口。
+    it('guard ② regression #60/#64/#311: fabricated Chinese percentage (百分之三十) → scrubbed', async () => {
+      mockResult = makeStarResult({
+        story_bank: [
+          {
+            title: '主导重构',
+            competency: ['问题解决'],
+            situation: '故障频发',
+            task: '牵头重构',
+            action: '我重新设计了对账流程',
+            result: '故障率下降百分之三十',
+            polish_level: 'ready',
+          },
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/star-stories')
+        .set('Authorization', auth())
+        .send({ experiences: ['我牵头重构系统，显著降低了故障率'] }); // 无量化
+
+      expect(res.status).toBe(200);
+      const story = res.body.story_bank[0];
+      expect(story.result).toContain('待补充');
+      expect(story.result).not.toContain('百分之三十');
+      expect(story.polish_level).toBe('needs_polish');
+    });
+
+    // ── 回归 #60/#64/#311（P2）：中文数字在输入中出现 → 保留（中文量化也走同一来源上下文）。
+    it('guard ② regression #60/#64/#311: Chinese numeral present in input (三十万) → preserved', async () => {
+      mockResult = makeStarResult({
+        story_bank: [
+          {
+            title: '主导营收增长',
+            competency: ['数据驱动'],
+            situation: '业务停滞',
+            task: '负责增长',
+            action: '我重新设计了转化漏斗',
+            result: '推动营收增长三十万',
+            polish_level: 'needs_polish',
+          },
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/star-stories')
+        .set('Authorization', auth())
+        .send({ experiences: ['我负责增长业务，重新设计转化漏斗，推动营收增长三十万'] }); // 含「三十万」
+
+      expect(res.status).toBe(200);
+      const story = res.body.story_bank[0];
+      expect(story.result).toContain('三十万');
+      expect(story.result).not.toContain('待补充');
+    });
+
+    // ── 回归 #60/#64/#311（P2）：误伤防护——裸中文词（第三方/一下）不带单位，不是量化，
+    // 即便输入未出现也绝不能被当成编造数字收口（中文分支必须带单位才算量化）。
+    it('guard ② regression #60/#64/#311: non-quantity Chinese words (第三方/一下) → NOT scrubbed', async () => {
+      mockResult = makeStarResult({
+        story_bank: [
+          {
+            title: '主导对接',
+            competency: ['协作影响'],
+            situation: '需要打通第三方系统',
+            task: '牵头对接',
+            action: '我和第三方团队一起梳理了一下接口规范',
+            result: '显著提升了对接效率',
+            polish_level: 'needs_polish',
+          },
+        ],
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/star-stories')
+        .set('Authorization', auth())
+        .send({ experiences: ['我牵头对接系统，梳理接口规范，提升了对接效率'] }); // 不含「第三方/一下」
+
+      expect(res.status).toBe(200);
+      const story = res.body.story_bank[0];
+      // 「第三方」「一下」非量化表达式 → 不应被误删
+      expect(story.situation).toContain('第三方');
+      expect(story.action).toContain('一下');
+      expect(story.action).not.toContain('待核实');
+      expect(story.polish_level).toBe('needs_polish');
+    });
+
     it('abnormal: empty experiences array → 400', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/interview-prep/star-stories')
@@ -695,6 +929,36 @@ describe('InterviewPrep (e2e) — deterministic guard tests', () => {
       expect(structure).not.toContain('一定通过');
       expect(structure).toContain('不保证结果');
     });
+
+    // ── 回归 #32（P2）：单句出现多处保证语时必须全部清除。
+    // 旧正则缺 /g，String.replace 只替换首个匹配，残留的「必过」「包过」会漏网。
+    it('guard ④ regression #32: multiple guarantee phrases in one sentence → all scrubbed', async () => {
+      mockResult = makeCaseResult({
+        framework_library: [
+          {
+            name: '万能框架',
+            applicable_to: ['case_consulting'],
+            // 单句三处保证语：保证拿 offer / 必过 / 包过——必须一次清干净
+            structure: '用此框架保证拿到 offer，必过，包过咨询 Case 面',
+          },
+        ],
+        // recommendations 同句多处保证语也要全清
+        recommendations: ['只要照做就一定通过，百分百稳过'],
+        summary: '本方案保证拿到 offer 且必过。',
+      });
+      const res = await request(app.getHttpServer())
+        .post('/api/interview-prep/case-coach')
+        .set('Authorization', auth())
+        .send({ interview_type: 'case_consulting' });
+
+      expect(res.status).toBe(200);
+      const structure = res.body.framework_library[0].structure as string;
+      // 三处保证语必须全部被替换，一个都不许残留
+      expect(structure).not.toMatch(/保证拿到 offer|必过|包过/);
+      const rec = (res.body.recommendations as string[])[0];
+      expect(rec).not.toMatch(/一定通过|百分百|稳过/);
+      expect(res.body.summary as string).not.toMatch(/保证拿到 offer|必过/);
+    });
   });
 });
 
@@ -735,13 +999,20 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
     if (res.status === 200) {
       const body = res.body as { confidence: string; salary_negotiation_notes: { salary_range_estimate: string | null } };
       expect(['high', 'medium', 'low', 'insufficient']).toContain(body.confidence);
-      // guard invariant: estimate is either null or carries an explicit source marker.
-      // 年份/数字不再算来源（旧 (19|20)\d{2} 会让裸薪资数字蒙混过关）。
+      // guard invariant（#33）：estimate 要么为 null，要么带「显式来源结构」之一：
+      //   显式来源标号（来源/出处/参考/据 + ：/:）/ 具名平台 + 年份或口径 / 样本·截至 + 数字。
+      // 裸通用词（数据/平台/报告/招聘网站）不再算来源——与 service 端 hasExplicitSource 对齐。
       const est = body.salary_negotiation_notes.salary_range_estimate;
-      expect(
-        est === null ||
-          /来源|数据来源|数据|截至|样本|samples|平台|调研|报告|招聘网站|JD/.test(est),
-      ).toBe(true);
+      const named = ['脉脉', 'boss直聘', '拉勾', '猎聘', '看准', '职友集', '智联招聘', '前程无忧', '51job', 'offershow', 'levels.fyi'];
+      const hasStructuredSource = (s: string): boolean => {
+        const lower = s.toLowerCase();
+        if (/(来源|数据来源|出处|参考|据)\s*[：:]\s*\S/.test(s)) return true;
+        const hasPlatform = named.some((p) => lower.includes(p));
+        if (hasPlatform && (/\b(19|20)\d{2}\b|(19|20)\d{2}\s*年/.test(s) || /调研|问卷|统计|样本|抽样|榜单/.test(s))) return true;
+        if (/(样本|截至)\D{0,6}\d/.test(s)) return true;
+        return false;
+      };
+      expect(est === null || hasStructuredSource(est)).toBe(true);
     } else {
       console.warn(`[interview-prep AI-live] status ${res.status} — likely relay issue`);
     }

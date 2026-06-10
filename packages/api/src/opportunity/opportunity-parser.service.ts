@@ -23,16 +23,17 @@ const PARSE_SYSTEM = `你是一个专业的 JD 解析器。从给定的 JD 文�
 - employment_type 只能是 fulltime/intern/contract/parttime 之一，无法判断时设为 null
 - 如果 JD 文本过短或信息不清晰，parse_confidence 设为 "low"`;
 
+// required 只列「服务端不做 null 兜底」的字段:可空字段(company/role/...)在退化输入(JD 过短)下
+// 模型——尤其降级后的 DeepSeek——常直接省略而非显式 null,列入 required 会被 AiService 运行期校验
+// 拒收→主备各 3 次重试耗尽→503(实测场景4稳定复现)。枚举收口也放 service 而非 schema:模型对中文 JD
+// 偶发吐"全职"等非法枚举,schema 内嵌 enum 同样导致整次拒收;service 端 coerce 成本更低且不抬 503。
 const PARSE_SCHEMA = {
   type: 'object' as const,
   properties: {
     company: { type: ['string', 'null'] },
     role: { type: ['string', 'null'] },
     location: { type: ['string', 'null'] },
-    employment_type: {
-      type: ['string', 'null'],
-      enum: ['fulltime', 'intern', 'contract', 'parttime', null],
-    },
+    employment_type: { type: ['string', 'null'] },
     requirements: { type: 'array', items: { type: 'string' } },
     responsibilities: { type: 'array', items: { type: 'string' } },
     salary_range: {
@@ -45,26 +46,48 @@ const PARSE_SCHEMA = {
     },
     experience_level: { type: ['string', 'null'] },
     team_info: { type: ['string', 'null'] },
-    parse_confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+    parse_confidence: { type: 'string' },
   },
-  required: [
-    'company', 'role', 'location', 'employment_type',
-    'requirements', 'responsibilities', 'salary_range',
-    'experience_level', 'team_info', 'parse_confidence',
-  ],
+  required: ['requirements', 'responsibilities', 'parse_confidence'],
 };
+
+const VALID_EMPLOYMENT = new Set(['fulltime', 'intern', 'contract', 'parttime']);
+const VALID_PARSE_CONFIDENCE = new Set(['high', 'medium', 'low']);
 
 @Injectable()
 export class OpportunityParserService {
   constructor(private readonly ai: AiService) {}
 
   async parse(jdText: string): Promise<ParsedJd> {
-    return this.ai.completeStructured<ParsedJd>({
+    const raw = await this.ai.completeStructured<Partial<ParsedJd>>({
       system: PARSE_SYSTEM,
       prompt: `请解析以下 JD 文本：\n\n${jdText}`,
       toolName: 'parse_jd',
       toolDescription: '从 JD 文本中提取结构化信息',
       schema: PARSE_SCHEMA,
     });
+
+    // 服务端确定性收口:缺省字段统一 null;枚举白名单 coerce(非法值不拒收,降级处理)。
+    const employment =
+      typeof raw.employment_type === 'string' && VALID_EMPLOYMENT.has(raw.employment_type)
+        ? (raw.employment_type as ParsedJd['employment_type'])
+        : null;
+    const confidence =
+      typeof raw.parse_confidence === 'string' && VALID_PARSE_CONFIDENCE.has(raw.parse_confidence)
+        ? (raw.parse_confidence as ParsedJd['parse_confidence'])
+        : 'low';
+
+    return {
+      company: raw.company ?? null,
+      role: raw.role ?? null,
+      location: raw.location ?? null,
+      employment_type: employment,
+      requirements: raw.requirements ?? [],
+      responsibilities: raw.responsibilities ?? [],
+      salary_range: raw.salary_range ?? null,
+      experience_level: raw.experience_level ?? null,
+      team_info: raw.team_info ?? null,
+      parse_confidence: confidence,
+    };
   }
 }

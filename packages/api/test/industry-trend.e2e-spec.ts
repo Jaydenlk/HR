@@ -585,6 +585,129 @@ describe('IndustryTrend (e2e) — deterministic guard tests', () => {
     });
   });
 
+  // ── #30: 未来日期信号剔除 ─────────────────────────────────────────────────
+
+  describe('#30 future-date signal must be rejected (treated as stale)', () => {
+    it('signal date 在当前日期之后 → 视为非法/编造，被剔除', async () => {
+      // 生成一个明确的未来日期（当前年份+5年）
+      const futureDate = `${new Date().getFullYear() + 5}-01`;
+      mockResult = makeAiResult({
+        evidence_used: [
+          { source: '36氪行业报告', url: 'https://36kr.com/r', date: RECENT_DATE },
+        ],
+        growth_signals: [
+          // 未来日期：2030-01 类编造时间戳 → 应被剔除
+          { signal: '2030年行业预测增长', strength: 'strong', source: '36氪行业报告', date: futureDate },
+          // 当前日期：新鲜信号 → 保留
+          { signal: '近期招聘增长', strength: 'strong', source: '36氪行业报告', date: RECENT_DATE },
+        ],
+        risk_signals: [],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      // 未来日期信号被剔除，只保留当前日期信号
+      expect(res.body.growth_signals.length).toBe(1);
+      expect(res.body.growth_signals[0].signal).toBe('近期招聘增长');
+    });
+
+    it('所有 growth_signals 均为未来日期 → 全部剔除，confidence 降级', async () => {
+      const futureDate = `${new Date().getFullYear() + 3}-06`;
+      mockResult = makeAiResult({
+        confidence: 'high',
+        evidence_used: [
+          { source: '36氪行业报告', url: 'https://36kr.com/r', date: RECENT_DATE },
+        ],
+        growth_signals: [
+          { signal: '未来增长预测A', strength: 'strong', source: '36氪行业报告', date: futureDate },
+          { signal: '未来增长预测B', strength: 'moderate', source: '36氪行业报告', date: futureDate },
+        ],
+        risk_signals: [],
+        recommended_entry_roles: [
+          { role_name: '产品经理', rationale: '需求旺', demand_level: 'high' },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      expect(res.body.growth_signals).toEqual([]);
+      // 信号全空 → 自洽降级
+      expect(['low', 'insufficient']).toContain(res.body.confidence);
+      expect(res.body.hiring_outlook).toBe('unknown');
+      // 无 growth 支撑 → demand_level 强制 unknown
+      for (const role of res.body.recommended_entry_roles as Array<{ demand_level: string }>) {
+        expect(role.demand_level).toBe('unknown');
+      }
+    });
+  });
+
+  // ── #31: demand_level 逐条独立判定 ──────────────────────────────────────────
+
+  describe('#31 per-role demand_level: determined independently per role', () => {
+    it('有 growth_signals 时，有支撑的 role demand_level 保留，无直接支撑的也保留（宽松模式）', async () => {
+      // 宽松策略：growthSignals>0 时保留模型细粒度判断，仅空信号时全部降 unknown
+      mockResult = makeAiResult({
+        confidence: 'high',
+        evidence_used: [
+          { source: '36氪行业报告', url: 'https://36kr.com/r', date: RECENT_DATE },
+        ],
+        growth_signals: [
+          { signal: '产品经理招聘增长', strength: 'strong', source: '36氪行业报告', date: RECENT_DATE },
+        ],
+        risk_signals: [],
+        recommended_entry_roles: [
+          { role_name: '产品经理', rationale: '需求旺盛', demand_level: 'high' },
+          { role_name: '数据分析师', rationale: '数据驱动增长', demand_level: 'medium' },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      const roles = res.body.recommended_entry_roles as Array<{ role_name: string; demand_level: string }>;
+      // growthSignals 非空 → 两个 role 的 demand_level 均由模型细粒度判定保留
+      const pm = roles.find((r) => r.role_name === '产品经理');
+      const da = roles.find((r) => r.role_name === '数据分析师');
+      expect(pm?.demand_level).toBe('high');
+      expect(da?.demand_level).toBe('medium');
+    });
+
+    it('growthSignals 为空 → 所有 role demand_level 强制为 unknown，与旧行为兼容', async () => {
+      mockResult = makeAiResult({
+        confidence: 'insufficient',
+        evidence_used: [],
+        growth_signals: [],
+        risk_signals: [],
+        hiring_outlook: 'unknown',
+        recommended_entry_roles: [
+          { role_name: '产品经理', rationale: '需求旺', demand_level: 'high' },
+          { role_name: '算法工程师', rationale: '技术驱动', demand_level: 'high' },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      for (const role of res.body.recommended_entry_roles as Array<{ demand_level: string }>) {
+        expect(role.demand_level).toBe('unknown');
+      }
+    });
+  });
+
   // ── #46: demand_level 缺失兜底为 unknown ───────────────────────────────────
 
   describe('#46 demand_level fallback to unknown when missing', () => {

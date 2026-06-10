@@ -52,7 +52,8 @@ interface DiagnosisBase {
   jd_company: string | null;
   jd_role: string | null;
   score: number;
-  suggestions: RewriteSuggestion[];
+  // 后端 entity nullable: true,旧数据可能为 null,消费处须 ?? [] 兜底。
+  suggestions: RewriteSuggestion[] | null;
   created_at: string;
   resume?: Resume;
 }
@@ -61,8 +62,9 @@ interface DiagnosisBase {
 interface JdMatchDiagnosis extends DiagnosisBase {
   mode?: 'jd_match';
   dimensions?: MatchDimensions;
-  keywords_hit: string[];
-  keywords_miss: string[];
+  // 后端 entity nullable: true,旧数据可能为 null,消费处须 ?? [] 兜底。
+  keywords_hit: string[] | null;
+  keywords_miss: string[] | null;
 }
 
 // 校招职业标尺诊断:dimensions 为 ProfessionStandardResult,带目标职业与难度档。

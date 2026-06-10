@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import type {
   OfferItem,
@@ -13,11 +13,6 @@ import type {
 import { Scale, Plus, X, Loader2, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-let idCounter = 1;
-function nextId(): string {
-  return `offer_${idCounter++}`;
-}
 
 function formatMoney(v: number | undefined | null): string {
   if (v == null) return '—';
@@ -61,9 +56,9 @@ interface OfferFormData {
   notes: string;
 }
 
-function emptyForm(): OfferFormData {
+function emptyForm(id: string): OfferFormData {
   return {
-    id: nextId(),
+    id,
     company: '',
     base_monthly: '',
     months_per_year: '',
@@ -144,6 +139,60 @@ const labelStyle: React.CSSProperties = {
 
 // ── Offer Card (input form) ───────────────────────────────────────────────────
 
+// 可选数值字段的校验规则
+interface NumericRule {
+  min?: number;
+  max?: number;
+  allowZero?: boolean;
+  errorMsg: (val: string) => string;
+}
+
+const NUMERIC_RULES: Partial<Record<keyof OfferFormData, NumericRule>> = {
+  weekly_hours: {
+    min: 1,
+    max: 100,
+    allowZero: false,
+    errorMsg: () => '周工时须在 1–100 小时之间',
+  },
+  months_per_year: {
+    min: 0.1,
+    allowZero: false,
+    errorMsg: () => '年薪月数须为正数',
+  },
+  annual_bonus: {
+    min: 0,
+    allowZero: true,
+    errorMsg: () => '年终奖须为非负数',
+  },
+  probation_months: {
+    min: 0.1,
+    allowZero: false,
+    errorMsg: () => '试用期月数须为正数',
+  },
+  social_insurance_monthly: {
+    min: 0,
+    allowZero: true,
+    errorMsg: () => '五险一金月缴须为非负数',
+  },
+  equity_annual: {
+    min: 0,
+    allowZero: true,
+    errorMsg: () => '股权年均须为非负数',
+  },
+};
+
+function validateOptionalNumeric(key: keyof OfferFormData, val: string): string | null {
+  const rule = NUMERIC_RULES[key];
+  if (!rule || val.trim() === '') return null; // 空值合法（选填）
+  const n = Number(val);
+  if (isNaN(n)) return rule.errorMsg(val);
+  if (!rule.allowZero && n <= 0) return rule.errorMsg(val);
+  if (rule.allowZero && n < 0) return rule.errorMsg(val);
+  if (rule.min !== undefined && n < rule.min) return rule.errorMsg(val);
+  if (rule.max !== undefined && n > rule.max) return rule.errorMsg(val);
+  return null;
+}
+
 function OfferCard({
   form,
   index,
@@ -158,18 +207,47 @@ function OfferCard({
   canRemove: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof OfferFormData, string>>>({});
+
+  function handleFieldChange(key: keyof OfferFormData, val: string) {
+    onChange(form.id, key, val);
+    // 实时校验可选数值字段
+    const err = validateOptionalNumeric(key, val);
+    setFieldErrors((prev) => {
+      if (err === null && !prev[key]) return prev; // 无变化，不触发重渲
+      return { ...prev, [key]: err ?? undefined };
+    });
+  }
 
   function field(key: keyof OfferFormData, label: string, placeholder?: string, type = 'text') {
+    const errMsg = fieldErrors[key];
+    const hasError = Boolean(errMsg);
     return (
       <div>
         <label style={labelStyle}>{label}</label>
         <input
-          style={inputStyle}
+          style={{
+            ...inputStyle,
+            borderColor: hasError ? 'var(--color-danger, #ef4444)' : inputStyle.borderColor,
+          }}
           type={type}
           placeholder={placeholder}
           value={form[key]}
-          onChange={(e) => onChange(form.id, key, e.target.value)}
+          onChange={(e) => handleFieldChange(key, e.target.value)}
         />
+        {hasError && (
+          <span
+            style={{
+              display: 'block',
+              marginTop: '3px',
+              fontSize: '11px',
+              color: 'var(--color-danger, #ef4444)',
+              fontWeight: 600,
+            }}
+          >
+            {errMsg}
+          </span>
+        )}
       </div>
     );
   }
@@ -684,7 +762,17 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function OfferComparatorPage() {
-  const [forms, setForms] = useState<OfferFormData[]>([emptyForm(), emptyForm()]);
+  // #53: 初始两张卡用固定 id(offer_1/offer_2),计数器从 3 起,只在事件回调(addOffer)里自增。
+  // 不在 render/惰性初始化中读 ref —— 否则触发 react-hooks/refs「Cannot access refs during render」。
+  const idRef = useRef(3);
+  function nextId(): string {
+    return `offer_${idRef.current++}`;
+  }
+
+  const [forms, setForms] = useState<OfferFormData[]>(() => [
+    emptyForm('offer_1'),
+    emptyForm('offer_2'),
+  ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OfferCompareResult | null>(null);
@@ -697,7 +785,8 @@ export default function OfferComparatorPage() {
 
   function addOffer() {
     if (forms.length >= 5) return;
-    setForms((prev) => [...prev, emptyForm()]);
+    const newForm = emptyForm(nextId());
+    setForms((prev) => [...prev, newForm]);
   }
 
   function removeOffer(id: string) {
@@ -722,6 +811,15 @@ export default function OfferComparatorPage() {
         const pct = Number(f.probation_discount);
         if (isNaN(pct) || pct <= 0 || pct > 100) {
           setError(`"${f.company || '某个 offer'}"的试用期折扣必须在 1-100 之间`);
+          return;
+        }
+      }
+      // #54/#55: 检查所有可选数值字段是否合法（含 weekly_hours 范围校验）
+      const optionalNumericKeys = Object.keys(NUMERIC_RULES) as Array<keyof OfferFormData>;
+      for (const key of optionalNumericKeys) {
+        const err = validateOptionalNumeric(key, f[key] as string);
+        if (err) {
+          setError(`"${f.company || '某个 offer'}"：${err}`);
           return;
         }
       }

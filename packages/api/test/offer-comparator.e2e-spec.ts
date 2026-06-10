@@ -744,6 +744,207 @@ describe('OfferComparator (e2e) — deterministic guard tests', () => {
       expect(res.status).toBe(400);
     });
   });
+
+  // ─── #39: AI 漏 offer 时以输入为基准补齐，不静默丢失 ────────────────────────
+
+  describe('#39 missing AI rows filled from input baseline', () => {
+    it('AI omits o2 from comparison → o2 still present in response with AI未给出/信息不足', async () => {
+      mockResult = makeAiResult({
+        comparison: [
+          { offer_id: 'o1', company: '字节跳动', dimensions: { stability_score: 8 } },
+          // o2 漏掉
+        ],
+        weighted_scores: [
+          { offer_id: 'o1', company: '字节跳动', total_score: 82, dimension_scores: { compensation: 85, growth: 80 } },
+          // o2 漏掉
+        ],
+        hourly_rate_comparison: [
+          { offer_id: 'o1', company: '字节跳动', weekly_hours: 60, hourly_rate_rmb: 166.67 },
+          // o2 漏掉
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send(TWO_OFFERS);
+
+      expect(res.status).toBe(200);
+
+      // comparison: 两行都在，o2 带"AI 未给出"标注
+      const cmpIds = (res.body.comparison as Array<{ offer_id: string }>).map((c) => c.offer_id);
+      expect(cmpIds).toContain('o1');
+      expect(cmpIds).toContain('o2');
+      const o2Cmp = (res.body.comparison as Array<{ offer_id: string; dimensions: { growth_potential?: string } }>).find((c) => c.offer_id === 'o2');
+      expect(o2Cmp?.dimensions.growth_potential).toContain('AI 未给出');
+
+      // weighted_scores: 两行都在，o2 带"AI 未给出"标注（维度分用 _note 标记）
+      const wsIds = (res.body.weighted_scores as Array<{ offer_id: string }>).map((w) => w.offer_id);
+      expect(wsIds).toContain('o1');
+      expect(wsIds).toContain('o2');
+
+      // hourly_rate_comparison: 两行都在
+      const hrIds = (res.body.hourly_rate_comparison as Array<{ offer_id: string }>).map((h) => h.offer_id);
+      expect(hrIds).toContain('o1');
+      expect(hrIds).toContain('o2');
+    });
+  });
+
+  // ─── #40: DTO ArrayMaxSize(5) + MaxLength 字段校验 ───────────────────────────
+
+  describe('#40 DTO ArrayMaxSize(5) and MaxLength fields', () => {
+    it('6 offers → 400 (@ArrayMaxSize(5))', async () => {
+      const offers = Array.from({ length: 6 }, (_, i) => ({
+        id: `o${i + 1}`,
+        company: `公司${i + 1}`,
+        base_monthly: 20000,
+      }));
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ offers });
+      expect(res.status).toBe(400);
+    });
+
+    it('5 offers → passes ArrayMaxSize validation', async () => {
+      mockResult = makeAiResult({
+        comparison: Array.from({ length: 5 }, (_, i) => ({ offer_id: `o${i + 1}`, company: `公司${i + 1}`, dimensions: {} })),
+        weighted_scores: Array.from({ length: 5 }, (_, i) => ({ offer_id: `o${i + 1}`, company: `公司${i + 1}` })),
+        hourly_rate_comparison: Array.from({ length: 5 }, (_, i) => ({ offer_id: `o${i + 1}`, company: `公司${i + 1}`, hourly_rate_rmb: null })),
+        recommendation: { preferred_offer_id: 'o1', rationale: '略', confidence: 'low', caveats: [] },
+      });
+      const offers = Array.from({ length: 5 }, (_, i) => ({
+        id: `o${i + 1}`,
+        company: `公司${i + 1}`,
+        base_monthly: 20000,
+      }));
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ offers });
+      expect(res.status).toBe(200);
+    });
+
+    it('company exceeds MaxLength(100) → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          offers: [
+            { id: 'o1', company: 'A'.repeat(101), base_monthly: 20000 },
+            { id: 'o2', company: '美团', base_monthly: 30000 },
+          ],
+        });
+      expect(res.status).toBe(400);
+    });
+
+    it('notes exceeds MaxLength(500) → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          offers: [
+            { id: 'o1', company: '字节', base_monthly: 20000, notes: 'X'.repeat(501) },
+            { id: 'o2', company: '美团', base_monthly: 30000 },
+          ],
+        });
+      expect(res.status).toBe(400);
+    });
+
+    it('id exceeds MaxLength(64) → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          offers: [
+            { id: 'X'.repeat(65), company: '字节', base_monthly: 20000 },
+            { id: 'o2', company: '美团', base_monthly: 30000 },
+          ],
+        });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── #41: 服务端按权重复算 total_score，覆盖模型值 ──────────────────────────
+
+  describe('#41 server recomputes total_score from dimension_scores and weights', () => {
+    it('default weights: server overwrites AI total_score with weighted sum of dimension_scores', async () => {
+      // AI gives dimension_scores; server must recompute total_score
+      // default weights: compensation=0.4, growth=0.3, stability=0.2, wlb=0.1
+      // o1: 0.4*85 + 0.3*80 + 0.2*0 + 0.1*0 = 34+24 = 58 (weights sum=1, factor=1)
+      // o2: 0.4*70 + 0.3*78 = 28+23.4 = 51.4
+      mockResult = makeAiResult({
+        weighted_scores: [
+          { offer_id: 'o1', company: '字节跳动', total_score: 999, dimension_scores: { compensation: 85, growth: 80 } },
+          { offer_id: 'o2', company: '美团', total_score: 999, dimension_scores: { compensation: 70, growth: 78 } },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send(TWO_OFFERS);
+
+      expect(res.status).toBe(200);
+      const wsMap: Record<string, number | undefined> = {};
+      for (const ws of res.body.weighted_scores as Array<{ offer_id: string; total_score?: number }>) {
+        wsMap[ws.offer_id] = ws.total_score;
+      }
+      // AI gave 999; server must overwrite with recomputed value (not 999)
+      expect(wsMap['o1']).not.toBe(999);
+      expect(wsMap['o2']).not.toBe(999);
+      // Recomputed: o1=58, o2=51.4
+      expect(wsMap['o1']).toBeCloseTo(58, 1);
+      expect(wsMap['o2']).toBeCloseTo(51.4, 1);
+    });
+
+    it('custom weights normalized then applied to dimension_scores', async () => {
+      // weights: compensation=0.6, growth=0.4, stability=0, wlb=0 → sum=1.0, already normalized
+      // o1: 0.6*85 + 0.4*80 = 51+32 = 83
+      mockResult = makeAiResult({
+        weighted_scores: [
+          { offer_id: 'o1', company: '字节跳动', total_score: 0, dimension_scores: { compensation: 85, growth: 80 } },
+          { offer_id: 'o2', company: '美团', total_score: 0, dimension_scores: { compensation: 70, growth: 78 } },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...TWO_OFFERS, weights: { compensation: 0.6, growth: 0.4, stability: 0, work_life_balance: 0 } });
+
+      expect(res.status).toBe(200);
+      const wsMap: Record<string, number | undefined> = {};
+      for (const ws of res.body.weighted_scores as Array<{ offer_id: string; total_score?: number }>) {
+        wsMap[ws.offer_id] = ws.total_score;
+      }
+      expect(wsMap['o1']).toBeCloseTo(83, 1);
+      expect(wsMap['o2']).toBeCloseTo(73.2, 1);
+    });
+
+    it('dimension_scores absent → total_score not recomputed, model value retained when high confidence', async () => {
+      // No dimension_scores provided by AI → cannot recompute; preserve model value
+      mockResult = makeAiResult({
+        weighted_scores: [
+          { offer_id: 'o1', company: '字节跳动', total_score: 82 },
+          { offer_id: 'o2', company: '美团', total_score: 74 },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/offer-comparator/compare')
+        .set('Authorization', `Bearer ${token}`)
+        .send(TWO_OFFERS);
+
+      expect(res.status).toBe(200);
+      const wsMap: Record<string, number | undefined> = {};
+      for (const ws of res.body.weighted_scores as Array<{ offer_id: string; total_score?: number }>) {
+        wsMap[ws.offer_id] = ws.total_score;
+      }
+      expect(wsMap['o1']).toBe(82);
+      expect(wsMap['o2']).toBe(74);
+    });
+  });
 });
 
 // ── AI-live suite (default skip unless RUN_AI_LIVE=1) ─────────────────────────

@@ -228,19 +228,31 @@ export default function CampusDiagnosisPage() {
     setSubmitError(null);
     setStep('analyzing');
 
+    // 180 秒超时:AI 三次串行调用在慢网络下可能超 2 分钟,超时后告知用户重试。
+    const TIMEOUT_MS = 180_000;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS),
+    );
+
     try {
-      const diagnosis = await api.post<Diagnosis>('/diagnoses/campus', {
-        resume_id: selectedResumeId,
-        profession,
-        tier: effectiveTier,
-        jd_text: trimmedJd || undefined,
-      });
+      const diagnosis = await Promise.race([
+        api.post<Diagnosis>('/diagnoses/campus', {
+          resume_id: selectedResumeId,
+          profession,
+          tier: effectiveTier,
+          jd_text: trimmedJd || undefined,
+        }),
+        timeoutPromise,
+      ]);
       router.push(`/diagnoses/${diagnosis.id}`);
     } catch (err) {
+      const isTimeout = err instanceof Error && err.message === 'TIMEOUT';
       setSubmitError(
-        err instanceof Error
-          ? `诊断失败：${err.message}`
-          : '诊断失败，请稍后重试。',
+        isTimeout
+          ? '诊断超时（已等待 3 分钟），服务器可能繁忙，请稍后重试。'
+          : err instanceof Error
+            ? `诊断失败：${err.message}`
+            : '诊断失败，请稍后重试。',
       );
       setStep('setup');
     }

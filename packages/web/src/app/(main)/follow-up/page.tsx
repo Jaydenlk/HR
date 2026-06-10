@@ -218,7 +218,9 @@ export default function FollowUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FollowUpResult | null>(null);
+  // #47 — separate copy feedback from left-side form error
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
   const config = SCENARIOS[scenario];
@@ -250,15 +252,17 @@ export default function FollowUpPage() {
 
   function handleCopy() {
     if (!result?.message_draft) return;
+    setCopyError(null);
     if (!navigator.clipboard) {
-      setError('当前环境不支持自动复制，请手动选中文本后复制');
+      // #47 — use copyError so feedback appears near the copy button in right panel
+      setCopyError('当前环境不支持自动复制，请手动选中文本后复制');
       return;
     }
     navigator.clipboard.writeText(result.message_draft).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {
-      setError('复制失败，请手动选中文本后复制');
+      setCopyError('复制失败，请手动选中文本后复制');
     });
   }
 
@@ -507,28 +511,37 @@ export default function FollowUpPage() {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         marginBottom: '12px',
+                        gap: '10px',
                       }}
                     >
                       <span style={{ ...labelStyle, marginBottom: 0 }}>消息草稿</span>
-                      <button
-                        onClick={handleCopy}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid var(--color-line)',
-                          background: 'var(--color-surface)',
-                          color: copied ? 'var(--color-success)' : 'var(--color-ink)',
-                          fontSize: '12.5px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Copy size={12} />
-                        {copied ? '已复制' : '复制'}
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        {/* #47 — copy feedback rendered next to copy button in right panel */}
+                        {copyError && (
+                          <span style={{ fontSize: '11.5px', color: 'var(--color-danger)', lineHeight: 1.4, maxWidth: '160px' }}>
+                            {copyError}
+                          </span>
+                        )}
+                        <button
+                          onClick={handleCopy}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--color-line)',
+                            background: 'var(--color-surface)',
+                            color: copied ? 'var(--color-success)' : 'var(--color-ink)',
+                            fontSize: '12.5px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Copy size={12} />
+                          {copied ? '已复制' : '复制'}
+                        </button>
+                      </div>
                     </div>
                     <div
                       style={{

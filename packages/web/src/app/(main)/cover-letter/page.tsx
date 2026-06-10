@@ -721,9 +721,12 @@ export default function CoverLetterPage() {
         </button>
       </div>
 
-      {/* Tab content */}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {activeTab === 'cover-letter' ? <CoverLetterTab /> : <ReferralPanel />}
+      {/* Tab content — #52: render both tabs, hide inactive with display:none to preserve state */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: activeTab === 'cover-letter' ? 'block' : 'none' }}>
+        <CoverLetterTab />
+      </div>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: activeTab === 'referral' ? 'block' : 'none' }}>
+        <ReferralPanel />
       </div>
 
       <style>{`

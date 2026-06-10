@@ -56,6 +56,14 @@ const FORBIDDEN_PATTERNS: RegExp[] = [
 const STANDALONE_URGE_PATTERN =
   /(?<![加应救心情焦紧着危緊性告求事])急(?![需切促迫忙于速性救告])/;
 
+// #29: 中文字符占比兜底阈值。message_draft 中中文字符（CJK统一汉字区）占非空白字符比例
+// 低于此阈值时，判定为疑似非中文内容，触发 confidence 降级 + risks 标注。
+// 注：编造内容的文字语义无法通过字符统计根治，done=false 的根因保留在 notes 中。
+const MIN_CHINESE_CHAR_RATIO = 0.3;
+
+// 中文字符范围：CJK 统一汉字（基本区 + 扩展）及全角标点。
+const CHINESE_CHAR_RE = /[一-鿿㐀-䶿豈-﫿　-〿＀-￯]/g;
+
 // ── Placeholder / fabrication markers (thank_you 占位式编造检测) ───────────────
 
 // AI 在缺面试细节时若仍写出「我们讨论了X」「您提到的X」等内容，需判定为占位式编造。
@@ -271,6 +279,25 @@ export class FollowUpService {
     const LIMIT_SCENARIOS: FollowUpScenario[] = ['thank_you', 'status_inquiry', 'rejection_reply'];
     if (LIMIT_SCENARIOS.includes(dto.scenario)) {
       message_draft = truncateToSentence(message_draft, 150);
+    }
+
+    // Guard 4: #29 中文字符占比兜底。统计 message_draft 中中文字符比例；
+    // 低于阈值时说明草稿可能为英文或混合语言，触发 confidence 降级 + risks 标注。
+    // 注：此为确定性统计兜底，无法从语义层面识别编造内容；编造根治需要真实数据。
+    if (message_draft.length > 0) {
+      const nonWhitespace = message_draft.replace(/\s/g, '');
+      if (nonWhitespace.length > 0) {
+        CHINESE_CHAR_RE.lastIndex = 0;
+        const chineseMatches = message_draft.match(CHINESE_CHAR_RE);
+        const chineseCount = chineseMatches ? chineseMatches.length : 0;
+        const ratio = chineseCount / nonWhitespace.length;
+        if (ratio < MIN_CHINESE_CHAR_RATIO) {
+          if (!risks.some((r) => r.includes('中文'))) {
+            risks.push('草稿中文字符占比过低，疑似含非中文内容，请复核后再发送');
+          }
+          if (confidence === 'high') confidence = 'medium';
+        }
+      }
     }
 
     return { ...result, message_draft, confidence, cannot_determine, risks };

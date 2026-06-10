@@ -120,6 +120,47 @@ function SubmitDialog({
       setError('请填写公司、岗位、月薪和总包');
       return;
     }
+
+    // #56 — number legitimacy + positive + consistency validation
+    const baseSalary = Number(form.base_salary);
+    const totalComp = Number(form.total_comp);
+    const bonus = form.bonus ? Number(form.bonus) : null;
+    const stockValue = form.stock_value ? Number(form.stock_value) : null;
+
+    if (!Number.isFinite(baseSalary) || !Number.isFinite(totalComp)) {
+      setError('月薪和总包必须为有效数字');
+      return;
+    }
+    if (baseSalary <= 0) {
+      setError('月薪必须为正数（元/月）');
+      return;
+    }
+    if (totalComp <= 0) {
+      setError('总包必须为正数（元/年）');
+      return;
+    }
+    if (baseSalary > 500000) {
+      setError('月薪超出合理范围（最大 500,000 元/月）');
+      return;
+    }
+    if (totalComp > 10000000) {
+      setError('总包超出合理范围（最大 10,000,000 元/年）');
+      return;
+    }
+    // 月薪 × 12 不应超过总包（总包 = 月薪 × N + 奖金 + 股票，月薪已是最低底数）
+    if (baseSalary * 12 > totalComp) {
+      setError('月薪 × 12 不能超过总包年薪，请检查数值是否填错');
+      return;
+    }
+    if (bonus !== null && (!Number.isFinite(bonus) || bonus < 0)) {
+      setError('年终奖必须为非负数');
+      return;
+    }
+    if (stockValue !== null && (!Number.isFinite(stockValue) || stockValue < 0)) {
+      setError('股票价值必须为非负数');
+      return;
+    }
+
     setError(null);
     setSubmitting(true);
     try {

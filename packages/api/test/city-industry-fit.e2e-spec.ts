@@ -185,6 +185,14 @@ const INFLATED_SCORE_RESULT = {
   ],
 };
 
+// #44: confidence=insufficient 却附带完整 fit_matrix（自相矛盾）。
+// 服务端必须强制 fit_matrix=[]，并级联清空 cost/hub，recommendation 退化为中性提示。
+const INSUFFICIENT_WITH_MATRIX_RESULT = {
+  ...HAPPY_RESULT,
+  confidence: 'insufficient',
+  // fit_matrix / cost_of_living_impact / industry_hub_analysis 仍是 HAPPY_RESULT 的完整内容
+};
+
 const mockAiService = {
   complete: jest.fn().mockResolvedValue('mock'),
   completeStructured: jest.fn().mockImplementation(({ toolName }: { toolName: string }) => {
@@ -739,6 +747,58 @@ describe('City × Industry Fit (e2e, mocked AI)', () => {
       // 不得透传引用了被过滤城市（北京）的 AI 推荐文本
       expect(res.body.recommendation).not.toContain('综合适配度 78 分');
       // 必须是服务端中性提示
+      expect(res.body.recommendation).toContain('没有符合条件');
+    });
+  });
+
+  // ─── #44: insufficient 必须清空 fit_matrix（消除自相矛盾）───────────────────────
+
+  describe('Anti-contradiction: insufficient confidence forces empty fit_matrix (#44)', () => {
+    let appInsufficient: INestApplication;
+    let tokenInsufficient: string;
+
+    beforeAll(async () => {
+      const mockInsufficient = {
+        complete: jest.fn().mockResolvedValue('mock'),
+        completeStructured: jest.fn().mockResolvedValue(INSUFFICIENT_WITH_MATRIX_RESULT),
+      };
+
+      const moduleRefInsuf = await Test.createTestingModule({ imports: [AppModule] })
+        .overrideProvider(AiService)
+        .useValue(mockInsufficient)
+        .compile();
+
+      appInsufficient = moduleRefInsuf.createNestApplication();
+      appInsufficient.setGlobalPrefix('api');
+      appInsufficient.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+      await appInsufficient.init();
+
+      tokenInsufficient = await loginUser(
+        appInsufficient,
+        'city-fit-insuf@coach.dev',
+        'Insufficient User',
+      );
+    }, 30000);
+
+    afterAll(async () => {
+      await appInsufficient.close();
+    });
+
+    it('AI returns confidence=insufficient with full matrix → server clears matrix + cascades', async () => {
+      const res = await request(appInsufficient.getHttpServer())
+        .post('/api/salary/city-industry-fit')
+        .set('Authorization', `Bearer ${tokenInsufficient}`)
+        .send({ profile: { skills: ['Java'], current_role: '后端工程师' } });
+
+      expect(res.status).toBe(201);
+      expect(res.body.confidence).toBe('insufficient');
+      // 数据不足时不得附带任何适配矩阵（消除"声称不足却照样输出矩阵"的自相矛盾）
+      expect(res.body.fit_matrix).toEqual([]);
+      // fitCities 为空 → cost/hub 级联清空
+      expect(res.body.cost_of_living_impact).toEqual([]);
+      expect(res.body.industry_hub_analysis).toEqual([]);
+      // recommendation 退化为中性提示，不得引用任何被清空的城市评分
+      expect(res.body.recommendation).not.toContain('综合适配度 78 分');
       expect(res.body.recommendation).toContain('没有符合条件');
     });
   });

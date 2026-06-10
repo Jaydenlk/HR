@@ -163,11 +163,14 @@ export class NetworkingService {
   constructor(private readonly ai: AiService) {}
 
   async writeMessage(dto: NetworkingMessageDto): Promise<NetworkingMessageResult> {
-    // ── Guard 1: target_company + target_position 均缺 → insufficient ──────
-    // (DTO validation already ensures both are present, but if both are empty strings
-    // after trim, we still refuse)
-    if (!dto.target_company.trim() || !dto.target_position.trim()) {
-      return this.insufficientMessage(['target_company', 'target_position']);
+    // ── Guard 1: target_company / target_position 缺失 → insufficient ──────
+    // (DTO validation already ensures both are present, but if either is an empty
+    // string after trim, we refuse — #38: 仅列出实际缺失的字段，不再两个都列。)
+    const missingFields: string[] = [];
+    if (!dto.target_company.trim()) missingFields.push('target_company');
+    if (!dto.target_position.trim()) missingFields.push('target_position');
+    if (missingFields.length > 0) {
+      return this.insufficientMessage(missingFields);
     }
 
     const system = `你是一位专业的职业发展教练，负责帮用户撰写内推申请消息。
@@ -366,16 +369,18 @@ export class NetworkingService {
       ];
     }
 
-    // ── Guard 2: 服务端校验 cold_contact 不得标高成功率 ───────────────────────
+    // ── Guard 2（#36/#62）: 服务端按 path_type 对全部三类路径校验成功率 ──────────
+    // direct 30-50% / indirect 15-30% / cold_contact 5-15%；超区间上界即收口到区间标准值。
     // 置于溯源剥离之后：被降级为 cold_contact 的路径也一并纳入成功率收口。
+    let clampedAnyRate = false;
     for (const path of raw.referral_paths) {
-      if (path.path_type === 'cold_contact') {
-        // 如果估计成功率明显超出区间（含 >15% 或类似表述），降级为合理区间
-        const rateStr = path.estimated_success_rate ?? '';
-        if (this.isColdContactRateInflated(rateStr)) {
-          path.estimated_success_rate = '5-15%';
-        }
-      }
+      if (this.clampRateToRange(path)) clampedAnyRate = true;
+    }
+    if (clampedAnyRate) {
+      raw.cannot_determine = [
+        ...raw.cannot_determine,
+        '部分内推路径的成功率超出该路径类型的合理区间，已收口到行业参考区间以防虚报',
+      ];
     }
 
     return raw;
@@ -506,14 +511,46 @@ export class NetworkingService {
   }
 
   /**
-   * 检测冷接触成功率是否被虚报（>15% 视为不合理，系统提示规定冷接触成功率 5-15%）
-   * #52：取区间「上界」判断——'10-20%' 等上界超限场景旧逻辑（取首数字）会漏判，
-   * 现提取所有数字取最大值，只要上界 >15 即视为虚报。
+   * #37：仅解析「百分比」数字，提取字符串中所有百分比的最大值作为成功率上界。
+   * 旧实现用 /\d+/g 取所有数字最大值，会把上下文数字（如「2年」「第3个」「工作三年」
+   * 中阿拉伯数字部分）误当成成功率。现只匹配紧跟 % 的数字（如「20%」「10-20%」
+   * 「成功率约 30 %」），忽略一切非百分比数字。返回 null 表示文本中没有任何百分比。
    */
-  private isColdContactRateInflated(rateStr: string): boolean {
-    const nums = rateStr.match(/\d+/g);
-    if (!nums || nums.length === 0) return false;
-    const upper = Math.max(...nums.map((n) => parseInt(n, 10)));
-    return upper > 15;
+  private parseRateUpperBound(rateStr: string): number | null {
+    // 匹配数字（可含小数）后紧跟可选空白再跟 % 的片段，取数字部分。
+    const matches = rateStr.match(/\d+(?:\.\d+)?(?=\s*%)/g);
+    if (!matches || matches.length === 0) return null;
+    return Math.max(...matches.map((n) => parseFloat(n)));
+  }
+
+  /**
+   * 三类内推路径的合理成功率区间（系统提示约定）：
+   * direct 30-50% / indirect 15-30% / cold_contact 5-15%。
+   */
+  private static readonly RATE_RANGES: Record<
+    ReferralPath['path_type'],
+    { lower: number; upper: number; label: string }
+  > = {
+    direct: { lower: 30, upper: 50, label: '30-50%' },
+    indirect: { lower: 15, upper: 30, label: '15-30%' },
+    cold_contact: { lower: 5, upper: 15, label: '5-15%' },
+  };
+
+  /**
+   * #36/#62：按 path_type 对成功率做服务端 clamp/校验。
+   * 提取文本里百分比的上界，若超出该路径类型区间上界 → 收口为区间标准值并标注。
+   * 返回是否发生了收口（用于上层记录 cannot_determine）。
+   * #37：上下文数字（「2年」「第3个」）不含 %，parseRateUpperBound 已忽略，不会误判。
+   */
+  private clampRateToRange(path: ReferralPath): boolean {
+    const range = NetworkingService.RATE_RANGES[path.path_type];
+    if (!range) return false;
+    const upper = this.parseRateUpperBound(path.estimated_success_rate ?? '');
+    if (upper === null) return false;
+    if (upper > range.upper) {
+      path.estimated_success_rate = range.label;
+      return true;
+    }
+    return false;
   }
 }

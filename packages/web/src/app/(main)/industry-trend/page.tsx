@@ -154,7 +154,57 @@ function ConfidenceBadge({ confidence }: { confidence: string }) {
   );
 }
 
-function GrowthSignalCard({ signal }: { signal: IndustryGrowthSignal }) {
+// 在 evidence_used 中按 source 名匹配第一条带 url 的证据,用于给信号卡片关联可点击链接。
+function findEvidenceUrl(
+  evidenceUsed: IndustryTrendResult['evidence_used'],
+  source: string,
+): string | undefined {
+  return evidenceUsed.find((ev) => ev.source === source && ev.url)?.url;
+}
+
+// 信号卡片底部的来源行:有 url 则渲染可点击链接,否则标注"无可核验链接"。
+function SignalSourceLine({
+  source,
+  date,
+  url,
+}: {
+  source: string;
+  date: string;
+  url: string | undefined;
+}) {
+  return (
+    <div style={{ fontSize: '11.5px', color: 'var(--color-ink-4)', marginTop: '4px' }}>
+      {url ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--color-brand)', textDecoration: 'none', fontWeight: 500 }}
+        >
+          {source}
+        </a>
+      ) : (
+        <span title="无可核验链接">{source}</span>
+      )}
+      {' · '}
+      {date}
+      {!url && (
+        <span style={{ marginLeft: '6px', color: 'var(--color-ink-4)', fontStyle: 'italic' }}>
+          无可核验链接
+        </span>
+      )}
+    </div>
+  );
+}
+
+function GrowthSignalCard({
+  signal,
+  evidenceUsed,
+}: {
+  signal: IndustryGrowthSignal;
+  evidenceUsed: IndustryTrendResult['evidence_used'];
+}) {
+  const url = findEvidenceUrl(evidenceUsed, signal.source);
   return (
     <div
       style={{
@@ -185,14 +235,19 @@ function GrowthSignalCard({ signal }: { signal: IndustryGrowthSignal }) {
           {signal.strength ? STRENGTH_LABELS[signal.strength] ?? signal.strength : UNLABELED}
         </span>
       </div>
-      <div style={{ fontSize: '11.5px', color: 'var(--color-ink-4)', marginTop: '4px' }}>
-        {signal.source} · {signal.date}
-      </div>
+      <SignalSourceLine source={signal.source} date={signal.date} url={url} />
     </div>
   );
 }
 
-function RiskSignalCard({ signal }: { signal: IndustryRiskSignal }) {
+function RiskSignalCard({
+  signal,
+  evidenceUsed,
+}: {
+  signal: IndustryRiskSignal;
+  evidenceUsed: IndustryTrendResult['evidence_used'];
+}) {
+  const url = findEvidenceUrl(evidenceUsed, signal.source);
   return (
     <div
       style={{
@@ -223,9 +278,7 @@ function RiskSignalCard({ signal }: { signal: IndustryRiskSignal }) {
           {signal.severity ? SEVERITY_LABELS[signal.severity] ?? signal.severity : UNLABELED}
         </span>
       </div>
-      <div style={{ fontSize: '11.5px', color: 'var(--color-ink-4)', marginTop: '4px' }}>
-        {signal.source} · {signal.date}
-      </div>
+      <SignalSourceLine source={signal.source} date={signal.date} url={url} />
     </div>
   );
 }
@@ -689,7 +742,7 @@ export default function IndustryTrendPage() {
                     <span style={labelStyle}>增长信号（{result.growth_signals.length} 条）</span>
                   </div>
                   {result.growth_signals.map((s, i) => (
-                    <GrowthSignalCard key={i} signal={s} />
+                    <GrowthSignalCard key={i} signal={s} evidenceUsed={result.evidence_used} />
                   ))}
                 </div>
               )}
@@ -709,7 +762,7 @@ export default function IndustryTrendPage() {
                     <span style={labelStyle}>风险信号（{result.risk_signals.length} 条）</span>
                   </div>
                   {result.risk_signals.map((s, i) => (
-                    <RiskSignalCard key={i} signal={s} />
+                    <RiskSignalCard key={i} signal={s} evidenceUsed={result.evidence_used} />
                   ))}
                 </div>
               )}

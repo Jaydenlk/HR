@@ -9,6 +9,7 @@ import {
   MinLength,
   MaxLength,
   ArrayMinSize,
+  ArrayMaxSize,
   IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -42,10 +43,12 @@ export class OfferWeightsDto {
 export class OfferItemDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(64)
   id: string;
 
   @IsString()
   @MinLength(1)
+  @MaxLength(100)
   company: string;
 
   /** 月薪（元） */
@@ -67,11 +70,13 @@ export class OfferItemDto {
 
   /** 城市 */
   @IsString()
+  @MaxLength(50)
   @IsOptional()
   city?: string;
 
   /** 职级 */
   @IsString()
+  @MaxLength(50)
   @IsOptional()
   level?: string;
 
@@ -108,11 +113,13 @@ export class OfferItemDto {
 
   /** 股票类型（A股/港股/美股/虚拟股/期权） */
   @IsString()
+  @MaxLength(20)
   @IsOptional()
   equity_type?: string;
 
   /** 其他补充描述 */
   @IsString()
+  @MaxLength(500)
   @IsOptional()
   notes?: string;
 }
@@ -120,6 +127,7 @@ export class OfferItemDto {
 export class CompareOffersDto {
   @IsArray()
   @ArrayMinSize(2, { message: 'Offer 比对至少需要 2 个 offer，当前只有 1 个或为空' })
+  @ArrayMaxSize(5, { message: 'Offer 比对最多支持 5 个 offer' })
   @ValidateNested({ each: true })
   @Type(() => OfferItemDto)
   offers: OfferItemDto[];

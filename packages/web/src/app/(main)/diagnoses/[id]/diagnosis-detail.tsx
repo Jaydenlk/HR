@@ -248,7 +248,7 @@ function ConventionCheckRow({ check }: { check: ConventionCheck }) {
 function SuggestionCard({
   suggestion,
 }: {
-  suggestion: Diagnosis['suggestions'][number];
+  suggestion: NonNullable<Diagnosis['suggestions']>[number];
 }) {
   const s = suggestion;
   const isGap = s.type === 'gap_advice'; // 建议补充类:非现成简历句,警示样式且不可直接粘贴
@@ -471,7 +471,7 @@ function ProfessionStandardView({
       )}
 
       {/* 改写示范 */}
-      {diagnosis.suggestions.length > 0 && (
+      {(diagnosis.suggestions ?? []).length > 0 && (
         <div
           style={{
             background: 'var(--color-surface)',
@@ -482,10 +482,10 @@ function ProfessionStandardView({
           }}
         >
           <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 16px' }}>
-            改写示范（{diagnosis.suggestions.length}）
+            改写示范（{(diagnosis.suggestions ?? []).length}）
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {diagnosis.suggestions.map((s, i) => (
+            {(diagnosis.suggestions ?? []).map((s, i) => (
               <SuggestionCard key={i} suggestion={s} />
             ))}
           </div>
@@ -840,10 +840,10 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
           }}
         >
           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-success)', marginBottom: '10px' }}>
-            命中关键词 ({diagnosis.keywords_hit.length})
+            命中关键词 ({(diagnosis.keywords_hit ?? []).length})
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {diagnosis.keywords_hit.slice(0, 12).map((k) => (
+            {(diagnosis.keywords_hit ?? []).slice(0, 12).map((k) => (
               <span
                 key={k}
                 style={{
@@ -869,10 +869,10 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
           }}
         >
           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-danger)', marginBottom: '10px' }}>
-            缺失关键词 ({diagnosis.keywords_miss.length})
+            缺失关键词 ({(diagnosis.keywords_miss ?? []).length})
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {diagnosis.keywords_miss.slice(0, 12).map((k) => (
+            {(diagnosis.keywords_miss ?? []).slice(0, 12).map((k) => (
               <span
                 key={k}
                 style={{
@@ -892,7 +892,7 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Suggestions */}
-      {diagnosis.suggestions.length > 0 && (
+      {(diagnosis.suggestions ?? []).length > 0 && (
         <div
           style={{
             background: 'var(--color-surface)',
@@ -902,10 +902,10 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
           }}
         >
           <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '16px' }}>
-            改进建议 ({diagnosis.suggestions.length})
+            改进建议 ({(diagnosis.suggestions ?? []).length})
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {diagnosis.suggestions.map((s, i) => (
+            {(diagnosis.suggestions ?? []).map((s, i) => (
               <div
                 key={i}
                 style={{

@@ -279,14 +279,35 @@ export default function LearningRoadmapPage() {
       return;
     }
 
+    // #50 — validate weekly hours: must be integer 1–80
+    if (weeklyHours !== '') {
+      const parsed = parseInt(weeklyHours, 10);
+      if (!Number.isInteger(Number(weeklyHours)) || String(parsed) !== weeklyHours.trim()) {
+        setErrorMsg('每周学习时长必须为整数小时');
+        setState('error');
+        return;
+      }
+      if (parsed < 1) {
+        setErrorMsg('每周学习时长至少为 1 小时');
+        setState('error');
+        return;
+      }
+      if (parsed > 80) {
+        setErrorMsg('每周学习时长不能超过 80 小时');
+        setState('error');
+        return;
+      }
+    }
+
     setState('loading');
     setResult(null);
     setErrorMsg('');
 
+    const parsedHours = weeklyHours ? parseInt(weeklyHours, 10) : undefined;
     const body: BuildRoadmapRequest = {
       skill_gaps: rawGaps,
       ...(profile.trim() ? { profile: profile.trim() } : {}),
-      ...(weeklyHours ? { weekly_hours: parseInt(weeklyHours, 10) } : {}),
+      ...(parsedHours != null ? { weekly_hours: parsedHours } : {}),
     };
 
     try {

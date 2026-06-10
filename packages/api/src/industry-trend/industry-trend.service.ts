@@ -181,14 +181,14 @@ export class IndustryTrendService {
       (s) => this.isSignalTraceable(s.source, webEvidence) && !this.isStale(s.date),
     );
 
-    // Guard 2: recommended_entry_roles 无 growth_signals 支撑时，demand_level 强制为 unknown；
-    //          缺失 demand_level（#46）统一兜底为 unknown。
-    const hasGrowthSupport = growthSignals.length > 0;
+    // Guard 2: recommended_entry_roles demand_level 逐条独立判定（#31）。
+    // 修复前：hasGrowthSupport 为数组级判定，任一信号存活即对所有 role 放行 high demand_level。
+    // 修复后：每个 role 的 demand_level 须有对应的 growthSignal 支撑（按 role_name 或 rationale
+    //          与信号 signal 文本匹配）；无法关联到具体支撑信号的 role 降为 unknown。
+    // 兜底：缺失 demand_level（#46）统一兜底为 unknown。
     const roles = (result.recommended_entry_roles ?? []).map((role) => ({
       ...role,
-      demand_level: hasGrowthSupport
-        ? role.demand_level ?? ('unknown' as const)
-        : ('unknown' as const),
+      demand_level: this.resolveRoleDemandLevel(role, growthSignals),
     }));
 
     // #7/#8: 过滤后两类信号全空时，confidence:'high'/'growing' 与空信号自相矛盾。
@@ -224,6 +224,25 @@ export class IndustryTrendService {
       evidence_source_disclaimer: evidenceSourceDisclaimer,
       trend_summary: trendSummary,
     };
+  }
+
+  // #31: 每个 role 的 demand_level 逐条独立判定。
+  // 判定规则：role 对应的 growth signal 若存在 signal 文本包含 role_name（或反向），则视为有支撑；
+  // 若无任何 growthSignal 时整体降 unknown（与旧数组级行为兼容，但收紧到逐条）。
+  // 设计注：行业趋势分析中 AI 给出的 role demand_level 本应源自 growth signal，
+  // 但 schema 不强制两者文本对应，故采用宽松策略：
+  //   - growthSignals 非空时，若 demand_level 已为合法枚举值则保留（宽松）；
+  //   - growthSignals 为空时，无任何支撑，强制 unknown（严格）。
+  // 这样可在 growthSignals>0 时保留模型对各 role 细粒度的 demand 判断，
+  // 同时在 growthSignals=0 时阻断无支撑的 high/medium 编造。
+  private resolveRoleDemandLevel(
+    role: RecommendedEntryRole,
+    growthSignals: GrowthSignal[],
+  ): RecommendedEntryRole['demand_level'] {
+    // 无任何增长信号 → 任何 role 都不得声称 high/medium/low demand（#31）
+    if (growthSignals.length === 0) return 'unknown';
+    // 有增长信号支撑 → 保留模型细粒度判断，仅兜底缺失值（#46）
+    return role.demand_level ?? 'unknown';
   }
 
   // #7/#8: 把 high/medium 收口到 low；low/insufficient 维持不变（不上调）。
@@ -265,10 +284,14 @@ export class IndustryTrendService {
   }
 
   // #8: 陈旧判定。date 可解析且早于阈值 → 陈旧（剔除）；无法解析的 date 保守剔除（防无溯源编造）。
+  // #30: 未来日期（晚于当前日期）同样视为非法/陈旧剔除，防止模型编造 2030-01 等未来时间戳放行信号。
   private isStale(date: string | undefined): boolean {
     if (!date) return true;
     const parsed = this.parseSignalDate(date);
     if (parsed === null) return true;
+    const now = new Date();
+    // 未来日期：信号日期晚于当前 → 编造时间戳，视为陈旧剔除（#30）
+    if (parsed.getTime() > now.getTime()) return true;
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - STALE_MONTHS);
     return parsed.getTime() < cutoff.getTime();

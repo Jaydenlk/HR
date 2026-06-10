@@ -91,9 +91,11 @@ export class AiService {
         provider.client.messages.create(build(provider.model)),
       );
       for (const block of response.content) {
-        if (block.type === 'text') return block.text;
+        if (block.type === 'text' && block.text.length > 0) return block.text;
       }
-      return '';
+      // 无 text 块(或仅空 text):中转偶发对纯文本请求返回空块。绝不静默返回 '' ——
+      // 否则求职信等用户面产物会被持久化为空白。抛错交 withFailover 重试/降级,两通道皆空才 503。
+      throw new Error(`通道 ${provider.name} 返回无文本内容,无法生成结果`);
     });
   }
 
@@ -168,7 +170,23 @@ export class AiService {
   // 校验"required 字段存在 + 容器/标量类型正确",递归进嵌套对象与数组元素。
   // 校验失败 → 当作该次失败(retry / 降级 / 最终 503),而非把残缺对象 `as T` 透传给下游导致 .map/.length 崩。
   private validateAgainstSchema(value: unknown, schema: Record<string, unknown>): boolean {
+    // oneOf/anyOf:匹配任一分支即通过。常用于"对象 或 null"等联合(如 {oneOf:[{type:'object',...},{type:'null'}]}),
+    // {type:'null'} 分支天然允许 null。模型只要命中其中一支即视为合法,不强求全部满足。
+    const branches = (schema.oneOf ?? schema.anyOf) as Record<string, unknown>[] | undefined;
+    if (Array.isArray(branches) && branches.length > 0) {
+      return branches.some((branch) => this.validateAgainstSchema(value, branch));
+    }
+
     const type = schema.type as string | undefined;
+    if (type === 'null') return value === null;
+
+    // enum:仅当值存在且非法时判失败(缺失/null 由上层 required 逻辑管,此处不误伤)。
+    // 真实模型偶发枚举漂移走既有重试链(retry→降级),不直接放大成 503。
+    const enumValues = schema.enum as unknown[] | undefined;
+    if (Array.isArray(enumValues) && value !== undefined && value !== null) {
+      if (!enumValues.includes(value)) return false;
+    }
+
     if (type === 'object') {
       if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
       const obj = value as Record<string, unknown>;

@@ -139,6 +139,95 @@ const MOCK_REFERRAL_RANGE_COLD = {
   cannot_determine: [],
 };
 
+// #36/#62: direct 路径虚报成功率（>50%）——guard 必须收口到 30-50%
+const MOCK_REFERRAL_INFLATED_DIRECT = {
+  confidence: 'high',
+  summary: 'direct 路径虚报场景',
+  referral_paths: [
+    {
+      target_company: '字节跳动',
+      contact_description: '大学同学，在字节跳动做后端工程师',
+      path_type: 'direct',
+      estimated_success_rate: '80-90%', // 上界 90>50 — fix 后应被 guard 收口为 30-50%
+      priority: 1,
+      relationship_strength: 'strong',
+      suggested_action: '直接联系',
+    },
+  ],
+  cold_outreach_targets: [],
+  network_gaps: [],
+  recommendations: [],
+  risks: [],
+  cannot_determine: [],
+};
+
+// #36/#62: indirect 路径虚报成功率（>30%）——guard 必须收口到 15-30%
+const MOCK_REFERRAL_INFLATED_INDIRECT = {
+  confidence: 'high',
+  summary: 'indirect 路径虚报场景',
+  referral_paths: [
+    {
+      target_company: '字节跳动',
+      contact_description: '大学同学，在字节跳动做后端工程师',
+      path_type: 'indirect',
+      estimated_success_rate: '60%', // 60>30 — fix 后应被 guard 收口为 15-30%
+      priority: 1,
+      relationship_strength: 'moderate',
+      suggested_action: '请同学引荐',
+    },
+  ],
+  cold_outreach_targets: [],
+  network_gaps: [],
+  recommendations: [],
+  risks: [],
+  cannot_determine: [],
+};
+
+// #37: 成功率文本含上下文数字（「2年」「第3个」「工作三年」）但百分比在区间内（10%）——
+// 旧逻辑取所有数字最大值会把上下文数字误当成功率而错误收口；新逻辑只解析百分比，不误判。
+const MOCK_REFERRAL_CONTEXT_NUMBERS = {
+  confidence: 'medium',
+  summary: '成功率含上下文数字场景',
+  referral_paths: [
+    {
+      target_company: '字节跳动',
+      contact_description: '陌生校友',
+      path_type: 'cold_contact',
+      // 含「2年」「第3个」等上下文数字，但实际百分比 10% 在 5-15% 区间内 → 不应被收口
+      estimated_success_rate: '认识2年、是第3个联系人，成功率约10%',
+      priority: 1,
+      suggested_action: '脉脉联系',
+    },
+  ],
+  cold_outreach_targets: [],
+  network_gaps: [],
+  recommendations: [],
+  risks: [],
+  cannot_determine: [],
+};
+
+// #37 反向：百分比真的超限（25%）即便伴随上下文数字也必须被收口
+const MOCK_REFERRAL_CONTEXT_NUMBERS_INFLATED = {
+  confidence: 'medium',
+  summary: '成功率含上下文数字但百分比超限场景',
+  referral_paths: [
+    {
+      target_company: '腾讯',
+      contact_description: '陌生校友',
+      path_type: 'cold_contact',
+      // 上下文有「认识2年」，但成功率 25% 超出 5-15% → 必须被收口
+      estimated_success_rate: '认识2年，成功率约25%',
+      priority: 1,
+      suggested_action: '脉脉联系',
+    },
+  ],
+  cold_outreach_targets: [],
+  network_gaps: [],
+  recommendations: [],
+  risks: [],
+  cannot_determine: [],
+};
+
 // P0: 有人脉时 AI 编造一条不在 known_contacts 里的联系人——guard 必须降为 cold_contact 并清空
 const MOCK_REFERRAL_FABRICATED_CONTACT = {
   confidence: 'high',
@@ -399,6 +488,49 @@ describe('Networking (e2e, mocked AI)', () => {
       expect(res.status).toBe(503);
     });
 
+    // #38 回归：仅 target_position 为纯空白（通过 @MinLength(1) 但 trim 后为空）→
+    // insufficientMessage 只列出 target_position，绝不连带误列 target_company。
+    it('only target_position blank → insufficient lists ONLY target_position', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/networking/message')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ target_company: '字节跳动', target_position: '   ' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.confidence).toBe('insufficient');
+      const joined = res.body.cannot_determine.join(' ');
+      expect(joined).toContain('target_position');
+      expect(joined).not.toContain('target_company');
+    });
+
+    // #38 回归：仅 target_company 为纯空白 → 只列出 target_company
+    it('only target_company blank → insufficient lists ONLY target_company', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/networking/message')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ target_company: '   ', target_position: '产品经理' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.confidence).toBe('insufficient');
+      const joined = res.body.cannot_determine.join(' ');
+      expect(joined).toContain('target_company');
+      expect(joined).not.toContain('target_position');
+    });
+
+    // #38 回归：两者皆纯空白 → 同时列出两个字段
+    it('both fields blank → insufficient lists BOTH fields', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/networking/message')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ target_company: '   ', target_position: '   ' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.confidence).toBe('insufficient');
+      const joined = res.body.cannot_determine.join(' ');
+      expect(joined).toContain('target_company');
+      expect(joined).toContain('target_position');
+    });
+
     // #54 防编造回归：用户未提供任何共同背景，但草稿声称「校友/同学」→ 剥离 + 降级
     it('no shared background but draft claims 校友 → guard strips draft & marks insufficient', async () => {
       mockAiService.completeStructured.mockImplementation(() =>
@@ -648,6 +780,114 @@ describe('Networking (e2e, mocked AI)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           target_companies: ['阿里巴巴'],
+          target_position: '产品经理',
+          known_contacts: ['陌生校友'],
+        });
+
+      expect(res.status).toBe(201);
+      const coldPaths = res.body.referral_paths.filter(
+        (p: { path_type: string }) => p.path_type === 'cold_contact',
+      );
+      expect(coldPaths.length).toBeGreaterThan(0);
+      for (const p of coldPaths) {
+        expect(p.estimated_success_rate).toBe('5-15%');
+      }
+    });
+
+    // #36/#62 回归：direct 路径虚报成功率（80-90%）→ guard 必须收口到 30-50%
+    it('direct path with inflated rate 80-90% → guard clamps to 30-50%', async () => {
+      mockAiService.completeStructured.mockImplementation(() =>
+        Promise.resolve({ ...MOCK_REFERRAL_INFLATED_DIRECT }),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/networking/referral-strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          target_companies: ['字节跳动'],
+          target_position: '后端工程师',
+          known_contacts: ['大学同学，在字节跳动做后端工程师'],
+        });
+
+      expect(res.status).toBe(201);
+      const directPaths = res.body.referral_paths.filter(
+        (p: { path_type: string }) => p.path_type === 'direct',
+      );
+      expect(directPaths.length).toBeGreaterThan(0);
+      for (const p of directPaths) {
+        expect(p.estimated_success_rate).toBe('30-50%');
+      }
+      expect(
+        res.body.cannot_determine.some((s: string) => s.includes('成功率')),
+      ).toBe(true);
+    });
+
+    // #36/#62 回归：indirect 路径虚报成功率（60%）→ guard 必须收口到 15-30%
+    it('indirect path with inflated rate 60% → guard clamps to 15-30%', async () => {
+      mockAiService.completeStructured.mockImplementation(() =>
+        Promise.resolve({ ...MOCK_REFERRAL_INFLATED_INDIRECT }),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/networking/referral-strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          target_companies: ['字节跳动'],
+          target_position: '后端工程师',
+          known_contacts: ['大学同学，在字节跳动做后端工程师'],
+        });
+
+      expect(res.status).toBe(201);
+      const indirectPaths = res.body.referral_paths.filter(
+        (p: { path_type: string }) => p.path_type === 'indirect',
+      );
+      expect(indirectPaths.length).toBeGreaterThan(0);
+      for (const p of indirectPaths) {
+        expect(p.estimated_success_rate).toBe('15-30%');
+      }
+    });
+
+    // #37 回归：成功率文本含上下文数字（2年/第3个）但百分比在区间内（10%）→ 不被误收口
+    it('rate text with context numbers but in-range percent (10%) → guard does NOT misjudge', async () => {
+      mockAiService.completeStructured.mockImplementation(() =>
+        Promise.resolve({ ...MOCK_REFERRAL_CONTEXT_NUMBERS }),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/networking/referral-strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          target_companies: ['字节跳动'],
+          target_position: '产品经理',
+          known_contacts: ['陌生校友'],
+        });
+
+      expect(res.status).toBe(201);
+      const coldPaths = res.body.referral_paths.filter(
+        (p: { path_type: string }) => p.path_type === 'cold_contact',
+      );
+      expect(coldPaths.length).toBeGreaterThan(0);
+      for (const p of coldPaths) {
+        // 10% 在 5-15% 区间内，含上下文数字不应被误收口为 '5-15%'
+        expect(p.estimated_success_rate).toBe('认识2年、是第3个联系人，成功率约10%');
+      }
+      // 未发生收口 → 不应追加成功率收口的 cannot_determine 提示
+      expect(
+        res.body.cannot_determine.some((s: string) => s.includes('成功率')),
+      ).toBe(false);
+    });
+
+    // #37 反向回归：上下文有数字但百分比真的超限（25%）→ 仍被收口
+    it('rate text with context numbers AND over-range percent (25%) → guard still clamps', async () => {
+      mockAiService.completeStructured.mockImplementation(() =>
+        Promise.resolve({ ...MOCK_REFERRAL_CONTEXT_NUMBERS_INFLATED }),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/networking/referral-strategy')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          target_companies: ['腾讯'],
           target_position: '产品经理',
           known_contacts: ['陌生校友'],
         });

@@ -4,7 +4,6 @@ import {
   IsArray,
   IsObject,
   ValidateNested,
-  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -52,9 +51,11 @@ class ProfileDto {
 // ── Request DTO ────────────────────────────────────────────────────────────────
 
 export class CityIndustryFitDto {
+  // #61: 加 @IsObject() 保证传入值为对象类型（原 @IsNotEmpty 无法拒绝非对象值）。
+  // @ValidateNested 负责递归校验子字段，@Type 提供 class-transformer 转换。
+  @IsObject()
   @ValidateNested()
   @Type(() => ProfileDto)
-  @IsNotEmpty()
   profile: ProfileDto;
 
   @IsArray()

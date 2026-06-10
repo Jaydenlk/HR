@@ -224,11 +224,113 @@ const TECH_WHITELIST_KEYWORDS = [
   '数据库',
 ];
 
-// 提取一段文本里的所有量化数字（含百分比/倍数/万等中文量词的阿拉伯数字）。
-// 用于 STAR guard：result 中出现而输入经历里没有的数字 = 编造，剔除。
-function extractNumbers(text: string): string[] {
-  const matches = text.match(/\d+(?:\.\d+)?/g);
-  return matches ?? [];
+// 量化表达式提取 + 防编造比对（STAR guard 用）。
+//
+// 旧实现的两处漏洞（#60/#64/#311）：
+//   1) 跨字段串号：把所有经历的「裸数字」拍平进一个全局 Set，输出里任一数字只要在输入
+//      任意处出现即放行。于是「5 人」可被改写成「5 倍」、「3 个月」可被挪用为「3 倍」蒙混过关。
+//   2) 不防中文数字：仅匹配阿拉伯数字 \d，输出「三十万」「百分之三十」等中文量化全部漏网。
+//
+// 新策略：提取「数字 + 量词单位」的整体表达式（数字含阿拉伯与中文），比对时要求
+// 输出的整条量化表达式（含单位）在「某一条」输入经历里原样出现（同一来源上下文），
+// 而非只看裸数字是否在全局集合。带单位的量化（5倍/30%/三十万）因此不能与不同单位的
+// 输入数字串号；中文量化也被纳入检测。
+//
+// 对外只暴露 extractQuantities + hasFabricatedQuantity 两个纯函数。
+
+// 中文数字字符。用于中文量化（三十万 / 百分之三十）识别。
+const CN_DIGIT = '零〇一二两三四五六七八九十百千万亿';
+// 量词单位：百分比/倍数/常见计量与时间/金额单位。用于把「数字+单位」当作一个整体。
+// 多字单位（个百分点/万元）排在其单字前缀（百分点/万）之前，保证正则优先吃最长单位。
+const UNIT =
+  '个百分点|百分点|万元|亿元|千元|季度|小时|分钟|％|%|倍|人|名|位|个|次|条|项|天|日|周|月|年|秒|元|块|万|千|亿|kw|k|w';
+
+// 单个量化表达式的正则（g 标志逐个抽取）：
+//   ① 百分比中文/阿拉伯：百分之三十 / 百分之30；
+//   ② 阿拉伯数字（可带小数/区间）+ 可选单位：30 / 12.5 / 12-15 / 30% / 5人 / 200万；
+//   ③ 中文数字 + 「必带」单位：三十万 / 五倍 / 三个月。
+// 关键：中文分支必须带单位，绝不匹配裸中文数字——否则「第三方/一下/万一/三方」等非量化词
+// 会被误判，造成对合法文案的误删（false positive）。阿拉伯数字本身即为明确量化，允许裸匹配。
+function quantityRegex(): RegExp {
+  return new RegExp(
+    `百分之[${CN_DIGIT}\\d]+|` +
+      `\\d+(?:\\.\\d+)?(?:\\s*[-~至]\\s*\\d+(?:\\.\\d+)?)?\\s*(?:${UNIT})?|` +
+      `[${CN_DIGIT}]+\\s*(?:${UNIT})`,
+    'g',
+  );
+}
+
+// 把一条文本里的量化表达式抽成「规范化字符串」列表：去掉内部空白、统一小写。
+// 规范化让「30 %」与「30%」「5 人」与「5人」视为相等，但「5倍」≠「5人」（单位不同 → 防串号）。
+function extractQuantities(text: string): string[] {
+  const out: string[] = [];
+  const re = quantityRegex();
+  for (const m of text.matchAll(re)) {
+    const norm = m[0].replace(/\s+/g, '').toLowerCase();
+    // 必须含至少一个数字字符（阿拉伯或中文数字），否则丢弃（纯单位/空匹配）。
+    if (norm.length > 0 && new RegExp(`[\\d${CN_DIGIT}]`).test(norm)) {
+      out.push(norm);
+    }
+  }
+  return out;
+}
+
+// 判断 text 中是否含「编造的量化表达式」：即存在某条量化表达式，在所有输入经历的
+// 规范化文本中都找不到原样子串（同一来源上下文匹配，非全局裸数字集合）。
+function hasFabricatedQuantity(text: string | undefined, normalizedInputs: string[]): boolean {
+  const quantities = extractQuantities(text ?? '');
+  return quantities.some(
+    (q) => !normalizedInputs.some((input) => input.includes(q)),
+  );
+}
+
+// 知名招聘/薪酬数据平台名（用于「平台名 + 年份」来源结构识别）。
+// 裸「平台」二字不算来源，必须是具名平台才可核验。
+const SALARY_SOURCE_PLATFORMS = [
+  '脉脉',
+  'boss直聘',
+  'boss 直聘',
+  '拉勾',
+  '猎聘',
+  '看准网',
+  '看准',
+  '职友集',
+  'offershow',
+  'levels.fyi',
+  '智联招聘',
+  '前程无忧',
+  '51job',
+];
+
+// 样本/调研口径描述词（用于「具名平台 + 口径」来源结构）。
+// 表明数字来自有方法的统计/调研，而非拍脑袋。
+const SAMPLE_DESCRIPTORS = ['调研', '问卷', '统计', '样本', '抽样', '榜单'];
+
+// 判定薪资估算字符串是否带「显式来源结构」。裸通用词（数据/平台/报告）不算来源。
+// 仅以下四种结构之一成立才放行（裸「数据/平台/报告/招聘网站」等套话一律不算）：
+//   ① 显式来源标号后接非空内容：来源/数据来源/出处/参考/据 紧跟 ：/: 再跟非空白字符；
+//   ② 具名平台 + 4 位年份（如「脉脉 2024」「BOSS直聘2025」）；
+//   ③ 具名平台 + 口径词（调研/问卷/统计/样本/抽样/榜单，如「据脉脉平台调研」）；
+//   ④ 样本/截至 + 数字（样本量或时间锚点，如「样本 320 份」「截至 2025」）。
+function hasExplicitSource(estimate: string | null | undefined): boolean {
+  if (typeof estimate !== 'string') return false;
+  const text = estimate.toLowerCase();
+
+  // ① 显式来源标号：来源/数据来源/出处/参考/据 + 可选空白 + ：或: + 可选空白 + 至少 1 个非空白字符。
+  if (/(来源|数据来源|出处|参考|据)\s*[：:]\s*\S/.test(estimate)) return true;
+
+  // ②③ 具名平台（裸「平台」二字不算）+ 年份或口径词。
+  const hasPlatform = SALARY_SOURCE_PLATFORMS.some((p) => text.includes(p));
+  if (hasPlatform) {
+    const hasYear = /\b(19|20)\d{2}\b|(19|20)\d{2}\s*年/.test(estimate);
+    const hasDescriptor = SAMPLE_DESCRIPTORS.some((d) => estimate.includes(d));
+    if (hasYear || hasDescriptor) return true;
+  }
+
+  // ④ 样本/截至 + 数字（样本量或时间锚点）。
+  if (/(样本|截至)\D{0,6}\d/.test(estimate)) return true;
+
+  return false;
 }
 
 // 过滤 evidence_used：剔除 field 或 value 为空的条目（AI 无法锚定来源 → 不可信）
@@ -277,17 +379,19 @@ export class InterviewPrepService {
       salary_range_estimate: null,
     };
 
-    // 薪资范围估算必须附带「显式来源标记」才保留，否则强制 null。
+    // 薪资范围估算必须附带「显式来源结构」才保留，否则强制 null。
     // 年份不是来源信号：旧正则 (19|20)\d{2} 会把任意含 19xx/20xx 子串的薪资数字
-    // 误判为「有来源」（如「月薪 12000」含 2000、「年包 120000」含 2000、「约 2050 元」含 2050），
-    // 导致编造薪资被保留。这里彻底移除基于数字/年份的来源推断，仅认显式来源标记。
+    // 误判为「有来源」（如「月薪 12000」含 2000、「年包 120000」含 2000、「约 2050 元」含 2050）。
+    // 同样，裸通用词（「数据」「平台」「报告」单独出现）也不算来源——模型用套话即可绕过，
+    // 如「市场数据约 40-60 万」「参考报告约 35 万」并无任何可核验来源。
+    // 收紧为需「显式来源结构」之一才放行：
+    //   ① 显式来源标号后接非空内容：来源/数据来源/出处/参考/据 + ：/: + 至少 1 个非空白字符；
+    //   ② 具名平台 + 年份：脉脉/BOSS直聘/拉勾/猎聘/看准网/职友集等知名平台名 + 4 位年份；
+    //   ③ 样本/截至说明：样本/截至 + 数字（样本量或时间锚点）。
     const estimate = notes.salary_range_estimate;
-    const hasSource =
-      typeof estimate === 'string' &&
-      /来源|数据来源|数据|截至|样本|samples|平台|调研|报告|招聘网站|JD/.test(estimate);
     const salary_negotiation_notes: SalaryNegotiationNotes = {
       ...notes,
-      salary_range_estimate: hasSource ? estimate : null,
+      salary_range_estimate: hasExplicitSource(estimate) ? estimate : null,
     };
 
     // 无真实面经数据：文化画像基于通用知识图谱，不得给出确定性文化结论。
@@ -319,21 +423,25 @@ export class InterviewPrepService {
     return this.guardStar(result, dto.experiences);
   }
 
-  // Guard ②：situation/task/action/result 均不得含输入经历里没有的量化数字（逐故事校验后剔除/降级）。
+  // Guard ②：situation/task/action/result 均不得含输入经历里没有的量化表达式（逐故事校验后剔除/降级）。
   private guardStar(
     result: StarStoriesResult,
     experiences: string[],
   ): StarStoriesResult {
-    const inputNumbers = new Set(experiences.flatMap(extractNumbers));
+    // 「同一来源上下文」：把每条经历各自规范化（去空白/小写）成独立串，
+    // 比对时要求输出量化表达式在「某一条」经历里原样出现，而非全局裸数字集合（防跨字段串号）。
+    const normalizedInputs = experiences.map((e) =>
+      (e ?? '').replace(/\s+/g, '').toLowerCase(),
+    );
 
-    // 防编造数字校验覆盖全部四个 STAR 叙事字段（situation/task/action/result），
-    // 任一字段出现输入经历里没有的量化数字 = 编造，整字段收口为占位说明。
-    // 全部用 ?? '' 兜底：模型漏字段（如缺 result）不得抛 TypeError 导致 500。
+    // 防编造校验覆盖全部四个 STAR 叙事字段（situation/task/action/result），
+    // 任一字段出现输入经历里没有的量化表达式（含中文数字「三十万」「百分之三十」等）= 编造，
+    // 整字段收口为占位说明。全部用 ?? '' 兜底：模型漏字段（如缺 result）不得抛 TypeError 导致 500。
     const story_bank = (result.story_bank ?? []).map((story) => {
       // 入参显式允许 undefined：模型可能漏掉 situation/task/action/result 任一字段，
-      // 这里用 ?? '' 兜底，绝不对 undefined 调 extractNumbers（否则 TypeError → 500）。
+      // hasFabricatedQuantity 内部对 undefined 用 ?? '' 兜底，绝不抛 TypeError（否则 → 500）。
       const hasFabricated = (text: string | undefined): boolean =>
-        extractNumbers(text ?? '').some((n) => !inputNumbers.has(n));
+        hasFabricatedQuantity(text, normalizedInputs);
 
       const fab = {
         situation: hasFabricated(story.situation),
@@ -449,13 +557,13 @@ export class InterviewPrepService {
 
   // Guard ④-b：剔除任何「用此框架一定通过/保证拿 offer」式的绝对化保证语。
   private guardCase(result: CaseCoachResult): CaseCoachResult {
+    // 必须带 /g 全局标志：单句出现多处保证语（如「保证拿 offer，必过」）时，
+    // String.replace + 非全局正则只替换首个匹配，残留的「必过」会漏网。/g 才能一次性清干净。
     const guaranteePattern =
-      /一定(通过|过|拿到|成功|录用)|保证(通过|过|拿到|offer|录用|成功)|百分百|包过|必过|稳过/;
+      /一定(通过|过|拿到|成功|录用)|保证(通过|过|拿到|offer|录用|成功)|百分百|包过|必过|稳过/g;
 
     const scrub = (text: string): string =>
-      guaranteePattern.test(text)
-        ? text.replace(guaranteePattern, '有助于提升表现，但不保证结果')
-        : text;
+      text.replace(guaranteePattern, '有助于提升表现，但不保证结果');
 
     const framework_library = (result.framework_library ?? []).map((f) => ({
       ...f,
@@ -705,10 +813,13 @@ const PLAYBOOK_SCHEMA = {
     },
     salary_negotiation_notes: {
       type: 'object',
-      // salary_range_estimate 语义上可空：无显式来源时 guardPlaybook 会强制置 null。
-      // 不列为 required——AiService 虽已放行「非数组型 required 字段为 null」，
-      // 但合法 null/缺失仍可能触发 missing-field 重试/最终 503；从 required 移除做双保险。
-      required: ['negotiation_timing'],
+      // required 与 TS SalaryNegotiationNotes 的可选性严格对齐：
+      // - salary_range_estimate 语义上可空（无显式来源时 guardPlaybook 强制 null），不列 required；
+      // - negotiation_timing / leverage_points / taboos 在 TS 均为可选（?）。
+      //   旧版误把 negotiation_timing 列入 required，但模型合理省略它（undefined）会触发
+      //   AiService 的 missing-field 重试链，最终可能 503。从 required 移除以与 TS 对齐，
+      //   避免模型对一个本就可选的字段被迫输出或导致整次结构化失败。
+      required: [],
       properties: {
         salary_range_estimate: { oneOf: [{ type: 'string' }, { type: 'null' }] },
         negotiation_timing: { type: 'string' },

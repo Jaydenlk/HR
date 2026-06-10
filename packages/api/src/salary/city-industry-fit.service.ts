@@ -197,7 +197,10 @@ function applyGuards(
 
   // Guard 2: fit_matrix — 每条必须有 evidence_basis 且非空；
   // 若 allowedCities 非空，城市必须在列表中（或被标注为扩展建议）
-  const rawMatrix = raw.fit_matrix ?? [];
+  // #44 自相矛盾收口: confidence=insufficient 表示"数据不足无法判定",此时绝不能附带完整适配矩阵。
+  //   强制 fit_matrix=[](从而 fitCities 为空,下游 cost/hub 级联清空,Guard 7 给中性提示),
+  //   使"数据不足"的结论与载荷一致,不再"声称不足却照样输出矩阵"。
+  const rawMatrix = confidence === 'insufficient' ? [] : (raw.fit_matrix ?? []);
   const fit_matrix: FitMatrixItem[] = rawMatrix
     .filter((item) => {
       if (!item.city?.trim() || !item.industry?.trim()) return false;

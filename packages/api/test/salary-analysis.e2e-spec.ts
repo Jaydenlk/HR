@@ -61,6 +61,99 @@ const NO_SOURCE_RESULT = {
   data_sources: [], // 完全无来源 → salary_range 必须被 guard 置为 null
 };
 
+// #42: 带真实可溯源 URL 的来源(B 级)。用于让 #42 的单位用例聚焦"单位"维度,
+// 不被 #43 的"无 URL 降级"副作用干扰(否则区间会先被来源逻辑影响)。
+const SOURCED = [
+  { source_name: 'BOSS直聘', grade: 'B', url: 'https://www.zhipin.com/report', date: '2025-01' },
+];
+
+// #42: unit 缺失 + p50 量级明显是年薪(>=10万) → 服务端推断 annual_rmb,绝不静默标月薪。
+const ANNUAL_NO_UNIT_RESULT = {
+  ...HAPPY_RESULT,
+  salary_range: {
+    p25: 280000,
+    p50: 350000,
+    p75: 450000,
+    // unit 故意缺失
+    year: '2025',
+    city: '北京',
+    role: '后端工程师',
+    grade: 'B',
+    freshness: 'stale',
+  },
+  data_sources: SOURCED,
+};
+
+// #42: unit 缺失 + p50 量级模糊(<10万,既可能是月薪也可能是低年薪) → 不臆测单位,置空区间。
+const AMBIGUOUS_NO_UNIT_RESULT = {
+  ...HAPPY_RESULT,
+  salary_range: {
+    p25: 22000,
+    p50: 27000,
+    p75: 31000,
+    // unit 故意缺失,27000 既像月薪也像(很低的)年薪 → 不可静默假定 monthly
+    year: '2025',
+    city: '北京',
+    role: '后端工程师',
+    grade: 'B',
+    freshness: 'stale',
+  },
+  data_sources: SOURCED,
+};
+
+// #42: unit 为非法字符串 + 量级模糊 → 同样不臆测,置空区间。
+const ILLEGAL_UNIT_RESULT = {
+  ...HAPPY_RESULT,
+  salary_range: {
+    p25: 22000,
+    p50: 27000,
+    p75: 31000,
+    unit: 'rmb_per_hour', // 非法枚举
+    year: '2025',
+    city: '北京',
+    role: '后端工程师',
+    grade: 'B',
+    freshness: 'stale',
+  },
+  data_sources: SOURCED,
+};
+
+// #43: 来源自报 A/B 级却无 URL → 服务端去信任化降级为 C;且不得据此把区间标为 fresh/高置信。
+const FAKE_HIGH_GRADE_RESULT = {
+  ...HAPPY_RESULT,
+  confidence: 'high', // AI 自报高置信
+  salary_range: {
+    ...HAPPY_RESULT.salary_range,
+    freshness: 'fresh', // AI 自报 fresh
+    grade: 'A',
+  },
+  data_sources: [
+    { source_name: '某权威报告', grade: 'A' }, // A 级但无 url → 降 C
+    { source_name: '某招聘平台', grade: 'B', url: 'not-a-url' }, // B 级但 url 非法 → 降 C
+  ],
+};
+
+// #43: 来源带真实域名 URL → A/B 级保留;区间可标 fresh/正常置信。
+const REAL_URL_SOURCE_RESULT = {
+  ...HAPPY_RESULT,
+  confidence: 'medium',
+  salary_range: {
+    ...HAPPY_RESULT.salary_range,
+    freshness: 'fresh',
+    grade: 'A',
+  },
+  data_sources: [
+    { source_name: 'BOSS直聘年报', grade: 'A', url: 'https://www.zhipin.com/report/2025' },
+  ],
+};
+
+function makeMock(result: unknown) {
+  return {
+    complete: jest.fn().mockResolvedValue('mock'),
+    completeStructured: jest.fn().mockResolvedValue(result),
+  };
+}
+
 const mockAiService = {
   complete: jest.fn().mockResolvedValue('mock'),
   completeStructured: jest.fn().mockImplementation(({ toolName }: { toolName: string }) => {
@@ -266,6 +359,127 @@ describe('Salary Analysis (e2e, mocked AI)', () => {
       failMode = false;
     });
   });
+});
+
+// ─── #42: salary_range.unit 缺失/非法的单位收口（防 12x 误标）────────────────────
+
+async function bootApp(result: unknown, email: string): Promise<{
+  app: INestApplication;
+  token: string;
+}> {
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(AiService)
+    .useValue(makeMock(result))
+    .compile();
+  const app = moduleRef.createNestApplication();
+  app.setGlobalPrefix('api');
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  await app.init();
+  const token = await loginUser(app, email, email);
+  return { app, token };
+}
+
+describe('Anti-misclassification: salary_range.unit guard (#42)', () => {
+  it('unit 缺失 + p50 量级明显年薪 → 推断 annual_rmb，不静默标 monthly', async () => {
+    const { app, token } = await bootApp(ANNUAL_NO_UNIT_RESULT, 'salary-annual@coach.dev');
+    try {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ role: '后端工程师', city: '北京' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.salary_range).not.toBeNull();
+      // 35 万量级被推断为年薪，而非误标月薪
+      expect(res.body.salary_range.unit).toBe('annual_rmb');
+      // 绝不静默标成 monthly_rmb（那会被前端当成 35 万/月 = 420 万/年）
+      expect(res.body.salary_range.unit).not.toBe('monthly_rmb');
+    } finally {
+      await app.close();
+    }
+  }, 30000);
+
+  it('unit 缺失 + p50 量级模糊（2.7万）→ 不臆测单位，置空区间', async () => {
+    const { app, token } = await bootApp(AMBIGUOUS_NO_UNIT_RESULT, 'salary-ambig@coach.dev');
+    try {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ role: '后端工程师', city: '北京' });
+
+      expect(res.status).toBe(201);
+      // 单位不可判定时不臆测 monthly，置空区间
+      expect(res.body.salary_range).toBeNull();
+      // 不得维持 high/medium 高置信
+      expect(['low', 'insufficient']).toContain(res.body.confidence);
+    } finally {
+      await app.close();
+    }
+  }, 30000);
+
+  it('unit 为非法枚举 + 量级模糊 → 等同缺失，置空区间', async () => {
+    const { app, token } = await bootApp(ILLEGAL_UNIT_RESULT, 'salary-illegalunit@coach.dev');
+    try {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ role: '后端工程师', city: '北京' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.salary_range).toBeNull();
+    } finally {
+      await app.close();
+    }
+  }, 30000);
+});
+
+// ─── #43: data_sources 来源等级去信任化（A/B 无真实 URL → 降 C）──────────────────
+
+describe('Anti-fabrication: data_source grade requires real URL (#43)', () => {
+  it('A/B 级来源无 URL/伪 URL → 降级为 C，且区间不得标 fresh/高置信', async () => {
+    const { app, token } = await bootApp(FAKE_HIGH_GRADE_RESULT, 'salary-fakegrade@coach.dev');
+    try {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ role: '后端工程师', city: '北京' });
+
+      expect(res.status).toBe(201);
+      const sources: Array<{ grade: string }> = res.body.data_sources ?? [];
+      expect(sources.length).toBeGreaterThan(0);
+      // 自报 A/B 但无真实 URL 的来源全部降为 C
+      for (const s of sources) {
+        expect(s.grade).toBe('C');
+      }
+      // 无真实来源 → 区间不得标 fresh、置信不得高于 low
+      if (res.body.salary_range !== null) {
+        expect(res.body.salary_range.freshness).not.toBe('fresh');
+      }
+      expect(['low', 'insufficient']).toContain(res.body.confidence);
+    } finally {
+      await app.close();
+    }
+  }, 30000);
+
+  it('A 级来源带真实域名 URL → 保留 A，区间可标 fresh', async () => {
+    const { app, token } = await bootApp(REAL_URL_SOURCE_RESULT, 'salary-realurl@coach.dev');
+    try {
+      const res = await request(app.getHttpServer())
+        .post('/api/salary/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ role: '后端工程师', city: '北京' });
+
+      expect(res.status).toBe(201);
+      const sources: Array<{ grade: string; url?: string }> = res.body.data_sources ?? [];
+      expect(sources.some((s) => s.grade === 'A')).toBe(true);
+      // 有真实来源 → 允许 fresh
+      if (res.body.salary_range !== null) {
+        expect(['fresh', 'stale', 'unknown']).toContain(res.body.salary_range.freshness);
+      }
+    } finally {
+      await app.close();
+    }
+  }, 30000);
 });
 
 // ─── Live AI tests (skipped by default, opt-in via RUN_AI_LIVE=1) ─────────────

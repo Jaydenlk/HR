@@ -446,6 +446,82 @@ describe('LearningRoadmap (e2e) — deterministic guard tests', () => {
     });
   });
 
+  // ─── #35: stripFabrication 覆盖裸链和短链 ───────────────────────────────────
+
+  describe('#35 Guard: stripFabrication covers bare links and short links', () => {
+    it('www. 裸链 in description → stripped', async () => {
+      mockResult = makeAiResult({
+        resource_list: [
+          {
+            skill_name: 'TypeScript',
+            resource_type: 'official_docs',
+            description: '可参考 www.typescriptlang.org 官网文档获取更多信息',
+            quality_criteria: '内容系统',
+            language: 'zh',
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      const r = res.body.resource_list[0] as { description: string };
+      expect(r.description).not.toMatch(/www\./);
+      expect(r.description).toContain('已移除链接');
+    });
+
+    it('短链（bit.ly）in description → stripped', async () => {
+      mockResult = makeAiResult({
+        resource_list: [
+          {
+            skill_name: 'TypeScript',
+            resource_type: 'video',
+            description: '详细资料请见 bit.ly/ts-intro-2024 短链地址',
+            quality_criteria: '内容简明',
+            language: 'zh',
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      const r = res.body.resource_list[0] as { description: string };
+      expect(r.description).not.toContain('bit.ly');
+      expect(r.description).toContain('已移除链接');
+    });
+
+    it('https:// URL still stripped (regression)', async () => {
+      mockResult = makeAiResult({
+        resource_list: [
+          {
+            skill_name: 'TypeScript',
+            resource_type: 'official_docs',
+            description: '访问 https://www.typescriptlang.org/zh/docs 查阅',
+            quality_criteria: '无',
+            language: 'zh',
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/learning-roadmap/build')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_BODY);
+
+      expect(res.status).toBe(200);
+      const r = res.body.resource_list[0] as { description: string };
+      expect(r.description).not.toMatch(/https?:\/\//);
+      expect(r.description).toContain('已移除链接');
+    });
+  });
+
   // ─── #50: field fallback / confidence validation ──────────────────────────
 
   describe('#50 Guard: field fallback and confidence validation', () => {

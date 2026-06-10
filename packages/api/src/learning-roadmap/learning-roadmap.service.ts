@@ -270,11 +270,24 @@ export class LearningRoadmapService {
   }
 
   /**
-   * 剔除 http(s) URL,并对疑似具体课程名/书名加免责标注(#12)。
+   * 剔除 http(s) URL、无协议裸链（www.xxx.com）和常见短链域名，并对疑似具体课程名/书名加免责标注（#12/#35）。
+   * #35: 原实现仅剔除 http(s):// 开头的 URL，以下类型漏过：
+   *   - 裸链：www.example.com（无协议前缀）
+   *   - 常见 TLD 裸域名：example.com/path（含路径）
+   *   - 短链域名：bit.ly/xxx、t.cn/xxx、tinyurl.com/xxx
    */
   private stripFabrication(text: string): string {
-    // 剔除任何 http/https URL,替换为占位提示
+    // 1) 剔除任何 http/https URL（含协议前缀），替换为占位提示
     let cleaned = text.replace(/https?:\/\/\S+/gi, '【已移除链接：请按类型自行检索】');
+
+    // 2) #35: 剔除无协议裸链（www. 开头）
+    cleaned = cleaned.replace(/\bwww\.\S+/gi, '【已移除链接：请按类型自行检索】');
+
+    // 3) #35: 剔除常见短链域名（bit.ly / t.cn / tinyurl.com / dwz.cn 等）
+    cleaned = cleaned.replace(
+      /\b(?:bit\.ly|t\.cn|tinyurl\.com|dwz\.cn|goo\.gl|ow\.ly|is\.gd|buff\.ly)\/\S+/gi,
+      '【已移除链接：请按类型自行检索】',
+    );
 
     // 疑似具体课程/书名:含书名号《》,或出现"课程/教程/专栏/系列课"等具体载体词
     const specificRefPattern = /《[^》]+》|[「『][^」』]+[」』]|课程|教程|专栏|系列课/;

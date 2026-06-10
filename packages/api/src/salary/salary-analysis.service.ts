@@ -51,6 +51,13 @@ const VALID_GRADES = new Set(['A', 'B', 'C', 'D']);
 const VALID_CONFIDENCE = new Set(['high', 'medium', 'low', 'insufficient']);
 const VALID_FRESHNESS_RANGE = new Set(['fresh', 'stale', 'unknown']);
 const VALID_FRESHNESS_DATA = new Set(['fresh', 'stale', 'unavailable']);
+const VALID_UNITS = new Set(['monthly_rmb', 'annual_rmb']);
+
+// #42 防误标红线: unit 缺失/非法时绝不静默假定 monthly_rmb(否则把年薪当月薪,12x 误差)。
+// 仅当数额量级明显是年薪(p50 >= 此阈值,中国月薪几乎不可能达到此水平)时才推断 annual_rmb;
+// 否则量级模糊 → 不臆测单位,判 insufficient 置空区间。
+// 阈值取 10万: 月薪 10万/月 = 年薪 120万,绝大多数岗位不可能,故 p50>=10万 几乎必为年薪。
+const ANNUAL_MAGNITUDE_THRESHOLD = 100000;
 
 @Injectable()
 export class SalaryAnalysisService {
@@ -132,14 +139,27 @@ function applyGuards(raw: RawAnalysisOutput, dto: AnalyzeSalaryDto): SalaryAnaly
       return buildResult(raw, c, null);
     }
 
+    // #42 单位收口: unit 缺失/非法时不静默假定 monthly。
+    //   - 合法枚举 → 直接采用;
+    //   - 缺失/非法但 p50 量级明显是年薪(>=阈值) → 推断 annual_rmb,避免把年薪误标月薪;
+    //   - 缺失/非法且量级模糊 → 无法判定单位,不臆测,置空区间 + confidence 至多 low。
+    const resolvedUnit = resolveUnit(r.unit, r.p50);
+    if (resolvedUnit === null) {
+      const c: SalaryAnalysisResult['confidence'] =
+        confidence === 'high' || confidence === 'medium' ? 'low' : confidence;
+      return buildResult(raw, c, null);
+    }
+
     // 有来源 + 数字合法:按 rule 1/2 做四要素与新鲜度降级(rule 2 允许历史知识库区间,但 stale + 低置信)。
     const hasAllFourFactors = !!(r.year?.trim() && r.city?.trim() && r.role?.trim());
     const grade =
       hasAllFourFactors && VALID_GRADES.has(r.grade ?? '')
         ? (r.grade as SalaryRange['grade'])
         : 'C';
+    // #43: "实时/可信来源"判定与 data_sources 的等级去信任化对齐——A/B 级必须带真实域名 URL
+    //   才算真实来源。否则(自报 A/B 但无可溯源 URL)等同 C,不得据此把区间标为 fresh / 高置信。
     const hasRealSource = (raw.data_sources ?? []).some(
-      (s) => s.grade === 'A' || s.grade === 'B',
+      (s) => (s.grade === 'A' || s.grade === 'B') && hasRealDomainUrl(s.url),
     );
     const freshness: SalaryRange['freshness'] =
       hasRealSource && VALID_FRESHNESS_RANGE.has(r.freshness ?? '')
@@ -154,7 +174,7 @@ function applyGuards(raw: RawAnalysisOutput, dto: AnalyzeSalaryDto): SalaryAnaly
       p25: r.p25,
       p50: r.p50,
       p75: r.p75,
-      unit: r.unit === 'annual_rmb' ? 'annual_rmb' : 'monthly_rmb',
+      unit: resolvedUnit,
       year: r.year ?? String(new Date().getFullYear()),
       city: r.city ?? dto.city ?? '',
       role: r.role ?? dto.role,
@@ -170,6 +190,58 @@ function applyGuards(raw: RawAnalysisOutput, dto: AnalyzeSalaryDto): SalaryAnaly
   }
 
   return buildResult(raw, confidence, salary_range);
+}
+
+// #42: 解析薪资单位。返回 null 表示"无法判定单位,应置空区间不臆测"。
+//   - 合法枚举 → 原样返回;
+//   - 缺失/非法 + 量级明显年薪(p50>=阈值) → 'annual_rmb';
+//   - 缺失/非法 + 量级模糊 → null(不静默默认 monthly)。
+function resolveUnit(
+  unit: string | undefined,
+  p50: number,
+): SalaryRange['unit'] | null {
+  if (VALID_UNITS.has(unit ?? '')) {
+    return unit as SalaryRange['unit'];
+  }
+  if (p50 >= ANNUAL_MAGNITUDE_THRESHOLD) {
+    return 'annual_rmb';
+  }
+  return null;
+}
+
+// #43: 判断 url 是否为"真实域名的 http(s) 地址"。
+// 服务端无法联网验真来源内容,但能确定性识别"无 URL/伪 URL"——它们无从溯源,
+// 不应支撑 A/B 级。要求: 可被 URL 解析、协议为 http(s)、host 含点(形似真实域名,排除 localhost
+// 等无 TLD 主机)、且 host 不是纯 IP 文本由解析器自然处理。
+function hasRealDomainUrl(url: string | undefined): boolean {
+  const u = url?.trim();
+  if (!u) return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(u);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname;
+  // host 必须含点且点两侧均有字符(排除 "a." / ".com" / "localhost" 这类无效/无 TLD 主机)。
+  const dot = host.indexOf('.');
+  return dot > 0 && dot < host.length - 1;
+}
+
+// #43: 来源等级去信任化。A/B 级声称实时/官方来源,但无真实可溯源 URL 时降为 C(无法验证)。
+// C/D 本就是低可信档,保持原样(经枚举校验)。
+function gradeDataSource(
+  rawGrade: string | undefined,
+  url: string | undefined,
+): 'A' | 'B' | 'C' | 'D' {
+  const grade = VALID_GRADES.has(rawGrade ?? '')
+    ? (rawGrade as 'A' | 'B' | 'C' | 'D')
+    : 'C';
+  if ((grade === 'A' || grade === 'B') && !hasRealDomainUrl(url)) {
+    return 'C';
+  }
+  return grade;
 }
 
 function buildResult(
@@ -195,7 +267,9 @@ function buildResult(
       source_name: s.source_name ?? '',
       url: s.url,
       date: s.date,
-      grade: VALID_GRADES.has(s.grade ?? '') ? (s.grade as 'A' | 'B' | 'C' | 'D') : 'C',
+      // #43 来源可信度收口: 服务端无联网无法验真来源,但可对"自报高等级却无真实 URL"的
+      // 来源去信任化——A/B 级来源若 url 缺失或非真实 http(s)+有效域名,降级为 C(口碑/无法验证)。
+      grade: gradeDataSource(s.grade, s.url),
     })),
     comparison: suppressNumbers
       ? []

@@ -1,0 +1,408 @@
+{
+ "agent-a15793b5fe568f339.jsonl": {
+  "dimension": "运维/可靠性审查员",
+  "hasPayload": true,
+  "payload": {
+   "dimension": "运维/可靠性就绪度(单台 2C2G VPS 公开测试)",
+   "summary": "结论:当前代码库没有任何生产部署运维基建,公测前存在多个阻断项。仓库里没有 Dockerfile、docker-compose、pm2/ecosystem、systemd unit、nginx/caddy 反代配置、备份脚本、迁移文件,也没有 root 级生产启动编排——只有 Windows 本地开发脚本 start-dev.ps1/.bat。\n\n最致命的两点是数据持久化路径完全缺失:(1) Postgres 路径 synchronize 在生产关闭后没有任何 migration 文件,schema 无从建立也无从演进;且 SQLite 路径 synchronize 写死为 true(app.module.ts:45),与 Postgres 的条件式(:56)不一致——若公测继续用默认 sqlite,等于在生产长期开 synchronize,实体改动可能丢列/丢数据。(2) seed.ts 写死 better-sqlite3+coach-dev.db(seed.ts:100-101),无法对 Postgres 灌入市场薪资/公司图谱/role 类目等只读数据,切 PG 后这些功能直接空。再叠加完全没有备份机制——用户简历是核心资产,丢失即致命。\n\n进程层面:无崩溃自愈(无 pm2/systemd),main.ts 虽加了 unhandledRejection/uncaughtException 兜底不退进程,但进程一旦真的挂掉无人拉起;无 /health 健康检查端点,反代/监控无法探活。可观测性只有 Nest 默认 Logger 打到 stdout,无文件落盘/轮转/聚合/告警;AI 主备降级仅 logger.warn(ai.service.ts:133),运营只能靠 grep 进程日志才知道主通道已挂,无指标无告警。安全面 main.ts 无 helmet、CORS origin:true 全放行、无全局限流(代码确认无 helmet/throttler)。\n\n容量上 AI 并发护栏(2 并发+8 队列,ai.config.ts:80-83)能防雪崩,但意味着稳态可服务的\"正在做 AI 的用户\"上限仅 2,第 3-10 个排队、第 11 个起 503;单次 AI 可达 190s,满载时第 10 名排队者最坏要等数分钟。next dev 不能用于生产(需 next start + 已 build),api+web(next start)+postgres 同机挤 2G 内存偏紧,需实测并设交换分区与扩容触发线。ScheduleModule 每日 03:00 的 feed 抓取+分类会与在线请求争 2 核 CPU 与 AI 队列(用同一 limiter),但选在凌晨且有 budget 上限,风险可控。",
+   "findings": [
+    {
+     "severity": "P0-blocker",
+     "area": "数据库/Schema 演进",
+     "title": "生产无任何 migration 文件,synchronize 关闭后 schema 无从建立/演进;SQLite 路径还写死 synchronize:true",
+     "detail": "packages/api/src/app.module.ts:40-46 SQLite 分支 synchronize 写死 true;:48-57 Postgres 分支 synchronize=NODE_ENV!=='production'。全仓 Glob packages/api/src/**/migrations/** 无结果,Grep 'DataSource|ormconfig|migrationsRun|migrations:' 仅命中 seed.ts 与 salary DTO,无任何迁移基建。含义:切 Postgres 生产后 synchronize=false → 首次启动不会建表,服务直接起不来;后续实体变更也无升级路径。若公测继续用默认 sqlite(DB_TYPE 默认 sqlite,.env.example:46),则等于生产长期开 synchronize=true,TypeORM 改实体可能 DROP/重建列丢数据。",
+     "recommendation": "二选一最小方案:(A) 公测期就用 Postgres,生成首版 migration:写一个 typeorm DataSource(ts) 指向 PG,运行 `typeorm migration:generate` 产出初始 schema,start 前跑 `migration:run`(或设 migrationsRun:true);从此 synchronize 永久关闭。(B) 若公测坚持 sqlite,把 SQLite 分支 synchronize 也改为 NODE_ENV!=='production' 并同样补 migration,杜绝生产开 synchronize。推荐 A。",
+     "effort": "days"
+    },
+    {
+     "severity": "P0-blocker",
+     "area": "备份/容灾",
+     "title": "无任何数据库备份机制,用户简历丢失即不可恢复",
+     "detail": "git ls-files 思路下全仓无 backup 脚本、无 cron 备份、无 pg_dump/litestream/对象存储快照配置;.gitignore:9 *.db 被忽略(本地 coach-dev.db 3.6MB 在 packages/api 下但不入库)。用户核心资产=简历及诊断历史,单盘 VPS 无快照=磁盘损坏/误删即全损。",
+     "recommendation": "上线前落地最小备份:Postgres 用每日 pg_dump + 7 日滚动保留,dump 推到异机/对象存储(OSS env 字段已预留,.env.example:73-79);或用 litestream 做 sqlite/PG 持续复制。配 systemd timer 或 crontab,首日验证一次可恢复(restore 演练)。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P0-blocker",
+     "area": "进程管理/部署",
+     "title": "无 Dockerfile/pm2/systemd/部署脚本与生产启动编排,崩溃无自愈",
+     "detail": "全仓无 Dockerfile/docker-compose/ecosystem.config/.service/nginx/caddy(Glob+ls 均未见);根 package.json 只有 dev/build 分包脚本无 start 编排;仅有 start-dev.ps1/start-dev.bat 为 Windows 本地开发用。api 有 `start: node dist/main`、web 有 `start: next start` 但无人管理。main.ts:13-18 捕获 unhandledRejection/uncaughtException 防进程退出,但若进程真崩(OOM 等)无 pm2/systemd 拉起 → 服务长时间不可用。",
+     "recommendation": "加 systemd 两个 unit(coach-api/coach-web,Restart=always、内存上限、EnvironmentFile=.env)或 pm2 + pm2 startup;前置 nginx/caddy 做 TLS 终止+反代到 3001/3002(并把 requestTimeout 300s 透传到反代 proxy_read_timeout 防 504 截断 190s 的 AI 请求)。写最小部署 README。",
+     "effort": "days"
+    },
+    {
+     "severity": "P0-blocker",
+     "area": "数据库/种子数据",
+     "title": "seed.ts 写死 sqlite,无法对 Postgres 生产库灌入市场/公司/职业只读数据",
+     "detail": "packages/api/src/seed.ts:99-107 DataSource type 写死 'better-sqlite3'、database 写死 coach-dev.db,且 :113 用 sqlite 专有 `PRAGMA foreign_keys = OFF`。若按 P0-1 切 Postgres,seed 无法运行 → 薪资雷达/AI 对标/Offer 比对/公司图谱/role 类目等依赖 seed 数据的功能在生产为空。",
+     "recommendation": "把 seed.ts 的 DataSource 改为复用与 app.module 同一套 DB env(读 DB_TYPE/DB_HOST...),PRAGMA 调用按 dbType 条件执行;部署流程在 migration:run 之后跑一次 seed。与 P0-1 一并处理。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "可观测性/告警",
+     "title": "AI 主备降级与队列拥塞只打日志无指标无告警,运营无法及时感知主通道挂掉",
+     "detail": "ai.service.ts:133-135 主→备降级仅 logger.warn;concurrency-limiter.ts:47 排队仅 logger.warn、:43 队列满抛 503 无计数。Nest 默认 Logger 输出到 stdout,无文件落盘/轮转/聚合。后果:CloudDreamAI 主通道(auto-v2/GLM-5)整体宕机、长时间全量走 DeepSeek 备用(质量/成本不同),运营要靠人工 grep 才知道;503 高发也无感知。",
+     "recommendation": "最小可观测:(1) systemd/pm2 将 stdout 落到文件并配 logrotate;(2) 在 withFailover 降级分支与 limiter 503 分支递增内存计数器,暴露一个 /metrics 或 /health 内联统计(降级次数/队列峰值/503 数);(3) 接一个最轻量告警(降级次数>阈值 推送)。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "可观测性/探活",
+     "title": "无 /health 健康检查端点,反代与监控无法探活、无法做就绪/存活判断",
+     "detail": "Grep '@Get(\\'health|healthz|/health|HealthCheck' 全仓无结果。无健康端点意味着 nginx/systemd/外部 uptime 监控只能靠 TCP 连通,探不出 DB 断连或 AI 全挂的'假活'。",
+     "recommendation": "加一个无鉴权的 GET /api/health,返回进程存活+DB 简单 SELECT 1+AI 主备最近状态;反代与监控指向它。配合 @nestjs/terminus 或手写极简版均可。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "安全/边界",
+     "title": "main.ts 无 helmet、CORS origin:true 全放行、无全局限流,公开端点裸暴露",
+     "detail": "main.ts:29 enableCors({origin:true,credentials:true}) 反射任意来源+带凭证;Grep 'helmet|throttler|Throttle|rateLimit' 全仓无结果——无安全响应头、无全局限流。结合无支付/无配额/无按用户限流(项目事实),邀请码注册即可无限调用 190s 级 AI,单个滥用者可长期占满 2 并发把全站拖到 503。",
+     "recommendation": "上线前最小加固:(1) app.use(helmet());(2) CORS 改白名单为公测前端域名;(3) 加 @nestjs/throttler 全局限流(尤其 /diagnoses、/conversations 等 AI 端点按用户/IP 限速),与 2 并发护栏形成两道闸。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "容量/内存",
+     "title": "api+web(next start)+postgres 同机挤 2G 内存偏紧,需实测并设上限与交换分区",
+     "detail": "基础设施=单台 2C2G。web 必须用 `next start`(package.json web:8)且需先 build,绝不能用 next dev(常驻编译耗内存);Node(NestJS,加载 better-sqlite3/pg/anthropic SDK)+ Next.js prod server + Postgres 三进程同机。2G 无富余,AI 大响应(maxTokens 8192,ai.service.ts:103)与并发会进一步抬高 RSS。无实测数据即放量风险高。",
+     "recommendation": "上线前用 systemd MemoryMax 或 pm2 max_memory_restart 给 api/web 设上限;开 1-2G swap 兜底 OOM;实测稳态/峰值 RSS,据此定放量上限。明确扩容触发线(见下条量化)。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "容量/并发量化",
+     "title": "AI 并发护栏使稳态有效服务上限仅 2 并发,需据此定公测放量上限与扩容触发线",
+     "detail": "ai.config.ts:80-83 concurrency max=2 queue=8;单次 AI 可达 190s(项目事实)。推演:同一时刻只有 2 个 AI 请求在跑,3-10 名排队,第 11 名起 503;满载时第 10 名最坏等 (10/2)*190s≈15 分钟,体验=超时放弃。非 AI 的 CRUD 不受限可正常服务。结论:~20 人内测在'不会同时点诊断'前提下可承受;但若放量到几十人并发触发 AI,503/长等待会集中爆发。",
+     "recommendation": "公测放量上限按'峰值同时发起 AI 的人数 ≤ ~8'控制(即总注册可几十人,但要错峰)。扩容触发线:监控到 503(队列满)日发生率 >1% 或队列峰值持续打满 → 升 CPU/内存并上调 concurrency,或把 AI 移到独立进程/机器。前端对排队/503 要有'高峰请稍后重试'的明确提示。",
+     "effort": "days"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "定时任务/资源争抢",
+     "title": "每日 03:00 feed 抓取+AI 分类与在线请求共用同一 AI 并发池,小机上有争抢但风险可控",
+     "detail": "feed-ingestion.service.ts:67 @Cron('0 0 3 * * *', Asia/Shanghai) importDaily → planDailyJobs(budget 默认 30,search-scheduler.service.ts:27)逐条抓取并对每条候选调 classifier.classify(走同一 AiService→同一 ConcurrencyLimiter)。即定时任务会占用 2 个 AI 并发名额并消耗 CPU(RSS 解析/分类),与在线用户抢同一池子。好在选在凌晨低峰、有 budget 上限、异常被 try/catch 吞不崩进程(feed-ingestion.service.ts:58-61,113)。",
+     "recommendation": "公测期可接受。若放量后凌晨也有活跃用户,给定时任务的 AI 调用单独限流或限定串行(budget 调小),避免抢占在线用户的 2 并发名额;并确认 xhs/nowcoder RSS 抓取的超时(FEED_SOURCE_TIMEOUT_MS)已设,防单源卡死拖长任务。",
+     "effort": "hours"
+    }
+   ]
+  }
+ },
+ "agent-a42f9216d2b12a577.jsonl": {
+  "dimension": "单位经济模型调研员",
+  "hasPayload": true,
+  "payload": {
+   "dimension": "单位经济模型 / 公测期每用户 AI 成本与定价毛利",
+   "summary": "结论先行:公测可以放心做免费,AI 成本被中国大模型价格战彻底压平。一次\"校招诊断\"是本产品最重的 AI 动作——按代码实际链路它触发 3-6 次 GLM-5 调用(parseResume 首次 + analyze 1-3 次重试 + rewrite + faithfulness 审核),综合输入约 12-20K tokens、输出约 4-8K tokens。以主通道 GLM-5 国内价(¥4/M 输入、¥18/M 输出,来源 z.ai/bigmodel)计,单次诊断 AI 成本约 ¥0.13-0.20;以备用 DeepSeek-V4-Flash(¥1/M 输入、¥2/M 输出,deepseek 官方)计仅约 ¥0.02-0.03。一个典型公测用户旅程(2 诊断+1 改写+3 轻功能)主通道约 ¥0.4-0.6,重度用户(20 次调用/季)约 ¥1.5-3。即便 2000 名公测用户全部活跃,GLM-5 主通道月成本量级仅几百到一千多元人民币,DeepSeek 备用则在百元内——远低于 VPS 与人力成本,不构成约束。99 元定价对应单用户 AI 边际成本毛利率 >99%;真正风险不是成本,是滥用(无配额下单账号可刷爆 GLM-5 高价输出)与 invite-code 共享导致的成本失控。建议:公测免费但每账号设软配额(如每周 5 次诊断 + 每日 AI 调用 30 次上限),付费墙放在\"无限诊断 + 深度档(anthropic 压力版)+ 改写导出\",而非按 token 卖。所有价格均带官方来源 URL,token 量级为基于 prompt/schema 源码的工程估算(已注明假设)。",
+   "findings": [
+    {
+     "severity": "P2-during-beta",
+     "area": "token 估算 / 校招诊断主链路",
+     "title": "单次校招诊断 = 3-6 次 AI 调用,不是 1 次——这是成本与限流建模的核心事实",
+     "detail": "代码:packages/api/src/diagnoses/diagnoses.service.ts:100-155 的 createProfessionStandard 依次触发:(1) parseResume(packages/api/src/ai/parser.service.ts,仅 resume.parsed_json 为空时跑,首次诊断必跑、之后命中缓存跳过);(2) parseJD(仅 dto.jd_text 存在时,且 md5 缓存 7 天,见 diagnoses.service.ts:58-63);(3) analyzeAgainstPreset(analyzer.service.ts:40-83,内含 MAX_ATTEMPTS=3 重试,退化产物会重跑——最坏 3 次 analyze 调用);(4) suggestAgainstPreset(rewriter.service.ts:56-90)其内部还会再调一次 auditFaithfulness(rewriter.service.ts:101-132,女娲式防编造复核,第 4 次 AI 调用)。另 ai.service.ts:152 attemptStructured 每次结构化调用最多重试 3 次(空块/截断/schema 不过)。结论:正常路径 1 次诊断≈4 次 GLM 调用(parse 命中缓存时为 3:analyze+rewrite+audit);冷启动+重试最坏可达 6+。max_tokens 默认结构化 8192(ai.service.ts:103)、纯文本 4096(ai.service.ts:77),是输出成本上限。",
+     "recommendation": "建模与限流都按'1 次诊断=4 次 GLM 调用'为基准、'6 次'为最坏上限。监控上对 AiService 加 per-call usage 日志(response.usage.input_tokens/output_tokens),公测首周用真实账单校准本报告的工程估算。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "token 量级估算 / 输入输出规模",
+     "title": "单次诊断 token 量级:输入 ~12-20K、输出 ~4-8K(GLM 标尺,含假设)",
+     "detail": "驱动量(读源码实测字符量):analyze 的 system prompt = preset 5 个维度的 whatGoodLooksLike/campusEvidence/commonGaps(单 preset 如 backend-campus.ts 约 1.8-2.2K 中文字)+ buildProfessionStandardSystem 固定铁律段约 1K 字(analyze-profession-standard.ts:10-23);prompt = renderResumeForReview 渲染后的简历 2-4K 字(题面给定简历 2-4K 字)。rewrite/audit 的 system+prompt 同量级(rewrite-profession-standard.ts)。输出:analyze 每维 why+evidenceFound+gap+interviewHooks,5 维约 1.5-2.5K tokens;rewrite 3-5 条 suggestion 约 1-2K;audit 输出仅一个 index 数组(<50 tokens)。假设① 中文 1 字≈1.5-2 token(GLM/DeepSeek BPE);② 简历取 3K 字中位;③ analyze 不触发额外重试(正常档)。合计单次诊断:输入约 12-20K tokens(4 次调用累加,system+resume 在 analyze/rewrite/audit 间重复计费,无跨调用缓存复用),输出约 4-8K tokens。轻端点求职信(cover-letters.service.ts:18-83)仅 1 次 ai.complete:输入 system~300字+简历2-4K字+JD≈3-5K tokens,输出信正文 400-800 字≈0.6-1.2K tokens。",
+     "recommendation": "把 system prompt(preset rubric)做 prompt caching:GLM-5 缓存输入仅 ¥1/M(vs ¥4/M 未命中)、DeepSeek 缓存命中 ¥0.02-0.5/M,同一 preset 高频复用可砍 analyze 输入成本约 60-70%。当前 ai.service.ts 未用 cache_control,是最大且唯一显著的成本优化点。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "上游官方价格(主通道 GLM-5)",
+     "title": "GLM-5 国内官方价 ¥4/M 输入、¥18/M 输出(>32K 段 ¥8/¥32),缓存输入 ¥1/M",
+     "detail": "主通道 CloudDreamAI auto-v2 接 GLM-5。官方定价(2026-02-11/12 发布并涨价):国际版 $1/M 输入、$3.2/M 输出、$0.2/M 缓存输入;国内版 ≤32K 段 ¥4/M 输入、¥18/M 输出、¥1/M 缓存输入,>32K 段 ¥8/¥32,批量 API ¥2.5/M 输入。来源:智谱开放平台定价页 https://open.bigmodel.cn/pricing 与模型页 https://docs.bigmodel.cn/cn/guide/models/text/glm-5 ;价格数字与涨价幅度交叉印证于 https://finance.ifeng.com/c/8qg6L4srqym (『GLM-5 海外首发上线 订阅与API价格大幅上调』,API 调用价提升 67%-100%)与 https://unifuncs.com/s/EijoKfay (引 z.ai/Vertex 价目:GLM-5 $1 输入/$3.2 输出/$0.2 缓存)。注意:本产品诊断单次输入 12-20K tokens 落在 ≤32K 段。CloudDreamAI 为中转,实际结算可能在官价上加成,本模型按官价近似(注明假设:中转加价未知)。",
+     "recommendation": "向 CloudDreamAI 确认 auto-v2→GLM-5 的实际中转单价与是否支持 cache_control 计费;若中转不透传缓存价,则主通道成本优化失效,需评估直连智谱 batch API(¥2.5/M 输入)做非实时诊断。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "上游官方价格(备用通道 DeepSeek)",
+     "title": "DeepSeek 备用极廉:deepseek-chat 现别名 V4-Flash,¥1/M 输入(未命中)、¥2/M 输出、¥0.02/M 缓存命中",
+     "detail": "备用通道 DeepSeek(Anthropic 兼容端点,ai.service.ts:62-73)。DeepSeek 官方 CNY 价目页 https://api-docs.deepseek.com/quick_start/pricing-details-cny 列旧 deepseek-chat:¥0.5 缓存命中/¥2 未命中输入、¥8 输出;但官方主价目页 https://api-docs.deepseek.com/quick_start/pricing 已说明『deepseek-chat 与 deepseek-reasoner 将于 2026/07/24 弃用,兼容映射到 deepseek-v4-flash 非思考/思考模式』,V4-Flash 现价:输入缓存命中 ¥0.02/$0.0028、未命中 ¥1/$0.14、输出 ¥2/$0.28(2026-04-26 降价后,佐证 https://finance.sina.com.cn/jjxw/2026-04-27/doc-inhvwwmk9164892.shtml 与 https://36kr.com/p/3784523493202952 )。即:走备用通道时单次诊断 AI 成本仅约 ¥0.02-0.03,几乎可忽略。假设:本产品 deepseek-chat 调用按弃用日后映射的 V4-Flash 价计(7/24 后旧名失效,代码需在 .env 切到 deepseek-v4-flash 模型名)。",
+     "recommendation": "在 2026-07-24 前把备用通道模型名从 deepseek-chat 切到 deepseek-v4-flash(否则弃用日后备用降级直接失效,主通道一挂即全站 503)。这是 P1 时效性动作,与成本无关但会断服务。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "成本建模 / 单用户旅程",
+     "title": "成本表:典型旅程主通道 ¥0.4-0.6、重度用户 ¥1.5-3/季;按 100/500/2000 用户推总",
+     "detail": "假设:1 次诊断=4 次 GLM 调用、输入 16K/输出 6K tokens(中位);求职信等轻功能=1 次调用、输入 4K/输出 1K。主通道 GLM-5 国内 ¥4/M 输入+¥18/M 输出(无缓存)。\\n单次成本测算(主通道 GLM-5):\\n  • 1 次诊断 ≈ 16K×¥4/M + 6K×¥18/M = ¥0.064+¥0.108 = 约 ¥0.17(区间 ¥0.13-0.20)\\n  • 1 次求职信/轻功能 ≈ 4K×¥4/M + 1K×¥18/M = 约 ¥0.034(区间 ¥0.02-0.05)\\n  • 同上若走 DeepSeek-V4-Flash 备用:诊断 ≈ 16K×¥1/M+6K×¥2/M = 约 ¥0.028;轻功能 ≈ ¥0.006\\n典型公测旅程(注册→上传→2 诊断→1 改写≈再 1 次诊断级调用→3 轻功能):\\n  • 主通道 GLM-5:3×¥0.17 + 3×¥0.034 = 约 ¥0.61(区间 ¥0.45-0.75)\\n  • 全 DeepSeek:约 ¥0.10\\n重度用户(20 次 AI 调用/季,假设其中 8 次诊断级+12 次轻):8×¥0.17+12×¥0.034 = 约 ¥1.77(主通道),区间 ¥1.5-3;全 DeepSeek 约 ¥0.3。\\n按公测规模推季度总成本(主通道 GLM-5,取典型 ¥0.6/人 + 20% 重度用户上浮,约 ¥0.9/人均):\\n  • 100 用户:约 ¥60-150 / 季 → 月 ¥20-50\\n  • 500 用户:约 ¥300-750 / 季 → 月 ¥100-250\\n  • 2000 用户:约 ¥1200-3000 / 季 → 月 ¥400-1000\\n若主通道大量降级到 DeepSeek,以上数字再降 5-6 倍。",
+     "recommendation": "以 2000 用户月 ¥400-1000(主通道) 作为公测最坏预算上限纳入运营成本;这低于单台 VPS 月租量级,无需为 AI 成本设硬付费墙。把预算告警阈值设在月 ¥1500(留滥用缓冲)。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "风险 / 滥用敞口",
+     "title": "成本不是约束,但'无配额+无限流+共享邀请码'会让单账号刷爆 GLM-5 高价输出",
+     "detail": "题面事实:无支付、无配额、无按用户限流;邀请码 INVITE_CODES 默认 COACH2026(可共享);main.ts enableCors origin:true、无 helmet、无全局 throttler;并发护栏仅全局 2 并发+8 队列(超出 503)。叠加本报告事实:1 次诊断=4-6 次 GLM 调用、输出按 ¥18/M 计。攻击/滥用面:① 单个泄漏的邀请码可注册任意账号;② 单账号脚本循环调用诊断,每次 ¥0.13-0.20,1 万次=¥1300-2000,且会占满 2 并发队列拒绝正常用户(可用性 > 成本风险);③ 求职信/chat 等纯文本端点 max_tokens 4096,可被刷长输出。当前唯一闸门是全局并发 2,既挡不住成本也会被滥用者变成对正常用户的 DoS。",
+     "recommendation": "公测前最小动作:(a) 每账号软配额——每周 5 次诊断 + 每日 AI 调用 ≤30 次,超出返回 429 并提示(用现有 throttler 包 @nestjs/throttler 按 user_id 维度);(b) 邀请码一次性/限次绑定,避免单码无限注册;(c) 月度 AI 花费总闸(超阈值自动降级到 DeepSeek-only 或暂停新诊断)。这三项是公测放心免费的前提,不是成本问题而是防滥用。",
+     "effort": "days"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "定价毛利 / 99 元档",
+     "title": "99 元/季定价下 AI 边际成本毛利率 >99%,瓶颈在转化与人力不在 token",
+     "detail": "基于上表:即使重度付费用户(20 次调用/季)主通道 AI 成本约 ¥1.5-3,占 99 元定价的 1.5%-3%;典型用户 ¥0.45-0.75,占 0.5%-0.8%。99 元档单用户 AI 毛利约 ¥96-98.5,毛利率 97%-99.5%(未计 VPS/支付通道费/人力)。即便全部用户都用满'无限诊断'到极端 50 次/季(主通道 ¥0.17×约 4 调用换算后约 ¥8.5),毛利仍 >91%。结论与市场调研(99-199 元/校招季单次)一致:AI 成本完全支撑该定价,真正的单位经济瓶颈是获客成本与转化率,而非推理成本。对照护城河结论——付费理由是'校招 rubric 深度+防编造护栏'(这些恰恰增加 token:每次诊断多一道 faithfulness 复核调用),即护栏带来的成本增量(~25%,多 1 次 audit 调用)是值得的差异化投入。",
+     "recommendation": "定价无需为成本让步:99 元/校招季单次 站得住。可设计 99(标准档 standard preset)/ 199(深度档 含 anthropic 压力版 + 改写导出 + 无限诊断)两档,把更贵的多调用/长输出能力留给高价档,自然对齐成本与价值。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P3-later",
+     "area": "免费额度线 / 付费墙位置",
+     "title": "建议免费额度=每用户 2-3 次完整诊断;付费墙放在'无限诊断+深度档+导出',而非按 token",
+     "detail": "综合成本(单次诊断主通道仅 ¥0.13-0.20,极廉)与楔子定位('诚实诊断+改写'):免费额度给足到用户能完整体验一次'诊断→看缺口→拿改写建议'的 aha 闭环,成本可忽略。推荐:免费用户=2 次诊断(够对比'改前 vs 改后')+ 1 次求职信 + 只读其余轻功能,约 ¥0.4-1/人,2000 免费用户月 ¥不到 1000。付费转化墙放在:① 第 3 次起的诊断;② anthropic 压力版深度档(更高难度 rubric,题面已有 tier 档位 create-campus-diagnosis.dto tier 字段);③ 改写建议的'一键导出/应用';④ Offer 比对/薪资 AI 对标等重决策功能。绝不按 token/次数做细颗粒计费(GLM 价格战下按 token 卖对用户是负价值且增加账务复杂度)。",
+     "recommendation": "实现一个 per-user 计数器(诊断次数),免费上限 2-3 次→触发付费墙组件;付费墙文案聚焦'解锁深度档+无限诊断',不暴露 token。免费额度 2-3 次的成本(<¥1/人)远低于一个付费转化的价值,激进给量换转化。",
+     "effort": "days"
+    }
+   ]
+  }
+ },
+ "agent-a9dc124a1195cc4ca.jsonl": {
+  "dimension": "总编审",
+  "hasPayload": false,
+  "payload": null
+ },
+ "agent-aa8d066a07397bd1d.jsonl": {
+  "dimension": "安全审查员",
+  "hasPayload": false,
+  "payload": null
+ },
+ "agent-ac48c75603bf71261.jsonl": {
+  "dimension": "公测策略调研员",
+  "hasPayload": true,
+  "payload": {
+   "dimension": "公测策略调研(comparable AI 简历/求职产品的公测/上线打法 → 对本产品 Coach 的可执行启示)",
+   "summary": "调研 9 个可类比产品的公测/上线打法,提炼 8 条对 Coach 的启示。核心结论:(1) 节奏——当前 2026-06 距秋招高峰(9-11 月)约 3 个月,且提前批 6-8 月已启动技术岗,本产品应把\"公测扩量窗口\"对准 7-8 月(秋招前的简历准备焦虑高峰),不要在淡季放量。(2) 渠道——中国校招求职流量集中在牛客(面经+内推)+小红书(求职笔记/AIPS 转化)+微信公众号/小程序(智联校园用\"公众号回复关键词领免费 AI 改简历权益\"做钩子);Reddit/PH 是西方打法,本产品对应物是牛客社区+小红书种草。(3) 付费墙——Rezi/Kickresume 把 AI 写作/ATS 检查锁在付费墙后是行业惯例;但\"免费给出问题、付费看具体怎么改/导出\"是被独立评测点名的负面 pattern,本产品\"诚实诊断免费、改写/导出收费\"的设计要避开\"只说有问题不说是什么\"的反感点。(4) PMF 指标——AI/ML 类 SaaS 激活率中位 ~55%、首月留存 ~54%、TTV ~1.7 天为行业基准;但\"诊断完成率/改写采纳率/分享率\"才是本产品 aha-moment 候选,需按\"做过 X 的人留存是基线 2-3 倍\"反推真激活事件。(5) 差异化叙事——\"拒绝编造/只写你能在面试里 defend 的内容\"已是 2026 年一批新产品(CVAIMate/Ajusta/seevee/ResumeAdapter)的共同卖点且高度同质,本产品要把它从\"功能描述\"升级为\"可验证的产物证据\"(逐条标注 verified/inferred/removed)+ 校招 rubric 深度,否则护城河会被这批产品稀释。区分\"事实\"与\"推断\"已在每条 detail/recommendation 标注。",
+   "findings": [
+    {
+     "severity": "P1-before-beta",
+     "area": "公测窗口/节奏",
+     "title": "把扩量窗口对准 7-8 月秋招准备期,6 月用于内测打磨而非放量",
+     "detail": "【事实】中国 2026 届秋招:提前批 6-8 月(技术岗/大厂先行,如米哈游 7 月、字节美团简化流程),正式批 9-10 月为全行业爆发高峰,9-11 月是规模最大名额最多的黄金期;教育部'秋季校园招聘月'集中在每年秋季(来源 uoffer.com/workblog/855, jingmai100.com/sys-nd/11904.html, moe.gov.cn 2025届通知)。【事实】简历准备焦虑在投递前(7-8 月)最高,智联在'春招期间'推 AI 改简历踩节点(news.sina.com.cn 2024-02-29)。【推断】当前 2026-06 距高峰 ~3 个月,正是产品打磨+小范围内测期;放量过早会在淡季消耗预算且拿不到真实高意图用户。最佳节奏:6 月内测修 PMF→7 月初配合提前批热度小范围扩量+种草铺垫→8 月底-9 月初(网申开闸)集中放量。",
+     "recommendation": "制定三阶段日历:6 月(内测 ~20 人打磨 aha-moment 与诊断完成率)→7 月(邀请码半开放,牛客/小红书内容预热,绑定'提前批简历该怎么改'选题)→8 月下旬-9 月上旬(配合网申开闸集中放量)。避免 6 月就大规模拉新。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "获客渠道(中国本土)",
+     "title": "渠道矩阵=牛客(面经+内推钩子)+小红书(求职笔记 AIPS)+微信公众号/小程序裂变,而非 Reddit/PH",
+     "detail": "【事实】牛客是校招面经/内推/模拟面试的核心社区,小红书校招内容沉淀大量'给简历做加减法''用 AI 预判 HR 问题'的求职帖(nowcoder.com/discuss/724682625914327040)。【事实】智联校园用'关注公众号回复关键词→免费领 AI 改简历权益''小程序搜 #简历优化'做低门槛钩子(ithome.com/0/893/271.htm)。【事实】小红书运营面经显示该平台 C 端工具推广走 AIPS 模型(认知-兴趣-深度兴趣-购买-分享)(nowcoder 大模型应用运营面经)。【事实/对照】西方对应打法是 Reddit 首发+Product Hunt 爆量(Rezi 起于 Reddit $9.69 模板, Notion 闭测 500 Reddit 用户→PH 6000 赞)——本产品在中国的等价物是牛客发帖+小红书种草,不是 PH。",
+     "recommendation": "①在牛客以'校招简历诊断报告 sample/真实改写前后对比'切入,挂邀请码;②小红书布'诚实诊断:AI 不帮你编造,只标出 HR 会挂你的点'种草笔记,按 AIPS 设计转化;③做一个公众号/小程序入口用'回复关键词领 X 次免费诊断'降低首触门槛。不要把精力放在 PH/海外渠道。",
+     "effort": "week+"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "付费墙/免费额度设计",
+     "title": "对标 Rezi/Kickresume 设付费墙,但避开'只说有问题不说怎么改'被点名的反感 pattern",
+     "detail": "【事实】行业惯例:Rezi 免费版=1 份简历+受限 AI+3 次 PDF 下载,Pro $29/月,Lifetime $149 一次性(rezi.ai/pricing, intercom.help/rezihelp)。Kickresume 免费版把 AI Writer/ATS Checker 全锁付费,免费先给 3 credits 再 3 天试用 10 credits(pitchmeai.com, kickresume.com/en/pricing)。【事实-负面信号】独立评测多次点名 Kickresume 免费版 ATS Checker'只告诉你有问题但不列出来,要看具体得升级',被称为 paywall pattern 而非免费工具;且无用量表、突然撞墙引发大量 1 星(soundcv.com/blog/kickresume-review, resumeoptimizerpro.com)。【事实】智联走'基础优化永久免费+高级定制收费+7 天体验期'(ihr360.com/p/156076)。【推断】本产品'诚实诊断免费、改写/导出收费'方向正确,但'诊断'必须给出具体可读的问题点(否则复制 Kickresume 的差评雷区);付费墙应卡在'整篇改写+导出',而非'看具体问题'。",
+     "recommendation": "免费额度=完整诊断报告(具体到逐条问题+严重度,可读)+1-2 次有限改写体验;付费墙卡在'多版本改写+无水印导出+全功能'。校招季单次定价 99-199 元(对照市场调研结论)优于月订阅(求职是 episodic,Rezi 月churn ~16%,Lifetime/一次性更契合)。设可见用量提示,避免突然撞墙。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "PMF 验证指标",
+     "title": "公测期主追 5 个指标:激活率/诊断完成率(aha 候选)/改写采纳率/D7-D30 留存/分享率,并用'2-3 倍留存'反推真激活事件",
+     "detail": "【事实-基准】2026 AI/ML 类 SaaS:激活率中位 ~54.8%、首月留存 ~53.6%、TTV ~1.7 天;HR 软件类激活率仅 8.3% 但激活者首月留存 41.4%(复杂度过滤效应)(productquant.dev/blog/saas-activation-benchmarks-by-industry-2026)。【事实】PMF aha-moment 方法=对比'留存用户 vs 流失用户'的行为,找到'做 X 次/X 天内留存达基线 2-3 倍'的动作,再围绕它重设 onboarding(resources.rework.com, revenuecat.com/blog/growth/activation-metrics)。【事实】健康带:激活率 40-60%,D7 留存 30-50%,D30 留存 20-35%,PLG TTV <10 分钟;Sean Ellis 测试'很失望'比例 ≥40% 是 PMF 信号(xgenious.com/saas-product-market-fit)。【推断】本产品 aha 最可能是'完成一次诊断并看到逐条问题'或'采纳≥1 条改写'。激活若过低很可能是 ~190s AI 时延导致首会话流失。",
+     "recommendation": "公测埋点:①激活率(目标 ≥40%,aha=完成首次诊断或采纳首条改写)②诊断完成率(衡量 ~190s 时延/排队是否劝退)③改写采纳率(衡量改写质量与防编造是否被接受)④D7/D30 留存(按 cohort)⑤分享率/转介绍占比。对'采纳≥1 条改写 vs 未采纳'分组比留存,确认真 aha,再据此优化首会话(如把诊断做成可先看部分结果的渐进披露,缓解时延)。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "差异化叙事/传播点",
+     "title": "'拒绝编造'已被一批新产品同质化,须升级为'可验证产物证据+校招 rubric'才能成为传播壁垒",
+     "detail": "【事实-同质化警报】2026 年已有多个产品把'不编造'当主卖点:CVAIMate'唯一不会替你撒谎的 AI 简历工具,逐条标 verified/inferred/removed'(cvaimate.com);Ajusta'不发明经历,每处改动可审阅'(ajusta.ai);seevee'像真实筛简历一样 fast & skeptical 给 pass/fail,写不好就退 credit'(seevee.work);ResumeAdapter 用结构化 pipeline+Zod schema 校验每步防幻觉(resumeadapter.com/methodology)。【推断】本产品'数据缺失→insufficient 拒绝编造+按类收口'的护栏与上述方向一致,但仅靠'我们不编造'文案已无差异化;真正能传播的是把护栏做成用户可见的证据(逐条标注 verified/inferred/removed、严重度 CRITICAL/ADVISORY)+ 校招 rubric 深度(市场调研确认这是唯一真壁垒)。seevee 的'写不好退 credit'是强信任锚点值得借鉴。",
+     "recommendation": "传播点从'AI 不会乱编'升级为可演示的产物:①诊断/改写界面逐条标 verified/inferred/removed + 严重度;②对外做'改写前后对比 + 每条改动可在面试里 defend 的理由'demo 卡片(适合小红书/牛客传播);③考虑'诊断不达标可重做/退次数'的信任承诺。把校招 rubric 深度做成'同类工具给泛泛分,我们对照真实校招筛人逻辑'的对比叙事。",
+     "effort": "week+"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "公测放量机制(邀请制→公开)",
+     "title": "用'邀请制控质+转介绍优先放行'分阶段放量,而非一次性公开",
+     "detail": "【事实】Superhuman 维持 18 万人 waitlist,但给'老用户直接转介绍'优先 onboarding,理由=控制谁进来就是控制产品口碑,目标是让每个用户都成净推荐者(acquired.fm/episodes/superhuman, speedrun.substack.com)。【事实】Notion 闭测仅放 500 名 Reddit 型 power user,收集 6 周'残酷反馈'后才 PH 公开(flowjam.com/blog/how-did-notion-launch)。【事实】Notion 假 waitlist:每条推文+1 跳过名额,6 周 0 预算拿 10432 注册(同源)。【推断】本产品现有邀请码(COACH2026)机制可演进为:内测期严控质量→公测期'已激活用户邀请同学优先放行',既控口碑又内建裂变,契合校招'同班同学互相安利'的社交结构。",
+     "recommendation": "公测分级:Stage0 内测(固定邀请码,~20 人,主修 PMF)→Stage1 邀请裂变(给已完成诊断的用户专属邀请链接,被邀者优先放行,同学间天然传播)→Stage2 配合 8-9 月网申开闸放开注册。每阶段以'激活率/留存达标'为放行闸门,不达标不进下一阶段(Superhuman 的'metrics 达标才进下一 phase')。",
+     "effort": "days"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "首会话/onboarding 与时延体验",
+     "title": "用 1:1/重度引导式 onboarding 在小范围内放大激活与转介绍,缓解 ~190s AI 时延",
+     "detail": "【事实】Superhuman 创始人亲自 1:1 onboard 每个早期用户(5 人/周,先研究背景),手动 onboard 的用户转介绍数是 2 倍,激活/留存/NPS'爆表';验证是流程而非个人后才产品化(speedrun.substack.com, substack.gauravvohra.com)。【事实】Rezi 早期 MVP 极简先验证需求(无认证无数据库,只重排版),靠'白送顶级套餐 1 天 7 万注册'做 forced virality(foundershut.com, launchpedia.co)。【推断】本产品单次 AI 请求可长达 ~190s + 并发护栏(2 并发 8 队列超出 503),首会话体验风险高;在 ~20 人内测期做'重度引导/半人工陪跑'既能放大激活与转介绍,又能在小流量下观察时延/排队对诊断完成率的真实杀伤。",
+     "recommendation": "内测期对前 ~20 人做引导式首会话(可半人工:盯着用户跑完首次诊断、确认看懂逐条问题、采纳≥1 条改写),记录卡点;同时在 UI 上对 ~190s 时延做渐进披露(先返回部分诊断/进度提示)与排队透明化,避免首会话因'转圈 3 分钟'流失。验证激活流程可复制后再产品化。",
+     "effort": "week+"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "定价模型选择",
+     "title": "校招季单次/短期套餐优先于月订阅,匹配求职 episodic 特性并降低 churn 痛点",
+     "detail": "【事实】Rezi 自述月 churn ~16%、LTV≈3 个月 Pro,因求职是 episodic(一次性求职后即走),故推 $149 Lifetime 把价值前置(launchpedia.co/rezi-growth-strategy)。【事实】Kickresume 年付 $8/月 effective 但锁定一年,被评测点名'对单次求职太贵、取消要发邮件非一键',大量 billing 差评(resumeoptimizerpro.com, soundcv.com)。【事实】Enhancv 走'快速找到工作可按比例退款'契合 sprint 特性(enhancv.com/blog)。【推断】本产品市场调研已定 99-199 元/校招季单次,方向与'求职 episodic→前置价值/一次性付费/避免年锁'一致;月订阅会复制 Rezi 16% churn 与 Kickresume 取消摩擦差评。",
+     "recommendation": "采用'校招季单次/短期包'为主(99-199 元,对照已确认定价),避免年锁与隐性续费;若做订阅须一键取消+可见用量。可借 Enhancv'快速找到工作可退'或 seevee'不达标退次数'做信任增强。公测期可先免费/低门槛验证 aha 与采纳率,付费墙在 PMF 信号(激活≥40%、Sean Ellis≥40%)出现后再正式上。",
+     "effort": "days"
+    }
+   ]
+  }
+ },
+ "agent-ae188181154e8fb2b.jsonl": {
+  "dimension": "中国 AI 产品合规调研员",
+  "hasPayload": true,
+  "payload": {
+   "dimension": "中国大陆生成式AI求职辅导SaaS公测+收费的合规义务清单",
+   "summary": "面向公众提供生成式AI服务在中国受《生成式人工智能服务管理暂行办法》(2023-08-15施行)规制,本产品(C端、含\"问Coach\"对话+AI生成简历/求职信)落入其适用范围。最致命的两个合规缺口:(1)算法备案/大模型备案的备案主体必须是境内有独立法人资格的企业(需营业执照),个人/无主体无法备案——这是P0级阻断项;(2)收费SaaS属于经营性互联网信息服务,触发经营性ICP许可证,而经营性ICP同样要求公司主体且个人ICP备案明令不得用于经营。已有真实执法先例:2024年7月重庆网信办查处3家未备案/未安全评估提供生成式AI服务的主体,其中包含个人工作室(南川区蓉城网络科技工作室),处置为约谈+责令关停。诚实结论:以个人/无公司主体身份在中国大陆公开收费上线本产品,在现行法规下不具备合规上线条件,必须先注册公司主体走双备案(大模型备案+算法备案)+经营性ICP+个保法基线+AI生成内容标识(2025-09-01新规)。海外部署/纯邀请制等\"规避\"路径只能降低短期执法概率,无法消除\"面向境内公众\"的认定风险。涉及具体备案能否过审、邀请制规模红线等灰色判断,需咨询专业网络合规律师。",
+   "findings": [
+    {
+     "severity": "P0-blocker",
+     "area": "算法备案/大模型备案 - 主体资格",
+     "title": "个人/无公司主体无法完成算法备案与大模型备案(硬性法人门槛)",
+     "detail": "多个2025实务来源一致指出:大模型备案与算法备案的备案主体必须是'在中国境内注册、具有独立法人资格的企业,经营范围含人工智能/软件信息技术服务,需提供营业执照、法人身份证、ICP备案证明'——个人无法申请。来源:https://www.53ai.com/news/LargeLanguageModel/2025051043061.html (算法/大模型/登记区别+主体资格)、https://www.allbrightlaw.com/CN/10475/9d795e4543aa51ea.aspx (锦天城:算法备案/大模型备案/登记核心要点)。本产品为C端、含'问Coach'对话式交互+AI生成文本(简历/求职信),符合《暂行办法》第17条'具有舆论属性或社会动员能力'的典型形态(论坛/聊天/交互场景),需双备案。法定办结约30个工作日,实务因补材料常需2-3个月。来源:https://www.hankunlaw.com/portal/article/index/cid/8/id/13552.html (汉坤:备案与安全评估分析)。",
+     "recommendation": "公测收费前先注册一家境内公司(或个体工商户能否满足'独立法人资格'存疑,默认按有限公司处理),以公司主体走'大模型备案/登记 + 互联网信息服务算法备案'。若短期无主体,只能维持真正的内部测试(不收费、不对不特定公众开放),不得公开公测收费。",
+     "effort": "week+"
+    },
+    {
+     "severity": "P0-blocker",
+     "area": "经营性ICP许可证 - 收费触发",
+     "title": "收费SaaS属经营性互联网信息服务,触发经营性ICP许可证,个人ICP备案不得经营",
+     "detail": "《互联网信息服务管理办法》:'国家对经营性互联网信息服务实行许可制度,对非经营性实行备案制度。'收费(有偿信息服务)即落入经营性,需办经营性ICP许可证(B25类增值电信),申请主体必须为公司;ICP备案虽可个人办理,但'个人备案只适用于非经营性服务,不能用于任何有偿或经营活动'。来源:https://support.huaweicloud.com/tg-icp/icp_05_0078.html (华为云:ICP备案 vs 经营性ICP许可证)、https://www.nwcdcloud.cn/articledetail/16.aspx (西云数据:两者非一回事)。本产品邀请码注册+99-199元收费=有偿服务,必须经营性ICP。",
+     "recommendation": "以公司主体先完成非经营性ICP备案,上线收费前申请经营性ICP许可证(各省通管局,通常要求注册资本100万、社保人数等)。在拿证前的收费上线属于无证经营经营性电信业务,风险等级高。",
+     "effort": "week+"
+    },
+    {
+     "severity": "P0-blocker",
+     "area": "《生成式人工智能服务管理暂行办法》适用性",
+     "title": "本产品落入《暂行办法》适用范围,公开提供须满足备案+安全评估前置",
+     "detail": "第2条:利用生成式AI技术向'中华人民共和国境内公众'提供生成文本/图片/音视频等内容的服务适用本办法;不向公众提供(纯内部/纯科研非商业化)的不适用。第17条:提供'具有舆论属性或者社会动员能力'的生成式AI服务,应按国家规定开展安全评估,并按《互联网信息服务算法推荐管理规定》履行算法备案。来源:https://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm (官方全文)、https://www.kingandwood.com/cn/zh/insights/latest-thinking/key-takeaways-of-china-s-basic-requirements-for-the-security-of-generative-ai-services.html (金杜解读)。'舆论属性/社会动员能力'认定标准官方尚未细化,典型形态含聊天室/交互/信息分享——本产品'问Coach'对话即属此类,落入需备案区间的可能性高。属法规明文要求,但精确认定边界为灰色地带,需咨询专业人士。",
+     "recommendation": "按'需备案'保守处理:在线服务安全评估(自评估报告)+算法备案+(参数/影响达标的)大模型备案。把适用性判断作为律师咨询第一议题。",
+     "effort": "days"
+    },
+    {
+     "severity": "P0-blocker",
+     "area": "执法风险 - 真实查处先例",
+     "title": "未备案/未安全评估公开提供生成式AI已有实际查处,个人工作室同样被关停",
+     "detail": "2024年7月重庆网信办通报查处3起违规生成式AI服务:'灵象智问AI''重庆哨兵拓展迷'(运营主体为已注册公司)未经安全测评备案违规提供生成式AI服务被约谈+责令立即停止;'南川区蓉城网络科技工作室'(个人工作室,经营者林萍)未经安全评估提供ChatGPT生成式AI信息服务被约谈+责令立即关停。来源:https://m.mp.oeeee.com/a/BAAFRD000020240723977686.html 、https://news.qq.com/rain/a/20240723A06AJD00 。另有'开山猴'AI写作网因未尽内容审核义务被九龙坡网信办行政警告+暂停AI写作功能15日。2025年网信办持续开展'清朗·整治AI技术滥用'专项,集中约谈/下架。来源:https://www.cac.gov.cn/2025-11/25/c_1765795550841819.htm 。结论:执法非纸面,对个人工作室同样落地;不能依赖'规模小不会查'。",
+     "recommendation": "不要无备案公开收费上线。如已有外部用户访问,优先完成安全评估+备案或收缩为真正内测,避免成为专项行动样本。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "AI生成合成内容标识(2025-09-01新规)",
+     "title": "AI生成的简历/求职信须加显式+隐式标识,可经用户协议约定去标识但需留日志6个月",
+     "detail": "四部门《人工智能生成合成内容标识办法》自2025-09-01施行:服务提供者应对生成文本/音视频等添加显式标识(用户可感知),并在文件元数据添加隐式标识;提供下载/复制/导出时须确保含显式标识。用户申请获取'不含显式标识'内容的,服务者可在用户协议中明确用户标识义务与使用责任后提供,并依法留存提供对象信息等日志不少于6个月。来源:https://www.cac.gov.cn/2025-03/14/c_1743654685899683.htm (官方办法)、https://www.pwccn.com/zh/tmt/method-identifying-synthetic-content-generated-ai-sep2025.pdf (普华永道解读)。求职简历显然需要无水印导出,正好命中'去显式标识'条款——必须在用户协议里写明用户标识义务并保留导出日志6个月。",
+     "recommendation": "1)生成内容默认带显式标识;2)导出/下载简历走'去显式标识'流程:用户协议明确告知义务+留存导出日志≥6个月;3)文件元数据写入隐式标识。这是产品功能改动,需在收费公测前落地。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "个人信息保护法(PIPL)基线",
+     "title": "隐私政策/用户协议/账号注销/数据导出删除——公测最低必备清单",
+     "detail": "PIPL要求:独立隐私政策,明示收集使用个人信息的目的/方式/范围并取得同意;提供账号注销入口(在线功能或客服),注销后及时删除或匿名化;落实删除权(PIPL第47条);响应用户请求(含删除/查阅复制)一般不超过15个工作日;至少一个投诉渠道且承诺处理时限。来源:https://www.secrss.com/articles/75983 (PIPL第47条删除权解读)、https://www.cac.gov.cn/2025-02/14/c_1741233507681519.htm (个人信息保护合规审计管理办法)。本产品现状:JWT+邀请码(email+name登录)即采集个人信息,且简历含大量敏感个人信息(教育/经历,可能含联系方式),属高敏感场景。",
+     "recommendation": "公测前上线:1)独立《隐私政策》+《用户协议》并要求显式勾选同意;2)账号注销功能+注销后数据删除/匿名化;3)简历数据导出与一键删除;4)投诉/联系渠道与15工作日响应承诺;5)简历视为敏感个人信息,单独告知并取得单独同意。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "内容安全/审核义务",
+     "title": "生成式AI须有内容审核机制;求职场景风险低但法规仍要求关键词库+拒答+人工处置",
+     "detail": "《暂行办法》第14条要求提供者发现违法内容应及时处置;配套国标TC260-003《生成式人工智能服务安全基本要求》(2024-03)要求构建关键词库(覆盖17类安全风险,A.1每类≥200词、A.2每类≥100词,每周更新)、拒答测试题库(每月更新)、安全检测模型。来源:https://www.tc260.org.cn/portal/article/105/20240319163359 (TC260-003专家解读)、https://www.allbrightlaw.com/CN/10531/51dcf1292975a1d6.aspx (锦天城TC260-003)。求职/简历语料触敏概率低,但'输入+输出'审核机制是备案审查的硬性项,不能因场景低风险而省略。已查处的'开山猴'即因未尽内容审核被罚。来源:https://m.mp.oeeee.com/a/BAAFRD000020240723977686.html 。",
+     "recommendation": "接入输入/输出内容安全过滤(关键词库+模型审核)、敏感问题拒答、违法内容发现即停止生成并保留处置记录。备案材料需附安全评估报告体现该机制。可复用CloudDreamAI中转方的合规过滤能力,但责任仍在服务提供者。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "AI提供商资质传导",
+     "title": "底层模型/中转通道未备案会直接传导为服务者违规;不得使用境外模型对境内公众提供",
+     "detail": "执法案例显示:个人工作室因'提供ChatGPT生成式AI信息服务'被关停,网监明确'国家不允许用国外的ChatGPT'。来源:https://m.mp.oeeee.com/a/BAAFRD000020240723977686.html 。本产品主通道为CloudDreamAI中转接GLM-5、备用DeepSeek;服务提供者(本产品)须确保所调用的境内大模型/算法本身已完成备案,并保留可证明的合规链路。境外模型直接服务境内公众属明确红线。来源:https://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm 第20条境外产品同样适用。",
+     "recommendation": "1)确认GLM-5/DeepSeek均在网信办已备案大模型清单内并留存证明;2)合同/调用层固定为境内已备案模型,杜绝直连境外模型;3)在自身备案材料中如实披露所用基础模型及其备案情况。",
+     "effort": "hours"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "小团队现实路径风险评估",
+     "title": "套壳备案/借主体/海外部署/纯邀请制——各路径合规性与残余风险",
+     "detail": "(a)注册自有公司走正规双备案+经营性ICP:唯一合规路径,成本最高(2-3个月+证照)。(b)借第三方公司主体/挂靠备案:备案主体与实际运营者不一致存在主体责任错配,出事时责任与处罚可能落到挂靠方且协议效力存疑,属灰色。(c)先海外部署后国内:只要'向境内公众提供'即适用《暂行办法》第20条(境外产品同样适用),海外服务器无法消除适用性,仅短期降低被发现概率。(d)纯邀请制内测:'内测/定向公测不当然排除适用,测试用户达一定规模仍可能被认定向公众提供';真正豁免须不面向公众+不商业化+无社会影响。来源:https://zhuanlan.zhihu.com/p/11705644285 (算法备案流程含内测判定)、汉坤分析 https://www.hankunlaw.com/portal/article/index/cid/8/id/13552.html 。本产品一旦收费即商业化,邀请制无法构成豁免。诚实区分:具体规模红线与挂靠协议效力属灰色,需专业律师判断。",
+     "recommendation": "推荐路径(a):注册公司→ICP备案→大模型/算法备案+安全评估→经营性ICP→收费公测。过渡期可做'不收费、限名额、明确告知内测'的真正内部测试以采集反馈,但一旦收费或规模扩大即按合规上线处理。挂靠/海外/规避路径仅作认知,不建议作为正式商业上线方案;采用前务必咨询专业网络合规律师。",
+     "effort": "week+"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "未成年人保护 + 输入限额配套",
+     "title": "面向校招学生群体需未成年人保护措施,且服务条款/限流为合规配套",
+     "detail": "《暂行办法》第10条要求提供者采取防止未成年人沉迷的措施。来源:https://www.cac.gov.cn/2023-07/13/c_1690898327029107.htm 。本产品目标用户为校招学生(多为成年大学生,但不排除18岁以下应届/实习群体),应有年龄/身份提示与未成年人保护安排。另现状无配额、无按用户限流、enableCors origin:true、无helmet/throttler——虽非AI专项法规要求,但属安全义务与滥用防护配套,备案安全评估会关注服务稳定性与防滥用。",
+     "recommendation": "1)用户协议声明面向成年求职者,加入未成年人使用提示;2)补充基础安全配套(限流/CORS收敛/helmet)以支撑'服务稳定性+防滥用'的备案要求。此项可在公测期间逐步完善。",
+     "effort": "days"
+    }
+   ]
+  }
+ },
+ "agent-aee151d2f985035f2.jsonl": {
+  "dimension": "产品战略审查员",
+  "hasPayload": false,
+  "payload": null
+ },
+ "agent-aee74db6f515b985e.jsonl": {
+  "dimension": "商业化基础设施审查员",
+  "hasPayload": true,
+  "payload": {
+   "dimension": "商业化基础设施(收钱与控成本地基)",
+   "summary": "代码层面\"收钱+控成本\"的地基基本为零,但公测期(免费内测、邀请码制)并不需要它们全部到位。逐项核实:支付/订单/权益模块完全缺失(0 个文件,全部 grep 命中为预设内容假阳性);AI 调用只有全局进程级并发护栏(ConcurrencyLimiter 2 并发+8 队列,packages/api/src/ai/concurrency-limiter.ts),无 per-user 配额、无用量记录、无 AI 调用落库;users 表(packages/api/src/users/entities/user.entity.ts)只有 id/email/name/avatar_url/invite_code/locale,无 plan/role/status/is_admin 字段,JWT validate() 只返回 {id,email}(jwt.strategy.ts:15),全仓库无 Admin 模块/控制器;无任何产品分析埋点(0 个 analytics/event 实体);邀请码是内存数组(auth.service.ts:16-18 ['COACH2026']+INVITE_CODES 逗号分隔),无每码限次/作废/落库,且 INVITE_CODES 未在 env.validation.ts 声明。 公测阻断性判断:真正阻断公测的是\"成本不可控\"(无 per-user 配额,单次 AI 可达 190s,白嫖即烧钱)和\"运营失明\"(无封号/换码/看用量/无埋点验证楔子假设)。支付在公测免费期可不做(邀请码=免费名额即替代方案)。好消息是地基可复用:diagnosis 等核心实体已带 user_id+CreateDateColumn,per-user 日配额可用 COUNT 查询零新表实现;invite_code 已落到 User 表,溯源链路天然存在。",
+   "findings": [
+    {
+     "severity": "P1-before-beta",
+     "area": "配额/计量(成本控制)",
+     "title": "无 per-user AI 配额,免费公测期成本完全不可控",
+     "detail": "唯一护栏是全局进程级并发限制 ConcurrencyLimiter(packages/api/src/ai/concurrency-limiter.ts:14-62,AI_MAX_CONCURRENCY 默认2/AI_MAX_QUEUE 默认8),它只防进程被打挂,不防单用户刷量。无 per-user 配额、无 usage/credit 计数、无 AI 调用落库。结合事实'单次 AI 请求可长达190s'+免费邀请码,单个内测用户可无限触发诊断/改写/模拟面试,直接烧 CloudDreamAI/DeepSeek token 成本,20人内测无任何上限。Grep quota/usage/credit 全部命中预设文案与 application-strategy 假阳性,无真实实现。",
+     "recommendation": "最薄实现:新建一个 AiQuotaGuard(放在 AI 重调用的 controller 方法上,与 JwtAuthGuard 同层)。配额计数无需新表——核心写操作实体已带 user_id+CreateDateColumn(已确认 diagnosis.entity.ts:18+72),可对当日 createdAt>=今日0点 的记录做 COUNT(*) WHERE user_id=? 判断是否超 N 次(N 经 env 配置,如 DAILY_AI_QUOTA=20)。chat/无落库的轻调用可退一步用内存 Map<userId,{date,count}>(单进程足够,VPS 单实例)。优先 guard 层而非 interceptor:guard 在进入 handler 前拦截、能直接返回 429,比 interceptor 更省一次 AI 调用。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "用户分层/运营(管理能力)",
+     "title": "零管理后台:无法封号、停用邀请码、查看用量,公测运营失明",
+     "detail": "users 表(packages/api/src/users/entities/user.entity.ts:5-32)只有 id/email/name/avatar_url/invite_code/locale/timestamps,无 status/role/plan/is_admin 字段;JWT 策略 validate() 只回传 {id,email}(jwt.strategy.ts:15),无角色信息;app.module.ts:60-83 模块清单中无任何 Admin/Ops 模块。后果:某内测用户刷量或滥用时无法封禁(只能改 DB),邀请码泄露后无法停用(改 env+重启),无法看谁用了多少。这是公测期最低运营能力的硬缺口。",
+     "recommendation": "最小集:(1) User 实体加 status 列(default 'active',值 active/suspended),JwtAuthGuard 后挂一个轻量 SuspendedUserGuard 查 status!=='active' 即 403;(2) 加一个受保护的 admin 路由(用 env ADMIN_EMAILS 白名单判定,无需完整 RBAC),提供 GET /admin/users(含每用户当日 AI 次数,复用配额 COUNT 查询)+ PATCH /admin/users/:id/suspend。先不做 plan 分层(免费公测无付费层,plan 字段留到收费阶段再加)。",
+     "effort": "days"
+    },
+    {
+     "severity": "P1-before-beta",
+     "area": "邀请码体系(放量控制)",
+     "title": "邀请码为内存常量数组,无法支撑分批放量(不可限次/不可作废/无独立溯源)",
+     "detail": "auth.service.ts:16-18 validCodes 是构造时拼好的内存数组(['COACH2026'] + INVITE_CODES.split(','))。每个码可被无限人使用、无使用次数上限、作废需改 env 重启全进程、无每码独立记录。虽然 User.invite_code 已落库(可反查某用户用了哪个码),但码本身无实体、无 maxUses/usedCount/active 状态。这与'分批放量公测'(每批一个码、限N人、用完即停)的运营诉求直接冲突。额外:INVITE_CODES 未在 env.validation.ts(EnvironmentVariables 类)声明,格式/存在性无校验,靠 validate() 全量透传才生效。",
+     "recommendation": "新建 InviteCode 实体(code 唯一/max_uses/used_count/active bool/note 批次标签),login() 改为查 DB:active && used_count<max_uses 才放行,成功后 used_count++(并发用乐观锁或 UPDATE...WHERE used_count<max_uses 行级判定)。保留 COACH2026 作 seed 数据迁移。这样每批生成独立码、限人数、用完自动失效、可单独作废。若工期紧,P2 降级方案:先把 validCodes 从内存改为 DB 表+active 字段(可作废),限次留后做。",
+     "effort": "days"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "数据埋点(楔子假设验证)",
+     "title": "零产品分析埋点,无法量化验证'诚实诊断楔子'假设",
+     "detail": "全仓库无 analytics/track/event/telemetry/posthog/mixpanel 任何实现(grep 命中均为预设文案假阳性)。公测核心目的是验证市场结论的'诚实诊断+改写楔子'是否成立,但当前只能靠业务表残影间接推断,无激活/留存/功能使用的显式事件。无法回答:多少注册用户真跑了首次诊断(激活)、跑完诊断后是否继续用改写/模拟面试(楔子粘性)、防编造护栏触发(insufficient 拒绝)后用户是否流失。",
+     "recommendation": "不引入第三方 SaaS(VPS 2C2G+数据出境顾虑)。落最小事件表 analytics_event(user_id/event/props json/created_at),只埋 4 个关键事件:signup(注册)、diagnosis_completed(首次诊断=激活北极星)、rewrite_used(楔子转化)、ai_insufficient_refused(护栏触发率)。用一个 AnalyticsService.track() 在对应 service 成功路径调用即可,后台用 SQL 聚合(无需可视化)。这是验证'能否收费99-199'的最关键数据基础,但不阻断技术上线,故 P2。",
+     "effort": "days"
+    },
+    {
+     "severity": "P2-during-beta",
+     "area": "支付/权益(收费地基)",
+     "title": "完全无支付/订单/权益模块——但免费公测期不阻断,定价兑现前必须补",
+     "detail": "app.module.ts 模块清单(60-83行)无 Payments/Orders/Billing/Subscription/Entitlement 任何模块;无对应实体、控制器、SDK 依赖(package.json 无 stripe/wechatpay/alipay-sdk)。所有 pay/order/wechat/alipay 的 grep 命中均为业务假阳性(applications/overview/wechat-importer 抓取器等)。这意味着市场结论的'99-199元/校招季单次'目前在代码层完全无法兑现收款。",
+     "recommendation": "公测期替代方案(零开发):邀请码 = 免费内测名额,先验证留存与楔子,不收钱。收费阶段最小可行(中国校招用户场景):微信 Native 扫码支付(wechatpay-node-v3)+ 一张 order 表(user_id/amount/status/out_trade_no/paid_at)+ 支付回调置 User.plan='paid' 或写一条 entitlement(到期=校招季)。单次买断(非订阅)最简,与定价模型'单次/校招季'吻合。明确告知:此项是公测后、首次真实收款前的阻断项,不是公测启动阻断项。",
+     "effort": "week+"
+    },
+    {
+     "severity": "P3-later",
+     "area": "邀请码体系(配置健壮性)",
+     "title": "INVITE_CODES 未纳入 env 校验,运营改码无格式/存在性保护",
+     "detail": "env.validation.ts 的 EnvironmentVariables 类(4-77行)声明了 CLOUDDREAM_API_KEY/JWT_SECRET 等,但未声明 INVITE_CODES;它能生效仅因 validate() 末尾把完整 config 原样透传(env.validation.ts:91)。后果:运营误配(空串、含非法字符、格式错误)不会被启动期校验拦截,只在登录时静默不匹配。属健壮性问题,非阻断。",
+     "recommendation": "随邀请码体系改造一并处理:若保留 env 方案则在 EnvironmentVariables 加 @IsOptional @IsString INVITE_CODES;若按上文迁移到 DB InviteCode 表则此项自然消解(env 仅留 seed 用初始码)。低优先,合入邀请码改造批次即可。",
+     "effort": "hours"
+    }
+   ]
+  }
+ },
+ "journal.jsonl": {
+  "dimension": null,
+  "hasPayload": false,
+  "payload": null
+ }
+}

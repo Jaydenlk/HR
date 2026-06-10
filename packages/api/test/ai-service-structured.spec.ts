@@ -30,6 +30,7 @@ const emptyToolUse = { content: [{ type: 'tool_use', name: 'parse', input: {} }]
 const validToolUse = (input: Record<string, unknown>) => ({
   content: [{ type: 'tool_use', name: 'parse', input }],
 });
+const textResponse = (text: string) => ({ content: [{ type: 'text', text }] });
 
 /** 构造一个带 mock ConfigService 的 AiService 实例,行为与旧 process.env 读取完全一致 */
 async function buildService(primaryKey: string, fallbackKey?: string): Promise<AiService> {
@@ -183,6 +184,179 @@ describe('AiService 主备降级(默认 autoV2,失败降级 DeepSeek)', () => {
     const result = await svc.completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
 
     expect(result).toEqual({ ok: 'primary' });
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// schema 校验:enum 成员校验 + oneOf/anyOf 分支匹配。
+// 目标:非法 enum 走既有重试链(不直接 503),null 经 oneOf/anyOf 的 {type:'null'} 分支放行。
+describe('AiService.completeStructured schema 校验(enum + oneOf/anyOf)', () => {
+  beforeEach(() => {
+    createMock.mockReset();
+  });
+
+  const enumSchema = {
+    type: 'object' as const,
+    required: ['level'],
+    properties: { level: { type: 'string', enum: ['初级', '中级', '高级'] } },
+  };
+
+  it('enum 值非法 → 当作不完整,重试拿到合法值后返回', async () => {
+    createMock
+      .mockResolvedValueOnce(validToolUse({ level: '特级' })) // 枚举漂移,非法
+      .mockResolvedValueOnce(validToolUse({ level: '高级' })); // 合法
+
+    const svc = await buildService('test-key');
+    const result = await svc.completeStructured<{ level: string }>({
+      ...STRUCTURED_PARAMS,
+      schema: enumSchema,
+    });
+
+    expect(result).toEqual({ level: '高级' });
+    expect(createMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('enum 值合法 → 首次即返回(未误伤合法成员)', async () => {
+    createMock.mockResolvedValueOnce(validToolUse({ level: '中级' }));
+
+    const svc = await buildService('test-key');
+    const result = await svc.completeStructured<{ level: string }>({
+      ...STRUCTURED_PARAMS,
+      schema: enumSchema,
+    });
+
+    expect(result).toEqual({ level: '中级' });
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('enum 值持续非法 → 走重试链耗尽后抛 503(不静默透传非法枚举)', async () => {
+    createMock.mockResolvedValue(validToolUse({ level: '特级' }));
+
+    const svc = await buildService('test-key');
+    await expect(
+      svc.completeStructured({ ...STRUCTURED_PARAMS, schema: enumSchema }),
+    ).rejects.toThrow(ServiceUnavailableException);
+    expect(createMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('oneOf 含 {type:"null"} 分支 → 该字段为 null 时放行(不误伤"无数据"信号)', async () => {
+    const oneOfSchema = {
+      type: 'object' as const,
+      required: ['salary'],
+      properties: {
+        salary: {
+          oneOf: [
+            { type: 'object', required: ['min'], properties: { min: { type: 'number' } } },
+            { type: 'null' },
+          ],
+        },
+      },
+    };
+    createMock.mockResolvedValueOnce(validToolUse({ salary: null }));
+
+    const svc = await buildService('test-key');
+    const result = await svc.completeStructured<{ salary: null }>({
+      ...STRUCTURED_PARAMS,
+      schema: oneOfSchema,
+    });
+
+    expect(result).toEqual({ salary: null });
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('anyOf 命中其中一支(对象分支) → 放行', async () => {
+    const anyOfSchema = {
+      type: 'object' as const,
+      required: ['salary'],
+      properties: {
+        salary: {
+          anyOf: [
+            { type: 'object', required: ['min'], properties: { min: { type: 'number' } } },
+            { type: 'null' },
+          ],
+        },
+      },
+    };
+    createMock.mockResolvedValueOnce(validToolUse({ salary: { min: 12000 } }));
+
+    const svc = await buildService('test-key');
+    const result = await svc.completeStructured<{ salary: { min: number } }>({
+      ...STRUCTURED_PARAMS,
+      schema: anyOfSchema,
+    });
+
+    expect(result).toEqual({ salary: { min: 12000 } });
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('oneOf 全分支均不匹配 → 当作不完整走重试链', async () => {
+    const oneOfSchema = {
+      type: 'object' as const,
+      required: ['salary'],
+      properties: {
+        salary: {
+          oneOf: [
+            { type: 'object', required: ['min'], properties: { min: { type: 'number' } } },
+            { type: 'null' },
+          ],
+        },
+      },
+    };
+    // salary 是字符串,既非含 min 的对象也非 null → 两支皆不中
+    createMock.mockResolvedValue(validToolUse({ salary: '面议' }));
+
+    const svc = await buildService('test-key');
+    await expect(
+      svc.completeStructured({ ...STRUCTURED_PARAMS, schema: oneOfSchema }),
+    ).rejects.toThrow(ServiceUnavailableException);
+    expect(createMock).toHaveBeenCalledTimes(3);
+  });
+});
+
+// complete()(纯文本):无 text 块 / 仅空 text 时必须抛错走 withFailover,绝不静默返回 ''
+// (否则求职信等用户面产物会被持久化为空白)。
+describe('AiService.complete 空文本硬化', () => {
+  beforeEach(() => {
+    createMock.mockReset();
+  });
+
+  const COMPLETE_PARAMS = { system: '你是写作助手', prompt: '写一封求职信' };
+
+  it('有文本 → 原样返回', async () => {
+    createMock.mockResolvedValueOnce(textResponse('尊敬的招聘官,您好...'));
+
+    const svc = await buildService('test-key');
+    const result = await svc.complete(COMPLETE_PARAMS);
+
+    expect(result).toBe('尊敬的招聘官,您好...');
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('无 text 块(仅 tool_use)→ 抛错降级到备用通道救回', async () => {
+    createMock
+      .mockResolvedValueOnce(emptyToolUse) // 主通道无 text 块
+      .mockResolvedValueOnce(textResponse('来自备用通道的求职信'));
+
+    const svc = await buildService('primary-key', 'fallback-key');
+    const result = await svc.complete(COMPLETE_PARAMS);
+
+    expect(result).toBe('来自备用通道的求职信');
+    expect(createMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('text 为空串 → 视为无内容,主备皆空时抛 503(不持久化空白)', async () => {
+    createMock.mockResolvedValue(textResponse(''));
+
+    const svc = await buildService('primary-key', 'fallback-key');
+    await expect(svc.complete(COMPLETE_PARAMS)).rejects.toThrow(ServiceUnavailableException);
+    expect(createMock).toHaveBeenCalledTimes(2); // 主 1 + 备 1
+  });
+
+  it('无 fallback 且主通道无文本 → 直接抛 503', async () => {
+    createMock.mockResolvedValue(emptyToolUse);
+
+    const svc = await buildService('test-key');
+    await expect(svc.complete(COMPLETE_PARAMS)).rejects.toThrow(ServiceUnavailableException);
     expect(createMock).toHaveBeenCalledTimes(1);
   });
 });

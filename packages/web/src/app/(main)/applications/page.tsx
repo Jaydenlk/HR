@@ -437,12 +437,16 @@ function StrategyPanel() {
 
           {/* Done state — full strategy result */}
           {state === 'done' && result && (() => {
+            // #46 — include recommendations/risks/next_actions in hasContent check
             const hasContent =
               result.target_company_tiers.length > 0 ||
               result.application_sequence.length > 0 ||
               result.daily_action_plan.length > 0 ||
               result.risk_assessment.main_risks.length > 0 ||
-              result.risk_assessment.mitigation.length > 0;
+              result.risk_assessment.mitigation.length > 0 ||
+              result.recommendations.length > 0 ||
+              result.risks.length > 0 ||
+              result.next_actions.length > 0;
 
             // #62 — confidence='low' 且所有结果数组为空时不可当作成功，给出补充提示
             if (!hasContent) {
@@ -763,6 +767,86 @@ function StrategyPanel() {
                 </section>
               )}
 
+              {/* #46 — recommendations / risks / next_actions */}
+              {result.recommendations.length > 0 && (
+                <section>
+                  <SectionTitle icon={<AlertCircle size={13} />} label="额外建议" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    {result.recommendations.map((rec, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: '8px 12px',
+                          background: 'var(--color-surface-2)',
+                          borderRadius: '8px',
+                          fontSize: '12.5px',
+                          color: 'var(--color-ink-2)',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {rec}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {result.risks.length > 0 && (
+                <section>
+                  <SectionTitle icon={<AlertCircle size={13} />} label="注意风险" />
+                  <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                    {result.risks.map((r, i) => (
+                      <li key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.6 }}>
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {result.next_actions.length > 0 && (
+                <section>
+                  <SectionTitle icon={<LayoutList size={13} />} label="下一步行动" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    {result.next_actions.map((action, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '8px',
+                          padding: '8px 12px',
+                          background: 'var(--color-surface-2)',
+                          borderRadius: '8px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            flexShrink: 0,
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            background: 'var(--color-brand-soft)',
+                            color: 'var(--color-brand)',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginTop: '1px',
+                          }}
+                        >
+                          {i + 1}
+                        </span>
+                        <span style={{ fontSize: '12.5px', color: 'var(--color-ink)', lineHeight: 1.5 }}>
+                          {action}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               <button
                 onClick={handleReset}
                 style={{
@@ -875,9 +959,10 @@ export default function ApplicationsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [defaultStage, setDefaultStage] = useState<string>('wishlist');
 
-  const fetchData = useCallback(async () => {
+  // #45 — separate initial-load flag from mutation refresh; mutations use silent refetch
+  const fetchData = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const [apps, statsData] = await Promise.all([
         api.get<Application[]>('/applications'),
@@ -888,7 +973,7 @@ export default function ApplicationsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -903,7 +988,8 @@ export default function ApplicationsPage() {
       setActionError(null);
       await api.post('/applications', data);
       setFormOpen(false);
-      await fetchData();
+      // silent=true: board stays visible, no full-screen spinner
+      await fetchData(true);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : '创建失败，请稍后重试');
     }
@@ -912,10 +998,17 @@ export default function ApplicationsPage() {
   async function handleStageChange(id: string, stage: string) {
     try {
       setActionError(null);
+      // Optimistic update: flip stage immediately so board doesn't flicker
+      setApplications((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, stage: stage as Application['stage'] } : a)),
+      );
       await api.patch(`/applications/${id}`, { stage });
-      await fetchData();
+      // Silent background sync to reconcile any server-side diff
+      await fetchData(true);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : '移动卡片失败，请稍后重试');
+      // Revert optimistic update on failure
+      await fetchData(true);
     }
   }
 
@@ -1086,7 +1179,7 @@ export default function ApplicationsPage() {
             {error}
             <div style={{ marginTop: '12px' }}>
               <button
-                onClick={fetchData}
+                onClick={() => fetchData()}
                 style={{
                   padding: '8px 16px',
                   borderRadius: '8px',
