@@ -4,6 +4,10 @@ export interface User {
   name: string;
   avatar_url: string | null;
   locale: string;
+  // /api/auth/me 一直返回完整实体,role/status 始终存在;此前类型未声明,补齐(向后兼容只增不改)。
+  role: 'user' | 'admin';
+  status: 'active' | 'banned';
+  daily_quota_override: number | null;
 }
 
 // ─── Auth (两步式登录:邮箱验证码 + 邀请制) ──────────────────────────────
@@ -1294,4 +1298,35 @@ export interface CityIndustryFitResult {
   cost_of_living_impact: CostOfLivingItem[];
   industry_hub_analysis: IndustryHubItem[];
   recommendation: string;
+}
+
+// ─── 管理后台(/admin) ────────────────────────────────────────────────────────
+// GET /api/admin/users:全量用户 + 今日/累计 AI 调用次数。
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+  status: 'active' | 'banned';
+  daily_quota_override: number | null;
+  created_at: string;
+  usage_today: number;
+  usage_total: number;
+}
+
+// GET /api/admin/invites:邀请码全集。
+export interface AdminInvite {
+  id: string;
+  code: string;
+  max_uses: number;
+  used_count: number;
+  disabled: boolean;
+  note: string | null;
+  created_at: string;
+}
+
+// GET /api/admin/usage:近 7 日每日总数 + 今日 per-user 明细。
+export interface AdminUsageOverview {
+  daily: { date: string; count: number }[];
+  today_by_user: { user_id: string; email: string; name: string; count: number }[];
 }

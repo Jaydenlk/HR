@@ -34,4 +34,18 @@ export class UsersService {
     }
     return user;
   }
+
+  // 管理后台:全量用户(20 人规模不分页)。
+  findAll(): Promise<User[]> {
+    return this.repo.find({ order: { created_at: 'ASC' } });
+  }
+
+  // 管理后台:按主键更新 status/role/daily_quota_override(由 controller 校验字段与自操作约束)。
+  async updateById(
+    id: string,
+    patch: Partial<Pick<User, 'status' | 'role' | 'daily_quota_override'>>,
+  ): Promise<User | null> {
+    await this.repo.update({ id }, patch);
+    return this.findById(id);
+  }
 }

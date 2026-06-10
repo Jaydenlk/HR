@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -118,6 +119,35 @@ export class AuthService {
     const user = await this.users.findById(userId);
     if (!user) throw new UnauthorizedException();
     return user;
+  }
+
+  // 测试通道登录:跳过验证码与邀请码,findOrCreate 用户后签发与正常登录完全相同的 JWT。
+  // 仅当 DEV_LOGIN==='1' 且 NODE_ENV!=='production' 时可用;否则一律 404(不暴露端点存在性)。
+  // 命中 ADMIN_EMAILS 的邮箱确保 role=admin;banned 用户拒绝。
+  async devLogin(email: string): Promise<{ access_token: string; user: User }> {
+    const enabled = this.config.get<string>('DEV_LOGIN') === '1';
+    const isProd = this.config.get<string>('NODE_ENV') === 'production';
+    if (!enabled || isProd) {
+      throw new NotFoundException();
+    }
+
+    const normalized = email.trim().toLowerCase();
+    const isAdmin = this.adminEmails.has(normalized);
+    const existing = await this.users.findByEmail(normalized);
+
+    let user: User;
+    if (existing) {
+      if (existing.status === 'banned') {
+        throw new UnauthorizedException('账号已被停用');
+      }
+      user = await this.users.promoteIfAdmin(existing, isAdmin);
+    } else {
+      // 测试通道新建用户:邀请码列非空约束,填入哨兵值 'dev-login' 标识来源。
+      user = await this.users.createUser(normalized, normalized, 'dev-login', isAdmin);
+    }
+
+    const token = this.jwt.sign({ sub: user.id, email: user.email });
+    return { access_token: token, user };
   }
 
   // 校验验证码:取该邮箱最新未消费码,判过期/锁定/匹配;错误则累加 attempts。

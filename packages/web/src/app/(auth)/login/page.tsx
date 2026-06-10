@@ -11,6 +11,10 @@ import type { LoginResponse, RequestCodeResponse } from '@/lib/types';
 
 type Step = 'email' | 'code';
 
+// 测试通道仅在显式开启时渲染(本地 web/.env.local 设 NEXT_PUBLIC_DEV_LOGIN=1);
+// Next.js 在构建期内联 NEXT_PUBLIC_* 字面量,未开启时整段折叠区不出现在 DOM。
+const DEV_LOGIN_ENABLED = process.env.NEXT_PUBLIC_DEV_LOGIN === '1';
+
 // 共享输入框样式:聚焦时变品牌色 + 柔光环,与现页视觉语言一致。
 const inputBaseStyle: React.CSSProperties = {
   height: '44px',
@@ -59,6 +63,11 @@ export default function LoginPage() {
   const [loggingIn, setLoggingIn] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+
+  // 测试通道(仅 DEV_LOGIN_ENABLED 时渲染)
+  const [devOpen, setDevOpen] = useState(false);
+  const [devEmail, setDevEmail] = useState('admin@coach.dev');
+  const [devLoading, setDevLoading] = useState(false);
 
   // 倒计时:每秒递减,归零自动停。组件卸载/重置时清理定时器。
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -149,6 +158,26 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : '登录失败，请稍后重试');
     } finally {
       setLoggingIn(false);
+    }
+  }
+
+  // 测试通道:免验证码免邀请码,直接调 dev-login 拿 token 进站。
+  async function handleDevLogin() {
+    const trimmed = devEmail.trim();
+    if (!trimmed) {
+      setError('请输入邮箱');
+      return;
+    }
+    setDevLoading(true);
+    setError(null);
+    try {
+      const res = await api.post<LoginResponse>('/auth/dev-login', { email: trimmed });
+      localStorage.setItem('token', res.access_token);
+      window.location.href = '/today';
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '测试通道登录失败');
+    } finally {
+      setDevLoading(false);
     }
   }
 
@@ -550,6 +579,73 @@ export default function LoginPage() {
                 更换邮箱
               </button>
             </form>
+          )}
+
+          {/* 测试通道(仅 NEXT_PUBLIC_DEV_LOGIN=1 时渲染,折叠) */}
+          {DEV_LOGIN_ENABLED && (
+            <div
+              style={{
+                marginTop: '24px',
+                paddingTop: '18px',
+                borderTop: '1px dashed var(--color-line)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setDevOpen((v) => !v)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '2px 0',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  color: 'var(--color-ink-4)',
+                  cursor: 'pointer',
+                }}
+              >
+                {devOpen ? '收起测试通道' : '测试通道（仅联调）'}
+              </button>
+              {devOpen && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    marginTop: '12px',
+                  }}
+                >
+                  <input
+                    type="email"
+                    value={devEmail}
+                    onChange={(e) => setDevEmail(e.target.value)}
+                    placeholder="admin@coach.dev"
+                    style={inputBaseStyle}
+                    onFocus={focusInput}
+                    onBlur={blurInput}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleDevLogin}
+                    disabled={devLoading}
+                    style={{
+                      height: '42px',
+                      borderRadius: '10px',
+                      background: devLoading
+                        ? 'var(--color-ink-3)'
+                        : 'var(--color-surface-3)',
+                      color: 'var(--color-ink)',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      border: '1px solid var(--color-line)',
+                      cursor: devLoading ? 'not-allowed' : 'pointer',
+                      width: '100%',
+                    }}
+                  >
+                    {devLoading ? '进入中…' : '一键进入'}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

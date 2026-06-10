@@ -13,3 +13,8 @@ process.env.DISABLE_THROTTLE = '1';
 // 因此 quota.e2e 的封顶用例改用 per-user daily_quota_override(DB 运行时读取、优先于全局)验证,
 // 不受本全局默认影响。
 process.env.DAILY_AI_QUOTA = '100000';
+// AppModule 在 import 时即调用 ConfigModule.forRoot({ validate }),校验 CLOUDDREAM_API_KEY/JWT_SECRET
+// 必填。直接 import AppModule 的套件(quota/admin 等)若是 worker 内首个加载者,beforeAll 还来不及设值。
+// 故在 setupFiles(早于任何 import)铺设测试默认值;套件内可再覆盖。
+if (!process.env.CLOUDDREAM_API_KEY) process.env.CLOUDDREAM_API_KEY = 'test-key';
+if (!process.env.JWT_SECRET) process.env.JWT_SECRET = 'test-secret';

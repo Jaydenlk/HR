@@ -31,6 +31,7 @@ import { LearningRoadmapModule } from './learning-roadmap/learning-roadmap.modul
 import { FollowUpModule } from './follow-up/follow-up.module';
 import { IndustryTrendModule } from './industry-trend/industry-trend.module';
 import { QuotaModule } from './quota/quota.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { QuotaModule } from './quota/quota.module';
     // @Global QuotaModule:各 AI feature module 已传递性 import,此处显式挂一次
     // 保证非 feature 入口也能用,并与试运行接线约定一致。
     QuotaModule,
+    AdminModule,
   ],
   // 全局限流守卫:与 ThrottlerModule.forRoot 配合,对所有路由生效。
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

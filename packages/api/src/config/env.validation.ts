@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumberString, IsOptional, IsString, validateSync } from 'class-validator';
+import { IsIn, IsNotEmpty, IsNumberString, IsOptional, IsString, validateSync } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 
 export class EnvironmentVariables {
@@ -111,6 +111,12 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   CORS_ORIGINS?: string;
+
+  // 测试通道开关:'1' 时开放 POST /api/auth/dev-login(免验证码免邀请码登录)。
+  // 仅供本地/试运行联调,production 严禁开启(端点另有 NODE_ENV!=='production' 二重保护)。
+  @IsOptional()
+  @IsIn(['0', '1'])
+  DEV_LOGIN?: string;
 }
 
 export function validate(config: Record<string, unknown>): Record<string, unknown> {

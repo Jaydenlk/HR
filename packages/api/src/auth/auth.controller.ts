@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RequestCodeDto } from './dto/request-code.dto';
 import { LoginDto } from './dto/login.dto';
+import { DevLoginDto } from './dto/dev-login.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -21,6 +22,14 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  // 测试通道:免验证码免邀请码登录。仅 DEV_LOGIN=1 且非 production 时可用,否则 404。
+  // 限流复用登录端点同档(每 IP 每分钟 10 次)。
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('dev-login')
+  devLogin(@Body() dto: DevLoginDto) {
+    return this.auth.devLogin(dto.email);
   }
 
   @UseGuards(JwtAuthGuard)

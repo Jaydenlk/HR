@@ -2,7 +2,11 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomBytes } from 'crypto';
 import { InviteCode } from './entities/invite-code.entity';
+
+// 随机邀请码字符集:去掉易混字符(0/O/1/I),大写字母+数字。
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 @Injectable()
 export class InvitesService implements OnModuleInit {
@@ -23,6 +27,33 @@ export class InvitesService implements OnModuleInit {
       this.repo.create({ code: 'COACH2026', max_uses: 100000, note: 'dev bootstrap' }),
     );
     this.logger.log('已 seed 开发引导邀请码 COACH2026(max_uses=100000)');
+  }
+
+  // 管理后台:全部邀请码,新建在前。
+  findAll(): Promise<InviteCode[]> {
+    return this.repo.find({ order: { created_at: 'DESC' } });
+  }
+
+  // 管理后台:创建邀请码。code 不传则生成随机 8 位(大写字母+数字)。
+  create(code: string | undefined, maxUses: number): Promise<InviteCode> {
+    const finalCode = code?.trim() ? code.trim().toUpperCase() : this.randomCode();
+    return this.repo.save(this.repo.create({ code: finalCode, max_uses: maxUses }));
+  }
+
+  // 管理后台:停用/启用邀请码。
+  async setDisabled(id: string, disabled: boolean): Promise<InviteCode | null> {
+    await this.repo.update({ id }, { disabled });
+    return this.repo.findOneBy({ id });
+  }
+
+  // 随机 8 位邀请码。
+  private randomCode(): string {
+    const bytes = randomBytes(8);
+    let out = '';
+    for (let i = 0; i < 8; i++) {
+      out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+    }
+    return out;
   }
 
   // 原子消费一次邀请码:仅当未停用且未超额时 used_count+1。

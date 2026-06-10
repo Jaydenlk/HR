@@ -28,6 +28,7 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 
 interface NavItem {
@@ -530,6 +531,62 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             </>
           );
         })()}
+
+        {/* 管理后台入口:仅 admin 可见(由 /auth/me 的 role 驱动) */}
+        {user?.role === 'admin' && (
+          <>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'var(--color-ink-4)',
+                fontWeight: 600,
+                margin: '14px 10px 4px',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              运营
+            </div>
+            <Link
+              href="/admin"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '11px',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                fontSize: '13.5px',
+                color: (pathname?.startsWith('/admin') ?? false)
+                  ? 'var(--color-ink)'
+                  : 'var(--color-ink-2)',
+                fontWeight: (pathname?.startsWith('/admin') ?? false) ? 600 : 500,
+                background: (pathname?.startsWith('/admin') ?? false)
+                  ? 'var(--color-surface)'
+                  : 'transparent',
+                boxShadow: (pathname?.startsWith('/admin') ?? false)
+                  ? '0 1px 2px rgba(0,0,0,0.04)'
+                  : 'none',
+                textDecoration: 'none',
+                letterSpacing: '-0.003em',
+                transition: 'background 0.1s, color 0.1s',
+              }}
+            >
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '18px',
+                  justifyContent: 'center',
+                  color: 'var(--color-ink-3)',
+                  flexShrink: 0,
+                }}
+              >
+                <Shield size={16} />
+              </span>
+              <span style={{ flex: 1 }}>管理后台</span>
+            </Link>
+          </>
+        )}
 
         {/* Recent conversations */}
         {conversations.length > 0 && (
