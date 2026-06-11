@@ -128,6 +128,7 @@ export class DiagnosesService {
       renderResumeForReview(parsedResume),
       preset,
       jdJson,
+      parsedResume,
     );
 
     const suggestions = await this.rewriter.suggestAgainstPreset(

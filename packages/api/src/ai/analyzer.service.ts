@@ -6,6 +6,7 @@ import {
   ConventionCheck,
   InterviewHook,
   MatchDimensions,
+  ParsedResume,
   ProfessionPreset,
   ProfessionStandardResult,
 } from '../common/types';
@@ -14,6 +15,8 @@ import {
   buildProfessionStandardPrompt,
 } from './prompts/analyze-profession-standard';
 import { PROFESSION_STANDARD_SCHEMA } from './schemas/profession-standard.schema';
+import { checkTimelineConsistency } from './timeline-guard';
+import { detectSuspiciousNumbers } from './suspicious-numbers';
 
 // AI 原始产物形态:主通道走 deepseek-chat 时内层字段可能缺省/残缺(schema 已放宽内层 required),
 // 故 Raw 类型全部可选,由 service 端归一为权威 ProfessionStandardResult。无 any。
@@ -72,12 +75,19 @@ export class AnalyzerService {
     resumeJson: string,
     preset: ProfessionPreset,
     jdJson: string | null = null,
+    // 结构化简历:用于确定性时间线一致性校验(非 AI)。传入则在诊断里注入命中的时间线硬伤。
+    parsedResume: ParsedResume | null = null,
   ): Promise<ProfessionStandardResult> {
     if (resumeJson.trim().length < 30) {
       throw new BadRequestException('简历内容过短，无法分析。');
     }
     const system = buildProfessionStandardSystem(preset);
     const prompt = buildProfessionStandardPrompt(resumeJson, jdJson);
+
+    // 确定性守卫(不依赖 AI,先算好,AI 产出后注入):
+    // ① 时间线硬伤(需结构化简历);② 可疑量化指标(扫渲染后的简历文本)。
+    const timelineConflicts = parsedResume ? checkTimelineConsistency(parsedResume) : [];
+    const suspiciousNumbers = detectSuspiciousNumbers(resumeJson);
 
     // 可靠性:AI 偶发"结构合法但语义为空"的退化产物(某维 why 全空 / 满分零理由 / 整段空评分),
     // 会让付费用户收到残缺诊断。完整对齐后校验,退化则重试;耗尽仍退化抛 503,绝不服务空评分。
@@ -109,11 +119,20 @@ export class AnalyzerService {
         };
       });
       if (this.isDegenerate(dimensions)) continue;
-      const total_score = dimensions.reduce((sum, d) => sum + d.score, 0);
+      // 可疑量化指标命中 → 压制"数据/量化/严谨"相关维度评分:可疑量化未核实前不得给高分区间。
+      const calibratedDims =
+        suspiciousNumbers.length > 0 ? this.suppressForSuspiciousNumbers(dimensions) : dimensions;
+      const total_score = calibratedDims.reduce((sum, d) => sum + d.score, 0);
+      // 确定性核查并入 conventionChecks,排在 AI 产物之前(显著位置):时间线硬伤 → 可疑数字 → AI 本土惯例核查。
+      const conventionChecks: ConventionCheck[] = [
+        ...timelineConflicts,
+        ...this.suspiciousNumberChecks(suspiciousNumbers),
+        ...this.normalizeConventionChecks(result.conventionChecks),
+      ];
       return {
         total_score,
-        dimensions,
-        conventionChecks: this.normalizeConventionChecks(result.conventionChecks),
+        dimensions: calibratedDims,
+        conventionChecks,
         interviewHooks: this.normalizeInterviewHooks(result.interviewHooks),
       };
     }
@@ -125,6 +144,39 @@ export class AnalyzerService {
   /** 退化产物判定:任一维度 why 为空即视为残缺诊断(含"满分零理由"式自相矛盾),不可服务。 */
   private isDegenerate(dimensions: ProfessionStandardResult['dimensions']): boolean {
     return dimensions.length === 0 || dimensions.some((d) => !d.why || d.why.trim().length === 0);
+  }
+
+  /** 确定性可疑数字 → conventionCheck(status='missing',显著标注"可疑待验证"),与 interviewHooks 同向追问。 */
+  private suspiciousNumberChecks(
+    suspicious: ReturnType<typeof detectSuspiciousNumbers>,
+  ): ConventionCheck[] {
+    return suspicious.map((s) => ({
+      key: '可疑量化指标:缺基数与口径',
+      status: 'missing' as const,
+      note: `${s.reason}(命中:${s.raw})面试官很可能追问其计算口径与样本量,核实前不应视为可信成果。`,
+    }));
+  }
+
+  /**
+   * 可疑数字校准:命中可疑量化指标时,压制"数据驱动/量化/严谨/可靠"类维度的得分,
+   * 使其不进入高分区间(可疑量化未核实前该维度不得给高分)。压制对象按维度名/key 关键词匹配,
+   * 把超过该维度满分 60% 的分数压回 60%,且记录在 why 末尾说明压制原因(透明可解释)。
+   */
+  private suppressForSuspiciousNumbers(
+    dimensions: ProfessionStandardResult['dimensions'],
+  ): ProfessionStandardResult['dimensions'] {
+    const SUSPECT = /数据|量化|数字|严谨|可靠|可信|度量|指标/;
+    const CAP_RATIO = 0.6; // 可疑量化未核实 → 该维度封顶到满分的 60%
+    return dimensions.map((d) => {
+      if (!SUSPECT.test(d.name) && !SUSPECT.test(d.key)) return d;
+      const cap = Math.floor(d.max * CAP_RATIO);
+      if (d.score <= cap) return d;
+      return {
+        ...d,
+        score: cap,
+        why: `${d.why}（注:简历存在缺基数与口径的可疑高值量化指标,核实前该维度评分已压制,不进入高分区间。）`,
+      };
+    });
   }
 
   // 本土惯例核查归一:内层 required 已放宽,故丢弃缺 key/note 的残缺条目(无键无说明的核查无意义),
