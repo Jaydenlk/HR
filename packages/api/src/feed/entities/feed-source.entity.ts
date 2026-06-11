@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { TIMESTAMP_COLUMN_TYPE } from '../../database/column-types';
 import type { FeedSourceKind, FeedSourceStatus } from '../types/feed.types';
 
 @Entity('feed_sources')
@@ -30,7 +31,7 @@ export class FeedSource {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
   last_run_at: Date | null;
 
   @Column({ type: 'integer', default: 0 })
@@ -39,10 +40,10 @@ export class FeedSource {
   @Column({ type: 'integer', default: 0 })
   success_count: number;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
   last_success_at: Date | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
   last_failure_at: Date | null;
 
   @Column({ type: 'text', nullable: true })

@@ -1,0 +1,155 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Coach 生产编排 — 单机 4C4G(postgres16 + api + web + caddy)
+# 用法:docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+# 资源分配(总 4C4G 留余量给宿主):
+#   postgres ~1G / api ~1.5G / web ~0.8G / caddy ~0.2G,合计 ≈3.5G。
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── PostgreSQL 16 ───────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?需在 .env.production 配置 DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS:?需在 .env.production 配置 DB_PASS}
+      POSTGRES_DB: ${DB_NAME:?需在 .env.production 配置 DB_NAME}
+      # 初始化编码,避免中文存取乱码。
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    # shared_buffers=256MB:4C4G 单机给 PG 约 1G 内存,256MB 共享缓冲为保守合理值。
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "effective_cache_size=768MB"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+    networks:
+      - coach
+
+  # ── API(NestJS) ────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: coach-api:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3002"
+      APP_VERSION: ${APP_VERSION:-unknown}
+      # 强制 postgres(忽略 .env 里可能残留的 DB_TYPE=sqlite)。
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+    # 其余密钥/SMTP/CORS 等从 .env.production 透传(避免在此重复罗列、泄露)。
+    env_file:
+      - .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://127.0.0.1:3002/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1536M
+    networks:
+      - coach
+
+  # ── Web(Next.js standalone) ────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        # 生产前端走同源 /api(由 caddy 反代到 api),故构建期内联 /api 即可。
+        NEXT_PUBLIC_API_URL: /api
+        NEXT_PUBLIC_DEV_LOGIN: "0"
+    image: coach-web:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    depends_on:
+      - api
+    # standalone server 监听容器内 3000(见 Dockerfile.web);node 运行时自带,用 fetch 探活。
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+    networks:
+      - coach
+
+  # ── Caddy 反代(自动 HTTPS) ────────────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      # HTTP/3 走 QUIC(UDP 443);不映射则浏览器静默回退 HTTP/2,故显式开放。
+      - "443:443/udp"
+    environment:
+      # Caddyfile 用 {$DOMAIN} 取域名;留空则按 :80 纯 HTTP 起(便于内网/IP 调试)。
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    networks:
+      - coach
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  coach:
+    driver: bridge

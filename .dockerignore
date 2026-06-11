@@ -1,0 +1,24 @@
+# 构建上下文裁剪:排除宿主机产物,避免污染镜像内 pnpm 安装的 node_modules / 编译产物。
+# 关键:不排除 node_modules 会让宿主 node_modules(含平台特定的 native 二进制)覆盖镜像内版本。
+**/node_modules
+**/dist
+**/.next
+**/out
+**/.git
+**/.worktrees
+**/.clone
+**/.audit
+**/.tools
+**/.playwright-mcp
+**/coverage
+**/*.db
+**/*.log
+**/*.png
+**/*.jpg
+**/*.jpeg
+# 生产密钥文件绝不进镜像。
+.env.production
+**/.env
+**/.env.local
+# 部署文档/本地脚本无需进镜像。
+**/*.md

@@ -11,5 +11,13 @@
     "strictPropertyInitialization": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "src/**/*.spec.ts"]
+  "exclude": ["node_modules", "dist", "test", "src/**/*.spec.ts"],
+  "ts-node": {
+    "comment": "仅 ts-node 运行期(typeorm-ts-node-commonjs migration:* 的本机便利脚本)生效;nest build / tsc --noEmit 不读此块。base 的 moduleResolution:'bundler' 在 ts-node 的 commonjs 模式下不识别 node 全局(process/__dirname/require),故此处覆盖为 node 解析 + 显式 node 类型。",
+    "compilerOptions": {
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "types": ["node"]
+    }
+  }
 }

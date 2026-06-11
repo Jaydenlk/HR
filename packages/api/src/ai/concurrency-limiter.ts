@@ -1,6 +1,7 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AiConfig } from '../config/ai.config';
+import { OpsEventsService } from '../ops/ops-events.service';
 
 /**
  * 并发护栏:限制同时进行的重 AI 调用数。超出上限的请求排队等待;队列也满时直接抛
@@ -19,7 +20,10 @@ export class ConcurrencyLimiter {
   private active = 0;
   private readonly waiters: Array<() => void> = [];
 
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    @Optional() private readonly opsEvents?: OpsEventsService,
+  ) {
     const concurrency = config.get<AiConfig['concurrency']>('ai.concurrency')!;
     this.maxConcurrent = concurrency.max;
     this.maxQueue = concurrency.queue;
@@ -40,6 +44,14 @@ export class ConcurrencyLimiter {
       return Promise.resolve();
     }
     if (this.waiters.length >= this.maxQueue) {
+      // 记录队列满事件;catch 吞掉写入失败,不阻断主流程;opsEvents 不存在(单元测试无 DB)则跳过
+      void this.opsEvents
+        ?.record('QUEUE_FULL', { active: this.active, maxConcurrent: this.maxConcurrent, maxQueue: this.maxQueue })
+        .catch((e: unknown) =>
+          this.logger.warn(
+            `OpsEvents QUEUE_FULL 写入失败:${e instanceof Error ? e.message : String(e)}`,
+          ),
+        );
       throw new ServiceUnavailableException(
         `AI 服务繁忙(并发 ${this.maxConcurrent} + 队列 ${this.maxQueue} 已满),请稍后重试。`,
       );

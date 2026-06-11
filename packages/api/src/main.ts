@@ -1,3 +1,19 @@
+// 前置装载 .env:必须在任何其它 import 之前执行,确保实体装饰器求值期(模块加载时)
+// 能读到 DB_TYPE 等环境变量。dotenv 默认不覆盖已有进程变量,生产 compose env_file 注入语义安全。
+// data-source.ts 同理已前置装载;两者共用同一份 .env,不冲突。
+import * as path from 'path';
+loadDotenvIfPresent(path.resolve(__dirname, '..', '.env'));
+
+function loadDotenvIfPresent(envPath: string): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const dotenv = require('dotenv') as { config: (opts: { path: string }) => unknown };
+    dotenv.config({ path: envPath });
+  } catch {
+    // dotenv 未安装 → 依赖进程环境变量,正常跳过。
+  }
+}
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';

@@ -1,0 +1,57 @@
+# syntax=docker/dockerfile:1
+# ──────────────────────────────────────────────────────────────────────────────
+# Coach API(NestJS 11)生产镜像 — 多阶段构建
+# 构建上下文必须是 monorepo 仓库根(docker build -f Dockerfile.api .),
+# 因为 pnpm workspace 需要根 pnpm-lock.yaml / pnpm-workspace.yaml 才能正确解析依赖。
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── 1. base:统一 Node + pnpm 版本 ─────────────────────────────────────────────
+FROM node:22-alpine AS base
+# corepack 锁定 pnpm,避免不同机器 pnpm 版本漂移导致 lockfile 不一致。
+RUN corepack enable
+WORKDIR /repo
+
+# ── 2. build:安装全量依赖(含 devDeps)并编译 TypeScript → dist ───────────────
+#     注意:必须「先拷源码再 install」。pnpm install 会在 packages/api 内创建 node_modules
+#     符号链接,若 install 后再 COPY 整个 packages/api 会把该链接覆盖掉(@nestjs/cli 丢失)。
+FROM base AS build
+# better-sqlite3 是 native 依赖,alpine 下需 python3/make/g++ 才能编译;
+# 生产虽走 pg,但它在 dependencies 里,pnpm 会触发其 build 脚本,故构建期装上工具链。
+RUN apk add --no-cache python3 make g++
+# 先拷 manifest + lockfile(利用层缓存:依赖未变则复用)。
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
+COPY packages/api/package.json packages/api/package.json
+COPY packages/web/package.json packages/web/package.json
+# 再拷 api 源码,然后 install(确保 node_modules 链接是最后产物,不被覆盖)。
+COPY packages/api packages/api
+RUN pnpm install --frozen-lockfile --filter @coach/api...
+RUN pnpm --filter @coach/api build
+
+# ── 3. prod-deps:仅生产依赖(去掉 devDeps,瘦身) ──────────────────────────────
+FROM base AS prod-deps
+RUN apk add --no-cache python3 make g++
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/api/package.json packages/api/package.json
+COPY packages/web/package.json packages/web/package.json
+# 仅装 @coach/api 的生产依赖;--prod 跳过 devDependencies。
+RUN pnpm install --frozen-lockfile --prod --filter @coach/api
+
+# ── 4. runner:最小运行镜像 ────────────────────────────────────────────────────
+FROM node:22-alpine AS runner
+WORKDIR /repo/packages/api
+ENV NODE_ENV=production
+# 拷贝生产依赖(workspace 结构:根 node_modules + 包内 node_modules 软链)。
+COPY --from=prod-deps --chown=node:node /repo/node_modules /repo/node_modules
+COPY --from=prod-deps --chown=node:node /repo/packages/api/node_modules /repo/packages/api/node_modules
+COPY --from=prod-deps --chown=node:node /repo/package.json /repo/package.json
+COPY --from=prod-deps --chown=node:node /repo/packages/api/package.json /repo/packages/api/package.json
+# 编译产物 + seed 所需的种子数据。
+COPY --from=build --chown=node:node /repo/packages/api/dist /repo/packages/api/dist
+COPY --chown=node:node data /repo/data
+# 非 root 运行(node:alpine 自带 node 用户),降低容器逃逸风险。
+USER node
+EXPOSE 3002
+# 健康检查由 compose 统一定义(命中 /api/health);此处保留容器自检兜底。
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3002)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "dist/main"]

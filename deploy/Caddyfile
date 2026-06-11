@@ -1,0 +1,31 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Coach 反向代理(Caddy 2)
+#   /api/*  → api:3002   (NestJS,全局前缀 /api)
+#   其余    → web:3000   (Next.js standalone)
+#
+# 站点地址取环境变量 {$DOMAIN}:
+#   - 配置了域名(如 coach.example.com)→ Caddy 自动申请 Let's Encrypt 证书,走 HTTPS。
+#   - 留空 → 回退 :80 纯 HTTP(内网 / 用 IP 直连调试场景)。
+# DOMAIN 由 docker-compose.prod.yml 从 .env.production 注入。
+# ──────────────────────────────────────────────────────────────────────────────
+
+{$DOMAIN::80} {
+	# gzip/zstd 压缩,降低带宽。
+	encode zstd gzip
+
+	# API:精确匹配 /api 前缀,反代到后端容器(保留 /api 前缀,后端 setGlobalPrefix('api') 需要它)。
+	handle /api/* {
+		reverse_proxy api:3002
+	}
+
+	# 其余全部交给前端 standalone server。
+	handle {
+		reverse_proxy web:3000
+	}
+
+	# 访问日志输出到 stdout,由 docker logs 收集。
+	log {
+		output stdout
+		format console
+	}
+}

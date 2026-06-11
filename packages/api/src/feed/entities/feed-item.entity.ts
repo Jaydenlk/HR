@@ -6,6 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { TIMESTAMP_COLUMN_TYPE } from '../../database/column-types';
 import { User } from '../../users/entities/user.entity';
 import { FeedSource } from './feed-source.entity';
 import { Company } from './company.entity';
@@ -67,10 +68,10 @@ export class FeedItem {
   @Column({ type: 'varchar', nullable: true })
   external_id: string | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
   fetched_at: Date | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
   published_at: Date | null;
 
   @Column({ type: 'varchar', default: 'unknown' })

@@ -32,6 +32,8 @@ import { FollowUpModule } from './follow-up/follow-up.module';
 import { IndustryTrendModule } from './industry-trend/industry-trend.module';
 import { QuotaModule } from './quota/quota.module';
 import { AdminModule } from './admin/admin.module';
+import { HealthModule } from './health/health.module';
+import { OpsEventsModule } from './ops/ops-events.module';
 
 @Module({
   imports: [
@@ -64,7 +66,14 @@ import { AdminModule } from './admin/admin.module';
           password: config.get('DB_PASS', 'coach'),
           database: config.get('DB_NAME', 'coach'),
           autoLoadEntities: true,
-          synchronize: config.get('NODE_ENV') !== 'production',
+          // 生产数据安全红线:postgres 永不 synchronize,所有 schema 变更只走迁移文件
+          // (CLI 经 src/database/data-source.ts 显式 migration:run)。dev 走 sqlite synchronize。
+          synchronize: false,
+          // 迁移文件来源(ts 在 ts-node 下、js 在编译产物下各自命中)。
+          migrations: [__dirname + '/database/migrations/*.{ts,js}'],
+          // 是否在连接初始化时自动跑迁移:默认关闭,由 CLI 显式触发;
+          // DB_MIGRATIONS_RUN=1 时才在启动时自动迁移(可选,谨慎用于受控环境)。
+          migrationsRun: config.get('DB_MIGRATIONS_RUN') === '1',
         };
       },
     }),
@@ -96,6 +105,11 @@ import { AdminModule } from './admin/admin.module';
     // 保证非 feature 入口也能用,并与试运行接线约定一致。
     QuotaModule,
     AdminModule,
+    // 健康检查:GET /api/health(探针/监控用),不依赖任何 feature module。
+    HealthModule,
+    // 运维事件流水:虽已由 AiModule 传递性 import,此处显式挂载提升可读性并保证
+    // 非 AI 入口(如 T3 管理后台)也能稳定注入 OpsEventsService。
+    OpsEventsModule,
   ],
   // 全局限流守卫:与 ThrottlerModule.forRoot 配合,对所有路由生效。
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

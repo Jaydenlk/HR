@@ -1,17 +1,69 @@
 /**
- * Seed script — populates DB with market salary & interview data.
- * Run: npx ts-node src/seed.ts
+ * Seed 脚本 —— 向 DB 灌入市场薪资 & 面经数据。
+ * 运行:npm run seed(经 tsconfig.seed.json 编译)
+ *
+ * 数据源从 DB_* 环境变量装配(sqlite/postgres 同一套,与 app.module 一致),
+ * 不再写死 sqlite —— 故同一脚本可对 dev(sqlite)与生产(postgres)分别灌种。
  */
 import 'reflect-metadata';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DataSource } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
+import { User } from './users/entities/user.entity';
 import { SalaryEntry } from './salary/entities/salary-entry.entity';
 import { FeedItem } from './feed/entities/feed-item.entity';
 import type { FeedCategory, FeedSourceKind } from './feed/types/feed.types';
 
+// seed 在 Nest 之外运行,需自行加载 packages/api/.env(与运行期同一份配置源)。
+// dotenv 为可选:生产用进程管理器注入环境变量,无 .env 时静默跳过。
+loadDotenvIfPresent(path.resolve(__dirname, '..', '.env'));
+
+function loadDotenvIfPresent(envPath: string): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const dotenv = require('dotenv') as { config: (opts: { path: string }) => unknown };
+    dotenv.config({ path: envPath });
+  } catch {
+    // dotenv 未安装 → 依赖进程环境变量,正常。
+  }
+}
+
 // Resolve JSON data files relative to the repo root (two levels up from packages/api)
 const dataRoot = path.resolve(__dirname, '..', '..', '..', 'data', 'seed');
+
+// 市场薪资数据无真实投稿用户,挂在固定 UUID 的「系统」用户名下,保住 FK 完整性
+// (Postgres 上 salary_entries.user_id 是 NOT NULL uuid + FK→users;不能再用 'system' 字符串)。
+const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+
+// 按 DB_* 环境变量装配数据源(与 src/database/data-source.ts、app.module 同源)。
+function buildSeedOptions(): DataSourceOptions {
+  const dbType = process.env.DB_TYPE ?? 'sqlite';
+  const entities = [path.resolve(__dirname, '**', '*.entity.{ts,js}')];
+
+  if (dbType === 'sqlite') {
+    return {
+      type: 'better-sqlite3',
+      database: process.env.DB_PATH ?? path.resolve(__dirname, '..', 'coach-dev.db'),
+      entities,
+      synchronize: true,
+      logging: false,
+    };
+  }
+
+  return {
+    type: 'postgres',
+    host: process.env.DB_HOST ?? 'localhost',
+    port: Number(process.env.DB_PORT ?? 5432),
+    username: process.env.DB_USER ?? 'coach',
+    password: process.env.DB_PASS ?? 'coach',
+    database: process.env.DB_NAME ?? 'coach',
+    entities,
+    uuidExtension: 'pgcrypto',
+    // 生产 schema 由迁移管理,seed 绝不自动改表。
+    synchronize: false,
+    logging: false,
+  };
+}
 
 interface SalaryRecord {
   company: string;
@@ -96,21 +148,26 @@ function toFeedSourceKind(value: string | null | undefined): FeedSourceKind {
 }
 
 async function seed() {
-  const ds = new DataSource({
-    type: 'better-sqlite3',
-    database: path.resolve(__dirname, '..', 'coach-dev.db'),
-    // Use glob pattern to auto-discover all entities (ts-node resolves .ts, dist resolves .js)
-    entities: [path.resolve(__dirname, '**', '*.entity.{ts,js}')],
-    synchronize: true,
-    // Silence TypeORM logs
-    logging: false,
-  });
+  const ds = new DataSource(buildSeedOptions());
 
   await ds.initialize();
-  console.log('Connected to DB');
+  console.log(`Connected to DB (${ds.options.type})`);
 
-  // Disable FK enforcement for the seed (market data has no real user_id)
-  await ds.query('PRAGMA foreign_keys = OFF');
+  // 系统用户兜底:市场薪资数据挂其名下,保住 FK 完整性(idempotent)。
+  const userRepo = ds.getRepository(User);
+  const systemUser = await userRepo.findOne({ where: { id: SYSTEM_USER_ID } });
+  if (!systemUser) {
+    await userRepo.insert({
+      id: SYSTEM_USER_ID,
+      email: 'system@coach.internal',
+      name: 'Coach 系统',
+      invite_code: 'SYSTEM',
+      // FK 占位账号无需管理员权限,降为普通 user(最小权限);status: banned 已禁止登录。
+      role: 'user',
+      status: 'banned', // 占位账号,禁止登录
+    });
+    console.log('Created system placeholder user');
+  }
 
   // ── 1. Seed salary_entries ───────────────────────────────────────────────
   const salaryRepo = ds.getRepository(SalaryEntry);
@@ -124,9 +181,8 @@ async function seed() {
 
     const salaryEntities = salaryData.map((rec) => {
       const entry = salaryRepo.create({
-        // Market data has no user — use a sentinel value.
-        // user_id is @Column() but SQLite won't enforce the FK unless PRAGMA is on.
-        user_id: 'system',
+        // 市场数据无投稿用户,挂系统用户名下(FK 有效)。
+        user_id: SYSTEM_USER_ID,
         company: rec.company,
         role: rec.role,
         location: rec.location,
@@ -211,9 +267,6 @@ async function seed() {
   console.log(
     `Curated feed: inserted ${curatedInserted}, skipped ${curatedSkipped} duplicates`,
   );
-
-  // Re-enable FK enforcement
-  await ds.query('PRAGMA foreign_keys = ON');
 
   await ds.destroy();
   console.log('Seed complete');

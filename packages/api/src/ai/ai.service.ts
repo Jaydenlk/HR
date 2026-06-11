@@ -1,8 +1,9 @@
-import { Injectable, ServiceUnavailableException, Logger } from '@nestjs/common';
+import { Injectable, Optional, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { ConcurrencyLimiter } from './concurrency-limiter';
 import { AiConfig } from '../config/ai.config';
+import { OpsEventsService } from '../ops/ops-events.service';
 
 interface CompleteParams {
   system: string;
@@ -35,6 +36,7 @@ export class AiService {
 
   constructor(
     private readonly limiter: ConcurrencyLimiter,
+    @Optional() private readonly opsEvents: OpsEventsService | undefined,
     config: ConfigService,
   ) {
     const ai = config.get<AiConfig>('ai')!;
@@ -133,9 +135,17 @@ export class AiService {
       this.logger.warn(
         `${op}: 主通道(${this.primary.name})失败,降级到备用(${this.fallback.name}) —— ${this.errMsg(primaryErr)}`,
       );
+      // 记录降级事件;catch 吞掉写入失败,不阻断主流程;opsEvents 不存在(单元测试无 DB)则跳过
+      void this.opsEvents
+        ?.record('AI_FAILOVER', { op, primary: this.primary.name, fallback: this.fallback.name, error: this.errMsg(primaryErr) })
+        .catch((e: unknown) => this.logger.warn(`OpsEvents AI_FAILOVER 写入失败:${this.errMsg(e)}`));
       try {
         return await run(this.fallback);
       } catch (fallbackErr) {
+        // 记录两通道皆败事件;catch 吞掉写入失败,不阻断主流程;opsEvents 不存在(单元测试无 DB)则跳过
+        void this.opsEvents
+          ?.record('AI_BOTH_DOWN', { op, primary: this.primary.name, fallback: this.fallback.name, error: this.errMsg(fallbackErr) })
+          .catch((e: unknown) => this.logger.warn(`OpsEvents AI_BOTH_DOWN 写入失败:${this.errMsg(e)}`));
         throw this.unavailable(op, fallbackErr);
       }
     }

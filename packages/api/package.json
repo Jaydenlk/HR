@@ -9,7 +9,16 @@
     "lint": "tsc --noEmit",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit",
-    "seed": "npx ts-node --project tsconfig.seed.json src/seed.ts"
+    "seed": "npx ts-node --project tsconfig.seed.json src/seed.ts",
+    "seed:prod": "node dist/seed.js",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate src/database/migrations/Auto -d src/database/data-source.ts",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
+    "migration:run:prod": "typeorm -d dist/database/data-source.js migration:run",
+    "migration:revert:prod": "typeorm -d dist/database/data-source.js migration:revert",
+    "migration:show:prod": "typeorm -d dist/database/data-source.js migration:show",
+    "backup": "bash scripts/backup.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
@@ -25,6 +34,7 @@
     "better-sqlite3": "^12.10.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "dotenv": "^16.6.1",
     "helmet": "^8.2.0",
     "mammoth": "^1.12.0",
     "node-cache": "^5.1.2",

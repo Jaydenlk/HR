@@ -145,6 +145,25 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsIn(['0', '1'])
   DEV_LOGIN?: string;
+
+  // ── 数据库迁移(可选) ─────────────────────────────────────────────
+  // '1' 时在 postgres 连接初始化阶段自动跑迁移;默认不设=不自动跑,由 CLI 显式 migration:run。
+  // sqlite(dev)走 synchronize 不读此项。
+  @IsOptional()
+  @IsIn(['0', '1'])
+  DB_MIGRATIONS_RUN?: string;
+
+  // ── 备份(可选) ───────────────────────────────────────────────────
+  // 备份脚本(scripts/backup.sh)输出目录;留空默认 packages/api/backups。
+  @IsOptional()
+  @IsString()
+  BACKUP_DIR?: string;
+
+  // ── 版本标识(可选) ───────────────────────────────────────────────
+  // GET /api/health 的 version 字段读取本值,回退 'unknown';建议填镜像 tag / git short sha。
+  @IsOptional()
+  @IsString()
+  APP_VERSION?: string;
 }
 
 // 测试密封名单:这些运营开关只应来自显式 process.env,绝不从 .env 文件泄入测试。

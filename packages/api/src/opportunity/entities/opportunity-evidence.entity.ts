@@ -6,6 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { TIMESTAMP_COLUMN_TYPE } from '../../database/column-types';
 import { Opportunity } from './opportunity.entity';
 import type { EvidenceKind, ConfidenceLevel } from '../types/opportunity.types';
 
@@ -42,10 +43,10 @@ export class OpportunityEvidence {
   @Column({ nullable: true })
   role: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
   published_at: Date | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
   fetched_at: Date | null;
 
   @Column({ type: 'varchar', default: 'medium' })

@@ -4,8 +4,10 @@ import { ConcurrencyLimiter } from './concurrency-limiter';
 import { ParserService } from './parser.service';
 import { AnalyzerService } from './analyzer.service';
 import { RewriterService } from './rewriter.service';
+import { OpsEventsModule } from '../ops/ops-events.module';
 
 @Module({
+  imports: [OpsEventsModule],
   providers: [ConcurrencyLimiter, AiService, ParserService, AnalyzerService, RewriterService],
   exports: [AiService, ParserService, AnalyzerService, RewriterService],
 })
