@@ -146,8 +146,8 @@ export function MockStage({
       {lastAnswer && (
         <div
           style={{
-            background: lastAnswer.score >= 7 ? 'var(--color-success-soft, #f0fdf4)' : lastAnswer.score >= 4 ? 'var(--color-warn-soft, #fffbeb)' : 'var(--color-danger-soft)',
-            border: `1px solid ${lastAnswer.score >= 7 ? 'var(--color-success)' : lastAnswer.score >= 4 ? 'var(--color-warn)' : 'var(--color-danger)'}`,
+            background: lastAnswer.score >= 60 ? 'var(--color-success-soft, #f0fdf4)' : lastAnswer.score >= 40 ? 'var(--color-warn-soft, #fffbeb)' : 'var(--color-danger-soft)',
+            border: `1px solid ${lastAnswer.score >= 60 ? 'var(--color-success)' : lastAnswer.score >= 40 ? 'var(--color-warn)' : 'var(--color-danger)'}`,
             borderRadius: '12px',
             padding: '16px 18px',
           }}
@@ -157,11 +157,11 @@ export function MockStage({
               style={{
                 fontSize: '22px',
                 fontWeight: 800,
-                color: lastAnswer.score >= 7 ? 'var(--color-success)' : lastAnswer.score >= 4 ? 'var(--color-warn)' : 'var(--color-danger)',
+                color: lastAnswer.score >= 60 ? 'var(--color-success)' : lastAnswer.score >= 40 ? 'var(--color-warn)' : 'var(--color-danger)',
                 letterSpacing: '-0.03em',
               }}
             >
-              {lastAnswer.score}/10
+              {lastAnswer.score}/100
             </span>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
               上一题得分

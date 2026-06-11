@@ -90,6 +90,36 @@ describe('Conversations (e2e)', () => {
       expect(res.body.length).toBeGreaterThan(0);
     });
 
+    it('列表项含 messages 字段(最新消息预览)', async () => {
+      // 先建一条会话并发一条消息(直接存入 DB 避免 AI 调用)。
+      const { Repository } = await import('typeorm');
+      const convRes = await request(app.getHttpServer())
+        .post('/api/conversations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ title: '预览测试会话' });
+      expect(convRes.status).toBe(201);
+      const convId: string = convRes.body.id as string;
+
+      // 直接写入一条消息到 DB(跳过 AI 调用)。
+      const { getRepositoryToken } = await import('@nestjs/typeorm');
+      const { Message } = await import('../src/conversations/entities/message.entity');
+      const msgRepo = app.get<InstanceType<typeof Repository>>(getRepositoryToken(Message));
+      await msgRepo.save(
+        msgRepo.create({ conversation_id: convId, role: 'user', content: '预览消息内容' }),
+      );
+
+      const res = await request(app.getHttpServer())
+        .get('/api/conversations')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      const target = (res.body as Array<{ id: string; messages: unknown[] }>).find((c) => c.id === convId);
+      expect(target).toBeDefined();
+      // messages 是数组且含该条预览消息。
+      expect(Array.isArray(target!.messages)).toBe(true);
+      expect(target!.messages.length).toBeGreaterThan(0);
+    });
+
     it('only returns conversations belonging to current user', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/conversations')
@@ -173,9 +203,9 @@ describe('Conversations (e2e)', () => {
         .send({ content: 'Hello, can you help me with my resume?' })
         .timeout(30000);
 
-      // AI call may succeed (201) or fail with a server error (500)
+      // AI call may succeed (201) or fail (500/503 when AI provider unavailable)
       // Either way, we verify the request reached the service (not a 400/401/404)
-      expect([200, 201, 500]).toContain(res.status);
+      expect([200, 201, 500, 503]).toContain(res.status);
     }, 30000);
 
     it('missing content → 400', async () => {

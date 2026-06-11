@@ -27,11 +27,11 @@ function formatDate(d: string): string {
 
 function gradeColor(grade: string): string {
   const g = grade.toUpperCase();
-  if (g === 'A+' || g === 'S') return '#10b981';
-  if (g.startsWith('A')) return '#22c55e';
-  if (g.startsWith('B')) return '#f59e0b';
-  if (g.startsWith('C')) return '#f97316';
-  return '#ef4444';
+  if (g === 'A+' || g === 'S') return 'var(--color-success)';
+  if (g.startsWith('A')) return 'var(--color-success)';
+  if (g.startsWith('B')) return 'var(--color-warn)';
+  if (g.startsWith('C')) return 'var(--color-danger)';
+  return 'var(--color-danger)';
 }
 
 // ── section cards ─────────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ function SectionCard({
               gap: '4px',
               fontSize: '12px',
               fontWeight: 600,
-              color: '#0a84ff',
+              color: 'var(--color-brand)',
               textDecoration: 'none',
             }}
           >

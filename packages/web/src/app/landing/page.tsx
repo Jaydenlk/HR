@@ -14,8 +14,6 @@ export default function LandingPage() {
         minHeight: '100vh',
         background: '#fbfbfd',
         color: '#1d1d1f',
-        fontFamily:
-          '"Plus Jakarta Sans","PingFang SC","Noto Sans SC","Helvetica Neue",ui-sans-serif,system-ui,sans-serif',
         fontSize: '14px',
         lineHeight: '1.5',
         letterSpacing: '-0.003em',

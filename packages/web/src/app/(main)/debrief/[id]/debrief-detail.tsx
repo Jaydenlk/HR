@@ -48,6 +48,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
@@ -58,7 +59,13 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : '加载失败');
+        const message = err instanceof Error ? err.message : '加载失败';
+        // 404 = 记录不存在或无权访问,属确定性结果而非 AI/服务异常,单独走中文兜底。
+        if (/(^|\D)404(\D|$)/.test(message)) {
+          setNotFound(true);
+        } else {
+          setError(message);
+        }
         setLoading(false);
       });
   }, [id]);
@@ -77,7 +84,10 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
 
   if (loading) return <LoadingState />;
 
-  if (error || !interview) {
+  if (notFound || error || !interview) {
+    // notFound:确定性结果(记录不存在/无权访问),非异常,用中性文案。
+    // error:真实加载/服务异常,展示后端返回的具体原因,不武断归因 AI。
+    const isNotFound = notFound || !error;
     return (
       <div style={{ maxWidth: '860px', margin: '0 auto', padding: '48px 32px' }}>
         <Link
@@ -100,13 +110,14 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
           style={{
             padding: '40px',
             textAlign: 'center',
-            background: 'var(--color-danger-soft)',
+            background: isNotFound ? 'var(--color-surface)' : 'var(--color-danger-soft)',
+            border: isNotFound ? '1px solid var(--color-line)' : 'none',
             borderRadius: '14px',
-            color: 'var(--color-danger)',
+            color: isNotFound ? 'var(--color-ink-3)' : 'var(--color-danger)',
             fontSize: '14px',
           }}
         >
-          {error ?? '面试记录不存在'}
+          {isNotFound ? '面试记录不存在，或你没有访问权限。' : error}
         </div>
       </div>
     );
@@ -409,7 +420,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {iv.questions.map((q, i) => (
-              <QuestionCard key={q.n} question={q} index={i} />
+              <QuestionCard key={i} question={q} index={i} />
             ))}
           </div>
         </div>

@@ -55,7 +55,14 @@ export default function ResumesPage() {
   }, []);
 
   function handleUploadSuccess(resume: Resume) {
-    setResumes((prev) => [resume, ...prev]);
+    // 保持与后端排序一致:主版本优先,其余按更新时间倒序
+    setResumes((prev) => {
+      const updated = [resume, ...prev];
+      return updated.sort((a, b) => {
+        if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      });
+    });
     setUploaderOpen(false);
   }
 
@@ -100,7 +107,7 @@ export default function ResumesPage() {
                 marginBottom: '4px',
               }}
             >
-              简历库
+              简历馆
             </h1>
             <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)' }}>
               管理你的所有简历版本

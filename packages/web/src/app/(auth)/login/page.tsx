@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { LoginResponse, RequestCodeResponse } from '@/lib/types';
 
@@ -47,6 +48,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function LoginPage() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>('email');
 
   // 步骤1
@@ -153,7 +155,7 @@ export default function LoginPage() {
           : { email: email.trim(), code: trimmedCode };
       const res = await api.post<LoginResponse>('/auth/login', body);
       localStorage.setItem('token', res.access_token);
-      window.location.href = '/today';
+      router.replace('/today');
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败，请稍后重试');
     } finally {
@@ -173,7 +175,7 @@ export default function LoginPage() {
     try {
       const res = await api.post<LoginResponse>('/auth/dev-login', { email: trimmed });
       localStorage.setItem('token', res.access_token);
-      window.location.href = '/today';
+      router.replace('/today');
     } catch (err) {
       setError(err instanceof Error ? err.message : '测试通道登录失败');
     } finally {

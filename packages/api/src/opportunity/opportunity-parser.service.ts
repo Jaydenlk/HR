@@ -54,6 +54,16 @@ const PARSE_SCHEMA = {
 const VALID_EMPLOYMENT = new Set(['fulltime', 'intern', 'contract', 'parttime']);
 const VALID_PARSE_CONFIDENCE = new Set(['high', 'medium', 'low']);
 
+// 字面 null 收口:模型在信息缺失时除了显式省略字段,也常吐回字符串 'null'/'undefined'/'N/A'/空白。
+// 这些都是「无数据」而非真实文本,必须归一成真 null,否则会被原样落库并在前端展示成字面 'null'。
+const NULLISH_LITERALS = new Set(['null', 'undefined', 'n/a', 'na', '无', '未知', '-', '—']);
+function normalizeNullable(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed === '' || NULLISH_LITERALS.has(trimmed.toLowerCase())) return null;
+  return trimmed;
+}
+
 @Injectable()
 export class OpportunityParserService {
   constructor(private readonly ai: AiService) {}
@@ -67,26 +77,26 @@ export class OpportunityParserService {
       schema: PARSE_SCHEMA,
     });
 
-    // 服务端确定性收口:缺省字段统一 null;枚举白名单 coerce(非法值不拒收,降级处理)。
+    // 服务端确定性收口:缺省/字面 null 字段统一归零成真 null;枚举白名单 coerce(非法值不拒收,降级处理)。
     const employment =
-      typeof raw.employment_type === 'string' && VALID_EMPLOYMENT.has(raw.employment_type)
-        ? (raw.employment_type as ParsedJd['employment_type'])
+      typeof raw.employment_type === 'string' && VALID_EMPLOYMENT.has(raw.employment_type.trim())
+        ? (raw.employment_type.trim() as ParsedJd['employment_type'])
         : null;
     const confidence =
-      typeof raw.parse_confidence === 'string' && VALID_PARSE_CONFIDENCE.has(raw.parse_confidence)
-        ? (raw.parse_confidence as ParsedJd['parse_confidence'])
+      typeof raw.parse_confidence === 'string' && VALID_PARSE_CONFIDENCE.has(raw.parse_confidence.trim())
+        ? (raw.parse_confidence.trim() as ParsedJd['parse_confidence'])
         : 'low';
 
     return {
-      company: raw.company ?? null,
-      role: raw.role ?? null,
-      location: raw.location ?? null,
+      company: normalizeNullable(raw.company),
+      role: normalizeNullable(raw.role),
+      location: normalizeNullable(raw.location),
       employment_type: employment,
       requirements: raw.requirements ?? [],
       responsibilities: raw.responsibilities ?? [],
       salary_range: raw.salary_range ?? null,
-      experience_level: raw.experience_level ?? null,
-      team_info: raw.team_info ?? null,
+      experience_level: normalizeNullable(raw.experience_level),
+      team_info: normalizeNullable(raw.team_info),
       parse_confidence: confidence,
     };
   }

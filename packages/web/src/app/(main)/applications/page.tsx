@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type {
   Application,
@@ -11,6 +12,7 @@ import type {
 import { TrackerStats } from '@/components/tracker/tracker-stats';
 import { KanbanBoard } from '@/components/tracker/kanban-board';
 import { ApplicationForm } from '@/components/tracker/application-form';
+import { ApplicationTimeline } from '@/components/tracker/application-timeline';
 import {
   Plus,
   Briefcase,
@@ -363,7 +365,7 @@ function StrategyPanel() {
                       textTransform: 'uppercase',
                     }}
                   >
-                    无法判定项
+                    待补充信息
                   </p>
                   <ul style={{ margin: 0, paddingLeft: '16px' }}>
                     {result.cannot_determine.map((c, i) => (
@@ -958,6 +960,8 @@ export default function ApplicationsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [defaultStage, setDefaultStage] = useState<string>('wishlist');
+  // 编辑模式:点卡片打开同一弹窗,initial 预填 + 时间线;为 null 时为新增模式。
+  const [editing, setEditing] = useState<Application | null>(null);
 
   // #45 — separate initial-load flag from mutation refresh; mutations use silent refetch
   const fetchData = useCallback(async (silent = false) => {
@@ -990,9 +994,34 @@ export default function ApplicationsPage() {
       setFormOpen(false);
       // silent=true: board stays visible, no full-screen spinner
       await fetchData(true);
+      toast.success('已添加投递');
     } catch (err) {
       setActionError(err instanceof Error ? err.message : '创建失败，请稍后重试');
     }
+  }
+
+  async function handleUpdate(data: Record<string, string>) {
+    if (!editing) return;
+    try {
+      setActionError(null);
+      await api.patch(`/applications/${editing.id}`, data);
+      setEditing(null);
+      setFormOpen(false);
+      await fetchData(true);
+      toast.success('已保存修改');
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : '保存失败，请稍后重试');
+    }
+  }
+
+  function handleEdit(application: Application) {
+    setEditing(application);
+    setFormOpen(true);
+  }
+
+  function handleCloseForm() {
+    setFormOpen(false);
+    setEditing(null);
   }
 
   async function handleStageChange(id: string, stage: string) {
@@ -1013,11 +1042,13 @@ export default function ApplicationsPage() {
   }
 
   function handleAddFromColumn(stage: string) {
+    setEditing(null);
     setDefaultStage(stage);
     setFormOpen(true);
   }
 
   function handleAddNew() {
+    setEditing(null);
     setDefaultStage('wishlist');
     setFormOpen(true);
   }
@@ -1025,11 +1056,21 @@ export default function ApplicationsPage() {
   return (
     <>
       {formOpen && (
-        <ApplicationForm
-          defaultStage={defaultStage}
-          onSubmit={handleCreate}
-          onCancel={() => setFormOpen(false)}
-        />
+        editing ? (
+          <ApplicationForm
+            key={editing.id}
+            initial={editing}
+            onSubmit={handleUpdate}
+            onCancel={handleCloseForm}
+            footer={<ApplicationTimeline applicationId={editing.id} />}
+          />
+        ) : (
+          <ApplicationForm
+            defaultStage={defaultStage}
+            onSubmit={handleCreate}
+            onCancel={handleCloseForm}
+          />
+        )
       )}
 
       <div
@@ -1271,6 +1312,7 @@ export default function ApplicationsPage() {
             <KanbanBoard
               applications={applications}
               onStageChange={handleStageChange}
+              onEdit={handleEdit}
               onAdd={handleAddFromColumn}
             />
           </div>

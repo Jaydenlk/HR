@@ -7,13 +7,14 @@ import { BarChart2, Plus, X, Loader2, ChevronDown, ChevronUp, Filter, Sparkles, 
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface SalaryStats {
+// 后端 /salary/stats 按公司×岗位聚合返回数组，每项含 count/avg_base/avg_total。
+// 前端汇总展示：total count + 按 avg_total 排序后的前几项代表性数据。
+interface SalaryStatRow {
+  company: string;
+  role: string;
+  avg_base: number | null;
+  avg_total: number | null;
   count: number;
-  median_total_comp: number | null;
-  p25_total_comp: number | null;
-  p75_total_comp: number | null;
-  p90_total_comp: number | null;
-  avg_total_comp: number | null;
 }
 
 interface PercentileData {
@@ -433,7 +434,7 @@ function MarketBenchmark({
         { label: 'P25', value: pcts.P25.total_comp, color: 'var(--color-ink-4)' },
         { label: 'P50', value: pcts.P50.total_comp, color: 'var(--color-ink-3)' },
         { label: 'P75', value: pcts.P75.total_comp, color: 'var(--color-brand)' },
-        { label: 'P90', value: pcts.P90.total_comp, color: '#f59e0b' },
+        { label: 'P90', value: pcts.P90.total_comp, color: 'var(--color-warn, #f59e0b)' },
       ]
     : [];
 
@@ -618,7 +619,7 @@ function MarketBenchmark({
               bottom: 0,
               width: '100%',
               background:
-                'linear-gradient(to right, var(--color-surface-3), var(--color-brand), #f59e0b)',
+                'linear-gradient(to right, var(--color-surface-3), var(--color-brand), var(--color-warn, #f59e0b))',
               borderRadius: '4px',
             }}
           />
@@ -656,7 +657,7 @@ function MarketBenchmark({
                   width: '14px',
                   height: '14px',
                   borderRadius: '50%',
-                  background: '#10b981',
+                  background: 'var(--color-success, #10b981)',
                   border: '2px solid var(--color-surface)',
                   boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                 }}
@@ -707,11 +708,11 @@ function MarketBenchmark({
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              background: '#10b981',
+              background: 'var(--color-success, #10b981)',
               flexShrink: 0,
             }}
           />
-          <span style={{ fontSize: '12.5px', color: '#10b981', fontWeight: 600 }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--color-success, #10b981)', fontWeight: 600 }}>
             你的定位 · {userPosition} 区间
           </span>
           <span style={{ fontSize: '12px', color: 'var(--color-ink-3)', marginLeft: 'auto' }}>
@@ -1163,9 +1164,9 @@ type AnalysisState =
   | { kind: 'result'; data: SalaryAnalysisResult };
 
 function gradeColor(grade: string): string {
-  if (grade === 'A') return '#10b981';
+  if (grade === 'A') return 'var(--color-success, #10b981)';
   if (grade === 'B') return 'var(--color-brand)';
-  if (grade === 'C') return '#f59e0b';
+  if (grade === 'C') return 'var(--color-warn, #f59e0b)';
   return 'var(--color-ink-4)';
 }
 
@@ -1406,7 +1407,7 @@ function AiAnalysisSection() {
                       gap: '6px',
                     }}
                   >
-                    <span style={{ color: '#f59e0b', flexShrink: 0 }}>•</span>
+                    <span style={{ color: 'var(--color-warn, #f59e0b)', flexShrink: 0 }}>•</span>
                     {m}
                   </div>
                 ))}
@@ -1463,10 +1464,10 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
                     : 'rgba(245,158,11,0.1)',
               color:
                 data.confidence === 'high'
-                  ? '#10b981'
+                  ? 'var(--color-success, #10b981)'
                   : data.confidence === 'medium'
                     ? 'var(--color-brand)'
-                    : '#f59e0b',
+                    : 'var(--color-warn, #f59e0b)',
               letterSpacing: '0.02em',
             }}
           >
@@ -1523,7 +1524,7 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
             {[
               { label: 'P25', value: data.salary_range.p25, color: 'var(--color-ink-4)' },
               { label: 'P50 (中位数)', value: data.salary_range.p50, color: 'var(--color-brand)' },
-              { label: 'P75', value: data.salary_range.p75, color: '#f59e0b' },
+              { label: 'P75', value: data.salary_range.p75, color: 'var(--color-warn, #f59e0b)' },
             ].map((item) => (
               <div
                 key={item.label}
@@ -1721,7 +1722,7 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
                 color: 'var(--color-ink-2)',
               }}
             >
-              <CheckCircle size={13} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <CheckCircle size={13} color="var(--color-success, #10b981)" style={{ flexShrink: 0, marginTop: '2px' }} />
               {r}
             </div>
           ))}
@@ -1792,9 +1793,9 @@ type CityFitState =
   | { kind: 'result'; data: CityIndustryFitResult };
 
 function fitScoreColor(score: number): string {
-  if (score >= 75) return '#10b981';
+  if (score >= 75) return 'var(--color-success, #10b981)';
   if (score >= 55) return 'var(--color-brand)';
-  if (score >= 35) return '#f59e0b';
+  if (score >= 35) return 'var(--color-warn, #f59e0b)';
   return 'var(--color-ink-4)';
 }
 
@@ -1894,10 +1895,10 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
     fontSize: '11.5px',
     fontWeight: 700,
     color: data.confidence === 'high'
-      ? '#10b981'
+      ? 'var(--color-success, #10b981)'
       : data.confidence === 'medium'
         ? 'var(--color-brand)'
-        : '#f59e0b',
+        : 'var(--color-warn, #f59e0b)',
     padding: '2px 8px',
     borderRadius: '20px',
     background: data.confidence === 'high'
@@ -1942,7 +1943,7 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
             gap: '8px',
           }}
         >
-          <CheckCircle size={14} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <CheckCircle size={14} color="var(--color-success, #10b981)" style={{ flexShrink: 0, marginTop: '2px' }} />
           <span style={{ fontSize: '13.5px', color: 'var(--color-ink)', fontWeight: 600, lineHeight: 1.5 }}>
             {data.recommendation}
           </span>
@@ -2042,7 +2043,7 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {data.recommendations.map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', padding: '9px 12px', background: 'rgba(16,185,129,0.06)', borderRadius: '9px', border: '1px solid rgba(16,185,129,0.15)', fontSize: '12.5px', color: 'var(--color-ink-2)' }}>
-                  <CheckCircle size={12} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <CheckCircle size={12} color="var(--color-success, #10b981)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   {r}
                 </div>
               ))}
@@ -2052,7 +2053,7 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {data.risks.map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', padding: '9px 12px', background: 'rgba(245,158,11,0.06)', borderRadius: '9px', border: '1px solid rgba(245,158,11,0.15)', fontSize: '12.5px', color: 'var(--color-ink-2)' }}>
-                  <AlertCircle size={12} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <AlertCircle size={12} color="var(--color-warn, #f59e0b)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   {r}
                 </div>
               ))}
@@ -2319,7 +2320,7 @@ function CityIndustryFitSection() {
                     key={i}
                     style={{ fontSize: '12.5px', color: 'var(--color-ink-3)', marginBottom: '4px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}
                   >
-                    <span style={{ color: '#f59e0b', flexShrink: 0 }}>•</span>
+                    <span style={{ color: 'var(--color-warn, #f59e0b)', flexShrink: 0 }}>•</span>
                     {m}
                   </div>
                 ))}
@@ -2345,7 +2346,7 @@ function CityIndustryFitSection() {
 
 export default function SalaryPage() {
   const [entries, setEntries] = useState<SalaryEntry[]>([]);
-  const [stats, setStats] = useState<SalaryStats | null>(null);
+  const [statsRows, setStatsRows] = useState<SalaryStatRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -2357,10 +2358,10 @@ export default function SalaryPage() {
       setError(null);
       const [entriesData, statsData] = await Promise.all([
         api.get<SalaryEntry[]>('/salary'),
-        api.get<SalaryStats>('/salary/stats'),
+        api.get<SalaryStatRow[]>('/salary/stats'),
       ]);
       setEntries(entriesData);
-      setStats(statsData);
+      setStatsRows(Array.isArray(statsData) ? statsData : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
@@ -2518,8 +2519,8 @@ export default function SalaryPage() {
             {/* 城市 × 行业适配 */}
             <CityIndustryFitSection />
 
-            {/* Overall stats pill — only when there's data */}
-            {stats && stats.count > 0 && (
+            {/* Overall stats pill — only when there's data (按公司×岗位聚合行渲染) */}
+            {statsRows.length > 0 && (
               <div
                 style={{
                   background: 'var(--color-surface)',
@@ -2528,30 +2529,28 @@ export default function SalaryPage() {
                   padding: '14px 20px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '24px',
+                  gap: '16px',
                   flexWrap: 'wrap',
                 }}
               >
                 <span style={{ fontSize: '12px', color: 'var(--color-ink-4)', fontWeight: 600 }}>
-                  全量数据 · {stats.count} 条
+                  全量数据 · {statsRows.reduce((s, r) => s + r.count, 0)} 条
                 </span>
-                {[
-                  { label: 'P25', val: stats.p25_total_comp },
-                  { label: 'P50', val: stats.median_total_comp },
-                  { label: 'P75', val: stats.p75_total_comp },
-                  { label: 'P90', val: stats.p90_total_comp },
-                  { label: '均值', val: stats.avg_total_comp },
-                ].map((item) => (
-                  <span
-                    key={item.label}
-                    style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', fontWeight: 600 }}
-                  >
-                    <span style={{ color: 'var(--color-ink-4)', marginRight: '4px' }}>
-                      {item.label}
+                {statsRows
+                  .filter((r) => r.avg_total != null)
+                  .sort((a, b) => (b.avg_total ?? 0) - (a.avg_total ?? 0))
+                  .slice(0, 5)
+                  .map((r) => (
+                    <span
+                      key={`${r.company}-${r.role}`}
+                      style={{ fontSize: '12px', color: 'var(--color-ink-2)', fontWeight: 600 }}
+                    >
+                      <span style={{ color: 'var(--color-ink-4)', marginRight: '4px' }}>
+                        {r.company} · {r.role}
+                      </span>
+                      均 {formatSalary(r.avg_total)}/年
                     </span>
-                    {formatSalary(item.val)}
-                  </span>
-                ))}
+                  ))}
               </div>
             )}
 

@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -35,8 +35,12 @@ export class InvitesService implements OnModuleInit {
   }
 
   // 管理后台:创建邀请码。code 不传则生成随机 8 位(大写字母+数字)。
-  create(code: string | undefined, maxUses: number): Promise<InviteCode> {
+  async create(code: string | undefined, maxUses: number): Promise<InviteCode> {
     const finalCode = code?.trim() ? code.trim().toUpperCase() : this.randomCode();
+    const existing = await this.repo.findOneBy({ code: finalCode });
+    if (existing) {
+      throw new ConflictException('邀请码已存在');
+    }
     return this.repo.save(this.repo.create({ code: finalCode, max_uses: maxUses }));
   }
 

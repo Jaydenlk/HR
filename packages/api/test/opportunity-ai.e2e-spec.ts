@@ -81,14 +81,24 @@ function assertCommonEvaluationShape(evaluation: Record<string, unknown>): void 
 
 /* ================================================================== */
 /*  Test suite — Real AI Evaluation Scenarios                          */
+/*  默认 skip(不触发真实中转/DeepSeek 调用),仅 RUN_AI_LIVE=1 真跑 6 场景。 */
+/*  真跑时用 .env 的真实主通道(当前对调为 DeepSeek deepseek-chat)。       */
 /* ================================================================== */
-describe('Opportunity AI Evaluation (real AI, 6 scenarios)', () => {
+const LIVE = process.env.RUN_AI_LIVE === '1';
+
+(LIVE ? describe : describe.skip)('Opportunity AI Evaluation (real AI, 6 scenarios)', () => {
   let app: INestApplication;
   let token: string;
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
     process.env.DB_PATH = ':memory:';
+    // jest-setup-env 在任何 import 前把 CLOUDDREAM_API_KEY 置为占位 'test-key';dotenv 默认不覆盖
+    // 已存在的 process.env,故真实主通道 key 不会注入,主通道恒 401。这里在建模块前以 override:true
+    // 强制用 .env 的真实值覆盖占位,让 6 场景真打到 .env 配置的主通道(当前 deepseek-chat)。
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const dotenv = require('dotenv') as typeof import('dotenv');
+    dotenv.config({ override: true });
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],

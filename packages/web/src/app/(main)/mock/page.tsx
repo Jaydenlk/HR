@@ -191,7 +191,7 @@ export default function MockPage() {
                     marginBottom: '6px',
                   }}
                 >
-                  岗位（选填）
+                  岗位（必填）
                 </label>
                 <input
                   type="text"
@@ -270,7 +270,7 @@ export default function MockPage() {
 
               <button
                 onClick={() => void handleCreate()}
-                disabled={creating}
+                disabled={creating || !form.role.trim()}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -283,8 +283,8 @@ export default function MockPage() {
                   borderRadius: '12px',
                   fontSize: '14px',
                   fontWeight: 600,
-                  cursor: creating ? 'not-allowed' : 'pointer',
-                  opacity: creating ? 0.7 : 1,
+                  cursor: creating || !form.role.trim() ? 'not-allowed' : 'pointer',
+                  opacity: creating || !form.role.trim() ? 0.7 : 1,
                   transition: 'opacity 0.12s',
                   marginTop: '4px',
                 }}

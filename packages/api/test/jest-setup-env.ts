@@ -18,3 +18,16 @@ process.env.DAILY_AI_QUOTA = '100000';
 // 故在 setupFiles(早于任何 import)铺设测试默认值;套件内可再覆盖。
 if (!process.env.CLOUDDREAM_API_KEY) process.env.CLOUDDREAM_API_KEY = 'test-key';
 if (!process.env.JWT_SECRET) process.env.JWT_SECRET = 'test-secret';
+// ── 运营开关密封基线 ───────────────────────────────────────────────────────
+// 本地 .env 含 DEV_LOGIN=1 / ADMIN_EMAILS=admin@coach.dev,经 ConfigModule.forRoot
+// 的 dotenv 注入,会泄入 AppModule-based 测试:
+//   - auth.e2e 期望 dev-login 端点在未开启时 404(DEV_LOGIN 应 undefined);
+//   - auth-dev-login.e2e 自管 DEV_LOGIN 各组合,delete 后期望真的 undefined。
+// 仅删 process.env 不够:auth-dev-login 的内联 ConfigModule(cache:false)会再次 dotenv
+// 读 .env、把 DEV_LOGIN=1 写回(assignVariablesToProcess 只跳过「已存在」键,被删的会重写入)。
+// 故双管齐下:① 这里删除建立干净基线;② 置 __SEAL_OPS_ENV__ 旗标,让 env.validation.validate
+// 对「不在 process.env 的密封键」从 .env 合并结果中剔除——AI 等其它 .env 键不受影响(AI-live 套件仍可用真钥)。
+// 各套件需要时在用例内用 process.env 显式自管(beforeAll 设、afterAll 删)即可。
+delete process.env.DEV_LOGIN;
+delete process.env.ADMIN_EMAILS;
+process.env.__SEAL_OPS_ENV__ = '1';

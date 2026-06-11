@@ -1,28 +1,54 @@
 import { validate } from '../src/config/env.validation';
 
-const BASE = { CLOUDDREAM_API_KEY: 'key', JWT_SECRET: 'secret' };
+// 主通道密钥用新名 AI_PRIMARY_API_KEY;旧名 CLOUDDREAM_API_KEY 仍兜底(单独用例覆盖)。
+const BASE = { AI_PRIMARY_API_KEY: 'key', JWT_SECRET: 'secret' };
 
 describe('EnvironmentVariables validate()', () => {
   // ── 必填字段 ──────────────────────────────────────────────────────
-  it('缺 CLOUDDREAM_API_KEY → 抛错', () => {
+  it('缺主通道密钥(AI_PRIMARY_API_KEY 与 CLOUDDREAM_API_KEY 都缺) → 抛错', () => {
     expect(() => validate({ JWT_SECRET: 'secret' })).toThrow();
   });
 
   it('缺 JWT_SECRET → 抛错', () => {
-    expect(() => validate({ CLOUDDREAM_API_KEY: 'key' })).toThrow();
+    expect(() => validate({ AI_PRIMARY_API_KEY: 'key' })).toThrow();
   });
 
-  it('CLOUDDREAM_API_KEY 为空字符串 → 抛错', () => {
-    expect(() => validate({ CLOUDDREAM_API_KEY: '', JWT_SECRET: 'secret' })).toThrow();
+  it('AI_PRIMARY_API_KEY 为空字符串(且无旧名) → 抛错', () => {
+    expect(() => validate({ AI_PRIMARY_API_KEY: '', JWT_SECRET: 'secret' })).toThrow();
   });
 
   it('JWT_SECRET 为空字符串 → 抛错', () => {
-    expect(() => validate({ CLOUDDREAM_API_KEY: 'key', JWT_SECRET: '' })).toThrow();
+    expect(() => validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: '' })).toThrow();
   });
 
-  it('合法最小配置 → 通过并返回实例', () => {
+  it('合法最小配置(新名) → 通过并返回实例', () => {
     const result = validate(BASE);
     expect(result).toBeDefined();
+  });
+
+  // ── 主通道密钥新名/旧名二选一 ──────────────────────────────────────
+  it('仅旧名 CLOUDDREAM_API_KEY → 通过(向后兼容兜底)', () => {
+    const result = validate({ CLOUDDREAM_API_KEY: 'legacy-key', JWT_SECRET: 'secret' });
+    expect(result.CLOUDDREAM_API_KEY).toBe('legacy-key');
+  });
+
+  it('新名 AI_PRIMARY_API_KEY 透传 → 通过', () => {
+    const result = validate(BASE);
+    expect(result.AI_PRIMARY_API_KEY).toBe('key');
+  });
+
+  it('AI_FALLBACK_* 新名字符串 → 通过并透传', () => {
+    const result = validate({
+      ...BASE,
+      AI_PRIMARY_MODEL: 'deepseek-chat',
+      AI_PRIMARY_BASE_URL: 'https://api.deepseek.com/anthropic',
+      AI_FALLBACK_API_KEY: 'sk-fallback',
+      AI_FALLBACK_MODEL: 'auto-v2',
+      AI_FALLBACK_BASE_URL: 'https://api.tutorial.clouddreamai.com',
+    });
+    expect(result.AI_FALLBACK_API_KEY).toBe('sk-fallback');
+    expect(result.AI_FALLBACK_MODEL).toBe('auto-v2');
+    expect(result.AI_PRIMARY_MODEL).toBe('deepseek-chat');
   });
 
   // ── 数值型可选字段 ────────────────────────────────────────────────

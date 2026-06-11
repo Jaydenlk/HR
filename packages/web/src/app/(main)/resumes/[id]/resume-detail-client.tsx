@@ -17,6 +17,9 @@ import {
   Stethoscope,
   ArrowRight,
   AlertTriangle,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 import { getScoreColor } from '@/lib/score-utils';
 
@@ -81,6 +84,9 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
   const [settingPrimary, setSettingPrimary] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [savingTitle, setSavingTitle] = useState(false);
 
   useEffect(() => {
     api
@@ -122,6 +128,31 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
       console.error(err);
       setDeleting(false);
       setDeleteConfirm(false);
+    }
+  }
+
+  function startEditTitle() {
+    if (!resume) return;
+    setTitleDraft(resume.title);
+    setEditingTitle(true);
+  }
+
+  async function handleSaveTitle() {
+    if (!resume) return;
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === resume.title) {
+      setEditingTitle(false);
+      return;
+    }
+    setSavingTitle(true);
+    try {
+      const updated = await api.patch<Resume>(`/resumes/${id}`, { title: trimmed });
+      setResume(updated);
+      setEditingTitle(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingTitle(false);
     }
   }
 
@@ -169,7 +200,7 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
           }}
         >
           <ArrowLeft size={15} />
-          返回简历库
+          返回简历馆
         </Link>
         <div
           style={{
@@ -181,7 +212,7 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
             fontSize: '14px',
           }}
         >
-          {error ?? '简历不存在'}
+          {error === 'Not Found' ? '简历不存在或已被删除' : (error ?? '简历不存在')}
         </div>
       </div>
     );
@@ -245,17 +276,67 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
             {/* Left: title + meta */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                <h1
-                  style={{
-                    fontSize: '22px',
-                    fontWeight: 700,
-                    color: 'var(--color-ink)',
-                    letterSpacing: '-0.4px',
-                    margin: 0,
-                  }}
-                >
-                  {resume.title}
-                </h1>
+                {editingTitle ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                    <input
+                      autoFocus
+                      value={titleDraft}
+                      onChange={(e) => setTitleDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void handleSaveTitle();
+                        if (e.key === 'Escape') setEditingTitle(false);
+                      }}
+                      style={{
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        color: 'var(--color-ink)',
+                        letterSpacing: '-0.4px',
+                        border: '1.5px solid var(--color-brand)',
+                        borderRadius: '8px',
+                        padding: '4px 10px',
+                        background: 'var(--color-surface)',
+                        fontFamily: 'inherit',
+                        outline: 'none',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <button
+                      onClick={() => void handleSaveTitle()}
+                      disabled={savingTitle}
+                      style={{ display: 'inline-flex', alignItems: 'center', padding: '6px', borderRadius: '7px', border: 'none', background: 'var(--color-brand)', color: '#fff', cursor: savingTitle ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+                    >
+                      <Check size={14} />
+                    </button>
+                    <button
+                      onClick={() => setEditingTitle(false)}
+                      style={{ display: 'inline-flex', alignItems: 'center', padding: '6px', borderRadius: '7px', border: '1.5px solid var(--color-line)', background: 'transparent', color: 'var(--color-ink-3)', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h1
+                      style={{
+                        fontSize: '22px',
+                        fontWeight: 700,
+                        color: 'var(--color-ink)',
+                        letterSpacing: '-0.4px',
+                        margin: 0,
+                      }}
+                    >
+                      {resume.title}
+                    </h1>
+                    <button
+                      onClick={startEditTitle}
+                      title="编辑标题"
+                      style={{ display: 'inline-flex', alignItems: 'center', padding: '4px', borderRadius: '6px', border: 'none', background: 'transparent', color: 'var(--color-ink-4)', cursor: 'pointer' }}
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  </div>
+                )}
                 {resume.is_primary && (
                   <span
                     style={{

@@ -4,11 +4,11 @@ const STAGE_META: Record<
   string,
   { label: string; color: string }
 > = {
-  wishlist: { label: '心愿单', color: '#6366f1' },
-  applied: { label: '已投递', color: '#0ea5e9' },
-  interview: { label: '面试中', color: '#f59e0b' },
-  final: { label: '终面', color: '#f97316' },
-  offer: { label: 'Offer', color: '#10b981' },
+  wishlist: { label: '心愿单', color: 'var(--color-ink-3)' },
+  applied: { label: '已投递', color: 'var(--color-brand)' },
+  interview: { label: '面试中', color: 'var(--color-warn)' },
+  final: { label: '终面', color: 'var(--color-warn-2, #e07b39)' },
+  offer: { label: 'Offer', color: 'var(--color-success)' },
 };
 
 const STAGE_ORDER = ['wishlist', 'applied', 'interview', 'final', 'offer'];
@@ -72,8 +72,27 @@ export function FunnelChart({ funnel }: FunnelChartProps) {
                   borderRadius: '8px',
                   transition: 'width 0.4s ease',
                   minWidth: entry.count > 0 ? '26px' : '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  paddingRight: '6px',
+                  boxSizing: 'border-box',
                 }}
-              />
+              >
+                {entry.count > 0 && pct >= 20 && (
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: '#fff',
+                      opacity: 0.9,
+                      letterSpacing: '0.01em',
+                    }}
+                  >
+                    {Math.round(pct)}%
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* count */}

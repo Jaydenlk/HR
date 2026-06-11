@@ -32,7 +32,7 @@ function confidenceLabel(c: string): string {
 }
 
 function confidenceColor(c: string): string {
-  if (c === 'high') return '#10b981';
+  if (c === 'high') return 'var(--color-success)';
   if (c === 'medium') return 'var(--color-brand)';
   return 'var(--color-ink-3)';
 }
@@ -432,7 +432,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
               fontSize: '11px',
               fontWeight: 700,
               color: confidenceColor(result.confidence),
-              background: `${confidenceColor(result.confidence)}18`,
+              background: `color-mix(in srgb, ${confidenceColor(result.confidence)} 10%, transparent)`,
               padding: '2px 9px',
               borderRadius: '99px',
             }}
@@ -469,14 +469,14 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                background: 'rgba(16,185,129,0.1)',
+                background: 'var(--color-success-soft)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <Scale size={18} color="#10b981" />
+              <Scale size={18} color="var(--color-success)" />
             </div>
             <div>
               <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '4px' }}>
@@ -539,12 +539,12 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                       padding: '10px 18px',
                       textAlign: 'right',
                       background: recommendation?.preferred_offer_id === id
-                        ? 'rgba(16,185,129,0.06)'
+                        ? 'var(--color-success-soft)'
                         : 'var(--color-surface-2)',
                       borderBottom: '1px solid var(--color-line)',
                       fontSize: '12px',
                       fontWeight: 700,
-                      color: recommendation?.preferred_offer_id === id ? '#10b981' : 'var(--color-ink)',
+                      color: recommendation?.preferred_offer_id === id ? 'var(--color-success)' : 'var(--color-ink)',
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -596,7 +596,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                             fontFamily: typeof val === 'number' ? 'var(--font-mono)' : 'inherit',
                             fontWeight: 600,
                             background: recommendation?.preferred_offer_id === id
-                              ? 'rgba(16,185,129,0.03)'
+                              ? 'color-mix(in srgb, var(--color-success) 5%, transparent)'
                               : 'transparent',
                           }}
                         >
@@ -628,7 +628,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                   padding: '14px',
                   textAlign: 'center',
                   border: recommendation?.preferred_offer_id === ws.offer_id
-                    ? '2px solid #10b981'
+                    ? '2px solid var(--color-success)'
                     : '1px solid var(--color-line)',
                 }}
               >
@@ -640,7 +640,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                     fontFamily: 'var(--font-mono)',
                     fontSize: '28px',
                     fontWeight: 800,
-                    color: recommendation?.preferred_offer_id === ws.offer_id ? '#10b981' : 'var(--color-ink)',
+                    color: recommendation?.preferred_offer_id === ws.offer_id ? 'var(--color-success)' : 'var(--color-ink)',
                     lineHeight: 1,
                   }}
                 >
@@ -712,8 +712,8 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
       {missing_info.length > 0 && (
         <div
           style={{
-            background: 'rgba(245,158,11,0.07)',
-            border: '1px solid rgba(245,158,11,0.25)',
+            background: 'var(--color-warn-soft)',
+            border: '1px solid color-mix(in srgb, var(--color-warn) 30%, transparent)',
             borderRadius: '12px',
             padding: '14px 16px',
           }}
@@ -726,8 +726,8 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
               marginBottom: '10px',
             }}
           >
-            <AlertCircle size={14} color="#f59e0b" />
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            <AlertCircle size={14} color="var(--color-warn)" />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-warn)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               缺失字段（补充后可提高分析质量）
             </span>
           </div>
@@ -742,7 +742,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
             ))}
           </div>
           {follow_up_questions.length > 0 && (
-            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(245,158,11,0.15)' }}>
+            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid color-mix(in srgb, var(--color-warn) 18%, transparent)' }}>
               <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '6px' }}>
                 追问建议
               </div>

@@ -44,7 +44,7 @@ const CONFIDENCE_LABEL: Record<string, string> = {
 };
 
 function confidenceColor(c: string): string {
-  if (c === 'high') return '#10b981';
+  if (c === 'high') return 'var(--color-success)';
   if (c === 'medium') return 'var(--color-brand)';
   return 'var(--color-ink-3)';
 }
@@ -143,7 +143,7 @@ function PhaseCard({ phase, index }: { phase: RoadmapItem['phases'][number]; ind
             }}
           >
             <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
-              <CheckCircle2 size={14} color="#10b981" style={{ marginTop: '2px', flexShrink: 0 }} />
+              <CheckCircle2 size={14} color="var(--color-success)" style={{ marginTop: '2px', flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-ink-4)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   完成标准
@@ -358,15 +358,15 @@ export default function LearningRoadmapPage() {
               display: 'flex',
               gap: '8px',
               alignItems: 'flex-start',
-              background: '#fef2f2',
-              border: '1px solid #fca5a5',
+              background: 'var(--color-danger-soft)',
+              border: '1px solid var(--color-danger)',
               borderRadius: '10px',
               padding: '12px 14px',
               marginBottom: '20px',
             }}
           >
-            <AlertCircle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: '1px' }} />
-            <span style={{ fontSize: '13px', color: '#b91c1c' }}>{errorMsg}</span>
+            <AlertCircle size={15} color="var(--color-danger)" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <span style={{ fontSize: '13px', color: 'var(--color-danger)' }}>{errorMsg}</span>
           </div>
         )}
 
@@ -376,7 +376,7 @@ export default function LearningRoadmapPage() {
             <label
               style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '6px' }}
             >
-              技能差距清单 <span style={{ color: '#ef4444' }}>*</span>
+              技能差距清单 <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <p style={{ margin: '0 0 6px', fontSize: '12px', color: 'var(--color-ink-3)' }}>
               每行一项，如：TypeScript 基础、Docker 容器化、算法与数据结构
@@ -508,20 +508,20 @@ export default function LearningRoadmapPage() {
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '32px 20px' }}>
         <div
           style={{
-            background: '#fffbeb',
-            border: '1px solid #fcd34d',
+            background: 'var(--color-warn-soft)',
+            border: '1px solid var(--color-warn)',
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '20px',
           }}
         >
           <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-            <AlertCircle size={18} color="#d97706" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <AlertCircle size={18} color="var(--color-warn)" style={{ flexShrink: 0, marginTop: '1px' }} />
             <div>
-              <h3 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: '#92400e' }}>
+              <h3 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: 'var(--color-warn-ink, #92400e)' }}>
                 信息不足，无法生成完整路线
               </h3>
-              <p style={{ margin: 0, fontSize: '13px', color: '#78350f' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-warn-ink, #78350f)' }}>
                 {result.summary}
               </p>
             </div>
@@ -691,19 +691,19 @@ export default function LearningRoadmapPage() {
         {(result.risks ?? []).length > 0 && (
           <div
             style={{
-              background: '#fffbeb',
-              border: '1px solid #fcd34d',
+              background: 'var(--color-warn-soft)',
+              border: '1px solid var(--color-warn)',
               borderRadius: '10px',
               padding: '12px 14px',
               marginBottom: '12px',
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-warn-ink, #92400e)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               注意风险
             </div>
             <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
               {(result.risks ?? []).map((risk, i) => (
-                <li key={i} style={{ fontSize: '13px', color: '#78350f', marginBottom: '3px' }}>
+                <li key={i} style={{ fontSize: '13px', color: 'var(--color-warn-ink, #78350f)', marginBottom: '3px' }}>
                   {risk}
                 </li>
               ))}
@@ -715,19 +715,19 @@ export default function LearningRoadmapPage() {
         {(result.cannot_determine ?? []).length > 0 && (
           <div
             style={{
-              background: '#fffbeb',
-              border: '1px solid #fcd34d',
+              background: 'var(--color-warn-soft)',
+              border: '1px solid var(--color-warn)',
               borderRadius: '10px',
               padding: '12px 14px',
               marginBottom: '12px',
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#92400e', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-warn-ink, #92400e)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               无法判断
             </div>
             <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
               {(result.cannot_determine ?? []).map((item, i) => (
-                <li key={i} style={{ fontSize: '13px', color: '#78350f', marginBottom: '3px' }}>
+                <li key={i} style={{ fontSize: '13px', color: 'var(--color-warn-ink, #78350f)', marginBottom: '3px' }}>
                   {item}
                 </li>
               ))}

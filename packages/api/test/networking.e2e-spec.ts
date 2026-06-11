@@ -629,7 +629,11 @@ describe('Networking (e2e, mocked AI)', () => {
       expect(res.body.message_draft).toBeNull();
       expect(res.body.confidence).toBe('insufficient');
       expect(res.body.follow_up_timing).toBeNull();
-      expect(res.body.cannot_determine.some((s: string) => s.includes('空'))).toBe(true);
+      // Guard1 区分：空草稿 + confidence=high 属 AI 生成失败，cannot_determine 须含「重试」语义
+      // 且绝不含「信息不足/需补充」误导文案（误将 AI 故障归咎于用户输入不足）
+      const cannotStr = res.body.cannot_determine.join(' ');
+      expect(cannotStr).toMatch(/重试|生成失败/);
+      expect(cannotStr).not.toMatch(/信息不足|需补充/);
     });
 
     // P1 收窄回归：仅填 contact_description（无 shared_background / 关系枚举非亲近）
@@ -1111,6 +1115,15 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
       expect(typeof res.body.message_draft).toBe('string');
       // 防编造：不得含有「我们很熟」等虚假关系声明
       expect(res.body.message_draft).not.toMatch(/我们(关系|感情)(很|非常|特别)好/);
+    } else {
+      // 若 AI 产出空草稿（非用户信息不足），cannot_determine 须含「重试/生成失败」语义
+      // 且不含「信息不足/需补充」误导文案
+      const cannotStr = (res.body.cannot_determine ?? []).join(' ');
+      if (cannotStr) {
+        // 两种情形：(1) AI 生成失败 → 含「重试」; (2) 真信息不足（输入完整时不应触发）
+        // 输入完整时若触发 insufficient，属 AI 故障，不得含「信息不足/需补充」
+        expect(cannotStr).not.toMatch(/信息不足|需补充/);
+      }
     }
   }, 60000);
 

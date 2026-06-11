@@ -179,6 +179,18 @@ describe('Admin (e2e)', () => {
     }, 30000);
   });
 
+  // ─── PATCH 空 body 校验 ────────────────────────────────────────────────────
+  describe('PATCH /api/admin/users/:id 空 body', () => {
+    it('空 body → 400「请至少修改一项」', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({});
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('请至少修改一项');
+    });
+  });
+
   // ─── 自操作约束 ────────────────────────────────────────────────────────────
   describe('自操作约束', () => {
     it('admin 封禁自己 → 400', async () => {
@@ -261,6 +273,15 @@ describe('Admin (e2e)', () => {
       expect(res.status).toBe(201);
       expect(typeof res.body.code).toBe('string');
       expect(res.body.code.length).toBe(8);
+    });
+
+    it('重复邀请码 → 409「邀请码已存在」', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/invites')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ code: 'ADMINCODE1', max_uses: 5 });
+      expect(res.status).toBe(409);
+      expect(res.body.message).toBe('邀请码已存在');
     });
 
     it('GET /api/admin/invites 含已建码', async () => {

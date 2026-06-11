@@ -14,7 +14,7 @@ export class ResumesService {
     @InjectRepository(ResumeVersion) private readonly versionRepo: Repository<ResumeVersion>,
   ) {}
 
-  async create(userId: string, dto: CreateResumeDto, rawText: string): Promise<Resume> {
+  async create(userId: string, dto: CreateResumeDto, rawText: string, fileType?: string): Promise<Resume> {
     if (dto.is_primary) {
       await this.repo.update({ user_id: userId, is_primary: true }, { is_primary: false });
     }
@@ -23,6 +23,7 @@ export class ResumesService {
       title: dto.title,
       raw_text: rawText,
       is_primary: dto.is_primary ?? false,
+      ...(fileType ? { file_type: fileType } : {}),
     }));
   }
 
@@ -48,7 +49,9 @@ export class ResumesService {
       await this.repo.update({ user_id: userId, is_primary: true }, { is_primary: false });
     }
     Object.assign(resume, dto);
-    return this.repo.save(resume);
+    await this.repo.save(resume);
+    // Re-fetch to ensure all columns (including booleans) are hydrated from DB.
+    return this.findOne(id, userId);
   }
 
   async remove(id: string, userId: string): Promise<void> {

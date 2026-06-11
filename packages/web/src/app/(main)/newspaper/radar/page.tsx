@@ -430,21 +430,24 @@ function SearchTab({
           <span className="stats-total">共 {total} 条结果</span>
           {companyStats.length > 0 && (
             <div className="stats-pills">
-              {companyStats.slice(0, 5).map((stat) => (
-                <button
-                  key={stat.company}
-                  type="button"
-                  className={`stat-pill${filters.company === stat.company ? ' active' : ''}`}
-                  onClick={() =>
-                    updateFilter(
-                      'company',
-                      filters.company === stat.company ? '' : stat.company,
-                    )
-                  }
-                >
-                  {stat.company}({stat.count})
-                </button>
-              ))}
+              {companyStats
+                .filter((stat) => stat.company && stat.company !== 'null' && stat.company.trim() !== '')
+                .slice(0, 5)
+                .map((stat) => (
+                  <button
+                    key={stat.company}
+                    type="button"
+                    className={`stat-pill${filters.company === stat.company ? ' active' : ''}`}
+                    onClick={() =>
+                      updateFilter(
+                        'company',
+                        filters.company === stat.company ? '' : stat.company,
+                      )
+                    }
+                  >
+                    {stat.company}({stat.count})
+                  </button>
+                ))}
             </div>
           )}
           {roleStats.length > 0 && (
@@ -463,7 +466,7 @@ function SearchTab({
                     )
                   }
                 >
-                  {stat.role_category}({stat.count})
+                  {ROLE_CATEGORY_LABELS[stat.role_category] ?? stat.role_category}({stat.count})
                 </button>
               ))}
             </div>
@@ -534,10 +537,15 @@ function RadarCard({ item }: { item: FeedItem }) {
         </span>
       </div>
 
-      {(item.company || item.role) && (
+      {((item.company && item.company !== 'null' && item.company.trim() !== '') ||
+        (item.role && item.role !== 'null' && item.role.trim() !== '')) && (
         <div className="card-company-role">
-          {item.company && <span className="company-tag">{item.company}</span>}
-          {item.role && <span className="role-tag">{item.role}</span>}
+          {item.company && item.company !== 'null' && item.company.trim() !== '' && (
+            <span className="company-tag">{item.company}</span>
+          )}
+          {item.role && item.role !== 'null' && item.role.trim() !== '' && (
+            <span className="role-tag">{item.role}</span>
+          )}
         </div>
       )}
 
@@ -789,7 +797,9 @@ function RoleCard({ item, onView }: { item: RoleRadarItem; onView: () => void })
               className="repr-post-link"
             >
               {post.title}
-              {post.company && <span className="repr-company">({post.company})</span>}
+              {post.company && post.company !== 'null' && post.company.trim() !== '' && (
+                <span className="repr-company">({post.company})</span>
+              )}
               <ExternalLink size={11} />
             </a>
           ))}
@@ -898,7 +908,9 @@ function TrendTab() {
               >
                 <span className="hot-post-rank">{i + 1}</span>
                 <span className="hot-post-title">{post.title}</span>
-                {post.company && <span className="hot-post-company">{post.company}</span>}
+                {post.company && post.company !== 'null' && post.company.trim() !== '' && (
+                  <span className="hot-post-company">{post.company}</span>
+                )}
                 {(!post.published_at || isDateUncertain(post.date_confidence)) && (
                   <span className="date-uncertain-label">发布时间待确认</span>
                 )}

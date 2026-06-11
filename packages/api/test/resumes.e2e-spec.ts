@@ -148,6 +148,29 @@ describe('Resumes (e2e)', () => {
         .send({ raw_text: '运营专员，负责用户增长与活动策划，主导过单场拉新十万的裂变活动。' });
       expect(res.status).toBe(400);
     });
+
+    it('upload txt file → 201 + file_type non-null (P2 fix: file_type badge)', async () => {
+      // 模拟文本文件上传(multipart/form-data),验证 file_type 被持久化并返回
+      const txtContent = '前端工程师，精通 React 与 TypeScript，独立交付过中后台管理系统，具备组件库设计与前端性能调优经验。';
+      const res = await request(app.getHttpServer())
+        .post('/api/resumes')
+        .set('Authorization', `Bearer ${token}`)
+        .field('title', 'Uploaded Resume')
+        .attach('file', Buffer.from(txtContent, 'utf-8'), {
+          filename: 'resume.txt',
+          contentType: 'text/plain',
+        });
+
+      expect(res.status).toBe(201);
+      // P2: file_type 必须非 null，且值为 'txt'
+      expect(res.body.file_type).toBe('txt');
+      // 确认 GET 也反映持久化的 file_type
+      const getRes = await request(app.getHttpServer())
+        .get(`/api/resumes/${res.body.id}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(getRes.status).toBe(200);
+      expect(getRes.body.file_type).toBe('txt');
+    });
   });
 
   describe('GET /api/resumes', () => {
@@ -267,15 +290,21 @@ describe('Resumes (e2e)', () => {
       resumeId = res.body.id;
     });
 
-    it('updates title → 200 + updated resume', async () => {
+    it('updates title → 200 + updated resume with title in response (P1 fix: no title flash)', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/api/resumes/${resumeId}`)
         .set('Authorization', `Bearer ${token}`)
         .send({ title: 'Updated Title' });
 
       expect(res.status).toBe(200);
+      // P1: PATCH 响应必须包含 title 字段，前端 setResume(updated) 才不会闪空
+      expect(res.body).toHaveProperty('title');
       expect(res.body.title).toBe('Updated Title');
       expect(res.body.id).toBe(resumeId);
+      // 验证完整实体关键字段存在(versions/diagnoses 用于前端 tab 计数)
+      expect(res.body).toHaveProperty('raw_text');
+      expect(Array.isArray(res.body.versions)).toBe(true);
+      expect(Array.isArray(res.body.diagnoses)).toBe(true);
     });
 
     it('returns 404 when patching another user\'s resume', async () => {

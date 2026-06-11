@@ -55,11 +55,67 @@ const ACTION_TYPE_LABELS: Record<ActionType, string> = {
   dismiss: '忽略此机会',
 };
 
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  fulltime: '全职',
+  intern: '实习',
+  contract: '合同制',
+  parttime: '兼职',
+};
+
 const SEVERITY_COLORS: Record<string, string> = {
+  critical: 'var(--color-danger)',
   high: 'var(--color-danger)',
   medium: 'var(--color-warn)',
   low: 'var(--color-ink-3)',
 };
+
+// 风险严重度 → 中文标签。后端把 risk_flags 存为 'type:severity' 字符串(权威契约),
+// 前端按此拆分并映射严重度,critical/high 都显示为「高风险」而非默认「低风险」。
+const SEVERITY_LABELS: Record<string, string> = {
+  critical: '高风险',
+  high: '高风险',
+  medium: '中风险',
+  low: '低风险',
+};
+
+// 风险类型代码 → 中文标签(与后端 RISK_SYSTEM 的 8 类一致)。未知代码回退显示原代码。
+const RISK_TYPE_LABELS: Record<string, string> = {
+  jd_too_short: 'JD 信息过少',
+  responsibilities_unclear: '职责描述模糊',
+  suspected_od: '疑似外包/劳务派遣',
+  suspected_training_lure: '疑似培训钓鱼',
+  salary_unrealistic: '薪资异常',
+  long_term_repost: '长期重复发布',
+  entity_mismatch: '招聘主体不一致',
+  untrusted_source: '来源不可信',
+};
+
+// 后端权威存储形状(string[] / 'type:severity'),不依赖共享 types.ts 的对象数组声明。
+interface RiskFlagView {
+  type: string;
+  severity: string;
+}
+
+function parseStringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+}
+
+// 'type:severity' → { type, severity }。缺冒号时整体当作 type,severity 兜底 'low'。
+function parseRiskFlags(raw: unknown): RiskFlagView[] {
+  if (!Array.isArray(raw)) return [];
+  const result: RiskFlagView[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'string' || item.trim().length === 0) continue;
+    const idx = item.lastIndexOf(':');
+    if (idx > 0) {
+      result.push({ type: item.slice(0, idx), severity: item.slice(idx + 1) });
+    } else {
+      result.push({ type: item, severity: 'low' });
+    }
+  }
+  return result;
+}
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : '请求失败，请稍后再试';
@@ -195,6 +251,10 @@ export default function OpportunityDetailPage() {
 
   const opp = opportunity;
   const evaluation = opp.evaluations?.[0] ?? null;
+  // 按后端权威存储形状解析(string[] / 'type:severity'),不受共享 types.ts 声明影响。
+  const riskFlags = parseRiskFlags(evaluation?.risk_flags);
+  const strengths = parseStringList(evaluation?.strengths);
+  const gaps = parseStringList(evaluation?.gaps);
   const evidences = opp.evidences ?? [];
   const actions = opp.actions ?? [];
   const isEvaluating = opp.status === 'draft' || opp.status === 'evaluating';
@@ -227,7 +287,11 @@ export default function OpportunityDetailPage() {
           <div className="detail-meta-row">
             {opp.role && <span className="meta-chip">{opp.role}</span>}
             {opp.location && <span className="meta-chip">{opp.location}</span>}
-            {opp.employment_type && <span className="meta-chip">{opp.employment_type}</span>}
+            {opp.employment_type && (
+              <span className="meta-chip">
+                {EMPLOYMENT_TYPE_LABELS[opp.employment_type] ?? opp.employment_type}
+              </span>
+            )}
           </div>
           {opp.source_url && (
             <a
@@ -318,79 +382,63 @@ export default function OpportunityDetailPage() {
             </span>
           </section>
 
-          {/* Risk flags */}
-          {evaluation.risk_flags.length > 0 && (
+          {/* Risk flags — 后端存为 'type:severity' 字符串,前端拆分映射严重度标签 */}
+          {riskFlags.length > 0 && (
             <section className="detail-section" aria-label="风险信号">
               <h2 className="section-title">
                 <AlertTriangle size={17} />
                 风险信号
               </h2>
               <div className="risk-list">
-                {evaluation.risk_flags.map((flag, i) => (
+                {riskFlags.map((flag, i) => (
                   <div
                     key={i}
                     className="risk-card"
                     style={{ borderLeftColor: SEVERITY_COLORS[flag.severity] ?? SEVERITY_COLORS.low }}
                   >
                     <div className="risk-header">
-                      <span className="risk-type">{flag.type}</span>
+                      <span className="risk-type">{RISK_TYPE_LABELS[flag.type] ?? flag.type}</span>
                       <span
                         className="risk-severity"
                         style={{ color: SEVERITY_COLORS[flag.severity] ?? SEVERITY_COLORS.low }}
                       >
-                        {flag.severity === 'high' ? '高风险' : flag.severity === 'medium' ? '中风险' : '低风险'}
+                        {SEVERITY_LABELS[flag.severity] ?? '低风险'}
                       </span>
                     </div>
-                    <p className="risk-evidence">{flag.evidence}</p>
                   </div>
                 ))}
               </div>
             </section>
           )}
 
-          {/* Strengths */}
-          {evaluation.strengths.length > 0 && (
+          {/* Strengths — 后端存为纯字符串数组 */}
+          {strengths.length > 0 && (
             <section className="detail-section" aria-label="匹配优势">
               <h2 className="section-title">
                 <CheckCircle2 size={17} />
                 匹配优势
               </h2>
               <div className="strength-list">
-                {evaluation.strengths.map((s, i) => (
+                {strengths.map((s, i) => (
                   <div key={i} className="strength-card">
-                    <div className="strength-dim">{s.dimension}</div>
-                    <p className="strength-desc">{s.description}</p>
+                    <p className="strength-desc">{s}</p>
                   </div>
                 ))}
               </div>
             </section>
           )}
 
-          {/* Gaps */}
-          {evaluation.gaps.length > 0 && (
+          {/* Gaps — 后端存为纯字符串数组 */}
+          {gaps.length > 0 && (
             <section className="detail-section" aria-label="差距与建议">
               <h2 className="section-title">
                 <AlertTriangle size={17} />
                 差距与建议
               </h2>
               <div className="gap-list">
-                {evaluation.gaps.map((g, i) => (
+                {gaps.map((g, i) => (
                   <div key={i} className="gap-card">
-                    <div className="gap-header">
-                      <span className="gap-dim">{g.dimension}</span>
-                      <span
-                        className="gap-severity"
-                        style={{ color: SEVERITY_COLORS[g.severity] ?? SEVERITY_COLORS.low }}
-                      >
-                        {g.severity === 'high' ? '严重差距' : g.severity === 'medium' ? '中等差距' : '轻微差距'}
-                      </span>
-                    </div>
-                    <p className="gap-desc">{g.description}</p>
-                    {g.suggestion && (
-                      <p className="gap-suggestion">
-                        <strong>建议：</strong>{g.suggestion}
-                      </p>
-                    )}
+                    <p className="gap-desc">{g}</p>
                   </div>
                 ))}
               </div>

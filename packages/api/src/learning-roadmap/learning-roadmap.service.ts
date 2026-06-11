@@ -135,8 +135,25 @@ export class LearningRoadmapService {
 
     const finalResult = this.applyGuards(raw);
 
-    if (backlog.length > 0) {
-      finalResult.backlog = backlog;
+    // Collect skills AI generated roadmap for
+    const coveredSkills = new Set<string>(
+      (raw.roadmap ?? [])
+        .map((r) => r.skill_name?.trim())
+        .filter((s): s is string => Boolean(s)),
+    );
+    // Any active gap not covered by AI output → also goes into backlog
+    const skippedByAi = activeGaps.filter((g) => {
+      const normalized = g.trim();
+      return !Array.from(coveredSkills).some(
+        (s) => s === normalized || normalized.includes(s) || s.includes(normalized),
+      );
+    });
+
+    const combinedBacklog = [...backlog, ...skippedByAi];
+    if (combinedBacklog.length > 0) {
+      finalResult.backlog = combinedBacklog.map((item) =>
+        skippedByAi.includes(item) ? `${item}（AI 未覆盖，建议在掌握前几项后单独补充）` : item,
+      );
     }
 
     return finalResult;
@@ -209,7 +226,7 @@ export class LearningRoadmapService {
           goal: phase.goal ?? '',
           estimated_weeks:
             typeof phase.estimated_weeks === 'number' && phase.estimated_weeks > 0
-              ? phase.estimated_weeks
+              ? Math.max(1, Math.round(phase.estimated_weeks))
               : 1,
           activities: phase.activities ?? [],
           // Guard: completion_criteria 必须非空且非自我评价
@@ -398,7 +415,7 @@ const OUTPUT_SCHEMA = {
     next_actions: { type: 'array', items: { type: 'string' } },
     follow_up_questions: { type: 'array', items: { type: 'string' } },
     cannot_determine: { type: 'array', items: { type: 'string' } },
-    total_estimated_weeks: { type: 'integer', minimum: 1 },
+    total_estimated_weeks: { type: 'number', minimum: 1 },
     roadmap: {
       type: 'array',
       items: {
@@ -407,7 +424,7 @@ const OUTPUT_SCHEMA = {
         properties: {
           skill_name: { type: 'string' },
           priority: { type: 'integer', minimum: 1 },
-          total_weeks: { type: 'integer', minimum: 1 },
+          total_weeks: { type: 'number', minimum: 1 },
           phases: {
             type: 'array',
             minItems: 2,
@@ -417,7 +434,7 @@ const OUTPUT_SCHEMA = {
               properties: {
                 phase_name: { type: 'string' },
                 goal: { type: 'string' },
-                estimated_weeks: { type: 'integer', minimum: 1 },
+                estimated_weeks: { type: 'number', minimum: 1 },
                 activities: { type: 'array', items: { type: 'string' } },
                 completion_criteria: { type: 'string' },
                 output_artifact: { type: 'string' },

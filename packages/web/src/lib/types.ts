@@ -257,36 +257,29 @@ export interface Application {
 export interface ApplicationEvent {
   id: string;
   application_id: string;
-  type: string;
+  from_stage: string | null;
+  to_stage: string;
   note: string | null;
-  occurred_at: string;
   created_at: string;
 }
 
+// 后端 interview.entity.ts 的 ScoreItem/QuestionItem/InterviewPrediction 权威形状。
 export interface InterviewScore {
   name: string;
   score: number;
-  color: string;
 }
 
 export interface InterviewQuestion {
-  n: number;
-  time: string;
-  type: string;
-  topic: string;
-  diff: string;
+  question: string;
   tone: 'good' | 'warn' | 'bad';
-  q: string;
-  you: string;
-  ai: string;
-  better: string | null;
-  gap: { topic: string; url: string } | null;
+  coach_assessment: string;
+  better_answer: string;
+  knowledge_gaps: string[];
 }
 
 export interface InterviewPrediction {
-  nextRound: string;
-  nextWhen: string;
-  likely: Array<{ topic: string; pct: number }>;
+  next_round_topics: Array<{ topic: string; likelihood: number }>;
+  summary: string;
 }
 
 export interface Interview {
@@ -612,10 +605,12 @@ export interface OpportunityEvaluation {
   overall_score: number;
   recommendation: Recommendation;
   confidence: ConfidenceLevel;
-  risk_flags: Array<{ type: string; severity: string; evidence: string; confidence: string }>;
-  strengths: Array<{ dimension: string; description: string; evidence_ref: string }>;
-  gaps: Array<{ dimension: string; description: string; severity: string; suggestion: string }>;
-  next_actions: Array<{ action_type: string; title: string; reason: string; priority: string }>;
+  // 后端 opportunity-evaluation.entity.ts 全部存 simple-json string[](权威契约):
+  //   risk_flags 为 'type:severity' 字符串数组;strengths/gaps/next_actions 为纯字符串数组。
+  risk_flags: string[];
+  strengths: string[];
+  gaps: string[];
+  next_actions: string[];
   created_at: string;
 }
 

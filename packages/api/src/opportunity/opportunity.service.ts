@@ -1,12 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Opportunity } from './entities/opportunity.entity';
 import { OpportunityEvaluation } from './entities/opportunity-evaluation.entity';
 import { OpportunityEvidence } from './entities/opportunity-evidence.entity';
 import { OpportunityAction } from './entities/opportunity-action.entity';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import type { OpportunityStatus } from './types/opportunity.types';
+
+// 列表项 = 机会 + 最近一条评估概览(用于卡片渲染评分条/推荐徽章)。无评估时 evaluations 为空数组。
+export type OpportunityListItem = Opportunity & { evaluations: OpportunityEvaluation[] };
 
 @Injectable()
 export class OpportunityService {
@@ -30,12 +33,33 @@ export class OpportunityService {
     return this.repo.save(opportunity);
   }
 
-  async findAllByUser(userId: string, status?: OpportunityStatus): Promise<Opportunity[]> {
+  async findAllByUser(userId: string, status?: OpportunityStatus): Promise<OpportunityListItem[]> {
     const where: Record<string, unknown> = { user_id: userId };
     if (status) {
       where.status = status;
     }
-    return this.repo.find({ where, order: { updated_at: 'DESC' } });
+    const opportunities = await this.repo.find({ where, order: { updated_at: 'DESC' } });
+    if (opportunities.length === 0) {
+      return [];
+    }
+
+    // 批量带上每个机会的最近一条评估,供列表卡片渲染评分条/推荐徽章(避免 N+1)。
+    const ids = opportunities.map((o) => o.id);
+    const evaluations = await this.evalRepo.find({
+      where: { opportunity_id: In(ids) },
+      order: { created_at: 'DESC' },
+    });
+    const latestByOpp = new Map<string, OpportunityEvaluation>();
+    for (const ev of evaluations) {
+      if (!latestByOpp.has(ev.opportunity_id)) {
+        latestByOpp.set(ev.opportunity_id, ev);
+      }
+    }
+
+    return opportunities.map((o) => {
+      const latest = latestByOpp.get(o.id);
+      return Object.assign(o, { evaluations: latest ? [latest] : [] });
+    });
   }
 
   async findOne(id: string, userId: string): Promise<Opportunity> {

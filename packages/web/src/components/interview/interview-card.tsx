@@ -41,7 +41,17 @@ export function InterviewCard({ interview: iv }: InterviewCardProps) {
         borderRadius: '16px',
         padding: '16px 18px',
         textDecoration: 'none',
-        transition: 'border-color 0.12s',
+        transition: 'border-color 0.12s, box-shadow 0.12s, transform 0.12s',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'var(--color-brand)';
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
+        e.currentTarget.style.transform = 'translateY(-1px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'var(--color-line)';
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
       {/* Grade badge */}

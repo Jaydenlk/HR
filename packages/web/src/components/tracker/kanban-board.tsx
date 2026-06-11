@@ -6,6 +6,7 @@ import { KanbanColumn } from './kanban-column';
 interface KanbanBoardProps {
   applications: Application[];
   onStageChange: (id: string, stage: string) => void;
+  onEdit: (application: Application) => void;
   onAdd: (stage: string) => void;
 }
 
@@ -18,7 +19,7 @@ const STAGES = [
   { id: 'rejected',  label: '已拒',   dotColor: 'var(--color-danger)' },
 ];
 
-export function KanbanBoard({ applications, onStageChange, onAdd }: KanbanBoardProps) {
+export function KanbanBoard({ applications, onStageChange, onEdit, onAdd }: KanbanBoardProps) {
   const byStage = STAGES.reduce<Record<string, Application[]>>((acc, s) => {
     acc[s.id] = applications.filter((a) => a.stage === s.id);
     return acc;
@@ -43,6 +44,7 @@ export function KanbanBoard({ applications, onStageChange, onAdd }: KanbanBoardP
           dotColor={stage.dotColor}
           applications={byStage[stage.id] ?? []}
           onStageChange={onStageChange}
+          onEdit={onEdit}
           onAdd={() => onAdd(stage.id)}
         />
       ))}

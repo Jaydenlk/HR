@@ -81,7 +81,7 @@ function confidenceLabel(c: string): string {
 }
 
 function confidenceColor(c: string): string {
-  if (c === 'high') return '#10b981';
+  if (c === 'high') return 'var(--color-success)';
   if (c === 'medium') return 'var(--color-brand)';
   return 'var(--color-ink-3)';
 }
@@ -121,7 +121,7 @@ function SummaryCard({ env }: { env: Envelope }) {
           fontSize: '11px',
           fontWeight: 700,
           color: confidenceColor(env.confidence),
-          background: `${confidenceColor(env.confidence)}18`,
+          background: `color-mix(in srgb, ${confidenceColor(env.confidence)} 10%, transparent)`,
           padding: '2px 9px',
           borderRadius: '99px',
         }}
@@ -163,8 +163,8 @@ function CannotDetermineCard({ env }: { env: Envelope }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-        <AlertCircle size={14} color="#f59e0b" />
-        <span style={{ fontSize: '12px', fontWeight: 700, color: '#f59e0b', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+        <AlertCircle size={14} color="var(--color-warn)" />
+        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-warn)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
           数据不足 · 无法确定的部分
         </span>
       </div>
@@ -479,7 +479,7 @@ function PlaybookTab({ state, patch }: { state: PlaybookState; patch: (p: Partia
 // ════════════════════════════════════════════════════════════════════════════════
 
 function polishLabel(p: string): { text: string; color: string } {
-  if (p === 'ready') return { text: '可直接使用', color: '#10b981' };
+  if (p === 'ready') return { text: '可直接使用', color: 'var(--color-success)' };
   if (p === 'needs_polish') return { text: '需打磨', color: 'var(--color-brand)' };
   return { text: '仅骨架', color: 'var(--color-ink-3)' };
 }
@@ -540,7 +540,7 @@ function StarTab({ state, patch }: { state: StarState; patch: (p: Partial<StarSt
             <div key={i} style={cardStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)' }}>{s.title}</div>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: pl.color, background: `${pl.color}18`, padding: '2px 9px', borderRadius: '99px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: pl.color, background: `color-mix(in srgb, ${pl.color} 10%, transparent)`, padding: '2px 9px', borderRadius: '99px' }}>
                   {pl.text}
                 </span>
               </div>

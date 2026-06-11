@@ -38,7 +38,8 @@ export class ResumesController {
         `简历内容至少需要 ${MIN_RESUME_LENGTH} 字，请提供包含完整工作经历和技能的简历正文`,
       );
     }
-    const resume = await this.resumes.create(user.id, dto, rawText);
+    const fileType = file ? this.resolveFileType(file.mimetype) : undefined;
+    const resume = await this.resumes.create(user.id, dto, rawText, fileType);
     return toResumeDetailResponse(resume);
   }
 
@@ -86,6 +87,12 @@ export class ResumesController {
   ): Promise<ResumeVersionResponse> {
     const version = await this.resumes.createVersion(id, user.id, dto.raw_text, dto.change_note ?? '');
     return toResumeVersionResponse(version);
+  }
+
+  private resolveFileType(mimetype: string): string {
+    if (mimetype === 'application/pdf') return 'pdf';
+    if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'docx';
+    return 'txt';
   }
 
   private async extractText(file: Express.Multer.File): Promise<string> {

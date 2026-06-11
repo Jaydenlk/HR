@@ -84,8 +84,11 @@ export class AuthService {
   }
 
   // 登录:校验验证码 → 区分新老用户 → 签发 JWT。
+  // 消费顺序(关键):先「校验」验证码但不烧码,再校验新用户的邀请码/姓名并烧邀请码,
+  // 全部通过后才把验证码标 consumed。这样邀请码无效时不会误烧验证码——用户可用同一验证码
+  // 改对邀请码重试,前端「废码失效横幅」不再因一次邀请码笔误而提前作废验证码。
   async login(dto: LoginDto): Promise<{ access_token: string; user: User }> {
-    await this.verifyCode(dto.email, dto.code);
+    const codeRecord = await this.checkCode(dto.email, dto.code);
 
     const existing = await this.users.findByEmail(dto.email);
     const isAdmin = this.adminEmails.has(dto.email);
@@ -97,7 +100,7 @@ export class AuthService {
       }
       user = await this.users.promoteIfAdmin(existing, isAdmin);
     } else {
-      // 新用户必须带有效邀请码 + 姓名。
+      // 新用户必须带有效邀请码 + 姓名。在烧验证码之前完成,失败则验证码不消费。
       if (!dto.invite_code) {
         throw new ForbiddenException('新用户首次登录需要邀请码');
       }
@@ -110,6 +113,9 @@ export class AuthService {
       }
       user = await this.users.createUser(dto.email, dto.name, dto.invite_code, isAdmin);
     }
+
+    // 至此用户已确定/创建成功,烧掉验证码(单次有效)。
+    await this.consumeCode(codeRecord);
 
     const token = this.jwt.sign({ sub: user.id, email: user.email });
     return { access_token: token, user };
@@ -150,8 +156,9 @@ export class AuthService {
     return { access_token: token, user };
   }
 
-  // 校验验证码:取该邮箱最新未消费码,判过期/锁定/匹配;错误则累加 attempts。
-  private async verifyCode(email: string, code: string): Promise<void> {
+  // 校验验证码(不烧码):取该邮箱最新未消费码,判过期/锁定/匹配;错误则累加 attempts。
+  // 匹配成功返回该记录,由调用方在后续步骤(如邀请码)全部通过后再 consumeCode 烧码。
+  private async checkCode(email: string, code: string): Promise<LoginCode> {
     const record = await this.codes.findOne({
       where: { email, consumed: false },
       order: { created_at: 'DESC' },
@@ -174,6 +181,11 @@ export class AuthService {
           : '验证码错误,请重试';
       throw new UnauthorizedException(message);
     }
+    return record;
+  }
+
+  // 烧码:标 consumed,单次有效。在 login 流程的最后一步(用户确定/创建成功后)调用。
+  private async consumeCode(record: LoginCode): Promise<void> {
     record.consumed = true;
     await this.codes.save(record);
   }

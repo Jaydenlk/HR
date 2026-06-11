@@ -19,6 +19,7 @@ interface ApplicationFormProps {
   onCancel: () => void;
   initial?: Partial<Application>;
   defaultStage?: string;
+  footer?: React.ReactNode;
 }
 
 const STAGE_OPTIONS = [
@@ -27,9 +28,10 @@ const STAGE_OPTIONS = [
   { id: 'interview', label: '面试中' },
   { id: 'final',     label: '终面' },
   { id: 'offer',     label: 'Offer' },
+  { id: 'rejected',  label: '已拒' },
 ];
 
-export function ApplicationForm({ onSubmit, onCancel, initial, defaultStage }: ApplicationFormProps) {
+export function ApplicationForm({ onSubmit, onCancel, initial, defaultStage, footer }: ApplicationFormProps) {
   const [form, setForm] = useState<ApplicationFormData>({
     company:      initial?.company      ?? '',
     role:         initial?.role         ?? '',
@@ -291,6 +293,8 @@ export function ApplicationForm({ onSubmit, onCancel, initial, defaultStage }: A
             </button>
           </div>
         </form>
+
+        {footer}
       </div>
     </div>
   );

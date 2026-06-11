@@ -75,6 +75,9 @@ export class AdminService {
         throw new BadRequestException('不能封禁自己');
       }
     }
+    if (dto.status === undefined && dto.role === undefined && dto.daily_quota_override === undefined) {
+      throw new BadRequestException('请至少修改一项');
+    }
     const patch: Partial<Pick<User, 'status' | 'role' | 'daily_quota_override'>> = {};
     if (dto.status !== undefined) patch.status = dto.status;
     if (dto.role !== undefined) patch.role = dto.role;

@@ -40,9 +40,13 @@
   --radius-default: 14px;
   --radius-lg: 20px;
   --radius-xl: 28px;
+  /* 全圆角(胶囊/圆点):统一来源,替代各处散落的 999px 字面量。 */
+  --radius-pill: 999px;
 
   /* typography */
-  --font-sans: "Inter", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  /* --font-jakarta 由 app/layout.tsx 的 next/font/google(Plus Jakarta Sans)注入;
+     接中文回退栈,确保 CJK 字形不缺失。 */
+  --font-sans: var(--font-jakarta), "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
@@ -138,4 +142,16 @@
     letter-spacing: -0.003em;
     -webkit-font-smoothing: antialiased;
   }
+}
+
+/* ── 全站旋转动画单一来源 ─────────────────────────────────────────────────
+   各页此前各自在 <style> 内重复定义 @keyframes spin;统一收口到此处。
+   用法:className="spin"(默认 1s 匀速无限),或 style={{ animation: 'spin 1s linear infinite' }}。 */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin,
+.animate-spin {
+  animation: spin 1s linear infinite;
 }

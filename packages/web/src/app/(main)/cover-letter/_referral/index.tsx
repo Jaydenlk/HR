@@ -39,7 +39,7 @@ const CONFIDENCE_LABELS: Record<string, string> = {
 const CONFIDENCE_COLORS: Record<string, string> = {
   high: 'var(--color-success)',
   medium: 'var(--color-brand)',
-  low: 'var(--color-warn, #f59e0b)',
+  low: 'var(--color-warn)',
   insufficient: 'var(--color-danger)',
 };
 
@@ -392,7 +392,7 @@ function MessageTab() {
               <ConfidenceBadge confidence={result.confidence} />
             </div>
 
-            {/* Insufficient state */}
+            {/* Insufficient state — 区分两类：真信息不足 vs AI 生成失败 */}
             {result.confidence === 'insufficient' || !result.message_draft ? (
               <div
                 style={{
@@ -405,14 +405,28 @@ function MessageTab() {
                   gap: '10px',
                 }}
               >
-                <AlertCircle size={28} color="var(--color-warn, #f59e0b)" />
-                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
-                  信息不足，暂时无法生成消息草稿
-                </p>
-                {(result.cannot_determine ?? []).length > 0 && (
-                  <div style={{ textAlign: 'left', width: '100%' }}>
-                    <TagList items={result.cannot_determine ?? []} label="需补充" />
-                  </div>
+                {(result.cannot_determine ?? []).some((s) => s.includes('AI 临时未能生成')) ? (
+                  <>
+                    <AlertCircle size={28} color="var(--color-danger)" />
+                    <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                      AI 生成失败，请稍后重试
+                    </p>
+                    <p style={{ fontSize: '12.5px', color: 'var(--color-ink-4)' }}>
+                      您的输入已收到，系统临时无法完成生成，请再试一次
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle size={28} color="var(--color-warn)" />
+                    <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                      信息不足，暂时无法生成消息草稿
+                    </p>
+                    {(result.cannot_determine ?? []).length > 0 && (
+                      <div style={{ textAlign: 'left', width: '100%' }}>
+                        <TagList items={result.cannot_determine ?? []} label="需补充" />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ) : (
@@ -576,7 +590,7 @@ function ReferralPathCard({ path }: { path: ReferralPath }) {
   function pathTypeColor(pt: string): string {
     if (pt === 'direct') return 'var(--color-success)';
     if (pt === 'indirect') return 'var(--color-brand)';
-    return 'var(--color-warn, #f59e0b)';
+    return 'var(--color-warn)';
   }
 
   return (

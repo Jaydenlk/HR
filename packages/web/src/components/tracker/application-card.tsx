@@ -5,6 +5,7 @@ import type { Application } from '@/lib/types';
 interface ApplicationCardProps {
   application: Application;
   onStageChange: (id: string, stage: string) => void;
+  onEdit: (application: Application) => void;
 }
 
 const STAGES = [
@@ -30,26 +31,35 @@ function formatDeadline(deadline: string | null): string | null {
   });
 }
 
-export function ApplicationCard({ application, onStageChange }: ApplicationCardProps) {
+export function ApplicationCard({ application, onStageChange, onEdit }: ApplicationCardProps) {
   const urgent = isUrgent(application.deadline);
   const deadlineLabel = formatDeadline(application.deadline);
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onEdit(application)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onEdit(application);
+        }
+      }}
       style={{
-        background: urgent ? '#fffaf2' : 'var(--color-surface)',
-        border: `1px solid ${urgent ? 'rgba(255,149,0,0.3)' : 'var(--color-line)'}`,
+        background: urgent ? 'var(--color-warn-soft)' : 'var(--color-surface)',
+        border: `1px solid ${urgent ? 'color-mix(in srgb, var(--color-warn) 30%, transparent)' : 'var(--color-line)'}`,
         borderRadius: '11px',
         padding: '11px 13px',
-        cursor: 'default',
+        cursor: 'pointer',
         transition: 'border-color 0.12s, transform 0.12s',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = urgent ? 'rgba(255,149,0,0.5)' : 'var(--color-line-2)';
+        e.currentTarget.style.borderColor = urgent ? 'color-mix(in srgb, var(--color-warn) 50%, transparent)' : 'var(--color-line-2)';
         e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = urgent ? 'rgba(255,149,0,0.3)' : 'var(--color-line)';
+        e.currentTarget.style.borderColor = urgent ? 'color-mix(in srgb, var(--color-warn) 30%, transparent)' : 'var(--color-line)';
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >

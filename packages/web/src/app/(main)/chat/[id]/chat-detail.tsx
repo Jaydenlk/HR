@@ -118,7 +118,10 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : '加载失败');
+        const msg = err instanceof Error ? err.message : '';
+        // 404 / "Not Found" → 统一中文兜底
+        const isNotFound = /404|not found/i.test(msg);
+        setError(isNotFound ? '对话不存在' : msg || '加载失败');
         setLoading(false);
       });
   }, [id]);

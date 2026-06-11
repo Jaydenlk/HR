@@ -68,11 +68,34 @@ export class ConversationsService {
     if (!owned) throw new NotFoundException();
   }
 
-  findAllByUser(userId: string): Promise<Conversation[]> {
-    return this.convRepo.find({
+  async findAllByUser(userId: string): Promise<Conversation[]> {
+    const convs = await this.convRepo.find({
       where: { user_id: userId },
       order: { updated_at: 'DESC' },
     });
+    if (convs.length === 0) return convs;
+
+    // 为每条会话附加最新一条消息预览,避免列表显示「暂无消息」。
+    const convIds = convs.map((c) => c.id);
+    const lastMsgs = await this.msgRepo
+      .createQueryBuilder('msg')
+      .where('msg.conversation_id IN (:...ids)', { ids: convIds })
+      .orderBy('msg.created_at', 'DESC')
+      .getMany();
+
+    // 按 conversation_id 取第一条(已按 DESC 排序,第一个即最新)。
+    const latestByConv = new Map<string, Message>();
+    for (const msg of lastMsgs) {
+      if (!latestByConv.has(msg.conversation_id)) {
+        latestByConv.set(msg.conversation_id, msg);
+      }
+    }
+
+    for (const conv of convs) {
+      const latest = latestByConv.get(conv.id);
+      conv.messages = latest ? [latest] : [];
+    }
+    return convs;
   }
 
   async findOne(id: string, userId: string): Promise<Conversation> {

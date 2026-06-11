@@ -96,7 +96,7 @@ const CONFIDENCE_LABELS: Record<string, string> = {
 const CONFIDENCE_COLORS: Record<string, string> = {
   high: 'var(--color-success)',
   medium: 'var(--color-brand)',
-  low: 'var(--color-warn, #f59e0b)',
+  low: 'var(--color-warn)',
   insufficient: 'var(--color-danger)',
 };
 
@@ -174,7 +174,7 @@ function ConfidenceBadge({ confidence }: { confidence: string }) {
         borderRadius: '999px',
         fontSize: '11.5px',
         fontWeight: 700,
-        background: `${CONFIDENCE_COLORS[confidence]}22`,
+        background: `color-mix(in srgb, ${CONFIDENCE_COLORS[confidence] ?? 'var(--color-ink-4)'} 13%, transparent)`,
         color: CONFIDENCE_COLORS[confidence],
       }}
     >
@@ -385,7 +385,7 @@ export default function FollowUpPage() {
                 placeholder={config.detailsPlaceholder}
               />
               {config.detailsRequired && !interviewDetails.trim() && (
-                <div style={{ fontSize: '11.5px', color: 'var(--color-warn, #f59e0b)', marginTop: '4px' }}>
+                <div style={{ fontSize: '11.5px', color: 'var(--color-warn)', marginTop: '4px' }}>
                   感谢信需要面试详情才能个性化生成，否则无法引用具体对话
                 </div>
               )}
@@ -487,7 +487,7 @@ export default function FollowUpPage() {
                     gap: '10px',
                   }}
                 >
-                  <AlertCircle size={28} color="var(--color-warn, #f59e0b)" />
+                  <AlertCircle size={28} color="var(--color-warn)" />
                   <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
                     信息不足，无法生成消息
                   </p>
@@ -580,7 +580,7 @@ export default function FollowUpPage() {
                             fontWeight: 600,
                             color: result.timing_advice.is_timing_appropriate
                               ? 'var(--color-success)'
-                              : 'var(--color-warn, #f59e0b)',
+                              : 'var(--color-warn)',
                           }}
                         >
                           {result.timing_advice.is_timing_appropriate ? '适合发送' : '时机欠佳'}

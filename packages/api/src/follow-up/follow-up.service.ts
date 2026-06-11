@@ -147,7 +147,7 @@ function truncateToSentence(text: string, limit: number): string {
 const SCENARIO_RULES: Record<FollowUpScenario, string> = {
   thank_you: `
 场景：面试感谢信（面试后24-48小时内发送）
-- 必须提及面试中讨论的具体话题或细节；若无法确认，在 message_draft 中用「[您提到的X话题]」占位并将 confidence 降为 medium 或 low
+- 必须提及面试中讨论的具体话题或细节；若无法确认，在 message_draft 中用「[您提到的X话题]」占位并将置信度降为中等或低
 - 消息长度不超过150字
 - 语气：真诚、简洁、表达感谢+强化记忆点`.trim(),
 
@@ -316,7 +316,7 @@ ${scenarioRule}
 ## 防编造规则（硬性，不得违反）
 1. 所有消息内容只能基于用户提供的实际面试/投递信息，禁止虚构任何细节
 2. 感谢信中禁止写「我们讨论了X」，除非面试细节中明确出现过该话题
-3. 若面试细节为空或信息不足，将 confidence 设为 medium 或 low，并在 cannot_determine 中说明
+3. 若面试细节为空或信息不足，置信度须降为中等或低，并在 cannot_determine 中说明原因
 4. 禁止在消息中出现「尽快」「急」「马上」等催促词
 5. evidence_used 中每条证据必须能在用户提供的输入中定位
 

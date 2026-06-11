@@ -7,6 +7,8 @@ interface PredictionCardProps {
 }
 
 export function PredictionCard({ prediction: p }: PredictionCardProps) {
+  const topics = p.next_round_topics ?? [];
+
   return (
     <div
       style={{
@@ -61,71 +63,85 @@ export function PredictionCard({ prediction: p }: PredictionCardProps) {
             lineHeight: 1.15,
           }}
         >
-          {p.nextRound}
-          <br />
-          很可能问到{' '}
+          下一轮很可能问到{' '}
           <span style={{ color: 'var(--color-brand)' }}>——</span>
         </h3>
 
-        {/* When */}
-        <div
-          style={{
-            marginTop: '6px',
-            fontSize: '12px',
-            color: 'rgba(255,255,255,0.55)',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 500,
-            paddingBottom: '14px',
-            borderBottom: '1px solid rgba(255,255,255,0.12)',
-          }}
-        >
-          {p.nextWhen}
-        </div>
+        {/* Summary */}
+        {p.summary && (
+          <div
+            style={{
+              marginTop: '8px',
+              fontSize: '13px',
+              color: 'rgba(255,255,255,0.7)',
+              fontWeight: 500,
+              lineHeight: 1.6,
+              paddingBottom: '14px',
+              borderBottom: '1px solid rgba(255,255,255,0.12)',
+            }}
+          >
+            {p.summary}
+          </div>
+        )}
 
-        {/* Likely topics */}
-        <div style={{ marginTop: '2px' }}>
-          {p.likely.map((item) => {
-            const isHigh = item.pct >= 80;
-            return (
-              <div
-                key={item.topic}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '9px 0',
-                  fontSize: '13px',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
-                }}
-              >
-                <span
+        {/* Predicted topics */}
+        {topics.length > 0 ? (
+          <div style={{ marginTop: '2px' }}>
+            {topics.map((item) => {
+              const isHigh = item.likelihood >= 80;
+              return (
+                <div
+                  key={item.topic}
                   style={{
-                    flex: 1,
-                    lineHeight: 1.45,
-                    color: 'rgba(255,255,255,0.92)',
-                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '9px 0',
+                    fontSize: '13px',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
                   }}
                 >
-                  {item.topic}
-                </span>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '3px 9px',
-                    borderRadius: '6px',
-                    background: isHigh ? 'var(--color-brand)' : 'rgba(255,255,255,0.1)',
-                    color: '#fff',
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.pct}%
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                  <span
+                    style={{
+                      flex: 1,
+                      lineHeight: 1.45,
+                      color: 'rgba(255,255,255,0.92)',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {item.topic}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 9px',
+                      borderRadius: '6px',
+                      background: isHigh ? 'var(--color-brand)' : 'rgba(255,255,255,0.1)',
+                      color: '#fff',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.likelihood}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div
+            style={{
+              marginTop: '14px',
+              fontSize: '13px',
+              color: 'rgba(255,255,255,0.55)',
+              fontWeight: 500,
+              lineHeight: 1.6,
+            }}
+          >
+            暂无下一轮主题预测
+          </div>
+        )}
       </div>
     </div>
   );

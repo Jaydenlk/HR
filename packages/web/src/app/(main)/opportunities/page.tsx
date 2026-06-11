@@ -35,6 +35,13 @@ const RECOMMENDATION_LABELS: Record<Recommendation, string> = {
   not_recommend: '不推荐',
 };
 
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  fulltime: '全职',
+  intern: '实习',
+  contract: '合同制',
+  parttime: '兼职',
+};
+
 const STATUS_FILTERS: Array<{ value: StatusFilter; label: string }> = [
   { value: 'all', label: '全部' },
   { value: 'draft', label: '待评估' },
@@ -175,6 +182,11 @@ function OpportunityCard({ opportunity: opp }: { opportunity: Opportunity }) {
           <h2>{opp.company ?? '未知公司'}</h2>
           <span className="card-role">{opp.role ?? '未知岗位'}</span>
           {opp.location && <span className="card-location">{opp.location}</span>}
+          {opp.employment_type && (
+            <span className="card-location">
+              {EMPLOYMENT_TYPE_LABELS[opp.employment_type] ?? opp.employment_type}
+            </span>
+          )}
         </div>
         <span className={`status-badge status-${opp.status}`}>
           {STATUS_LABELS[opp.status]}

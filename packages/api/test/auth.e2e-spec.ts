@@ -272,6 +272,26 @@ describe('Auth (e2e)', () => {
       const res = await register('disabled-user@coach.dev', '停用码用户', 'DISABLED1');
       expect(res.status).toBe(403);
     });
+
+    // 消费顺序保证:邀请码错误时不应烧掉验证码——用户用同一验证码改对邀请码可立即成功,
+    // 无需重新申码。(auth.service.ts checkCode 不烧码 + 邀请码成功后才 consumeCode)
+    it('邀请码无效不消费验证码 → 同码改对邀请码可重试成功', async () => {
+      const email = 'retry-invite@coach.dev';
+      const { dev_code } = await requestCode(email);
+
+      // 第一次:正确验证码 + 错误邀请码 → 403。
+      const bad = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email, code: dev_code, invite_code: 'WRONGCODE', name: '改码重试用户' });
+      expect(bad.status).toBe(403);
+
+      // 第二次:同一验证码 + 正确邀请码 → 201(验证码未被前次烧掉)。
+      const ok = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email, code: dev_code, invite_code: 'COACH2026', name: '改码重试用户' });
+      expect(ok.status).toBe(201);
+      expect(ok.body.user.email).toBe(email);
+    });
   });
 
   describe('POST /api/auth/login — 老用户与封禁', () => {

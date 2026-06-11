@@ -72,6 +72,24 @@ describe('Applications (e2e)', () => {
       expect(res.status).toBe(400);
     });
 
+    it('company exceeds max length → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: 'a'.repeat(101), role: 'Engineer' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('notes exceeds max length → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: 'Acme Corp', role: 'Engineer', notes: 'a'.repeat(2001) });
+
+      expect(res.status).toBe(400);
+    });
+
     it('without JWT → 401', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/applications')

@@ -64,7 +64,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   post: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  get: <T>(path: string) => request<T>(path),
+  // options 透传 signal,支持 AbortController 真正中止 GET(页面切换/竞态时取消旧请求)。
+  get: <T>(path: string, options?: Pick<RequestInit, 'signal'>) => request<T>(path, options),
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (path: string) => request(path, { method: 'DELETE' }),

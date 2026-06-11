@@ -531,7 +531,7 @@ export class InterviewPrepService {
     }
 
     if (!hasIntel) {
-      const note = '无目标公司面经数据，公司专项考察重点无法定制（company_specific_focus 为空）';
+      const note = '无目标公司面经数据，公司专项重点为空（未提供面经，防编造）';
       if (!cannot_determine.includes(note)) cannot_determine.push(note);
     }
 

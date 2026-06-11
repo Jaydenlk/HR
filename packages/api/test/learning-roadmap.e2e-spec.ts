@@ -170,32 +170,42 @@ describe('LearningRoadmap (e2e) — deterministic guard tests', () => {
       expect(res.body.total_estimated_weeks).toBe(8);
     });
 
-    it('no backlog field when skill_gaps <= 10', async () => {
+    it('AI-skipped gaps go to backlog with note when skill_gaps <= 10', async () => {
+      // Mock returns roadmap only for 'TypeScript', not for 'React Hooks' from VALID_BODY.
+      // The service detects 'React Hooks' as AI-skipped and adds it to backlog.
       const res = await request(app.getHttpServer())
         .post('/api/learning-roadmap/build')
         .set('Authorization', `Bearer ${token}`)
         .send(VALID_BODY);
 
       expect(res.status).toBe(200);
-      expect(res.body.backlog).toBeUndefined();
+      // React Hooks not covered by mock AI → service adds it to backlog with note
+      expect(Array.isArray(res.body.backlog)).toBe(true);
+      const backlog: string[] = res.body.backlog;
+      expect(backlog.some((item) => item.includes('React Hooks'))).toBe(true);
+      expect(backlog.some((item) => item.includes('AI 未覆盖'))).toBe(true);
     });
   });
 
   // ─── Guard: >10 skill_gaps → only critical processed, rest in backlog ─────
 
   describe('Guard: >10 skill_gaps → first 10 processed, backlog populated', () => {
-    it('12 skill_gaps → backlog contains items 11-12', async () => {
+    it('12 skill_gaps → backlog contains items 11-12 (overflow) plus AI-skipped active gaps', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/learning-roadmap/build')
         .set('Authorization', `Bearer ${token}`)
         .send(OVER_10_GAPS);
 
       expect(res.status).toBe(200);
-      // Service slices first 10 as active, remaining go to backlog
+      // Service slices first 10 as active, remaining (11-12) go to backlog as overflow.
+      // Mock AI only covers 'TypeScript', so all 技能1-10 are AI-skipped → also in backlog with note.
       expect(Array.isArray(res.body.backlog)).toBe(true);
-      expect(res.body.backlog).toHaveLength(2);
-      expect(res.body.backlog).toContain('技能11');
-      expect(res.body.backlog).toContain('技能12');
+      const backlog: string[] = res.body.backlog;
+      // Overflow items are present without note
+      expect(backlog).toContain('技能11');
+      expect(backlog).toContain('技能12');
+      // AI-skipped active gaps are present with note
+      expect(backlog.some((item) => item.includes('技能1') && item.includes('AI 未覆盖'))).toBe(true);
     });
 
     it('12 skill_gaps → AI was called with only 10 gaps (verified via mock call args)', async () => {

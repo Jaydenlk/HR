@@ -42,7 +42,7 @@ const SOURCE_KIND_COLORS: Record<FeedSourceKind, string> = {
   wechat: '#1677ff',
   blog: '#8b5cf6',
   ugc: '#6b7280',
-  coach: '#f59e0b',
+  coach: 'var(--color-warn, #f59e0b)',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -119,7 +119,9 @@ export default function NewspaperPage() {
         items = allItems.filter(i => i.category === 'interview_exp');
         break;
       case 'hot':
-        items = [...allItems].sort((a, b) => b.quality_score - a.quality_score);
+        items = [...allItems]
+          .filter(i => i.quality_score >= 7)
+          .sort((a, b) => b.quality_score - a.quality_score);
         break;
       case 'job_tips':
         items = allItems.filter(i => i.category === 'job_tips');
@@ -146,7 +148,7 @@ export default function NewspaperPage() {
     return [
       { key: 'all' as TabKey, label: '全部', count: edition.total_count },
       { key: 'interview_exp' as TabKey, label: '面经', count: edition.categories.interview_exp ?? 0 },
-      { key: 'hot' as TabKey, label: '热点', count: allItems.filter(i => i.quality_score >= 7).length },
+      { key: 'hot' as TabKey, label: '质量精选', count: allItems.filter(i => i.quality_score >= 7).length },
       { key: 'job_tips' as TabKey, label: '故事', count: edition.categories.job_tips ?? 0 },
       { key: 'editorial' as TabKey, label: '题库', count: edition.categories.editorial ?? 0 },
       { key: 'insight' as TabKey, label: '编辑精选' },
@@ -167,7 +169,7 @@ export default function NewspaperPage() {
           </h1>
           <p className="np-subtitle">
             叫月刊，更新是实时的 &middot;{' '}
-            {edition ? `24h 内新增 ${edition.total_count} 篇` : '加载中...'}
+            {edition ? `当前共 ${edition.total_count} 篇` : '加载中...'}
           </p>
         </div>
         <div className="np-header-actions">
@@ -331,8 +333,12 @@ function HeroSection({ edition }: { edition: NewspaperEdition }) {
             <h2>{excerptText(hotItem.title, 60)}</h2>
             <p>{excerptText(hotItem.summary ?? hotItem.content, 80)}</p>
             <div className="np-hero-meta">
-              {hotItem.company && <span>{hotItem.company}</span>}
-              {hotItem.role && <span>{hotItem.role}</span>}
+              {hotItem.company && hotItem.company !== 'null' && hotItem.company.trim() !== '' && (
+                <span>{hotItem.company}</span>
+              )}
+              {hotItem.role && hotItem.role !== 'null' && hotItem.role.trim() !== '' && (
+                <span>{hotItem.role}</span>
+              )}
               <span>质量 {hotItem.quality_score}</span>
             </div>
           </>
@@ -387,10 +393,12 @@ function FeedItemCard({ item }: { item: FeedItem }) {
         )}
       </div>
 
-      {item.company && (
+      {item.company && item.company !== 'null' && item.company.trim() !== '' && (
         <div className="np-card-company-row">
           <strong>{item.company}</strong>
-          {item.role && <span className="np-role-tag">{item.role}</span>}
+          {item.role && item.role !== 'null' && item.role.trim() !== '' && (
+            <span className="np-role-tag">{item.role}</span>
+          )}
         </div>
       )}
 

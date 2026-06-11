@@ -19,6 +19,15 @@ import {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 6) return '夜深了，注意休息';
+  if (h < 12) return '早上好';
+  if (h < 14) return '中午好';
+  if (h < 18) return '下午好';
+  return '晚上好';
+}
+
 function formatDate(d: Date): string {
   return d.toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -136,7 +145,7 @@ function TaskCard({ task, onToggle, toggling }: TaskCardProps) {
           border: 'none',
           padding: 0,
           cursor: toggling ? 'not-allowed' : 'pointer',
-          color: done ? '#12b76a' : 'var(--color-line-2)',
+          color: done ? 'var(--color-success)' : 'var(--color-line-2)',
           display: 'flex',
           alignItems: 'center',
           marginTop: '1px',
@@ -156,8 +165,7 @@ function TaskCard({ task, onToggle, toggling }: TaskCardProps) {
             fontWeight: 600,
             color: done ? 'var(--color-ink-3)' : 'var(--color-ink)',
             letterSpacing: '-0.005em',
-            textDecoration: done ? 'line-through' : 'none',
-            textDecorationColor: 'var(--color-ink-4)',
+            ...(done ? { textDecoration: 'line-through', textDecorationColor: 'var(--color-ink-4)' } : { textDecoration: 'none' }),
             lineHeight: 1.35,
           }}
         >
@@ -238,7 +246,7 @@ function ProgressRing({
           cy="50"
           r={R}
           fill="none"
-          stroke="#0a84ff"
+          stroke="var(--color-brand)"
           strokeWidth="6"
           strokeLinecap="round"
           strokeDasharray={C}
@@ -422,14 +430,14 @@ export default function TodayPage() {
           <h1
             style={{
               margin: 0,
-              fontSize: '32px',
+              fontSize: '26px',
               fontWeight: 800,
               letterSpacing: '-0.03em',
               lineHeight: 1.1,
               color: '#fff',
             }}
           >
-            今天
+            {getGreeting()}，今天
           </h1>
           {tasks.length > 0 && (
             <p

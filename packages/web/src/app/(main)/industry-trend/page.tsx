@@ -36,7 +36,7 @@ const HIRING_OUTLOOK_COLORS: Record<string, string> = {
   strong: 'var(--color-success)',
   growing: 'var(--color-brand)',
   stable: 'var(--color-ink-3)',
-  declining: 'var(--color-warn, #f59e0b)',
+  declining: 'var(--color-warn)',
   contracting: 'var(--color-danger)',
   unknown: 'var(--color-ink-4)',
 };
@@ -51,7 +51,7 @@ const CONFIDENCE_LABELS: Record<string, string> = {
 const CONFIDENCE_COLORS: Record<string, string> = {
   high: 'var(--color-success)',
   medium: 'var(--color-brand)',
-  low: 'var(--color-warn, #f59e0b)',
+  low: 'var(--color-warn)',
   insufficient: 'var(--color-danger)',
 };
 
@@ -254,7 +254,7 @@ function RiskSignalCard({
         padding: '12px 14px',
         background: 'var(--color-surface-2)',
         borderRadius: '10px',
-        borderLeft: '3px solid var(--color-warn, #f59e0b)',
+        borderLeft: '3px solid var(--color-warn)',
         marginBottom: '8px',
       }}
     >
@@ -271,7 +271,7 @@ function RiskSignalCard({
             background: signal.severity
               ? 'var(--color-warn-soft, #fef3c7)'
               : 'var(--color-surface-3)',
-            color: signal.severity ? 'var(--color-warn, #f59e0b)' : 'var(--color-ink-4)',
+            color: signal.severity ? 'var(--color-warn)' : 'var(--color-ink-4)',
             flexShrink: 0,
           }}
         >
@@ -590,13 +590,13 @@ export default function IndustryTrendPage() {
                 <div
                   style={{
                     ...cardStyle,
-                    borderColor: 'var(--color-warn, #f59e0b)',
+                    borderColor: 'var(--color-warn)',
                     display: 'flex',
                     gap: '12px',
                     alignItems: 'flex-start',
                   }}
                 >
-                  <Info size={18} color="var(--color-warn, #f59e0b)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <Info size={18} color="var(--color-warn)" style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
                     <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '6px' }}>
                       无实时数据——以下为分析框架，非结论性判断
@@ -758,7 +758,7 @@ export default function IndustryTrendPage() {
                       marginBottom: '12px',
                     }}
                   >
-                    <AlertTriangle size={15} color="var(--color-warn, #f59e0b)" />
+                    <AlertTriangle size={15} color="var(--color-warn)" />
                     <span style={labelStyle}>风险信号（{result.risk_signals.length} 条）</span>
                   </div>
                   {result.risk_signals.map((s, i) => (

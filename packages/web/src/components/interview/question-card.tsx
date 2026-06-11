@@ -20,12 +20,6 @@ function numBg(tone: 'good' | 'warn' | 'bad'): string {
   return 'var(--color-ink)';
 }
 
-function tsBg(tone: 'good' | 'warn' | 'bad'): { bg: string; color: string } {
-  if (tone === 'warn') return { bg: 'rgba(255,149,0,.12)', color: '#a86200' };
-  if (tone === 'bad') return { bg: 'rgba(255,59,48,.1)', color: '#bf2418' };
-  return { bg: 'var(--color-surface-2)', color: 'var(--color-ink-3)' };
-}
-
 function aiCellStyle(tone: 'good' | 'warn' | 'bad'): { bg: string; color: string; lblColor: string } {
   if (tone === 'warn') return { bg: 'var(--color-warn-soft)', color: '#5c3700', lblColor: '#a86200' };
   if (tone === 'bad') return { bg: 'var(--color-danger-soft)', color: '#831a13', lblColor: '#bf2418' };
@@ -47,9 +41,9 @@ function statusColor(tone: 'good' | 'warn' | 'bad'): string {
 export function QuestionCard({ question: q, index }: QuestionCardProps) {
   const { bg, border } = toneBg(q.tone);
   const numColor = numBg(q.tone);
-  const ts = tsBg(q.tone);
   const ai = aiCellStyle(q.tone);
   const num = String(index + 1).padStart(2, '0');
+  const gaps = q.knowledge_gaps ?? [];
 
   return (
     <div
@@ -89,144 +83,54 @@ export function QuestionCard({ question: q, index }: QuestionCardProps) {
           {num}
         </div>
 
-        {/* Head body */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px', alignItems: 'center' }}>
-            <span
-              style={{
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 600,
-                background: 'var(--color-surface-3)',
-                color: 'var(--color-ink-2)',
-              }}
-            >
-              {q.type}
-            </span>
-            <span
-              style={{
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 600,
-                background: 'var(--color-surface-3)',
-                color: 'var(--color-ink-2)',
-              }}
-            >
-              {q.topic}
-            </span>
-            <span
-              style={{
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontWeight: 600,
-                background: 'var(--color-surface-3)',
-                color: 'var(--color-ink-2)',
-              }}
-            >
-              难度 {q.diff}
-            </span>
-          </div>
-          {/* Question text */}
-          <div
-            style={{
-              fontSize: '15px',
-              fontWeight: 600,
-              color: 'var(--color-ink)',
-              lineHeight: 1.4,
-              letterSpacing: '-0.005em',
-            }}
-          >
-            {q.q}
-          </div>
-        </div>
-
-        {/* Timestamp */}
-        <span
+        {/* Question text */}
+        <div
           style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
+            flex: 1,
+            minWidth: 0,
+            fontSize: '15px',
             fontWeight: 600,
-            color: ts.color,
-            background: ts.bg,
-            padding: '5px 9px',
-            borderRadius: '7px',
-            flexShrink: 0,
-            whiteSpace: 'nowrap',
+            color: 'var(--color-ink)',
+            lineHeight: 1.4,
+            letterSpacing: '-0.005em',
           }}
         >
-          ⏱ {q.time}
-        </span>
+          {q.question}
+        </div>
       </div>
 
-      {/* Pair: you vs AI */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        {/* Your answer */}
+      {/* Coach assessment */}
+      <div
+        style={{
+          padding: '12px 14px',
+          borderRadius: '12px',
+          background: ai.bg,
+          fontSize: '13px',
+          lineHeight: 1.55,
+          fontWeight: 500,
+          color: ai.color,
+        }}
+      >
         <div
           style={{
-            padding: '12px 14px',
-            borderRadius: '12px',
-            background: 'var(--color-surface-2)',
-            fontSize: '13px',
-            lineHeight: 1.55,
-            fontWeight: 500,
-            color: 'var(--color-ink-2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '10.5px',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            marginBottom: '6px',
+            color: ai.lblColor,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '10.5px',
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              marginBottom: '6px',
-              color: 'var(--color-ink-3)',
-            }}
-          >
-            你 · 转写
-          </div>
-          {q.you}
+          Coach 评估
         </div>
-
-        {/* AI eval */}
-        <div
-          style={{
-            padding: '12px 14px',
-            borderRadius: '12px',
-            background: ai.bg,
-            fontSize: '13px',
-            lineHeight: 1.55,
-            fontWeight: 500,
-            color: ai.color,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '10.5px',
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              marginBottom: '6px',
-              color: ai.lblColor,
-            }}
-          >
-            Coach 评估
-          </div>
-          {q.ai}
-        </div>
+        {q.coach_assessment}
       </div>
 
       {/* Better answer */}
-      {q.better && (
+      {q.better_answer && (
         <div
           style={{
             display: 'flex',
@@ -245,17 +149,17 @@ export function QuestionCard({ question: q, index }: QuestionCardProps) {
           <Sparkles size={14} color="#1e7a3a" style={{ flexShrink: 0, marginTop: '2px' }} />
           <span>
             <strong style={{ color: '#0e4a18', fontWeight: 700 }}>更好的答法 —— </strong>
-            {q.better}
+            {q.better_answer}
           </span>
         </div>
       )}
 
-      {/* Gap link */}
-      {q.gap && (
+      {/* Knowledge gaps */}
+      {gaps.length > 0 && (
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             gap: '8px',
             marginTop: '8px',
             fontSize: '12px',
@@ -263,20 +167,16 @@ export function QuestionCard({ question: q, index }: QuestionCardProps) {
             fontWeight: 500,
           }}
         >
-          <HelpCircle size={13} />
-          <span>识别到知识盲点 ·</span>
-          <a
-            href={q.gap.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: 'var(--color-brand)',
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
-          >
-            {q.gap.topic} →
-          </a>
+          <HelpCircle size={13} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <span>
+            识别到知识盲点 ·{' '}
+            {gaps.map((gap, i) => (
+              <span key={gap}>
+                {i > 0 && '、'}
+                <span style={{ color: 'var(--color-ink-2)', fontWeight: 600 }}>{gap}</span>
+              </span>
+            ))}
+          </span>
         </div>
       )}
 

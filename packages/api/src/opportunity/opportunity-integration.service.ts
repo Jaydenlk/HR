@@ -32,6 +32,11 @@ export class OpportunityIntegrationService {
     if (!opportunity) {
       throw new NotFoundException('机会不存在');
     }
+    // 幂等守卫:已关联投递记录的机会绝不重复创建第二条 Application。仅靠 status==='tracked'
+    // 在「track 后被重评回退状态」时会漏防,故以 application_id 是否存在为权威依据,拒绝重复追踪。
+    if (opportunity.application_id) {
+      throw new BadRequestException('该机会已加入投递看板，无需重复追踪');
+    }
     if (opportunity.status !== 'evaluated') {
       throw new BadRequestException('只有已评估的机会才能投递追踪，当前状态：' + opportunity.status);
     }

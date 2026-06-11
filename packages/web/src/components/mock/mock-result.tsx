@@ -221,9 +221,9 @@ export function MockResult({ session }: MockResultProps) {
               const scoreColor =
                 score == null
                   ? 'var(--color-ink-4)'
-                  : score >= 7
+                  : score >= 60
                     ? 'var(--color-success)'
-                    : score >= 4
+                    : score >= 40
                       ? 'var(--color-warn)'
                       : 'var(--color-danger)';
 
@@ -288,7 +288,7 @@ export function MockResult({ session }: MockResultProps) {
                           width: '44px',
                           height: '44px',
                           borderRadius: '12px',
-                          background: score >= 7 ? 'var(--color-success-soft, #f0fdf4)' : score >= 4 ? 'var(--color-warn-soft, #fffbeb)' : 'var(--color-danger-soft)',
+                          background: score >= 60 ? 'var(--color-success-soft, #f0fdf4)' : score >= 40 ? 'var(--color-warn-soft, #fffbeb)' : 'var(--color-danger-soft)',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -300,7 +300,7 @@ export function MockResult({ session }: MockResultProps) {
                           {score}
                         </span>
                         <span style={{ fontSize: '9px', fontWeight: 600, color: scoreColor, opacity: 0.7 }}>
-                          /10
+                          /100
                         </span>
                       </div>
                     )}

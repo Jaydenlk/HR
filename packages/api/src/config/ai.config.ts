@@ -27,6 +27,9 @@ export interface AiConfig {
   concurrency: AiConcurrencyConfig;
 }
 
+// 槽位 env 名:AI_PRIMARY_API_KEY/AI_PRIMARY_MODEL/AI_PRIMARY_BASE_URL(主),
+//             AI_FALLBACK_API_KEY/AI_FALLBACK_MODEL/AI_FALLBACK_BASE_URL(备);
+//             读取时 ?? 旧名 CLOUDDREAM_*/DEEPSEEK_* 兜底(测试文件仍设旧名)。
 // 默认值:
 //   primary.model        = 'auto-v2'   ← CloudDreamAI 唯一能接到 GLM-5 的路由别名,不要改
 //   primary.baseURL      = 'https://api.tutorial.clouddreamai.com'
@@ -63,17 +66,25 @@ export function parseMaxRetries(raw: string | undefined, fallback: number): numb
 }
 
 export const aiConfig = registerAs('ai', (): AiConfig => ({
+  // 新名 AI_PRIMARY_*/AI_FALLBACK_* 优先;?? 旧名 CLOUDDREAM_*/DEEPSEEK_* 兜底,
+  // 避免触碰 19 个 module 测试文件(它们设 process.env.CLOUDDREAM_API_KEY='test-key')。
   primary: {
-    apiKey: process.env.CLOUDDREAM_API_KEY ?? '',
-    model: process.env.CLOUDDREAM_MODEL ?? 'auto-v2',
-    baseURL: process.env.CLOUDDREAM_BASE_URL ?? 'https://api.tutorial.clouddreamai.com',
+    apiKey: process.env.AI_PRIMARY_API_KEY ?? process.env.CLOUDDREAM_API_KEY ?? '',
+    model: process.env.AI_PRIMARY_MODEL ?? process.env.CLOUDDREAM_MODEL ?? 'auto-v2',
+    baseURL:
+      process.env.AI_PRIMARY_BASE_URL ??
+      process.env.CLOUDDREAM_BASE_URL ??
+      'https://api.tutorial.clouddreamai.com',
     timeoutMs: parseTimeoutMs(process.env.AI_PRIMARY_TIMEOUT_MS, 60000),
     maxRetries: parseMaxRetries(process.env.AI_PRIMARY_MAX_RETRIES, 0),
   },
   fallback: {
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    model: process.env.DEEPSEEK_MODEL ?? 'deepseek-chat',
-    baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/anthropic',
+    apiKey: process.env.AI_FALLBACK_API_KEY ?? process.env.DEEPSEEK_API_KEY,
+    model: process.env.AI_FALLBACK_MODEL ?? process.env.DEEPSEEK_MODEL ?? 'deepseek-chat',
+    baseURL:
+      process.env.AI_FALLBACK_BASE_URL ??
+      process.env.DEEPSEEK_BASE_URL ??
+      'https://api.deepseek.com/anthropic',
     timeoutMs: parseTimeoutMs(process.env.AI_FALLBACK_TIMEOUT_MS, 120000),
     maxRetries: parseMaxRetries(process.env.AI_FALLBACK_MAX_RETRIES, 3),
   },

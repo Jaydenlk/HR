@@ -25,6 +25,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { getScoreColor } from '@/lib/score-utils';
+import { SuggestionCard } from '@/components/diagnosis/suggestion-card';
 
 function LoadingState() {
   return (
@@ -244,60 +245,6 @@ function ConventionCheckRow({ check }: { check: ConventionCheck }) {
   );
 }
 
-// 改写建议卡片(jd_match 与 profession_standard 共用)
-function SuggestionCard({
-  suggestion,
-}: {
-  suggestion: NonNullable<Diagnosis['suggestions']>[number];
-}) {
-  const s = suggestion;
-  const isGap = s.type === 'gap_advice'; // 建议补充类:非现成简历句,警示样式且不可直接粘贴
-  return (
-    <div
-      style={{
-        padding: '16px',
-        background: isGap ? 'var(--color-warn-soft)' : 'var(--color-surface-2)',
-        borderRadius: '10px',
-        border: isGap ? '1px solid var(--color-warn)' : '1px solid var(--color-line)',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-        <span
-          style={{
-            padding: '2px 8px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 600,
-            background:
-              s.priority === 'high'
-                ? 'var(--color-danger)'
-                : s.priority === 'medium'
-                  ? 'var(--color-warn)'
-                  : 'var(--color-ink-4)',
-            color: '#fff',
-          }}
-        >
-          {s.priority === 'high' ? '高优先' : s.priority === 'medium' ? '中优先' : '低优先'}
-        </span>
-        <span style={{ fontSize: '12.5px', color: 'var(--color-ink-3)', fontWeight: 500 }}>{s.section}</span>
-      </div>
-      {s.original && (
-        <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '6px' }}>
-          <span style={{ fontWeight: 600 }}>原文：</span>
-          {s.original}
-        </div>
-      )}
-      <div style={{ fontSize: '13px', color: 'var(--color-ink)', marginBottom: '6px' }}>
-        <span style={{ fontWeight: 600, color: isGap ? 'var(--color-warn)' : 'var(--color-brand)' }}>
-          {isGap ? '⚠️ 建议补充（勿直接粘贴，需真实具备后再写入）：' : '建议：'}
-        </span>
-        {s.suggested}
-      </div>
-      {s.reason && <div style={{ fontSize: '12px', color: 'var(--color-ink-4)' }}>{s.reason}</div>}
-    </div>
-  );
-}
-
 // 职业标尺模式结果页主体
 function ProfessionStandardView({
   diagnosis,
@@ -486,7 +433,7 @@ function ProfessionStandardView({
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {(diagnosis.suggestions ?? []).map((s, i) => (
-              <SuggestionCard key={i} suggestion={s} />
+              <SuggestionCard key={i} suggestion={s} resumeId={diagnosis.resume_id} index={i} />
             ))}
           </div>
         </div>
@@ -597,10 +544,15 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
     if (!diagnosis) return;
     setChatLoading(true);
     try {
+      // 标题取职业(校招标尺模式)或 JD 职位,均缺则回退「简历诊断」。
+      const subject =
+        diagnosis.mode === 'profession_standard'
+          ? diagnosis.profession
+          : diagnosis.jd_role;
       const conversation = await api.post<Conversation>('/conversations', {
         context_type: 'diagnosis',
         context_id: id,
-        title: '诊断: ' + (diagnosis.jd_role || '简历诊断'),
+        title: '诊断: ' + (subject || '简历诊断'),
       });
       window.location.href = '/chat/' + conversation.id;
     } catch {
@@ -906,49 +858,7 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {(diagnosis.suggestions ?? []).map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: '16px',
-                  background: 'var(--color-surface-2)',
-                  borderRadius: '10px',
-                  border: '1px solid var(--color-line)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span
-                    style={{
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      background:
-                        s.priority === 'high'
-                          ? 'var(--color-danger)'
-                          : s.priority === 'medium'
-                            ? 'var(--color-warn)'
-                            : 'var(--color-ink-4)',
-                      color: '#fff',
-                    }}
-                  >
-                    {s.priority === 'high' ? '高优先' : s.priority === 'medium' ? '中优先' : '低优先'}
-                  </span>
-                  <span style={{ fontSize: '12.5px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
-                    {s.section}
-                  </span>
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '6px' }}>
-                  <span style={{ fontWeight: 600 }}>原文：</span>
-                  {s.original}
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--color-ink)', marginBottom: '6px' }}>
-                  <span style={{ fontWeight: 600, color: 'var(--color-brand)' }}>建议：</span>
-                  {s.suggested}
-                </div>
-                {s.reason && (
-                  <div style={{ fontSize: '12px', color: 'var(--color-ink-4)' }}>{s.reason}</div>
-                )}
-              </div>
+              <SuggestionCard key={i} suggestion={s} resumeId={diagnosis.resume_id} index={i} />
             ))}
           </div>
         </div>

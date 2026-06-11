@@ -2,17 +2,45 @@ import { IsIn, IsNotEmpty, IsNumberString, IsOptional, IsString, validateSync } 
 import { plainToInstance } from 'class-transformer';
 
 export class EnvironmentVariables {
-  // ── AI 大模型(必填) ──────────────────────────────────────────────
+  // ── AI 大模型主通道密钥 ────────────────────────────────────────────
+  // 槽位新名 AI_PRIMARY_API_KEY 与旧名 CLOUDDREAM_API_KEY 二者命中其一即通过
+  // (跨字段必填在 validate() 内手动校验,class-validator 单字段无法表达"二选一必填")。
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  CLOUDDREAM_API_KEY!: string;
+  AI_PRIMARY_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  CLOUDDREAM_API_KEY?: string;
 
   // ── Auth(必填) ───────────────────────────────────────────────────
   @IsString()
   @IsNotEmpty()
   JWT_SECRET!: string;
 
-  // ── AI 大模型(可选,字符串) ──────────────────────────────────────
+  // ── AI 大模型(可选,字符串):新名 AI_PRIMARY_*/AI_FALLBACK_* + 旧名兜底 ──
+  @IsOptional()
+  @IsString()
+  AI_PRIMARY_MODEL?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_PRIMARY_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_FALLBACK_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_FALLBACK_MODEL?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_FALLBACK_BASE_URL?: string;
+
   @IsOptional()
   @IsString()
   CLOUDDREAM_MODEL?: string;
@@ -119,13 +147,30 @@ export class EnvironmentVariables {
   DEV_LOGIN?: string;
 }
 
+// 测试密封名单:这些运营开关只应来自显式 process.env,绝不从 .env 文件泄入测试。
+// jest-setup-env.ts(setupFiles)置 __SEAL_OPS_ENV__='1' 时,validate 对名单内、
+// 且当前不在 process.env 的键直接剔除——使 .env 中的 DEV_LOGIN=1/ADMIN_EMAILS 不污染
+// auth/admin 套件(它们各自用 process.env 显式自管这两个键)。生产/正常运行不置该旗标,行为不变。
+const SEALED_OPS_ENV_KEYS = ['DEV_LOGIN', 'ADMIN_EMAILS'] as const;
+
 export function validate(config: Record<string, unknown>): Record<string, unknown> {
+  if (process.env.__SEAL_OPS_ENV__ === '1') {
+    for (const key of SEALED_OPS_ENV_KEYS) {
+      if (!(key in process.env)) delete config[key];
+    }
+  }
   const validated = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: false,
   });
   const errors = validateSync(validated, { skipMissingProperties: false });
   if (errors.length > 0) {
     throw new Error(`Environment validation failed:\n${errors.map((e) => e.toString()).join('\n')}`);
+  }
+  // 主通道密钥跨字段必填:新名 AI_PRIMARY_API_KEY 或旧名 CLOUDDREAM_API_KEY 至少有一个非空。
+  if (!validated.AI_PRIMARY_API_KEY && !validated.CLOUDDREAM_API_KEY) {
+    throw new Error(
+      'Environment validation failed:\n必须配置主通道密钥(AI_PRIMARY_API_KEY,或旧名 CLOUDDREAM_API_KEY)',
+    );
   }
   // 返回完整 config 而非仅声明字段的实例:@nestjs/config 用本函数返回值作为 ConfigService 的配置源。
   // 若只返回 validated 实例,DB_PATH/DB_TYPE/DB_HOST/DB_PORT/NODE_ENV 等未声明变量会被剥离 →

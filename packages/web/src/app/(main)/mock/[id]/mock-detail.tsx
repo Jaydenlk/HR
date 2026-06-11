@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import type { MockSession, MockAnswer } from '@/lib/types';
+import type { MockSession } from '@/lib/types';
 import { MockStage } from '@/components/mock/mock-stage';
 import { MockResult } from '@/components/mock/mock-result';
 import { ArrowLeft, Building2 } from 'lucide-react';
@@ -38,6 +38,7 @@ export function MockDetail({ params }: MockDetailProps) {
   const [session, setSession] = useState<MockSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [completing, setCompleting] = useState(false);
 
@@ -49,7 +50,13 @@ export function MockDetail({ params }: MockDetailProps) {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : '加载失败');
+        const message = err instanceof Error ? err.message : '加载失败';
+        // 404 = 会话不存在或无权访问,属确定性结果,走中文兜底而非异常态。
+        if (/(^|\D)404(\D|$)/.test(message)) {
+          setNotFound(true);
+        } else {
+          setError(message);
+        }
         setLoading(false);
       });
   }, [id]);
@@ -58,15 +65,10 @@ export function MockDetail({ params }: MockDetailProps) {
     if (!session) return;
     setSubmitting(true);
     try {
-      const updatedAnswer = await api.post<MockAnswer>(`/mock-sessions/${id}/answer`, { answer });
-      setSession((prev) => {
-        if (!prev) return prev;
-        const existing = prev.answers ?? [];
-        return {
-          ...prev,
-          answers: [...existing, updatedAnswer],
-        };
-      });
+      // 后端 submitAnswer 返回整个 MockSession(含追加后的 answers 数组),
+      // 而非单条 answer。直接用返回的会话覆盖,最新一条点评/得分才不会丢失。
+      const updated = await api.post<MockSession>(`/mock-sessions/${id}/answer`, { answer });
+      setSession(updated);
     } catch (err) {
       alert(err instanceof Error ? err.message : '提交失败，请重试');
     } finally {
@@ -87,7 +89,9 @@ export function MockDetail({ params }: MockDetailProps) {
 
   if (loading) return <LoadingState />;
 
-  if (error || !session) {
+  if (notFound || error || !session) {
+    // notFound:确定性结果(会话不存在/无权访问),中性文案;error:真实异常,展示后端原因。
+    const isNotFound = notFound || !error;
     return (
       <div style={{ maxWidth: '760px', margin: '0 auto', padding: '48px 32px' }}>
         <Link
@@ -110,13 +114,14 @@ export function MockDetail({ params }: MockDetailProps) {
           style={{
             padding: '40px',
             textAlign: 'center',
-            background: 'var(--color-danger-soft)',
+            background: isNotFound ? 'var(--color-surface)' : 'var(--color-danger-soft)',
+            border: isNotFound ? '1px solid var(--color-line)' : 'none',
             borderRadius: '14px',
-            color: 'var(--color-danger)',
+            color: isNotFound ? 'var(--color-ink-3)' : 'var(--color-danger)',
             fontSize: '14px',
           }}
         >
-          {error ?? '面试记录不存在'}
+          {isNotFound ? '模拟面试记录不存在，或你没有访问权限。' : error}
         </div>
       </div>
     );

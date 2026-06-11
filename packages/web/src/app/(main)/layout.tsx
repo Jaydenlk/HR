@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { Toaster } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
 import type { User, Conversation, Interview, Application } from '@/lib/types';
 import {
@@ -29,6 +30,7 @@ import {
   ChevronDown,
   ChevronRight,
   Shield,
+  LogOut,
 } from 'lucide-react';
 
 interface NavItem {
@@ -115,6 +117,12 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [applicationCount, setApplicationCount] = useState(0);
   const [showMore, setShowMore] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  function handleLogout() {
+    if (typeof window !== 'undefined') localStorage.removeItem('token');
+    router.replace('/login');
+  }
 
   useEffect(() => {
     const checkMobile = () => {
@@ -378,8 +386,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               {item.dot && (
                 <span
                   style={{
-                    width: '7px',
-                    height: '7px',
+                    width: '8px',
+                    height: '8px',
                     borderRadius: '50%',
                     background: 'var(--color-brand)',
                     flexShrink: 0,
@@ -682,6 +690,38 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           >
             Coach v 4
           </span>
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="退出登录"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--color-ink-3)',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              letterSpacing: '-0.003em',
+              transition: 'background 0.12s, color 0.12s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-danger-soft)';
+              e.currentTarget.style.color = 'var(--color-danger)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--color-ink-3)';
+            }}
+          >
+            <LogOut size={14} />
+            退出登录
+          </button>
         </div>
       </aside>
 
@@ -696,6 +736,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       >
         {children}
       </main>
+
+      {/* 全站 toast 出口:写操作成功 toast.success / 失败 toast.error。 */}
+      <Toaster position="top-center" richColors closeButton />
     </div>
   );
 }

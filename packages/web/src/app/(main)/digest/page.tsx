@@ -174,21 +174,28 @@ export default function DigestPage() {
   }
 
   useEffect(() => {
-    let cancelled = false;
-    api.get<FeedItem[]>(feedPath)
-      .then((feedItems) => {
-        if (!cancelled) {
-          setItems(feedItems);
-          setPageError(null);
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) setPageError(getErrorMessage(error));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
+    // 用 AbortController 真正中止旧请求(api.get 已支持 signal),切换 feedPath 时取消上一笔。
+    const controller = new AbortController();
+    let active = true;
+    async function run() {
+      setLoading(true);
+      try {
+        const feedItems = await api.get<FeedItem[]>(feedPath, { signal: controller.signal });
+        if (!active) return;
+        setItems(feedItems);
+        setPageError(null);
+      } catch (error) {
+        if (!active || controller.signal.aborted) return;
+        setPageError(getErrorMessage(error));
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void run();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [feedPath]);
 
   useEffect(() => {

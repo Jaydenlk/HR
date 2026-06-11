@@ -72,16 +72,16 @@ function coerceConfidence(
 
 const MESSAGE_SCHEMA: Record<string, unknown> = {
   type: 'object',
-  // #90: message_draft 不列 required —— 运行时 confidence=insufficient 时为 null，
-  // 列入 required 会与 AiService 的「required 字段必须存在+类型匹配」校验冲突，抬高 503 率。
-  // service guard 中以 (raw.message_draft ?? null) 兜底，schema 仅声明类型可空。
-  required: ['confidence', 'summary', 'tone', 'key_points',
-    'what_not_to_say', 'recommendations', 'risks', 'follow_up_timing',
-    'cannot_determine'],
+  // 最小 required：只保留核心语义字段（confidence/summary），其余均有 service 层 ?? 兜底。
+  // 数组字段（key_points/what_not_to_say/recommendations/risks/cannot_determine）移出 required
+  // —— 运行时已有 ?? [] 兜底（213-218 行），强制 required 只会拉高 DeepSeek/备用模型 503 率。
+  // follow_up_timing：改为可空 object，不再内嵌 required，由 Guard3 决定是否清空（message_draft 为
+  // null 时置 null），兼容模型返回 null/缺字段两种情形，防 schema 校验失败触发 503。
+  required: ['confidence', 'summary'],
   properties: {
     confidence: { type: 'string', enum: ['high', 'medium', 'low', 'insufficient'] },
     summary: { type: 'string' },
-    // #90: 允许空串/可空，与运行时 null 兼容（insufficient 时由 guard 置 null）
+    // 允许空串/可空，与运行时 null 兼容（insufficient 时由 guard 置 null）
     message_draft: { type: ['string', 'null'] },
     tone: { type: 'string', enum: ['formal', 'semi_formal', 'casual'] },
     key_points: { type: 'array', items: { type: 'string' } },
@@ -89,8 +89,8 @@ const MESSAGE_SCHEMA: Record<string, unknown> = {
     recommendations: { type: 'array', items: { type: 'string' } },
     risks: { type: 'array', items: { type: 'string' } },
     follow_up_timing: {
-      type: 'object',
-      required: ['best_send_time', 'follow_up_after_days'],
+      // 可空 object，不强制内嵌 required，兼容模型省略子字段或整体返回 null
+      type: ['object', 'null'],
       properties: {
         best_send_time: { type: 'string' },
         follow_up_after_days: { type: 'integer', minimum: 1 },
@@ -221,15 +221,18 @@ export class NetworkingService {
     raw.confidence = coerceConfidence(raw.confidence);
 
     // ── Guard 1（空草稿自相矛盾收口）: 无可用 draft 不得伴随 high/medium/low ──────────
-    // 草稿为 null（真实模型常直接返回 null）或空/纯空白字符串,都视为无可信产物 → 收口为 insufficient。
-    // (旧实现用 `!= null` 漏掉了 null draft + 非 insufficient 置信的自相矛盾组合,经真跑 AI 暴露)
+    // 草稿为 null（真实模型常直接返回 null）或空/纯空白字符串,都视为无可信产物。
+    // 区分两类失败语义：
+    //   - confidence 已为 insufficient（真正信息不足）→ 保留 insufficient 语义，不改 cannot_determine
+    //   - confidence 为 high/medium/low 但草稿为空（AI 生成失败）→ 用「AI 生成失败，请重试」
+    //     语义标注，而非「信息不足/需补充」，避免误将 AI 侧故障归咎于用户信息缺失
     if (raw.message_draft == null || !raw.message_draft.trim()) {
       raw.message_draft = null;
       if (raw.confidence !== 'insufficient') {
         raw.confidence = 'insufficient';
         raw.cannot_determine = [
           ...raw.cannot_determine,
-          '未能生成有效的消息草稿（草稿为空），无法给出可信结果',
+          'AI 临时未能生成消息草稿，请稍后重试',
         ];
       }
     }

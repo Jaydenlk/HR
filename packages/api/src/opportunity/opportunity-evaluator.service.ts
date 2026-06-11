@@ -8,12 +8,28 @@ import type { ParsedJd } from './opportunity-parser.service';
 import type { RiskAssessment } from './opportunity-risk.service';
 import type { Recommendation, ConfidenceLevel, ActionType } from './types/opportunity.types';
 
+// AI 原始返回:title 必有,action_type/reason 可能缺失(已从 schema required 移除)。
+interface RawNextAction {
+  action_type?: unknown;
+  title?: unknown;
+  reason?: unknown;
+}
+
+// AI 原始评估返回:所有字段都可能缺失/类型漂移,service 端逐字段收口成 EvaluationResult。
+interface RawEvaluation {
+  match_score?: number;
+  value_score?: number;
+  strengths?: unknown[];
+  gaps?: unknown[];
+  next_actions?: RawNextAction[];
+}
+
 interface EvaluationResult {
   match_score: number;
   value_score: number;
   strengths: string[];
   gaps: string[];
-  next_actions: { action_type: string; title: string; reason: string }[];
+  next_actions: { action_type: ActionType; title: string; reason: string }[];
 }
 
 const EVAL_SYSTEM_BASE = `你是一个职位评估专家。根据解析后的 JD 信息、风险评估结果以及用户背景数据，对该职位进行综合评估。
@@ -21,12 +37,18 @@ const EVAL_SYSTEM_BASE = `你是一个职位评估专家。根据解析后的 JD
 评估维度：
 - match_score (0-100): 职位与用户的匹配度评分。综合考虑用户技能经验与 JD 要求的匹配程度、成长潜力
 - value_score (0-100): 价值评分。考虑薪资竞争力、发展前景、公司实力
-- strengths[]: 该职位的优势（3-5条，中文）
-- gaps[]: 需要注意的不足或风险（2-4条，中文）
-- next_actions[]: 建议的后续行动，每项包含 action_type、title、reason
+- strengths[]: 该职位的优势（3-5 条中文短句，纯字符串数组）
+- gaps[]: 需要注意的不足或风险（2-4 条中文短句，纯字符串数组）
+- next_actions[]: 建议的后续行动，每项是一个对象，至少给出 title（中文行动标题），并尽量补充 reason（中文理由）和 action_type
 
-action_type 可选值：optimize_resume, write_cover_letter, prepare_interview, research_company, apply, dismiss`;
+action_type 从这几个里选一个最贴切的：optimize_resume(优化简历)、write_cover_letter(写求职信)、prepare_interview(面试准备)、research_company(研究公司)、apply(直接投递)、dismiss(放弃)。拿不准时填 research_company。`;
 
+// 友好化范式(对齐 parse_jd):内嵌对象只把 title 列为 required——降级后的 DeepSeek 偶发漏掉
+// reason/action_type,若一并列入 required 会被 AiService 运行期校验整次拒收→主备重试耗尽→503。
+// action_type 枚举同样不写进 schema:模型偶发吐中文/越界枚举,schema 内 enum 会触发整次拒收;
+// 改放 service 端 coerce(非法值降级为 research_company),成本更低且不抬 503。
+// 外层 required 只保留两个标量分数;strengths/gaps/next_actions 在 service 端已有 Array.isArray 兜底,
+// 不强制 required 可避免模型偶发省略数组字段导致整次评估失败。
 const EVAL_SCHEMA = {
   type: 'object' as const,
   properties: {
@@ -39,19 +61,29 @@ const EVAL_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          action_type: {
-            type: 'string',
-            enum: ['optimize_resume', 'write_cover_letter', 'prepare_interview', 'research_company', 'apply', 'dismiss'],
-          },
+          action_type: { type: 'string' },
           title: { type: 'string' },
           reason: { type: 'string' },
         },
-        required: ['action_type', 'title', 'reason'],
+        required: ['title'],
       },
     },
   },
-  required: ['match_score', 'value_score', 'strengths', 'gaps', 'next_actions'],
+  required: ['match_score', 'value_score'],
 };
+
+const VALID_ACTION_TYPES = new Set<ActionType>([
+  'optimize_resume', 'write_cover_letter', 'prepare_interview', 'research_company', 'apply', 'dismiss',
+]);
+
+// action_type 枚举漂移收口:模型可能吐空/中文/越界值,统一 coerce 成合法 ActionType,
+// 拿不准时降级为 research_company(对应 entity action_type 列与前端 ACTION_TYPE_LABELS 都安全)。
+function coerceActionType(raw: unknown): ActionType {
+  if (typeof raw === 'string' && VALID_ACTION_TYPES.has(raw.trim() as ActionType)) {
+    return raw.trim() as ActionType;
+  }
+  return 'research_company';
+}
 
 @Injectable()
 export class OpportunityEvaluatorService {
@@ -67,6 +99,9 @@ export class OpportunityEvaluatorService {
 
   async evaluate(opportunityId: string, userId: string): Promise<void> {
     const opportunity = await this.opportunityService.findOne(opportunityId, userId);
+    // 记录原状态:已加入投递看板(tracked)的机会重新评估后应保留 tracked,
+    // 不能被无条件回退成 evaluated 而从看板"丢失"。详见 Step 11。
+    const originalStatus = opportunity.status;
     await this.opportunityService.setStatus(opportunityId, userId, 'evaluating');
 
     try {
@@ -102,12 +137,25 @@ export class OpportunityEvaluatorService {
 
       // Step 5: AI evaluation for match/value scores
       const rawEval = await this.evaluateWithAi(parsedJd, riskAssessment, evalCtx.promptContext);
+      // 服务端收口:strengths/gaps 只取字符串元素;next_actions 缺 title 的丢弃,
+      // action_type 走 coerce(漂移→research_company),reason 缺失补空串。
+      const rawActions: RawNextAction[] = Array.isArray(rawEval.next_actions) ? rawEval.next_actions : [];
       const evalResult: EvaluationResult = {
         match_score: rawEval.match_score ?? 0,
         value_score: rawEval.value_score ?? 0,
-        strengths: Array.isArray(rawEval.strengths) ? rawEval.strengths : [],
-        gaps: Array.isArray(rawEval.gaps) ? rawEval.gaps : [],
-        next_actions: Array.isArray(rawEval.next_actions) ? rawEval.next_actions : [],
+        strengths: Array.isArray(rawEval.strengths)
+          ? rawEval.strengths.filter((s): s is string => typeof s === 'string')
+          : [],
+        gaps: Array.isArray(rawEval.gaps)
+          ? rawEval.gaps.filter((g): g is string => typeof g === 'string')
+          : [],
+        next_actions: rawActions
+          .filter((a) => typeof a.title === 'string' && a.title.trim().length > 0)
+          .map((a) => ({
+            action_type: coerceActionType(a.action_type),
+            title: (a.title as string).trim(),
+            reason: typeof a.reason === 'string' ? a.reason.trim() : '',
+          })),
       };
 
       // Step 6: Calculate overall score
@@ -173,7 +221,7 @@ export class OpportunityEvaluatorService {
       // Step 10: Save actions
       const actionItems = evalResult.next_actions.map((action) => ({
         opportunity_id: opportunityId,
-        action_type: action.action_type as ActionType,
+        action_type: action.action_type,
         title: action.title,
         reason: action.reason,
         status: 'pending' as const,
@@ -182,8 +230,10 @@ export class OpportunityEvaluatorService {
         await this.opportunityService.saveActions(actionItems);
       }
 
-      // Step 11: Set status to evaluated
-      await this.opportunityService.setStatus(opportunityId, userId, 'evaluated');
+      // Step 11: Finalize status. 已在投递看板的机会(tracked)重评后保留 tracked,
+      // 不丢看板状态;否则(原为 draft/evaluating/failed/evaluated)统一置 evaluated。
+      const finalStatus = originalStatus === 'tracked' ? 'tracked' : 'evaluated';
+      await this.opportunityService.setStatus(opportunityId, userId, finalStatus);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Evaluation failed for opportunity ${opportunityId}: ${message}`);
@@ -248,9 +298,9 @@ export class OpportunityEvaluatorService {
     parsedJd: ParsedJd,
     riskAssessment: RiskAssessment,
     evaluationContext: string,
-  ): Promise<EvaluationResult> {
+  ): Promise<RawEvaluation> {
     const systemPrompt = this.buildSystemPrompt(evaluationContext);
-    return this.ai.completeStructured<EvaluationResult>({
+    return this.ai.completeStructured<RawEvaluation>({
       system: systemPrompt,
       prompt: `请评估以下职位：\n\n解析结果：\n${JSON.stringify(parsedJd, null, 2)}\n\n风险评估：\n${JSON.stringify(riskAssessment, null, 2)}`,
       toolName: 'evaluate_opportunity',
