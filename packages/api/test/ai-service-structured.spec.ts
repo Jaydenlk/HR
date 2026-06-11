@@ -89,7 +89,7 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
     expect(createMock).toHaveBeenCalledTimes(2);
   });
 
-  it('连续两次空 {} → 第三次非空仍救回(最多 3 次尝试)', async () => {
+  it('连续两次空 {} → 第三次非空仍救回(单通道最多 4 次尝试,命中即返回)', async () => {
     createMock
       .mockResolvedValueOnce(emptyToolUse)
       .mockResolvedValueOnce(emptyToolUse)
@@ -102,24 +102,25 @@ describe('AiService.completeStructured 空返回硬化(autoV2 偶发空 tool_use
     expect(createMock).toHaveBeenCalledTimes(3);
   });
 
-  it('三次都空 {} → 抛 ServiceUnavailableException(503,可重试),绝不静默返回空', async () => {
+  it('连续空 {} 耗尽 → 抛 ServiceUnavailableException(503,可重试),绝不静默返回空', async () => {
     createMock.mockResolvedValue(emptyToolUse);
 
     const svc = await buildService('test-key');
     await expect(svc.completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
       ServiceUnavailableException,
     );
-    expect(createMock).toHaveBeenCalledTimes(3);
+    // ATTEMPTS=4:空 tool_use 在单通道内最多重试 4 次(含纠正轮 + 抬温扰动打破 DeepSeek prefill 锁定)。
+    expect(createMock).toHaveBeenCalledTimes(4);
   });
 
-  it('完全无 tool_use 块 → 视为空,三次后抛 503', async () => {
+  it('完全无 tool_use 块 → 视为空,耗尽重试后抛 503', async () => {
     createMock.mockResolvedValue({ content: [{ type: 'text', text: '抱歉无法解析' }] });
 
     const svc = await buildService('test-key');
     await expect(svc.completeStructured(STRUCTURED_PARAMS)).rejects.toThrow(
       ServiceUnavailableException,
     );
-    expect(createMock).toHaveBeenCalledTimes(3);
+    expect(createMock).toHaveBeenCalledTimes(4);
   });
 
   it('首次即非空 → 只调用一次、原样返回(正常路径未退化)', async () => {
@@ -158,13 +159,14 @@ describe('AiService 主备降级(默认 autoV2,失败降级 DeepSeek)', () => {
       .mockResolvedValueOnce(emptyToolUse)
       .mockResolvedValueOnce(emptyToolUse)
       .mockResolvedValueOnce(emptyToolUse)
+      .mockResolvedValueOnce(emptyToolUse)
       .mockResolvedValueOnce(validToolUse({ ok: 'fallback' }));
 
     const svc = await buildService('primary-key', 'fallback-key');
     const result = await svc.completeStructured<{ ok: string }>(STRUCTURED_PARAMS);
 
     expect(result).toEqual({ ok: 'fallback' });
-    expect(createMock).toHaveBeenCalledTimes(4); // 主通道 3 次空 + 备用 1 次非空
+    expect(createMock).toHaveBeenCalledTimes(5); // 主通道 4 次空(ATTEMPTS=4)+ 备用 1 次非空
   });
 
   it('主备都失败 → 抛 ServiceUnavailableException(503)', async () => {
@@ -236,7 +238,7 @@ describe('AiService.completeStructured schema 校验(enum + oneOf/anyOf)', () =>
     await expect(
       svc.completeStructured({ ...STRUCTURED_PARAMS, schema: enumSchema }),
     ).rejects.toThrow(ServiceUnavailableException);
-    expect(createMock).toHaveBeenCalledTimes(3);
+    expect(createMock).toHaveBeenCalledTimes(4);
   });
 
   it('oneOf 含 {type:"null"} 分支 → 该字段为 null 时放行(不误伤"无数据"信号)', async () => {
@@ -309,7 +311,7 @@ describe('AiService.completeStructured schema 校验(enum + oneOf/anyOf)', () =>
     await expect(
       svc.completeStructured({ ...STRUCTURED_PARAMS, schema: oneOfSchema }),
     ).rejects.toThrow(ServiceUnavailableException);
-    expect(createMock).toHaveBeenCalledTimes(3);
+    expect(createMock).toHaveBeenCalledTimes(4);
   });
 });
 

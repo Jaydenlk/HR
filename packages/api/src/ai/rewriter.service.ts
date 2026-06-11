@@ -22,6 +22,27 @@ const FAITHFULNESS_SCHEMA = {
   required: ['indices'],
 };
 
+// AI 原始建议形态:schema 内层 required 已放宽,主通道走 deepseek-chat 时
+// section/type/priority/original 可能缺省,故全部可选,由 normalizeSuggestions 归一为权威 RewriteSuggestion。
+interface RawRewriteSuggestion {
+  section?: string;
+  item_index?: number;
+  type?: RewriteSuggestion['type'];
+  priority?: RewriteSuggestion['priority'];
+  original?: string;
+  suggested?: string;
+  reason?: string;
+  jd_requirement?: string;
+}
+const SUGGESTION_TYPES = new Set<RewriteSuggestion['type']>([
+  'rewrite',
+  'add_keywords',
+  'restructure',
+  'quantify',
+  'gap_advice',
+]);
+const SUGGESTION_PRIORITIES = new Set<RewriteSuggestion['priority']>(['high', 'medium', 'low']);
+
 @Injectable()
 export class RewriterService {
   constructor(private readonly ai: AiService) {}
@@ -42,7 +63,7 @@ export class RewriterService {
       );
     }
 
-    const result = await this.ai.completeStructured<{ suggestions: RewriteSuggestion[] }>({
+    const result = await this.ai.completeStructured<{ suggestions?: RawRewriteSuggestion[] }>({
       system: SYSTEM,
       prompt: buildSuggestRewritesPrompt(resumeText, jdText, matchResult),
       toolName: 'suggest_rewrites',
@@ -50,7 +71,7 @@ export class RewriterService {
       schema: REWRITE_SUGGESTIONS_SCHEMA,
     });
 
-    return result.suggestions;
+    return this.normalizeSuggestions(result.suggestions);
   }
 
   async suggestAgainstPreset(
@@ -61,13 +82,14 @@ export class RewriterService {
     if (resumeText.trim().length < 30) {
       throw new BadRequestException('简历内容过短，无法改写。');
     }
-    const result = await this.ai.completeStructured<{ suggestions: RewriteSuggestion[] }>({
+    const raw = await this.ai.completeStructured<{ suggestions?: RawRewriteSuggestion[] }>({
       system: buildRewriteSystem(preset),
       prompt: buildRewritePrompt(resumeText, analysis),
       toolName: 'suggest_rewrites',
       toolDescription: '基于简历原文与诊断给职业特化改写建议',
       schema: REWRITE_SUGGESTIONS_SCHEMA,
     });
+    const result = { suggestions: this.normalizeSuggestions(raw.suggestions) };
     // 禁编造兜底(两层),不满足者归类 gap_advice 并清空 original,防止被当成可直接粘贴的现成简历句:
     // 1) original 必须是简历原文中真实存在的原句,否则不是"改进已有句子"而是"建议补充";
     // 2) 改进型建议的 suggested 不得引入简历里没有的"具体数字"(占位符 [具体数字] 除外)——
@@ -87,6 +109,27 @@ export class RewriterService {
     // 第三层(女娲式自检):确定性规则只能拦数字;再过一次 AI 复核(带上诊断缺口),把 suggested 注入
     // 简历没有的方法/能力/分析变量(尤其诊断已判定缺失/没真用过的能力)的改进型建议降级为 gap_advice。
     return this.auditFaithfulness(resumeText, analysis, guarded);
+  }
+
+  /**
+   * 把 AI 原始建议归一为权威 RewriteSuggestion(schema 内层 required 已放宽,字段可能缺省):
+   * - 容器非数组 → 空数组;
+   * - type/priority 缺失或越枚举 → type 落 'gap_advice'(最保守:不冒充可直接粘贴的改写句)、priority 落 'medium';
+   * - section 缺 → '简历';original 缺 → '';
+   * - suggested/reason 原样保留(可能空):空建议交由 isWellFormed 下游丢弃,绝不在此编造内容补位。
+   */
+  private normalizeSuggestions(raw: RawRewriteSuggestion[] | undefined): RewriteSuggestion[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.map((s) => ({
+      section: typeof s.section === 'string' && s.section.length > 0 ? s.section : '简历',
+      item_index: s.item_index,
+      type: s.type && SUGGESTION_TYPES.has(s.type) ? s.type : 'gap_advice',
+      priority: s.priority && SUGGESTION_PRIORITIES.has(s.priority) ? s.priority : 'medium',
+      original: typeof s.original === 'string' ? s.original : '',
+      suggested: typeof s.suggested === 'string' ? s.suggested : '',
+      reason: typeof s.reason === 'string' ? s.reason : '',
+      jd_requirement: s.jd_requirement,
+    }));
   }
 
   /** 结构完整性:suggested、reason 均为非空字符串,且 suggested 未混入 reason=/original=/suggested= 模板脚手架。 */

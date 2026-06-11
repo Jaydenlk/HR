@@ -1,3 +1,68 @@
+// ─── Feed Quality Filters ───────────────────────────────────────────────────
+
+/** 是否含有 CJK 字符（中/日/韩），用于过滤纯英文占位标题 */
+export function hasCjkCharacter(text: string): boolean {
+  // Unicode ranges: CJK Unified Ideographs + Extensions + Radicals + Katakana + Hiragana + Hangul
+  return /[一-鿿㐀-䶿豈-﫿぀-ヿ가-힯]/.test(text);
+}
+
+/** 字符串 'null'/'undefined'/'' 属于无效公司名（非法占位），需过滤 */
+export function isStringNullCompany(company: string | null | undefined): boolean {
+  if (company === null || company === undefined) return false;
+  const t = company.trim().toLowerCase();
+  return t === 'null' || t === 'undefined' || t === '';
+}
+
+/**
+ * 占位域名黑名单：指向这些域的 source_url 被视为"无原文链接"。
+ * 理由：内容本身可能有价值（中文标题+正文），丢弃整条损失太大；
+ * 将 source_url 视为空而非丢弃整条，让内容仍可展示但不渲染死链。
+ */
+const PLACEHOLDER_DOMAINS = ['example.com', 'example.org', 'example.net', 'test.com', 'localhost'];
+
+export function isPlaceholderUrl(url: string | null | undefined): boolean {
+  if (!url || url.trim() === '') return true;
+  if (!/^https?:\/\//i.test(url)) return true;
+  const lower = url.toLowerCase();
+  return PLACEHOLDER_DOMAINS.some((d) => lower.includes(d));
+}
+
+/** ugc/coach 来源为用户自己写入，不限制标题语言 */
+const UGC_SOURCE_KINDS = new Set(['ugc', 'coach']);
+
+export interface FeedItemQualityInput {
+  title: string;
+  company: string | null;
+  source_url: string | null;
+  source_kind?: string;
+}
+
+/**
+ * 服务端面向用户展示前的三项质量过滤。
+ * 返回 null 表示整条丢弃，返回修改后的对象表示可展示（source_url 可能被置为 null）。
+ *
+ * 过滤规则：
+ *  1. 外部来源（非 ugc/coach）title 不含任何 CJK 字符 → 丢弃（平台抓取的英文占位标题）
+ *     ugc/coach 由用户手动投稿，标题语言不做限制。
+ *  2. company 为字符串 'null'/'undefined'/'' → 归一为 null（保留条目，显示"未知公司"）
+ *  3. source_url 非法/占位域 → source_url 置 null（保留内容，不渲染死链）
+ */
+export function applyFeedQualityFilter<T extends FeedItemQualityInput>(
+  item: T,
+): (T & { company: string | null; source_url: string | null }) | null {
+  // Rule 1: 外部抓取来源 title 无 CJK → 丢弃
+  const isUgcSource = UGC_SOURCE_KINDS.has(item.source_kind ?? '');
+  if (!isUgcSource && !hasCjkCharacter(item.title)) return null;
+
+  // Rule 2: 字符串 null 公司 → 归一为 null
+  const company = isStringNullCompany(item.company) ? null : item.company;
+
+  // Rule 3: 占位/非法 URL → 置 null（不丢弃整条）
+  const source_url = isPlaceholderUrl(item.source_url) ? null : item.source_url;
+
+  return { ...item, company, source_url };
+}
+
 export function getCurrentQuarter(): { start: Date; end: Date; label: string } {
   const now = new Date();
   const q = Math.ceil((now.getMonth() + 1) / 3);

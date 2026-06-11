@@ -830,11 +830,11 @@ describe('Newspaper (e2e)', () => {
 
     it('2026Q2 high confidence post appears in homepage', async () => {
       await seedFeedItem(feedRepo, {
-        title: 'Fresh 2026Q2 interview',
+        title: '2026年最新小红书前端面试分享',
         published_at: new Date('2026-05-20'),
         date_confidence: 'high',
         source_kind: 'xhs',
-        source_url: 'https://example.com/fresh-2026q2',
+        source_url: 'https://www.xiaohongshu.com/post/fresh-2026q2',
         quality_score: 8,
         confidence: 'high',
         content: 'a'.repeat(300),
@@ -848,7 +848,7 @@ describe('Newspaper (e2e)', () => {
         ...(res.body.user_voice?.map((v: { source_url: string }) => v.source_url) || []),
         ...(res.body.tech_radar?.map((t: { source_url: string }) => t.source_url) || []),
       ];
-      expect(allUrls).toContain('https://example.com/fresh-2026q2');
+      expect(allUrls).toContain('https://www.xiaohongshu.com/post/fresh-2026q2');
     });
 
     it('fetched today but published 2021 is not this week new', async () => {
@@ -896,18 +896,18 @@ describe('Newspaper (e2e)', () => {
 
     it('radar can find posts from last 5 years', async () => {
       await seedFeedItem(feedRepo, {
-        title: '2023 old post for radar',
+        title: '2023年牛客网算法面经汇总',
         published_at: new Date('2023-09-15'),
         date_confidence: 'high',
         source_kind: 'nowcoder',
-        source_url: 'https://example.com/2023-radar',
+        source_url: 'https://www.nowcoder.com/discuss/2023-radar',
       });
       const res = await request(app.getHttpServer())
         .get('/api/newspaper/radar')
         .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
       const urls = res.body.items?.map((i: { source_url: string }) => i.source_url) || [];
-      expect(urls).toContain('https://example.com/2023-radar');
+      expect(urls).toContain('https://www.nowcoder.com/discuss/2023-radar');
     });
   });
 
@@ -919,12 +919,12 @@ describe('Newspaper (e2e)', () => {
     it('derives quarter from published_at, ignoring AI quarter', async () => {
       // Seed item where AI would say 2026Q2 but published_at is 2023-09-15 (2023Q3)
       await seedFeedItem(feedRepo, {
-        title: '2023Q3 quarter derivation test',
+        title: '2023Q3季度牛客面经季报整理',
         published_at: new Date('2023-09-15'),
         date_confidence: 'high',
         quarter: '2023Q3', // deriveQuarterFromPublishedAt would produce this
         source_kind: 'nowcoder',
-        source_url: 'https://example.com/quarter-derive-001',
+        source_url: 'https://www.nowcoder.com/discuss/quarter-derive-001',
         quality_score: 7,
         confidence: 'high',
         content: 'a'.repeat(300),
@@ -935,7 +935,7 @@ describe('Newspaper (e2e)', () => {
         .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
       const urls = res.body.items.map((i: { source_url: string }) => i.source_url);
-      expect(urls).toContain('https://example.com/quarter-derive-001');
+      expect(urls).toContain('https://www.nowcoder.com/discuss/quarter-derive-001');
     });
 
     it('sets quarter=null when date_confidence is low', async () => {

@@ -8,6 +8,10 @@ export function buildProfessionStandardSystem(preset: ProfessionPreset): string 
     )
     .join('\n');
   return [
+    // DeepSeek 兼容(置顶):思考模式 + 强制特定工具时,模型偶发先输出正文/空 tool_use(社区实测的 text-mode
+    // prefill 锁定问题,首 token 决定模式)。把"直接调用工具"指令放在系统提示最前,降低空 tool_use 概率,
+    // 杜绝其触发 completeStructured 主备耗尽 503。配合 schema 内层 required 放宽 + service 端归一兜底。
+    `【最高优先】本次必须且只能通过调用 profession_standard_review 工具产出结果:不要输出任何正文/解释/JSON,直接调用工具并把全部内容填进工具入参;严禁返回空的工具调用,dimensions 必须逐维填满。`,
     `你是「${preset.displayName}」校招简历评审专家。按下列 ${preset.dimensions.length} 个胜任力维度对简历打分(总分 100);dimensions 必须严格按下列顺序、数量一致地逐一输出:`,
     dims,
     ``,

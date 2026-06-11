@@ -274,7 +274,7 @@ export default function CampusDiagnosisPage() {
       <div style={{ marginBottom: '36px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <Link
-            href="/diagnoses"
+            href="/"
             style={{
               fontSize: '13px',
               color: 'var(--color-ink-4)',
@@ -282,7 +282,7 @@ export default function CampusDiagnosisPage() {
               fontWeight: 500,
             }}
           >
-            诊断
+            首页
           </Link>
           <ChevronRight size={14} color="var(--color-ink-4)" />
           <span style={{ fontSize: '13px', color: 'var(--color-ink-2)', fontWeight: 500 }}>

@@ -7,7 +7,7 @@ import { FeedQueryDto } from './dto/feed-query.dto';
 import type { ClassifiedFeed } from './feed-classifier.service';
 import type { FeedCandidate } from './importers/feed-importer.interface';
 import { CompanyRegistryService } from './company-registry.service';
-import { deriveQuarterFromPublishedAt } from './radar-helpers';
+import { deriveQuarterFromPublishedAt, applyFeedQualityFilter } from './radar-helpers';
 
 @Injectable()
 export class FeedService {
@@ -33,7 +33,7 @@ export class FeedService {
     return this.repo.save(item);
   }
 
-  findAll(query: FeedQueryDto = {}): Promise<FeedItem[]> {
+  async findAll(query: FeedQueryDto = {}): Promise<FeedItem[]> {
     const qb = this.repo
       .createQueryBuilder('item')
       .leftJoinAndSelect('item.user', 'user')
@@ -68,7 +68,10 @@ export class FeedService {
       );
     }
 
-    return qb.getMany();
+    const raw = await qb.getMany();
+    return raw
+      .map((item) => applyFeedQualityFilter(item))
+      .filter((item): item is FeedItem => item !== null);
   }
 
   async remove(id: string, userId: string): Promise<void> {

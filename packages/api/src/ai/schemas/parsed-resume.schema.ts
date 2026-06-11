@@ -1,3 +1,8 @@
+// schema 范式对照 career_analysis(修复波1):顶层 required 只保留骨架容器,内层 object items 不设 required。
+// 原因:主通道走 deepseek-chat 时,内嵌 required(如 work_experience.items.required[company,title,...])
+// 任一缺字段都会被 AiService.validateAgainstSchema 判失败 → 主备各 3 次重试耗尽 → 503。
+// 缺字段改由 ParserService.normalizeResume 归一兜底为权威 ParsedResume(下游 renderResumeForReview 强类型访问),
+// basic_info 缺失给空对象、各数组缺失给 []、条目缺关键字段给安全默认,绝不编造业务内容。
 export const PARSED_RESUME_SCHEMA = {
   type: 'object' as const,
   properties: {
@@ -10,7 +15,6 @@ export const PARSED_RESUME_SCHEMA = {
         location: { type: 'string' },
         linkedin: { type: 'string' },
       },
-      required: ['name'],
     },
     summary: { type: 'string' },
     work_experience: {
@@ -25,7 +29,6 @@ export const PARSED_RESUME_SCHEMA = {
           description: { type: 'string' },
           achievements: { type: 'array', items: { type: 'string' } },
         },
-        required: ['company', 'title', 'start_date', 'description', 'achievements'],
       },
     },
     education: {
@@ -39,7 +42,6 @@ export const PARSED_RESUME_SCHEMA = {
           graduation_date: { type: 'string' },
           gpa: { type: 'string' },
         },
-        required: ['school', 'degree', 'major'],
       },
     },
     skills: {
@@ -50,7 +52,6 @@ export const PARSED_RESUME_SCHEMA = {
         languages: { type: 'array', items: { type: 'string' } },
         certifications: { type: 'array', items: { type: 'string' } },
       },
-      required: ['technical', 'soft', 'languages', 'certifications'],
     },
     projects: {
       type: 'array',
@@ -62,11 +63,10 @@ export const PARSED_RESUME_SCHEMA = {
           technologies: { type: 'array', items: { type: 'string' } },
           role: { type: 'string' },
         },
-        required: ['name', 'description', 'technologies'],
       },
     },
     links: { type: 'array', items: { type: 'string' } },
     awards_honors: { type: 'array', items: { type: 'string' } },
   },
-  required: ['basic_info', 'work_experience', 'education', 'skills', 'projects'],
+  required: ['basic_info'],
 };

@@ -287,7 +287,7 @@ export default function NewDiagnosisPage() {
       <div style={{ marginBottom: '36px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <Link
-            href="/diagnoses"
+            href="/diagnoses/campus"
             style={{
               fontSize: '13px',
               color: 'var(--color-ink-4)',

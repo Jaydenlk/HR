@@ -149,9 +149,25 @@ export class AiService {
   ): Promise<T> {
     // 中转偶发对强制 tool_use 返回空块、缺 required 字段或被 max_tokens 截断的残缺 JSON:最多取 3 次完整。
     // 全部失败视为该通道失败(抛错),交由 withFailover 决定是否降级——绝不把残缺/截断结果当成功返回(防编造红线)。
-    const ATTEMPTS = 3;
+    const ATTEMPTS = 4;
+    // 重型工具(如 profession_standard_review)在 DeepSeek 思考模式 + 强制特定工具下会发生 prefill text-mode
+    // 锁定:返回空 tool_use,且重发"完全相同"的请求往往持续锁定(社区实测:同参重试不解锁)。
+    // 双重扰动打破锁定:① 失败后给 user 消息追加纠正提示;② 逐次抬高 temperature(社区实测高温恢复 tool-call,
+    // 见 DeepSeek-V3 #826),使采样路径偏离锁定态。仅扰动 user 文本 + temperature(不构造 tool_use/tool_result
+    // 多轮,避免违反工具调用配对协议),绝不污染原始入参。
+    const baseUserText = this.firstUserText(messageParams.messages);
     for (let i = 0; i < ATTEMPTS; i++) {
-      const response = await this.limiter.run(() => provider.client.messages.create(messageParams));
+      const userText =
+        i === 0
+          ? baseUserText
+          : `${baseUserText}\n\n[系统提示] 上一次未能通过工具 "${toolName}" 返回完整结果(空调用或字段残缺)。请立即且只能调用该工具,把所有字段填满后返回,不要输出任何正文。`;
+      const params: Anthropic.MessageCreateParamsNonStreaming = {
+        ...messageParams,
+        messages: [{ role: 'user', content: userText }],
+        // 首次默认采样;失败后抬温(0.4/0.8/1.0)打破确定性 prefill 锁定,不影响成功首跑的稳定性。
+        ...(i > 0 ? { temperature: Math.min(0.4 + (i - 1) * 0.3, 1) } : {}),
+      };
+      const response = await this.limiter.run(() => provider.client.messages.create(params));
       // 截断检测:max_tokens 处截断的 tool_use 是残缺 JSON,继续用会静默落库不完整数据,必须当失败处理。
       if (response.stop_reason === 'max_tokens') {
         throw new Error(
@@ -230,6 +246,18 @@ export class AiService {
 
   private errMsg(err: unknown): string {
     return err instanceof Error ? err.message : String(err);
+  }
+
+  // 取首条 user 消息的文本(completeStructured 的 messages 恒为 [{role:'user', content: string}])。
+  // content 为数组形态时拼接其 text 块;无文本则回退空串(纠正轮提示仍可独立生效)。
+  private firstUserText(messages: Anthropic.MessageParam[]): string {
+    const first = messages.find((m) => m.role === 'user');
+    if (!first) return '';
+    if (typeof first.content === 'string') return first.content;
+    return first.content
+      .map((block) => (block.type === 'text' ? block.text : ''))
+      .filter((t) => t.length > 0)
+      .join('\n');
   }
 
   private extractToolInput<T>(response: Anthropic.Message, toolName: string): T | null {

@@ -9,6 +9,10 @@ import {
   getCurrentQuarter,
   isCurrentQuarter,
   deriveQuarterFromPublishedAt,
+  hasCjkCharacter,
+  isStringNullCompany,
+  isPlaceholderUrl,
+  applyFeedQualityFilter,
 } from './radar-helpers';
 
 describe('normalizeQualityScore', () => {
@@ -247,5 +251,124 @@ describe('deriveQuarterFromPublishedAt', () => {
   });
   it('returns null for invalid date string', () => {
     expect(deriveQuarterFromPublishedAt('not-a-date', 'high')).toBeNull();
+  });
+});
+
+// ─── Feed Quality Filter Tests ───────────────────────────────────────────────
+
+describe('hasCjkCharacter', () => {
+  it('returns true for Chinese text', () => {
+    expect(hasCjkCharacter('字节跳动面经')).toBe(true);
+  });
+  it('returns true for mixed Chinese+English', () => {
+    expect(hasCjkCharacter('Fresh 2026Q2 面经')).toBe(true);
+  });
+  it('returns false for pure English title', () => {
+    expect(hasCjkCharacter('Fresh 2026Q2 interview')).toBe(false);
+  });
+  it('returns false for empty string', () => {
+    expect(hasCjkCharacter('')).toBe(false);
+  });
+  it('returns false for numbers and symbols only', () => {
+    expect(hasCjkCharacter('12345 !@#$%')).toBe(false);
+  });
+});
+
+describe('isStringNullCompany', () => {
+  it('returns true for literal string "null"', () => {
+    expect(isStringNullCompany('null')).toBe(true);
+  });
+  it('returns true for literal string "undefined"', () => {
+    expect(isStringNullCompany('undefined')).toBe(true);
+  });
+  it('returns true for empty string', () => {
+    expect(isStringNullCompany('')).toBe(true);
+  });
+  it('returns true for whitespace-only string', () => {
+    expect(isStringNullCompany('   ')).toBe(true);
+  });
+  it('returns false for null (JS null is legal entity value)', () => {
+    expect(isStringNullCompany(null)).toBe(false);
+  });
+  it('returns false for a real company name', () => {
+    expect(isStringNullCompany('字节跳动')).toBe(false);
+  });
+});
+
+describe('isPlaceholderUrl', () => {
+  it('returns true for null', () => {
+    expect(isPlaceholderUrl(null)).toBe(true);
+  });
+  it('returns true for empty string', () => {
+    expect(isPlaceholderUrl('')).toBe(true);
+  });
+  it('returns true for non-http URL', () => {
+    expect(isPlaceholderUrl('ftp://example.com/file')).toBe(true);
+  });
+  it('returns true for example.com URL', () => {
+    expect(isPlaceholderUrl('https://example.com/post/123')).toBe(true);
+  });
+  it('returns false for a valid real URL', () => {
+    expect(isPlaceholderUrl('https://www.nowcoder.com/discuss/12345')).toBe(false);
+  });
+  it('returns false for xhs URL', () => {
+    expect(isPlaceholderUrl('https://www.xiaohongshu.com/explore/abc')).toBe(false);
+  });
+});
+
+describe('applyFeedQualityFilter', () => {
+  const base = {
+    title: '字节跳动2026Q2面经',
+    company: '字节跳动',
+    source_url: 'https://www.nowcoder.com/discuss/12345',
+    source_kind: 'xhs',
+  };
+
+  it('passes valid item through unchanged', () => {
+    const result = applyFeedQualityFilter(base);
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe(base.title);
+    expect(result!.company).toBe('字节跳动');
+    expect(result!.source_url).toBe(base.source_url);
+  });
+
+  it('returns null for English-only title from external source', () => {
+    expect(applyFeedQualityFilter({ ...base, title: 'Fresh 2026Q2 interview', source_kind: 'xhs' })).toBeNull();
+  });
+
+  it('keeps English-only title from ugc source (user-authored)', () => {
+    const result = applyFeedQualityFilter({ ...base, title: 'My Interview Experience', source_kind: 'ugc' });
+    expect(result).not.toBeNull();
+  });
+
+  it('keeps English-only title from coach source (user-authored)', () => {
+    const result = applyFeedQualityFilter({ ...base, title: 'Coach Note in English', source_kind: 'coach' });
+    expect(result).not.toBeNull();
+  });
+
+  it('converts string-null company to null (does not discard item)', () => {
+    const result = applyFeedQualityFilter({ ...base, company: 'null' });
+    expect(result).not.toBeNull();
+    expect(result!.company).toBeNull();
+  });
+
+  it('converts string-undefined company to null', () => {
+    const result = applyFeedQualityFilter({ ...base, company: 'undefined' });
+    expect(result).not.toBeNull();
+    expect(result!.company).toBeNull();
+  });
+
+  it('nullifies placeholder URL but keeps the item', () => {
+    const result = applyFeedQualityFilter({ ...base, source_url: 'https://example.com/post' });
+    expect(result).not.toBeNull();
+    expect(result!.source_url).toBeNull();
+  });
+
+  it('preserves extra fields from input', () => {
+    const extended = { ...base, quality_score: 80, extra: 'preserved' };
+    const result = applyFeedQualityFilter(extended);
+    expect(result).not.toBeNull();
+    expect((result as typeof extended).quality_score).toBe(80);
+    expect((result as typeof extended).extra).toBe('preserved');
   });
 });

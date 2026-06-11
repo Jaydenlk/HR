@@ -13,6 +13,7 @@ import {
   getCurrentQuarter,
   isValidCompany,
   computeGroupStats,
+  applyFeedQualityFilter,
 } from './radar-helpers';
 import { EXTERNAL_SOURCE_KINDS } from './types/feed.types';
 
@@ -158,13 +159,13 @@ export class NewspaperService {
       .orderBy('item.quality_score', 'DESC')
       .getMany();
 
-    // Issue 8: Filter out items with empty/null source_url
-    const urlFiltered = allItemsRaw.filter(
-      (i) => i.source_url && i.source_url.trim() !== '',
-    );
+    // Quality filter: strip English-only titles, string-null company, placeholder URLs
+    const qualityFiltered = allItemsRaw
+      .map((i) => applyFeedQualityFilter(i))
+      .filter((i): i is FeedItem => i !== null);
 
     // Issue 4 (freshness): Only usable items on homepage
-    const allItems = urlFiltered.filter(isUsable);
+    const allItems = qualityFiltered.filter(isUsable);
 
     if (allItems.length === 0) {
       return {
@@ -730,12 +731,16 @@ export class NewspaperService {
     const qb = this.feedRepo.createQueryBuilder('item');
     this.applyRadarFilters(qb, query);
 
-    const [items, total] = await qb
+    const [rawItems, total] = await qb
       .orderBy('item.quality_score', 'DESC')
       .addOrderBy('item.created_at', 'DESC')
       .skip(offset)
       .take(limit)
       .getManyAndCount();
+
+    const items = rawItems
+      .map((i) => applyFeedQualityFilter(i))
+      .filter((i): i is FeedItem => i !== null);
 
     // Company stats aggregation — same filters
     const companyStatsQb = this.feedRepo
