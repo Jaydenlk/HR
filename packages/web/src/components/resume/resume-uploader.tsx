@@ -249,7 +249,7 @@ export function ResumeUploader({ open, onClose, onSuccess }: ResumeUploaderProps
                 ref={fileInputRef}
                 type="file"
                 accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                onChange={(e) => { setFile(e.target.files?.[0] ?? null); setError(null); }}
                 style={{ display: 'none' }}
               />
               <button

@@ -59,6 +59,22 @@ describe('Cover Letters (e2e)', () => {
     });
   });
 
+  // ─── Input validation ─────────────────────────────────────────────────────
+
+  describe('POST /api/cover-letters — input validation', () => {
+    it('jd_text 超过 8000 字 → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/cover-letters')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          company: 'Acme',
+          role: 'Engineer',
+          jd_text: 'A'.repeat(8001),
+        });
+      expect(res.status).toBe(400);
+    });
+  });
+
   // ─── POST /api/cover-letters ──────────────────────────────────────────────
 
   describe('POST /api/cover-letters', () => {

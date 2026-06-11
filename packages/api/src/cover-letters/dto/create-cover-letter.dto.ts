@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsIn, IsInt, Min, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsInt, Min, MinLength, MaxLength } from 'class-validator';
 import type { CoverLetterTone } from '../entities/cover-letter.entity';
 
 const TONES: CoverLetterTone[] = ['professional', 'warm', 'direct'];
@@ -14,6 +14,7 @@ export class CreateCoverLetterDto {
 
   @IsString()
   @MinLength(50, { message: 'JD 文本至少需要 50 字，包含岗位职责和要求' })
+  @MaxLength(8000, { message: 'JD 文本过长，请精简到 8000 字以内' })
   jd_text: string;
 
   @IsString()

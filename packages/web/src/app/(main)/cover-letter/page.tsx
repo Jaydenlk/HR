@@ -352,15 +352,28 @@ function CoverLetterTab() {
             </div>
 
             <div style={{ marginBottom: '18px' }}>
-              <label style={labelStyle}>JD 原文（必填 · ≥50 字）</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>JD 原文（必填 · ≥50 字）</label>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    color: jdText.length > 8000 ? 'var(--color-danger)' : 'var(--color-ink-4)',
+                    fontWeight: 500,
+                  }}
+                >
+                  {jdText.length} / 8000
+                </span>
+              </div>
               <textarea
                 style={{
                   ...inputStyle,
                   height: '100px',
                   resize: 'vertical' as const,
                   lineHeight: '1.55',
+                  borderColor: jdText.length > 8000 ? 'var(--color-danger)' : undefined,
                 }}
                 value={jdText}
+                maxLength={8000}
                 onChange={(e) => setJdText(e.target.value)}
                 placeholder="粘贴完整职位描述（含岗位职责与要求，≥50 字），AI 将针对性定制内容…"
               />

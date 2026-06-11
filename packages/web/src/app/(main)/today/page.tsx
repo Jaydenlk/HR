@@ -165,7 +165,7 @@ function TaskCard({ task, onToggle, toggling }: TaskCardProps) {
             fontWeight: 600,
             color: done ? 'var(--color-ink-3)' : 'var(--color-ink)',
             letterSpacing: '-0.005em',
-            ...(done ? { textDecoration: 'line-through', textDecorationColor: 'var(--color-ink-4)' } : { textDecoration: 'none' }),
+            textDecoration: done ? 'line-through' : 'none',
             lineHeight: 1.35,
           }}
         >

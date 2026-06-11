@@ -744,7 +744,7 @@ function RoleCard({ item, onView }: { item: RoleRadarItem; onView: () => void })
   return (
     <article className="radar-card role-card">
       <div className="card-top">
-        <span className="role-card-name">{item.label}</span>
+        <span className="role-card-name">{ROLE_CATEGORY_LABELS[item.role_category] ?? item.label}</span>
         <span className={`source-pref-badge ${sourcePreference === '偏 XHS' ? 'xhs' : sourcePreference === '偏牛客' ? 'nowcoder' : ''}`}>
           {sourcePreference}
         </span>
