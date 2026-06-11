@@ -31,3 +31,13 @@ if (!process.env.JWT_SECRET) process.env.JWT_SECRET = 'test-secret';
 delete process.env.DEV_LOGIN;
 delete process.env.ADMIN_EMAILS;
 process.env.__SEAL_OPS_ENV__ = '1';
+// ── 邮件通道密封 ───────────────────────────────────────────────────────────
+// 本地 .env 含 SMTP_HOST(且将含有效 RESEND_API_KEY)。MailService 任一就绪即 configured=true,
+// 会让 request-code 不再回传 dev_code → auth e2e 的 dev_code 路径全数失效。
+// 与 DEV_LOGIN/ADMIN_EMAILS 同理密封:这两键不在 env.validation 的 SEALED_OPS_ENV_KEYS 名单内
+//(那条路径靠删键 + 旗标),但 dotenv 默认不覆盖「已存在」的 process.env 键 —— 故在此(setupFiles,
+// 早于任何 import 与 ConfigModule.forRoot 的 dotenv 注入)把它们显式置空字符串即可:
+// ConfigService 读到空串(falsy),MailService 恒走开发态日志路径,dev_code 正常回传。
+// 仅在「未被显式设值」时密封;需要真值的测试可在自己的 describe 内 process.env 覆盖(beforeAll 设、afterAll 删/还原)。
+if (!('SMTP_HOST' in process.env)) process.env.SMTP_HOST = '';
+if (!('RESEND_API_KEY' in process.env)) process.env.RESEND_API_KEY = '';
