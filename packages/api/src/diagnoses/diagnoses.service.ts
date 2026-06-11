@@ -129,6 +129,7 @@ export class DiagnosesService {
       preset,
       jdJson,
       parsedResume,
+      resume.raw_text,
     );
 
     const suggestions = await this.rewriter.suggestAgainstPreset(

@@ -86,6 +86,78 @@ const RESUME_NORMAL: ParsedResume = {
   awards_honors: ['全国大学生市场调研大赛二等奖'],
 };
 
+// (d) 自拟:模仿"被 parser 削平后的形态特征"——结构化教育只剩单一毕业日(YYYY-MM)、
+//      项目/年级日期标注被剥离;矛盾判据全部落在 rawText 里(带点日期 + 倒序区间 + 年级标注矛盾)。
+//      这正是生产路径(parseResume→ParsedResume)发生漏报的真实形态。内容自拟,不取材任何 testset。
+const STRIPPED_RESUME: ParsedResume = {
+  basic_info: { name: '陈实', location: '广州' },
+  summary: '后端方向应届生,动手能力强,希望在后端持续深耕。',
+  work_experience: [
+    {
+      company: '广州某互联网公司',
+      title: '后端开发实习生',
+      start_date: '2021-07', // 早于入学(rawText 教育区间 2022.09 入学)
+      end_date: '2021-09',
+      description: '参与内部管理系统后端开发,负责用户权限模块接口',
+      achievements: [],
+    },
+  ],
+  education: [
+    // parser 削平:只剩单一毕业日,入学年与年级标注已丢(全靠 rawText 兜底)
+    { school: '某二本院校', degree: '本科', major: '软件工程', graduation_date: '2025-06' },
+  ],
+  skills: { technical: ['Java', 'Spring Boot', 'MySQL'], soft: [], languages: ['CET-4 467'], certifications: [] },
+  projects: [
+    // parser 把项目日期标注剥离,描述里不含任何区间
+    { name: '校园二手交易平台', description: '基于 Spring Boot 的后端服务,实现用户/商品/订单模块', technologies: ['Spring Boot', 'MySQL'], role: '后端负责人' },
+  ],
+  links: [],
+  awards_honors: [],
+};
+// 对应原始简历正文:矛盾判据在此(带点日期 2022.09-2025.06 / 倒序 2024.10-2024.03 / "大三在读")
+const STRIPPED_RAW_TEXT = [
+  '现居:广州 | 求职方向:后端开发工程师',
+  '## 教育背景',
+  '- 2022.09-2025.06 某二本院校 软件工程 / 本科(大三在读)',
+  '## 实习经历',
+  '**2021.07-2021.09 广州某互联网公司 后端开发实习生**',
+  '- 参与内部管理系统后端开发,负责用户权限模块接口',
+  '## 项目经历',
+  '**2024.10-2024.03 校园二手交易平台(后端负责人)**',
+  '- 基于 Spring Boot 搭建后端服务,实现用户/商品/订单模块',
+].join('\n');
+
+// (e) 自拟:本科期合法实习 + 硕士在读(多学历正常简历,削平形态),验证零误报。
+const MULTI_DEGREE_RESUME: ParsedResume = {
+  basic_info: { name: '林正' },
+  summary: '数据方向应届硕士,求职数据分析岗。',
+  work_experience: [
+    // 本科期(2022/2023)实习,合法:不早于最早入学(本科 2020 入学)
+    { company: '某教育机构', title: '助教实习生', start_date: '2023-03', end_date: '2023-06', description: '辅导课程,整理学情数据', achievements: [] },
+    { company: '某咨询公司', title: '数据实习生', start_date: '2022-06', end_date: '2022-08', description: '用 Excel 做数据汇总分析', achievements: [] },
+  ],
+  education: [
+    { school: '某 QS 前 200 高校', degree: '硕士', major: '数据科学', graduation_date: '2025-09' },
+    { school: '某一本高校', degree: '学士', major: '统计学', graduation_date: '2024-06' },
+  ],
+  skills: { technical: ['Python', 'SQL', 'Pandas'], soft: [], languages: ['雅思 6.5'], certifications: [] },
+  projects: [
+    { name: '学生成绩预测', description: '项目周期 2025.03-2025.06,用回归模型预测期末分数', technologies: ['Python', 'sklearn'], role: '成员' },
+  ],
+  links: [],
+  awards_honors: [],
+};
+const MULTI_DEGREE_RAW_TEXT = [
+  '## 教育背景',
+  '- 2024.09-2025.09 某 QS 前 200 高校 数据科学 应届硕士毕业生',
+  '- 2020.09-2024.06 某一本高校 统计学 统招学士',
+  '## 实习经历',
+  '**2023.03-2023.06 某教育机构 助教实习生**',
+  '**2022.06-2022.08 某咨询公司 数据实习生**',
+  '## 项目经历',
+  '**2025.03-2025.06 学生成绩预测**',
+].join('\n');
+
 (LIVE ? describe : describe.skip)('引擎守卫 真 AI 验证(deepseek-chat)', () => {
   let analyzer: AnalyzerService;
   let rewriter: RewriterService;
@@ -168,5 +240,40 @@ const RESUME_NORMAL: ParsedResume = {
     // 数据驱动维度未被压制(无可疑数字)
     const dataDim = res.dimensions.find((d) => d.key === 'data_driven');
     expect(dataDim!.why.includes('压制')).toBe(false);
+  }, 200000);
+
+  it('(d) 削平形态(矛盾判据仅在 rawText)→ 走完整 campus 诊断至少命中 2/3', async () => {
+    const res = await analyzer.analyzeAgainstPreset(
+      renderResumeForReview(STRIPPED_RESUME),
+      productManagerCampus,
+      null,
+      STRIPPED_RESUME,
+      STRIPPED_RAW_TEXT,
+    );
+    const timelineChecks = res.conventionChecks.filter((c) => c.key.includes('时间线矛盾'));
+    console.log('[live d] 时间线核查命中数:', timelineChecks.length);
+    console.log('[live d] notes:', timelineChecks.map((c) => c.note));
+    const hitEnroll = timelineChecks.some((c) => c.note.includes('早于入学'));
+    const hitReversed = timelineChecks.some((c) => c.note.includes('颠倒'));
+    const hitGrade = timelineChecks.some((c) => c.note.includes('勾稽矛盾'));
+    const hits = [hitEnroll, hitReversed, hitGrade].filter(Boolean).length;
+    // parser 削平后矛盾全靠 rawText 兜底:至少命中 2/3(本地实测 3/3)
+    expect(hits).toBeGreaterThanOrEqual(2);
+    expect(timelineChecks.every((c) => c.status === 'missing')).toBe(true);
+  }, 200000);
+
+  it('(e) 本科期合法实习 + 硕士在读(多学历)→ 零时间线误报', async () => {
+    const res = await analyzer.analyzeAgainstPreset(
+      renderResumeForReview(MULTI_DEGREE_RESUME),
+      productManagerCampus,
+      null,
+      MULTI_DEGREE_RESUME,
+      MULTI_DEGREE_RAW_TEXT,
+    );
+    const timelineChecks = res.conventionChecks.filter((c) => c.key.includes('时间线矛盾'));
+    console.log('[live e] 时间线核查命中数:', timelineChecks.length, timelineChecks.map((c) => c.note));
+    // 本科期实习(2022/2023)≥ 最早入学(2020)→ 不得误报"早于入学";正常简历整体零时间线矛盾
+    expect(timelineChecks.some((c) => c.note.includes('早于入学'))).toBe(false);
+    expect(timelineChecks.length).toBe(0);
   }, 200000);
 });

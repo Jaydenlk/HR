@@ -77,6 +77,9 @@ export class AnalyzerService {
     jdJson: string | null = null,
     // 结构化简历:用于确定性时间线一致性校验(非 AI)。传入则在诊断里注入命中的时间线硬伤。
     parsedResume: ParsedResume | null = null,
+    // 原始简历正文:AI parser 常削平日期(教育区间→单一毕业日、剥离项目/年级标注),
+    // 传入则让时间线 guard 从正文做正则级日期对兜底,补回 parser 丢失的判据(确定性,抽不出放过)。
+    rawResumeText: string | null = null,
   ): Promise<ProfessionStandardResult> {
     if (resumeJson.trim().length < 30) {
       throw new BadRequestException('简历内容过短，无法分析。');
@@ -86,7 +89,9 @@ export class AnalyzerService {
 
     // 确定性守卫(不依赖 AI,先算好,AI 产出后注入):
     // ① 时间线硬伤(需结构化简历);② 可疑量化指标(扫渲染后的简历文本)。
-    const timelineConflicts = parsedResume ? checkTimelineConsistency(parsedResume) : [];
+    const timelineConflicts = parsedResume
+      ? checkTimelineConsistency(parsedResume, rawResumeText ?? undefined)
+      : [];
     const suspiciousNumbers = detectSuspiciousNumbers(resumeJson);
 
     // 可靠性:AI 偶发"结构合法但语义为空"的退化产物(某维 why 全空 / 满分零理由 / 整段空评分),
