@@ -29,3 +29,6 @@ data/we-mp-rss/
 *.jpg
 *.jpeg
 CV/
+
+# 本地工件,永不入库
+.claude/plans/cv-synthetic-gen.js
