@@ -79,7 +79,7 @@
 - All development in worktrees (unless trivial)
 - Subagents for code/tests, main agent for quality control
 - Load superpowers skills before any creative work
-- Maximum 10 concurrent subagents, default Sonnet, Opus for complex tasks
+- Maximum 10 concurrent subagents, default Sonnet, Opus 4.8 for important/complex tasks; subagent 禁用 Fable(2026-06-12 用户指令)
 - 并行派工前提:各 agent 改动的文件集不相交;有共享文件就拆出串行的集成 agent 收口
 - 派工/测试/审计/排障的 prompt 模板:`docs/AGENT-HANDBOOK.md` §6,直接复制改空格
 
