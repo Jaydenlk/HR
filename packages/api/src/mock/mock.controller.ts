@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
@@ -7,6 +7,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MockService } from './mock.service';
 import { CreateMockSessionDto } from './dto/create-mock-session.dto';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
+import { CompanyCheckQueryDto } from './dto/company-check-query.dto';
 
 @Controller('mock-sessions')
 @UseGuards(JwtAuthGuard)
@@ -21,6 +22,11 @@ export class MockController {
     @Body() dto: CreateMockSessionDto,
   ) {
     return this.mock.create(user.id, dto);
+  }
+
+  @Get('company-check')
+  companyCheck(@Query() query: CompanyCheckQueryDto) {
+    return this.mock.lookupCompany(query.name ?? '').then((r) => ({ company_known: r.company_known }));
   }
 
   @Get()

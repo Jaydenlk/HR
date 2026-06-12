@@ -6,9 +6,10 @@ import { MockService } from './mock.service';
 import { AiModule } from '../ai/ai.module';
 import { QuotaModule } from '../quota/quota.module';
 import { CreditModule } from '../credit/credit.module';
+import { FeedModule } from '../feed/feed.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MockSession]), AiModule, QuotaModule, CreditModule],
+  imports: [TypeOrmModule.forFeature([MockSession]), AiModule, QuotaModule, CreditModule, FeedModule],
   controllers: [MockController],
   providers: [MockService],
   exports: [MockService],

@@ -49,5 +49,6 @@ import { SearchSchedulerService } from './search-scheduler.service';
     CompanyRegistryService,
     SearchSchedulerService,
   ],
+  exports: [CompanyRegistryService],
 })
 export class FeedModule {}
