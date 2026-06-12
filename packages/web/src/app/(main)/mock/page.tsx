@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { MockSession } from '@/lib/types';
 import { MockSessionCard } from '@/components/mock/mock-session-card';
-import { Play, X } from 'lucide-react';
+import { Play, X, ExternalLink } from 'lucide-react';
 
 function LoadingSkeleton() {
   return (
@@ -33,6 +33,18 @@ interface NewSessionForm {
   jd_text: string;
 }
 
+interface SearchCandidate {
+  name: string;
+  summary: string;
+  source_url: string;
+}
+
+/** company-check API 返回 */
+interface CompanyCheckResult {
+  company_known: boolean;
+  search_candidate: SearchCandidate | null;
+}
+
 export default function MockPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<MockSession[]>([]);
@@ -44,8 +56,11 @@ export default function MockPage() {
   const [form, setForm] = useState<NewSessionForm>({ company: '', role: '', jd_text: '' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  // company_known: null=未查, true=命中, false=未命中
-  const [companyKnown, setCompanyKnown] = useState<boolean | null>(null);
+
+  // 公司查询状态
+  const [checkResult, setCheckResult] = useState<CompanyCheckResult | null>(null);
+  // 用户已确认/拒绝搜索候选：null=未确认, true=确认, false=拒绝
+  const [candidateConfirmed, setCandidateConfirmed] = useState<boolean | null>(null);
   // latest-wins: 每次发起新请求时中止上一次未完成的请求
   const checkAbortRef = useRef<AbortController | null>(null);
 
@@ -63,20 +78,26 @@ export default function MockPage() {
   }, []);
 
   async function checkCompany(name: string) {
-    if (!name.trim()) { setCompanyKnown(null); return; }
+    if (!name.trim()) {
+      setCheckResult(null);
+      setCandidateConfirmed(null);
+      return;
+    }
     // latest-wins: 中止上一次未完成的请求，防止旧响应覆盖新状态
     checkAbortRef.current?.abort();
     const controller = new AbortController();
     checkAbortRef.current = controller;
     try {
-      const res = await api.get<{ company_known: boolean }>(
+      const res = await api.get<CompanyCheckResult>(
         `/mock-sessions/company-check?name=${encodeURIComponent(name.trim())}`,
         { signal: controller.signal },
       );
-      setCompanyKnown(res.company_known);
+      setCheckResult(res);
+      setCandidateConfirmed(null);
     } catch {
       // AbortError 属正常取消，其余失败静默不阻断创建流程
-      setCompanyKnown(null);
+      setCheckResult(null);
+      setCandidateConfirmed(null);
     }
   }
 
@@ -84,15 +105,29 @@ export default function MockPage() {
     setCreating(true);
     setCreateError(null);
     try {
-      const payload: Record<string, string> = {};
+      const payload: Record<string, unknown> = {};
       if (form.company.trim()) payload.company = form.company.trim();
       if (form.role.trim()) payload.role = form.role.trim();
       if (form.jd_text.trim()) payload.jd_text = form.jd_text.trim();
 
+      // 若用户已确认搜索候选，带入 confirmed_company_info
+      if (
+        candidateConfirmed === true &&
+        checkResult?.search_candidate
+      ) {
+        payload.confirmed_company_info = {
+          name: checkResult.search_candidate.name,
+          summary: checkResult.search_candidate.summary,
+          source_url: checkResult.search_candidate.source_url,
+          searched_at: new Date().toISOString().slice(0, 10),
+        };
+      }
+
       const session = await api.post<MockSession & { company_known: boolean }>('/mock-sessions', payload);
       setDialogOpen(false);
       setForm({ company: '', role: '', jd_text: '' });
-      setCompanyKnown(null);
+      setCheckResult(null);
+      setCandidateConfirmed(null);
       router.push(`/mock/${session.id}`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : '创建失败');
@@ -185,7 +220,9 @@ export default function MockPage() {
                   value={form.company}
                   onChange={(e) => {
                     setForm((f) => ({ ...f, company: e.target.value }));
-                    if (!e.target.value.trim()) setCompanyKnown(null);
+                    // 任何变化都重置搜索状态，防止旧确认结果随新公司名一起提交
+                    setCheckResult(null);
+                    setCandidateConfirmed(null);
                   }}
                   placeholder="如：字节跳动"
                   style={{
@@ -206,14 +243,95 @@ export default function MockPage() {
                     void checkCompany(form.company);
                   }}
                 />
-                {companyKnown === false && (
+
+                {/* 三态提示区 */}
+                {/* 态1：库内命中 → 无感知（不展示任何提示） */}
+
+                {/* 态2：库外 + 有搜索候选 + 用户未确认 → 确认框 */}
+                {checkResult && !checkResult.company_known && checkResult.search_candidate && candidateConfirmed === null && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '12px 14px',
+                    background: 'var(--color-surface-2)',
+                    borderRadius: '10px',
+                    border: '1px solid var(--color-line)',
+                    fontSize: '13px',
+                    color: 'var(--color-ink-2)',
+                    lineHeight: 1.6,
+                  }}>
+                    <div style={{ marginBottom: '8px' }}>
+                      <span style={{ fontWeight: 600 }}>我查到的是：</span>
+                      {checkResult.search_candidate.name}
+                      {checkResult.search_candidate.summary && (
+                        <span style={{ color: 'var(--color-ink-3)' }}>
+                          {' '}— {checkResult.search_candidate.summary}
+                        </span>
+                      )}
+                      {' '}
+                      <a
+                        href={checkResult.search_candidate.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--color-brand)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                      >
+                        <ExternalLink size={11} />来源
+                      </a>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setCandidateConfirmed(true)}
+                        style={{
+                          padding: '4px 14px',
+                          borderRadius: '7px',
+                          border: '1.5px solid var(--color-brand)',
+                          background: 'var(--color-brand)',
+                          color: '#fff',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        是，就是这家
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCandidateConfirmed(false)}
+                        style={{
+                          padding: '4px 14px',
+                          borderRadius: '7px',
+                          border: '1.5px solid var(--color-line)',
+                          background: 'transparent',
+                          color: 'var(--color-ink-3)',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        不是
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 已确认：搜索信息将用于出题 */}
+                {candidateConfirmed === true && checkResult?.search_candidate && (
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--color-brand)', lineHeight: 1.5 }}>
+                    已确认，将使用搜索到的公司信息辅助出题（仅限搜索范围内，不会编造细节）
+                  </p>
+                )}
+
+                {/* 态3：库外 + 无候选 / 用户拒绝 → 通用模式明示 */}
+                {checkResult && !checkResult.company_known && (
+                  (!checkResult.search_candidate || candidateConfirmed === false)
+                ) && (
                   <p style={{
                     margin: '6px 0 0',
                     fontSize: '12px',
                     color: 'var(--color-ink-3)',
                     lineHeight: 1.5,
                   }}>
-                    该公司不在资料库，将以通用面试+JD 驱动出题，不会假装了解这家公司
+                    该公司不在资料库，将以通用面试 + JD 驱动出题（通用模式），不会假装了解这家公司
                   </p>
                 )}
               </div>
