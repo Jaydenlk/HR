@@ -1,7 +1,8 @@
 # Handoff: Coordinator → Implementer (Phase C:Coach 双手——任务交接卡片与四模块接待)
 
-## 状态: 待 B2 合 dev 后启动(协调者届时建 worktree 并填路径)
-## 工作目录: 【派工时填写】
+## 状态: READY_FOR_IMPL(B2 已合 dev @40c3427:SSE 流式/七要素 prompt/rich_card 字段就绪;全部 A/B1/B2/D1/D2 已在 dev)
+## 工作目录: E:\Agent program\HRBP-wt\chat-experience(git worktree,分支 feature/coach-handoff,node_modules 已就绪免装;若 .claude/plans 下有未提交修改先 checkout -- 还原)
+## ⚠️ B2 关键事实: SSE 端点扣点是 ConversationsService.streamMessage 在 done 后显式 credit.consume(CreditInterceptor 不挂流式端点);流式剥离要接在 streamMessage 生成器的 token 流出口处;前端流事件类型见 lib/api.ts 的 ChatStreamEvent,卡片可加 'card' 事件类型
 ## 前置依赖: B2 已上线(SSE 流式对话/七要素 prompt/rich_card 字段在 Message 实体早已预留)
 ## 输入文件: packages/api/src/conversations/**、packages/api/src/database/migrations/、packages/web/src/app/(main)/chat|mock|diagnoses|cover-letter|resumes/**、packages/web/src/components/chat/**
 ## 禁止触碰: ai/**、credit 模块内核(只挂现成装饰器)、feed/**、.env 入库
