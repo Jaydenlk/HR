@@ -10,14 +10,14 @@
 - DeepSeek Anthropic 兼容端点 https://api.deepseek.com/anthropic 官方支持 SSE 流式([文档](https://api-docs.deepseek.com/guides/anthropic_api))。
 - 型号:`deepseek-v4-flash` / `deepseek-v4-pro`;现配的 `deepseek-chat` 2026-07-24 弃用,必须迁移。
 - 主通道(CloudDreamAI 中转 auto-v2)流式支持未经验证 → 本批冒烟实测。
-- **用户拍板(2026-06-12 夜)**:DeepSeek 走官方直连地址,只有 auto-v2 走中转;分档型号参考 DeepSeek 官方文档,不用中转侧别名。
+- **用户拍板(2026-06-12 夜,两条)**:① DeepSeek 走官方直连地址,只有 auto-v2 走中转,分档型号参考 DeepSeek 官方文档;② **测试期间主备调换:DeepSeek 官方为主力通道(两档都是),auto-v2 降为备份**。通道顺序做成 env 可切(测试期默认 deepseek 在前),日后切回不改代码。
 
 ## 规格
 1. **AiService.chat(...)**:接受 system + 真 messages 数组(user/assistant 交替)+ tier + maxTokens;流式(SDK messages.stream),以 async iterable 或回调向上交付增量文本;沿用 withFailover:首 token 前失败→切备通道重试;首 token 后失败→向上抛明确错误(不静默重试);两通道都失败→503。保留现有 complete/completeStructured 行为不变。
-2. **场景档位**:complete/completeStructured/chat 增加可选 `tier?: 'pro'|'flash'`(默认 flash=现状)。路由规则(用户已拍板,DeepSeek 官方直连承担分档):
-   - `flash`(默认):完全现状——主 auto-v2(中转),备 DeepSeek 官方 `deepseek-v4-flash`(即型号迁移后的现配置)。
-   - `pro`:主 DeepSeek 官方 `deepseek-v4-pro`(直连 api.deepseek.com,流式官方支持),备 auto-v2 现有别名(DeepSeek 挂时降档保命,记 AI_FAILOVER 事件)。
-   - env 收口:`AI_MODEL_PRO`(缺省 deepseek-v4-pro)/`AI_FALLBACK_MODEL_FLASH`(缺省 deepseek-v4-flash),ai.config.ts 与 env.validation 同步;不引入中转侧新别名。
+2. **场景档位与通道顺序**:complete/completeStructured/chat 增加可选 `tier?: 'pro'|'flash'`(默认 flash)。路由规则(用户已拍板,测试期 DeepSeek 主力):
+   - `flash`(默认):主 DeepSeek 官方 `deepseek-v4-flash`(直连 api.deepseek.com,流式官方支持),备 auto-v2 现有别名(中转)。
+   - `pro`:主 DeepSeek 官方 `deepseek-v4-pro`,备 auto-v2 现有别名(降档保命,记 AI_FAILOVER 事件)。
+   - 通道顺序 env 可切(如 `AI_PRIMARY_PROVIDER=deepseek|relay`,缺省 deepseek);型号 env:`AI_MODEL_PRO`(缺省 deepseek-v4-pro)/`AI_MODEL_FLASH`(缺省 deepseek-v4-flash)。ai.config.ts 与 env.validation 同步;主通道沿用"maxRetries=0 快速失败切备"的现行哲学;不引入中转侧新别名。
 3. **型号迁移**:备用通道默认型号 deepseek-chat → deepseek-v4-flash(含配置注释更新)。
 4. **调用点 tier 标注(仅此两处模块)**:简历诊断/改写链路(diagnoses 的 analyze/suggest 等核心产出调用)标 tier:'pro';解析类(parseResume/parseJD)保持 flash。mock 与 conversations 的 tier 由各自批次负责,本批不碰。
 5. **并发队列可见化**:ConcurrencyLimiter 增加状态读取(active/queued)与"本请求当前排位+排位变化订阅"(供 B2 的 SSE 推送用);新增轻量 `GET /ai/queue-status`(JwtAuthGuard)→ `{active, queued}`。超队列上限的错误信息改为友好中文文案(给前端直接展示)。
