@@ -1,0 +1,33 @@
+# Handoff: Coordinator → Implementer (D2 模拟面试库外公司联网搜索层)
+
+## 状态: 待 D1 合 dev 后启动(协调者届时建 worktree 并填路径)
+## 工作目录: 【派工时填写】
+## 前置依赖: D1 已落地(公司库 600 家、company_known 双路径、防编造 prompt);BOCHA_API_KEY 已在主仓 packages/api/.env(复制到 worktree,永不提交)
+## 输入文件: packages/api/src/mock/**、packages/web/src/app/(main)/mock/page.tsx
+## 禁止触碰: ai/**、conversations/**、credit/**、feed/**(公司库读复用 D1 产物)、interview-prep/**
+
+## 目标(用户原话)
+"库外公司就需要搜索公司信息,然后确认是不是这家公司,除非实在不行才说通用模式。"
+
+## 规格
+1. **博查搜索服务封装**(packages/api/src/mock/ 或 common 下小 service,单一职责):POST https://api.bochaai.com/v1/web-search,Bearer BOCHA_API_KEY,入参 {query, summary:true, count:5};超时 8s;失败/无 key 时返回明确的 unavailable 结果(不抛 500)。env.validation 加 BOCHA_API_KEY 可选项。本服务仅 mock 模块使用,不做全局抽象(KISS)。
+2. **库外公司搜索确认流**:
+   - D1 的 company-check 在未命中时,后端追加博查搜索"{公司名} 公司 简介 校招":取首条高置信结果,返回 {company_known:false, search_candidate:{name, summary(一两句), source_url}};搜不到/超时 → {company_known:false, search_candidate:null}。
+   - 前端 mock 创建框:有 search_candidate 时展示"我查到的是:XX——一句话简介(来源链接),是这家吗?[是 / 不是]";确认"是"→创建请求带上 confirmed_company_info;"不是"或无候选 → 沿用 D1 通用模式提示文案。
+   - 后端 create:收到 confirmed_company_info 时注入出题 prompt,标注"以下公司信息来自联网搜索(来源 URL,检索日期),仅供出题背景,不得在此之外编造该公司细节"。
+3. **配额口径**:company-check 的搜索不扣用户 credit(搜索是博查成本不是 AI 调用;quota 装饰器不挂 company-check)。
+4. **缓存**:同名公司搜索结果内存缓存 24h(简单 Map+时间戳即可,2C 内存友好,上限 200 条 LRU 淘汰),避免重复烧博查额度。
+
+## 执行计划 (step→verify)
+1. pnpm install + 复制 .env → verify: build 基线绿
+2. 搜索服务 → verify: jest(mock fetch)——成功/超时/无 key 三路径;真调一次博查(花 1 次额度)贴原始返回
+3. check 流 + 前端确认交互 → verify: 本地起服截图三态(库内零感知/库外有候选确认框/库外无候选通用提示)
+4. create 注入 + prompt 约束 → verify: jest 断言 prompt 含搜索来源标注与"不得在此之外编造"约束
+5. AI 真跑找茬 1 次:用真实但库外的中小公司名(如某地区性公司)走 2 题创建 → verify: 输出含搜索背景且无超出所给信息的公司细节编造
+6. 门禁 → verify: api tsc 0 错+全量 jest;web eslint+tsc 0 错+build
+7. commit 不 push
+
+## 红线
+- key 与搜索原始返回不入提交;来源 URL 必须真实透传,严禁编 URL
+- 搜索失败的降级必须诚实(明示通用模式),不许假装搜到
+- 范围手术刀;完成写回本文件
