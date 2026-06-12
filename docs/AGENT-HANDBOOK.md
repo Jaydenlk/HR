@@ -95,6 +95,7 @@ Windows 本机三件套(详见 §9 坑位清单):重启后 5432 端口可能被 
 
 **主代理不写产品代码**(用户铁律,记忆 `feedback_no_direct_coding`):产品代码一律经 subagent/workflow 完成;主代理只做任务分解、派工、质量门、集成、提交。文档/配置/运维操作可以直接做。
 
+- **`fable-dev` 预设**(`.claude/agents/fable-dev.md`):Fable 级开发工程代理,实质性开发任务的默认主力(model: opus)。它自带完整工程纪律(回合闭环/证据定义完成/根因修复/熔断线),派工时仍要给自包含 handoff,但不必重复行为规则。
 - 角色表与通信规则:`.claude/rules/team-protocol.md`(代理间不直连,全部经主代理 + handoff 文件)
 - handoff 格式与状态机:`.claude/rules/handoff-format.md`
 - 反划水条款:`.claude/rules/anti-slacking.md`(无证据的 PASS = 违规)
