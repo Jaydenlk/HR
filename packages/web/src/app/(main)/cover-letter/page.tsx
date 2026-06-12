@@ -428,6 +428,9 @@ function CoverLetterTab() {
                 </>
               )}
             </button>
+            <div style={{ textAlign: 'center', fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500, marginTop: '4px' }}>
+              消耗 1 点
+            </div>
           </div>
 
           {/* History */}

@@ -456,23 +456,26 @@ export default function LearningRoadmapPage() {
             </span>
           </div>
 
-          <button
-            type="submit"
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: 'var(--color-ink)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              letterSpacing: '-0.005em',
-            }}
-          >
-            生成学习路线
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <button
+              type="submit"
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'var(--color-ink)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                letterSpacing: '-0.005em',
+              }}
+            >
+              生成学习路线
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500, textAlign: 'center' }}>消耗 1 点</span>
+          </div>
         </form>
       </div>
     );

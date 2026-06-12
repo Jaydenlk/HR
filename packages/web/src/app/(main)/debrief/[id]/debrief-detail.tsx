@@ -343,28 +343,31 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
           >
             包含能力维度评分、逐题点评、以及下一轮预测
           </div>
-          <button
-            onClick={handleAnalyze}
-            disabled={analyzing}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '10px 22px',
-              background: 'var(--color-brand)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '13.5px',
-              fontWeight: 600,
-              cursor: analyzing ? 'not-allowed' : 'pointer',
-              opacity: analyzing ? 0.7 : 1,
-              letterSpacing: '-0.005em',
-            }}
-          >
-            <RefreshCw size={14} />
-            {analyzing ? '分析中…' : '手动分析'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <button
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                padding: '10px 22px',
+                background: 'var(--color-brand)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                cursor: analyzing ? 'not-allowed' : 'pointer',
+                opacity: analyzing ? 0.7 : 1,
+                letterSpacing: '-0.005em',
+              }}
+            >
+              <RefreshCw size={14} />
+              {analyzing ? '分析中…' : '手动分析'}
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
         </div>
       )}
 

@@ -25,7 +25,16 @@ function authToken(): string | null {
   return typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 }
 
-// 统一未授权处理:401 时清 token 并跳登录(登录页除外),再抛带后端 message 的错误。永远抛出。
+// 402 余额不足错误:带 code 标记方便调用方或全局层识别。
+export class InsufficientCreditError extends Error {
+  readonly code = 'INSUFFICIENT_CREDIT';
+  constructor(message: string) {
+    super(message);
+    this.name = 'InsufficientCreditError';
+  }
+}
+
+// 统一未授权处理:401 时清 token 并跳登录(登录页除外);402 抛专属错误;其余抛带后端 message 的错误。永远抛出。
 async function handleError(res: Response): Promise<never> {
   if (res.status === 401 && typeof window !== 'undefined') {
     // Don't redirect when already on the login page — let the page
@@ -36,7 +45,15 @@ async function handleError(res: Response): Promise<never> {
       window.location.href = '/login';
     }
   }
-  throw new Error(await errorMessage(res));
+  const msg = await errorMessage(res);
+  if (res.status === 402) {
+    // 全局广播:让侧边栏监听并刷新余额。
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('coach:insufficient-credit'));
+    }
+    throw new InsufficientCreditError(msg || '点数不足，请联系管理员充值');
+  }
+  throw new Error(msg);
 }
 
 // 解析响应体:204 / 空 body(常见于 DELETE)安全返回 undefined,避免对空串调用 JSON.parse 抛 SyntaxError

@@ -800,28 +800,33 @@ export default function CampusDiagnosisPage() {
           justifyContent: 'flex-end',
         }}
       >
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            minHeight: '46px',
-            padding: '12px 24px',
-            background: canSubmit ? 'var(--color-brand)' : 'var(--color-surface-3)',
-            color: canSubmit ? '#fff' : 'var(--color-ink-4)',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: canSubmit ? 'pointer' : 'default',
-            transition: 'background 0.15s',
-          }}
-        >
-          <Sparkles size={16} />
-          开始校招诊断
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              minHeight: '46px',
+              padding: '12px 24px',
+              background: canSubmit ? 'var(--color-brand)' : 'var(--color-surface-3)',
+              color: canSubmit ? '#fff' : 'var(--color-ink-4)',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: canSubmit ? 'pointer' : 'default',
+              transition: 'background 0.15s',
+            }}
+          >
+            <Sparkles size={16} />
+            开始校招诊断
+          </button>
+          <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>
+            消耗 1 点
+          </span>
+        </div>
       </div>
     </div>
   );
