@@ -4,6 +4,7 @@ import {
   Injectable,
   HttpException,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -21,9 +22,9 @@ export class CreditGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<{ user?: { id?: string } }>();
     const userId = request.user?.id;
-    // 未认证(理论上 JwtAuthGuard 已拦截)→ 不在此处兜底鉴权,放行交由后续。
+    // 未认证:理论上 JwtAuthGuard 已拦截,但防御性兜底——不依赖上游守卫的隐式假设。
     if (!userId) {
-      return true;
+      throw new UnauthorizedException();
     }
 
     const user = await this.userRepo.findOne({

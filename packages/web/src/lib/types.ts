@@ -7,7 +7,6 @@ export interface User {
   // /api/auth/me 一直返回完整实体,role/status 始终存在;此前类型未声明,补齐(向后兼容只增不改)。
   role: 'user' | 'admin';
   status: 'active' | 'banned';
-  daily_quota_override: number | null;
 }
 
 // ─── Auth (两步式登录:邮箱验证码 + 邀请制) ──────────────────────────────
@@ -1340,7 +1339,6 @@ export interface AdminUserRow {
   name: string;
   role: 'user' | 'admin';
   status: 'active' | 'banned';
-  daily_quota_override: number | null;
   created_at: string;
   usage_today: number;
   usage_total: number;

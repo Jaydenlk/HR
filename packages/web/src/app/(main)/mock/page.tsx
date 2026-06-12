@@ -293,7 +293,7 @@ export default function MockPage() {
                   {creating ? '正在生成题目…' : '开始模拟面试'}
                 </button>
                 <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>
-                  本场约消耗 5 点（出题 1 点 + 每题作答 1 点 × 5）
+                  本场约消耗 7 点（出题 1 点 + 每题作答 1 点 × 5 + 总评 1 点）
                 </span>
               </div>
             </div>

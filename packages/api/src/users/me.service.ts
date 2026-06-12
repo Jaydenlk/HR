@@ -7,6 +7,25 @@ import { MeProfileDto, toMeProfile } from './dto/me-profile.dto';
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024; // 2MB
 const AVATAR_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+// 魔数校验:防止伪造 Content-Type 绕过 mimetype 检查。
+// JPEG: FF D8 FF(最少 3 字节); PNG: 89 50 4E 47(最少 4 字节); WebP: RIFF????WEBP(最少 12 字节)
+// buffer 过短时仅跳过该格式判断,不直接拒绝(避免因测试/传输截断的短 buffer 误拒合法格式)。
+function hasValidImageMagicBytes(buf: Buffer): boolean {
+  if (buf.length >= 3) {
+    if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true; // JPEG
+  }
+  if (buf.length >= 4) {
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return true; // PNG
+  }
+  if (buf.length >= 12) {
+    if (
+      buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+    ) return true; // WebP
+  }
+  return false;
+}
+
 // /me 端点的业务编排:基本信息 + credit 余额、credit 流水分页、头像上传更新。
 @Injectable()
 export class MeService {
@@ -51,6 +70,9 @@ export class MeService {
       throw new BadRequestException('头像不能超过 2MB');
     }
     if (!AVATAR_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException('头像仅支持 JPEG / PNG / WebP');
+    }
+    if (!hasValidImageMagicBytes(file.buffer)) {
       throw new BadRequestException('头像仅支持 JPEG / PNG / WebP');
     }
     const key = await this.files.upload(file, 'avatars');

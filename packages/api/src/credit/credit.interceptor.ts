@@ -31,11 +31,18 @@ export class CreditInterceptor implements NestInterceptor {
           if (!userId) {
             return;
           }
-          // 扣点失败不应影响业务响应:仅记录日志,不抛错。
+          // 扣点失败不应影响业务响应:结构化 error 日志,不抛错。
+          // OpsEvents 注入代价超出本模块边界(需扩展 OpsEventType 联合类型),
+          // 故退而求其次用结构化 logger.error 实现账务漏扣可见化。
           this.credit
             .consume(userId, endpoint)
             .catch((err: unknown) =>
-              this.logger.error(`扣减 credit 失败: ${String(err)}`),
+              this.logger.error('CREDIT_CONSUME_FAILED', {
+                event: 'CREDIT_CONSUME_FAILED',
+                userId,
+                endpoint,
+                error: err instanceof Error ? err.message : String(err),
+              }),
             );
         },
       }),

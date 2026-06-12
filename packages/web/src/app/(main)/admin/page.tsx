@@ -166,7 +166,7 @@ export default function AdminPage() {
 
   async function patchUser(
     id: string,
-    body: { status?: 'active' | 'banned'; role?: 'user' | 'admin'; daily_quota_override?: number | null },
+    body: { status?: 'active' | 'banned'; role?: 'user' | 'admin' },
   ) {
     setSavingUser(id);
     setError(null);
@@ -190,14 +190,14 @@ export default function AdminPage() {
     setCharging(true);
     setError(null);
     try {
-      await api.post<{ credit_balance: number }>(`/admin/users/${chargeTarget.id}/credits`, {
+      const { credit_balance } = await api.post<{ credit_balance: number }>(`/admin/users/${chargeTarget.id}/credits`, {
         delta: n,
         ...(chargeNote.trim() ? { note: chargeNote.trim() } : {}),
       });
-      // 行内更新余额，不需要完整 reloadAll
+      // 行内更新余额:使用后端返回的 credit_balance,而非乐观 +n,避免并发漂移
       setUsers((prev) =>
         prev.map((u) =>
-          u.id === chargeTarget.id ? { ...u, credit_balance: u.credit_balance + n } : u,
+          u.id === chargeTarget.id ? { ...u, credit_balance } : u,
         ),
       );
       setChargeTarget(null);

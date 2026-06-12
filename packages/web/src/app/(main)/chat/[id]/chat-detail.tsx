@@ -377,6 +377,7 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
 
       {/* Input */}
       <div style={{ flexShrink: 0 }}>
+        {/* 每次发送消耗 1 点 */}
         <ChatInput onSend={handleSend} loading={sending} />
       </div>
     </div>
