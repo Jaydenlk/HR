@@ -9,14 +9,23 @@ import 'reflect-metadata';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DataSource, DataSourceOptions } from 'typeorm';
-import { User } from './users/entities/user.entity';
-import { SalaryEntry } from './salary/entities/salary-entry.entity';
-import { FeedItem } from './feed/entities/feed-item.entity';
 import type { FeedCategory, FeedSourceKind } from './feed/types/feed.types';
 
 // seed 在 Nest 之外运行,需自行加载 packages/api/.env(与运行期同一份配置源)。
 // dotenv 为可选:生产用进程管理器注入环境变量,无 .env 时静默跳过。
+//
+// 注意:entity import 必须在 dotenv 加载之后通过 require() 延迟引入,
+// 否则 TIMESTAMP_COLUMN_TYPE 在装饰器求值时读不到 DB_TYPE,导致 postgres 下类型错误。
 loadDotenvIfPresent(path.resolve(__dirname, '..', '.env'));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { User } = require('./users/entities/user.entity') as { User: typeof import('./users/entities/user.entity').User };
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { InviteCode } = require('./invites/entities/invite-code.entity') as { InviteCode: typeof import('./invites/entities/invite-code.entity').InviteCode };
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { SalaryEntry } = require('./salary/entities/salary-entry.entity') as { SalaryEntry: typeof import('./salary/entities/salary-entry.entity').SalaryEntry };
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { FeedItem } = require('./feed/entities/feed-item.entity') as { FeedItem: typeof import('./feed/entities/feed-item.entity').FeedItem };
 
 function loadDotenvIfPresent(envPath: string): void {
   try {
@@ -167,6 +176,23 @@ async function seed() {
       status: 'banned', // 占位账号,禁止登录
     });
     console.log('Created system placeholder user');
+  }
+
+  // ── 0. 生产初始邀请码:解锁首个管理员注册(先有鸡先有蛋死锁的根治)。
+  // 仅当 INITIAL_INVITE_CODE 环境变量非空时执行,本机 dev 流程不受影响。
+  const initialCode = process.env.INITIAL_INVITE_CODE?.trim();
+  if (initialCode) {
+    const maxUses = Number(process.env.INITIAL_INVITE_MAX_USES ?? 50);
+    const inviteRepo = ds.getRepository(InviteCode);
+    const existing = await inviteRepo.findOneBy({ code: initialCode });
+    if (existing) {
+      console.log(`Skipping invite seed — code ${initialCode} already exists`);
+    } else {
+      await inviteRepo.save(
+        inviteRepo.create({ code: initialCode, max_uses: maxUses, note: 'production bootstrap' }),
+      );
+      console.log(`Created bootstrap invite code ${initialCode} (max_uses=${maxUses})`);
+    }
   }
 
   // ── 1. Seed salary_entries ───────────────────────────────────────────────

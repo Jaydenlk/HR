@@ -25,10 +25,11 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const isProd = process.env.NODE_ENV === 'production';
 
-  // production 启动硬校验:SMTP_HOST 缺失则验证码发不出去,登录链路直接瘫痪。
+  // production 启动硬校验:邮件三级驱动(RESEND_API_KEY → SMTP_HOST → dev日志),
+  // 两条真实发送通道任一配置即满足;全都缺失则验证码发不出去,登录链路直接瘫痪。
   // 宁可启动即失败(便于运维发现),也不要上线后用户收不到验证码。
-  if (isProd && !process.env.SMTP_HOST) {
-    throw new Error('production 环境必须配置 SMTP_HOST,否则登录验证码无法发送。');
+  if (isProd && !process.env.RESEND_API_KEY && !process.env.SMTP_HOST) {
+    throw new Error('production 环境必须配置 RESEND_API_KEY 或 SMTP_HOST 其中之一,否则登录验证码无法发送。');
   }
 
   // 进程级安全网:未捕获的 promise rejection / 异常会让 Node 直接退出,

@@ -37,9 +37,17 @@ cp .env.production.example .env.production
 - `JWT_SECRET` —— 长随机串,生成:`openssl rand -hex 32`
 - `DB_USER` / `DB_PASS` / `DB_NAME` —— 数据库账号(postgres 容器建库 + API 连库共用)
 - `AI_PRIMARY_API_KEY` —— AI 主通道密钥
-- `SMTP_HOST`(及 `SMTP_PORT/USER/PASS/FROM`)—— 验证码邮件
+- `RESEND_API_KEY` **或** `SMTP_HOST`(及 `SMTP_PORT/USER/PASS/FROM`)—— 验证码邮件,两条通道任一即可;
+  推荐 Resend(HTTPS 443 端口,云厂商封 25/465/587 也不受影响),`SMTP_FROM` 两条通道共用
 - `CORS_ORIGINS` —— 前端来源白名单(同源部署填站点域名,如 `https://coach.example.com`)
 - `DOMAIN` —— 站点域名(留空则 Caddy 走 :80 纯 HTTP)
+
+**试运行运营项**(强烈建议首次部署就填好):
+
+- `ADMIN_EMAILS` —— 你的邮箱;用它登录后自动获得管理员角色与管理后台入口
+- `INITIAL_INVITE_CODE` —— 初始邀请码;**production 不会自动生成任何邀请码**,
+  不配它第一个用户(包括管理员自己)都注册不进来。跑 seed 时创建,上线后可在管理后台增发/停用
+- `DEV_LOGIN` —— 保持 `0`。测试通道严禁出现在公网
 
 > ⚠️ 安全:`.env.production` 含明文密钥。确认它已被 git 忽略(见下方"安全提醒"),
 > 切勿提交到仓库。
@@ -59,7 +67,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 ```bash
 # 在 api 容器内执行数据库 migration(用编译产物 + node,runner 镜像无 pnpm/ts-node)
 docker compose -f docker-compose.prod.yml exec api node_modules/.bin/typeorm -d dist/database/data-source.js migration:run
-# 灌入市场薪资/面经种子数据
+# 灌入市场薪资/面经种子数据 + 初始邀请码(INITIAL_INVITE_CODE 从环境变量读,幂等可重跑)
 docker compose -f docker-compose.prod.yml exec api node dist/seed.js
 ```
 
@@ -79,6 +87,9 @@ docker compose -f docker-compose.prod.yml ps
 ```
 
 浏览器访问 `https://你的域名`(或 `http://服务器IP`)应能打开登录页。
+
+首个账号引导:用 `ADMIN_EMAILS` 里的邮箱走"邮箱验证码 + 邀请码(填 `INITIAL_INVITE_CODE` 的值)"注册,
+登录后侧边栏出现"管理后台"——之后的邀请码都在后台增发,不再依赖环境变量。
 
 ---
 
