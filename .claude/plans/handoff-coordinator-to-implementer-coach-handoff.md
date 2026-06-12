@@ -47,7 +47,7 @@
 
 ## 实施者: Implementer (claude-sonnet-4-6)
 ## 完成时间: 2026-06-13
-## commit: 3dde1f6 (feature/coach-handoff, not pushed)
+## commit: 3dde1f6 (feature/coach-handoff, Phase C 主体) + f97a8ca (Phase C 审计七项修复, not pushed)
 
 ## 验证结果
 
@@ -223,3 +223,27 @@ Coordinator 读本文件即获取完整验证结果。
 ### 服务清理
 
 API (port 3002) 和 Web dev server (port 3001) 测试后已停止。
+
+
+---
+
+## Phase C 审计修复批次 (Implementer 2026-06-13, commit f97a8ca)
+
+### FC 验证结果
+
+- FC1 PASS -- as any x2 全删:sendMessage + streamMessage 路径改为 save();api tsc 0 错
+- FC2 PASS -- MAX_BUFFER=8192 加入 StreamHandoffSplitter.feed();+2 jest 测试,19 tests 全绿
+- FC3 PASS -- resumes/page.tsx 补 ReturnToCoachBanner,对齐 mock/cover-letter 页写法
+- FC4 PASS -- findOneOwned 从 coach-handoffs.service.ts 删除;grep 全源码无引用,tsc 0 错
+- FC5 PASS -- onAccept 失败 toast.error+return,保持确认框可重试
+- FC6 PASS -- isPayloadWithinLimit() 超 4000 字符不建记录;+1 e2e 用例通过
+- FC7 PASS -- 错误路径先 splitter.finish() flush pending 再 yield error;+1 e2e 用例通过
+
+### 最终门禁
+
+- api tsc: 0 errors
+- api jest unit: 332 passed (基线 330 + 2 FC2)
+- api jest e2e: 864 passed (基线 862 + 2 FC6/FC7)
+- web eslint: 0 errors
+- web next build: 成功
+- (注: e2e/coach-handoff-fullchain.spec.ts tsc 报 better-sqlite3 为 QA agent 遗留已知问题)
