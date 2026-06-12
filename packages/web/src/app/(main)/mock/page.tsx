@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { MockSession } from '@/lib/types';
 import { MockSessionCard } from '@/components/mock/mock-session-card';
+import {
+  useHandoffReception,
+  HandoffConfirmDialog,
+  ReturnToCoachBanner,
+} from '@/components/chat/handoff-reception';
 import { Play, X, ExternalLink } from 'lucide-react';
 
 function LoadingSkeleton() {
@@ -46,7 +51,25 @@ interface CompanyCheckResult {
 }
 
 export default function MockPage() {
+  return (
+    <Suspense fallback={null}>
+      <MockPageInner />
+    </Suspense>
+  );
+}
+
+function MockPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const handoffId = searchParams.get('handoff');
+
+  // Handoff 接待
+  const { handoffState, handoffData, onAccept, onDismiss } = useHandoffReception(handoffId);
+  // 完成回流提示
+  const [showReturn, setShowReturn] = useState(false);
+  const activeHandoffId = handoffId;
+  const activeConvId = handoffData?.conversation_id ?? null;
+
   const [sessions, setSessions] = useState<MockSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +77,25 @@ export default function MockPage() {
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<NewSessionForm>({ company: '', role: '', jd_text: '' });
+
+  // handoff 接待:accepted 后预填表单并打开弹窗
+  // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题。
+  const handoffApplied = useRef(false);
+  useEffect(() => {
+    if (handoffState === 'accepted' && handoffData && !handoffApplied.current) {
+      handoffApplied.current = true;
+      const payload = handoffData.payload;
+      setTimeout(() => {
+        setForm({
+          company: String(payload.company ?? ''),
+          role: String(payload.role ?? ''),
+          jd_text: String(payload.jd_text ?? ''),
+        });
+        setDialogOpen(true);
+      }, 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoffState]);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -128,6 +170,10 @@ export default function MockPage() {
       setForm({ company: '', role: '', jd_text: '' });
       setCheckResult(null);
       setCandidateConfirmed(null);
+      // 完成回流:若本次源于 handoff,弹提示后跳到面试页
+      if (activeHandoffId && activeConvId) {
+        setShowReturn(true);
+      }
       router.push(`/mock/${session.id}`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : '创建失败');
@@ -137,6 +183,25 @@ export default function MockPage() {
 
   return (
     <>
+      {/* Coach handoff 确认框 */}
+      {handoffState === 'confirming' && handoffData && (
+        <HandoffConfirmDialog
+          target={handoffData.target}
+          payload={handoffData.payload}
+          onAccept={() => void onAccept()}
+          onDismiss={() => void onDismiss()}
+        />
+      )}
+
+      {/* 完成回流提示 */}
+      {showReturn && activeHandoffId && activeConvId && (
+        <ReturnToCoachBanner
+          conversationId={activeConvId}
+          handoffId={activeHandoffId}
+          onClose={() => setShowReturn(false)}
+        />
+      )}
+
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 0.7; }

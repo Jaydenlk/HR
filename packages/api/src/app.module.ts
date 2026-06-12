@@ -35,6 +35,7 @@ import { CreditModule } from './credit/credit.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { OpsEventsModule } from './ops/ops-events.module';
+import { CoachHandoffsModule } from './coach-handoffs/coach-handoffs.module';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { OpsEventsModule } from './ops/ops-events.module';
     // 运维事件流水:虽已由 AiModule 传递性 import,此处显式挂载提升可读性并保证
     // 非 AI 入口(如 T3 管理后台)也能稳定注入 OpsEventsService。
     OpsEventsModule,
+    CoachHandoffsModule,
   ],
   // 全局限流守卫:与 ThrottlerModule.forRoot 配合,对所有路由生效。
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

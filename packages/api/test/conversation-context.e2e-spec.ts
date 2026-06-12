@@ -7,6 +7,8 @@ import { CoachContextService } from '../src/conversations/coach-context.service'
 import { ChatService } from '../src/conversations/chat.service';
 import { ConcurrencyLimiter } from '../src/ai/concurrency-limiter';
 import { CreditService } from '../src/credit/credit.service';
+import { CoachHandoffsService } from '../src/coach-handoffs/coach-handoffs.service';
+import { CoachHandoff } from '../src/coach-handoffs/entities/coach-handoff.entity';
 import { AiService } from '../src/ai/ai.service';
 import { IntelligenceModule } from '../src/intelligence/intelligence.module';
 
@@ -63,6 +65,7 @@ const ALL_ENTITIES = [
   MockSession,
   CoverLetter,
   CreditTransaction,
+  CoachHandoff,
 ];
 
 describe('ConversationsService context integration', () => {
@@ -95,6 +98,7 @@ describe('ConversationsService context integration', () => {
           Application,
           CoverLetter,
           CreditTransaction,
+          CoachHandoff,
         ]),
         IntelligenceModule,
       ],
@@ -103,6 +107,7 @@ describe('ConversationsService context integration', () => {
         CoachContextService,
         CreditService,
         ConcurrencyLimiter,
+        CoachHandoffsService,
         { provide: ChatService, useValue: { reply: chatReplyMock } },
         // CoachContextService 注入 AiService(按需取数选择器);本套件无产物,选择器不会被调到。
         {

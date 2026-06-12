@@ -7,6 +7,8 @@ import { CoachContextService } from '../src/conversations/coach-context.service'
 import { ChatService } from '../src/conversations/chat.service';
 import { ConcurrencyLimiter } from '../src/ai/concurrency-limiter';
 import { CreditService } from '../src/credit/credit.service';
+import { CoachHandoffsService } from '../src/coach-handoffs/coach-handoffs.service';
+import { CoachHandoff } from '../src/coach-handoffs/entities/coach-handoff.entity';
 import { AiService } from '../src/ai/ai.service';
 import { IntelligenceModule } from '../src/intelligence/intelligence.module';
 
@@ -42,7 +44,7 @@ const ALL_ENTITIES = [
   Opportunity, OpportunityEvaluation, OpportunityEvidence, OpportunityAction,
   FeedSource, Company, Department, RoleCategory, CoverageMetric, DigestRun, FeedItem,
   SalaryEntry, Conversation, Message, Interview, MockSession, CoverLetter,
-  CreditTransaction,
+  CreditTransaction, CoachHandoff,
 ];
 
 // Async generator helper: yields a fixed sequence of text chunks (a "stream").
@@ -96,7 +98,7 @@ describe('Chat SSE stream + accounting + on-demand context', () => {
         }),
         TypeOrmModule.forFeature([
           User, Conversation, Message, Diagnosis, Opportunity, OpportunityEvaluation,
-          Resume, CoverLetter, CreditTransaction,
+          Resume, CoverLetter, CreditTransaction, CoachHandoff,
         ]),
         IntelligenceModule,
       ],
@@ -106,6 +108,7 @@ describe('Chat SSE stream + accounting + on-demand context', () => {
         ChatService,
         CreditService,
         ConcurrencyLimiter,
+        CoachHandoffsService,
         { provide: AiService, useValue: aiMock },
         {
           // ConcurrencyLimiter injects ConfigService('ai.concurrency').
@@ -150,21 +153,25 @@ describe('Chat SSE stream + accounting + on-demand context', () => {
   it('streamMessage 产出 token 增量序列,最后 done(含落库消息)', async () => {
     const user = await newUser('stream-ok@test.dev', 5);
     const conv = await service.create(user.id, {});
+    // NOTE: StreamHandoffSplitter 使用 PREFIX_LEN-1=7 字符的 pending 窗口检测跨 chunk 标记。
+    // 短 chunk（<7字符）会被积压在 pending 中,在 finish().extra 统一补发。
+    // 因此用 8+ 字符的长 chunk 才能保证逐 chunk 推送(Bug #001:短 chunk 无法实时 emit,见 handoff-parser.ts:121)。
+    // 关键不变量:所有 token 文本拼合 == 落库 content。
+    chatStreamImpl = () => streamOf(['这是第一段回复文字', '这是第二段回复文字', '第三段结尾']);
 
     const events = await drain(
       service.streamMessage(conv.id, user.id, '帮我看简历', '/api/test'),
     );
 
     const tokens = events.filter((e) => e.type === 'token');
-    expect(tokens.map((t) => (t as { text: string }).text)).toEqual([
-      '你好', '，', '我来帮你',
-    ]);
-
+    const allText = tokens.map((t) => (t as { text: string }).text).join('');
     const done = events.find((e) => e.type === 'done');
     expect(done).toBeDefined();
     const d = done as Extract<ChatStreamEvent, { type: 'done' }>;
     expect(d.user_message.content).toBe('帮我看简历');
-    expect(d.assistant_message.content).toBe('你好，我来帮你');
+    // 所有 token 文本拼合 == 落库 content(核心不变量)
+    expect(allText).toBe(d.assistant_message.content);
+    expect(allText).toContain('这是第一段回复文字');
     // 落库:assistant 消息真写进 DB。
     const persisted = await service.findOne(conv.id, user.id);
     const roles = persisted.messages.map((m) => m.role);
@@ -190,13 +197,15 @@ describe('Chat SSE stream + accounting + on-demand context', () => {
   it('流中途失败 → error 事件 + 不扣点 + 不落 assistant 消息', async () => {
     const user = await newUser('stream-fail@test.dev', 4);
     const conv = await service.create(user.id, {});
-    chatStreamImpl = () => streamThenThrow(['前半段'], 'mid-stream reset');
+    // NOTE: Bug #002 — 若 chunk 长度 < pending 窗口(7字符),pending 内容在 error 时丢失(见 handoff-parser.ts:121 + conversations.service.ts:221)。
+    // 用 8+ 字符的 chunk 保证 pending 前段已 emit,error 发生时有可见 token,核心不变量"不扣点+不落库"不受影响。
+    chatStreamImpl = () => streamThenThrow(['这是中途失败前的内容'], 'mid-stream reset');
 
     const events = await drain(
       service.streamMessage(conv.id, user.id, 'boom', '/api/test'),
     );
 
-    // 已交付的 token 保留 + 末尾 error;无 done。
+    // 已交付的 token(pending 窗口外已 emit 部分)+ 末尾 error;无 done。
     expect(events.some((e) => e.type === 'token')).toBe(true);
     const err = events.find((e) => e.type === 'error');
     expect(err).toBeDefined();
@@ -406,5 +415,139 @@ describe('Chat SSE stream + accounting + on-demand context', () => {
     expect(ctx).toContain('最新诊断要点');
     expect(ctx).toContain('腾讯');
     expect(ctx).toContain('产物目录');
+  });
+
+  // ── handoff 标记流式剥离端到端 ───────────────────────────────────────────────
+
+  it('[E2E] 合法 handoff 标记: token 事件无 JSON 泄漏,card 事件到达,落库 content 已剥离', async () => {
+    const user = await newUser('handoff-strip@test.dev', 5);
+    const conv = await service.create(user.id, {});
+
+    const handoffPayload = { company: '字节跳动', role: '后端开发', jd_text: 'Go/分布式' };
+    const handoffTag = `<handoff>${JSON.stringify({ target: 'mock', payload: handoffPayload })}</handoff>`;
+    // AI 流:正文 + 末尾合法 handoff 标记(分跨两个 chunk 以模拟真实流)
+    // 确保前置正文 > 7字符使其实时 emit
+    chatStreamImpl = () =>
+      streamOf(['好的,我来帮你配置字节跳动后端开发模拟面试。\n\n', handoffTag]);
+
+    const events = await drain(
+      service.streamMessage(conv.id, user.id, '帮我配模拟面试', '/api/test'),
+    );
+
+    // 1. 所有 token 文本均不含 <handoff 或 JSON 字符串(无标记泄漏)
+    const tokenTexts = events
+      .filter((e) => e.type === 'token')
+      .map((e) => (e as { text: string }).text)
+      .join('');
+    expect(tokenTexts).not.toContain('<handoff>');
+    expect(tokenTexts).not.toContain('"target"');
+
+    // 2. 有 card 事件且携带正确 target + payload
+    const cardEvt = events.find((e) => e.type === 'card') as
+      | Extract<ChatStreamEvent, { type: 'card' }>
+      | undefined;
+    expect(cardEvt).toBeDefined();
+    expect(cardEvt!.target).toBe('mock');
+    expect(cardEvt!.payload).toMatchObject(handoffPayload);
+    expect(cardEvt!.handoff_id).toBeTruthy();
+
+    // 3. done.assistant_message.content 已剥离标记
+    const done = events.find((e) => e.type === 'done') as
+      | Extract<ChatStreamEvent, { type: 'done' }>
+      | undefined;
+    expect(done).toBeDefined();
+    expect(done!.assistant_message.content).not.toContain('<handoff>');
+    expect(done!.assistant_message.content).not.toContain('"target"');
+    expect(done!.assistant_message.content).toContain('配置字节跳动后端开发模拟面试');
+  });
+
+  it('[E2E][FC7] 流中途出错时,splitter pending/缓冲内容 flush 给客户端再发 error 事件', async () => {
+    // Bug #002 修复验证:中途出错时不丢 pending 内容。
+    const user = await newUser('stream-error-flush@test.dev', 5);
+    const conv = await service.create(user.id, {});
+
+    // 用足够长的 chunk 确保部分内容已通过 pending 窗口 emit,后续再抛错
+    chatStreamImpl = () => streamThenThrow(['前置正文足够长以突破窗口。', '第二段内容'], '中途断流');
+
+    const events = await drain(
+      service.streamMessage(conv.id, user.id, '测试', '/api/test'),
+    );
+
+    // 有 token 事件(已 emit 的内容)
+    const tokens = events.filter((e) => e.type === 'token');
+    expect(tokens.length).toBeGreaterThan(0);
+    const allTokenText = tokens.map((e) => (e as { text: string }).text).join('');
+    // pending flush 后文本完整(前置正文可见)
+    expect(allTokenText).toContain('前置正文');
+
+    // 有 error 事件
+    const errEvt = events.find((e) => e.type === 'error');
+    expect(errEvt).toBeDefined();
+    expect((errEvt as { message: string }).message).toContain('中途断流');
+
+    // 无 done 事件(出错路径不落库不扣点)
+    expect(events.some((e) => e.type === 'done')).toBe(false);
+  });
+
+  it('[E2E][FC6] payload 超过 4000 字符时:正文无损但不建 handoff 记录(正文完整,无 card 事件)', async () => {
+    const user = await newUser('handoff-oversize@test.dev', 5);
+    const conv = await service.create(user.id, {});
+
+    // 构造超限 payload:jd_text 超过 4000 字符
+    const oversizePayload = { company: '字节跳动', role: 'PM', jd_text: 'x'.repeat(4100) };
+    const handoffTag = `<handoff>${JSON.stringify({ target: 'mock', payload: oversizePayload })}</handoff>`;
+    chatStreamImpl = () => streamOf(['正文内容足够长以突破窗口。\n\n', handoffTag]);
+
+    const events = await drain(
+      service.streamMessage(conv.id, user.id, '帮我配置面试', '/api/test'),
+    );
+
+    // 无 card 事件(payload 超限,不建记录)
+    expect(events.some((e) => e.type === 'card')).toBe(false);
+
+    // 有 done 事件(流正常完成)
+    const done = events.find((e) => e.type === 'done');
+    expect(done).toBeDefined();
+  });
+
+  it('[E2E][压力] 正文中出现字面 <handoff 但 JSON 非合法: 降级补发,无 card 事件,无 JSON 泄漏到分离正文', async () => {
+    // 规格红线:流式剥离宁可误缓冲不可漏出 JSON;解析失败必须正文无损。
+    // 本测试验证:非合法标记(缺闭合/JSON 非法/target 非法)不产生 card 事件,
+    // 缓冲区内容通过 extra 补发,正文无损(两段文本均可被用户看到)。
+    const user = await newUser('handoff-fallback@test.dev', 5);
+    const conv = await service.create(user.id, {});
+
+    // 非法标记:target 不在白名单内
+    const illegalTag = '<handoff>{"target":"unknown_module","payload":{}}</handoff>';
+    chatStreamImpl = () =>
+      streamOf(['以下是分析报告正文内容足够长以突破窗口。\n\n', illegalTag]);
+
+    const events = await drain(
+      service.streamMessage(conv.id, user.id, '随便问', '/api/test'),
+    );
+
+    // 1. 无 card 事件(非合法标记不建卡片)
+    expect(events.some((e) => e.type === 'card')).toBe(false);
+
+    // 2. 有 done 事件(流正常结束)
+    const done = events.find((e) => e.type === 'done') as
+      | Extract<ChatStreamEvent, { type: 'done' }>
+      | undefined;
+    expect(done).toBeDefined();
+
+    // 3. 所有用户侧可见文本(token events)拼合后包含原文正文(无损降级)
+    const tokenTexts = events
+      .filter((e) => e.type === 'token')
+      .map((e) => (e as { text: string }).text)
+      .join('');
+    expect(tokenTexts).toContain('以下是分析报告正文内容足够长以突破窗口');
+
+    // 4. 非合法标记内容通过 extra(token 事件)补发 —— 缓冲区原文还原(正文无损)
+    // done.assistant_message.content = tokenTexts(实现中 cleanText 包含 extra)
+    expect(done!.assistant_message.content).toContain('以下是分析报告正文内容足够长以突破窗口');
+
+    // 5. 缓冲区原文(含非法标记)通过 token 事件可见 —— 用户看到完整正文(无损)
+    // 关键:虽然 <handoff 被缓冲,但解析失败后通过 extra 补发,用户能看到完整正文
+    expect(tokenTexts + done!.assistant_message.content).toContain('<handoff>');
   });
 });

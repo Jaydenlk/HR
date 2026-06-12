@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { Conversation, ChatMessage } from '@/lib/types';
 import { MessageBubble } from '@/components/chat/message-bubble';
+import { HandoffCard } from '@/components/chat/handoff-card';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ArrowLeft } from 'lucide-react';
 
@@ -135,6 +136,10 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
   const [streamingText, setStreamingText] = useState('');
   // 排队提示:进入生成前若有积压,显示「前面还有 x 个请求」。
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  // 本轮流式产生的 card 事件(done 后将被 assistant_message.rich_card 覆盖)。
+  const [streamingCard, setStreamingCard] = useState<{
+    handoff_id: string; target: string; payload: Record<string, unknown>;
+  } | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
@@ -211,6 +216,7 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
     setSending(true);
     setStreamingText('');
     setQueuePosition(null);
+    setStreamingCard(null);
     setError(null);
 
     // 浏览器不支持 ReadableStream → 直接走非流式降级。
@@ -244,6 +250,12 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
           setQueuePosition(null);
           acc += evt.text;
           setStreamingText(acc);
+        } else if (evt.type === 'card') {
+          setStreamingCard({
+            handoff_id: evt.handoff_id,
+            target: evt.target,
+            payload: evt.payload,
+          });
         } else if (evt.type === 'done') {
           done = true;
           setMessages((prev) => {
@@ -251,6 +263,7 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
             return [...withoutOptimistic, evt.user_message, evt.assistant_message];
           });
           setStreamingText('');
+          setStreamingCard(null);
           setQueuePosition(null);
           refreshCredit();
         } else if (evt.type === 'error') {
@@ -313,6 +326,7 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
       if (mountedRef.current) {
         setStreamingText('');
         setQueuePosition(null);
+        setStreamingCard(null);
         setSending(false);
       }
     }
@@ -538,7 +552,21 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
           )}
 
           {/* 流式增量:本轮 assistant 正在生成的文本(带光标动效) */}
-          {streamingText && <StreamingBubble text={streamingText} />}
+          {streamingText && (
+            <div>
+              <StreamingBubble text={streamingText} />
+              {/* 行动卡片:card 事件到达后在流式气泡下方立即渲染 */}
+              {streamingCard && (
+                <div style={{ marginLeft: '44px' }}>
+                  <HandoffCard
+                    handoffId={streamingCard.handoff_id}
+                    target={streamingCard.target}
+                    payload={streamingCard.payload}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 首 token 前显示打字指示器;有增量后由 StreamingBubble 接管 */}
           {sending && !streamingText && queuePosition === null && <TypingIndicator />}
