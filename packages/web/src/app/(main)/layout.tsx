@@ -173,7 +173,36 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       refreshCreditBalance();
     }
     window.addEventListener('coach:insufficient-credit', onInsufficientCredit);
-    return () => window.removeEventListener('coach:insufficient-credit', onInsufficientCredit);
+
+    // 余额刷新:AI 成功扣点后(如流式聊天完成)广播,侧边栏拉取最新余额。
+    function onCreditRefresh() {
+      refreshCreditBalance();
+    }
+    window.addEventListener('coach:credit-refresh', onCreditRefresh);
+
+    // 全局排队提示:任一 AI 请求排队时弹轻提示「前面还有 x 个请求」,完成即消。
+    // 用固定 toast id,排位变化就地更新、不堆叠;clear 时 dismiss。
+    const QUEUE_TOAST_ID = 'ai-queue';
+    function onQueue(e: Event) {
+      const position = (e as CustomEvent<{ position: number }>).detail?.position ?? 0;
+      if (position > 0) {
+        toast.loading(`当前使用人数较多，正在排队，前面还有 ${position} 个请求`, {
+          id: QUEUE_TOAST_ID,
+        });
+      }
+    }
+    function onQueueClear() {
+      toast.dismiss(QUEUE_TOAST_ID);
+    }
+    window.addEventListener('coach:ai-queue', onQueue);
+    window.addEventListener('coach:ai-queue-clear', onQueueClear);
+
+    return () => {
+      window.removeEventListener('coach:insufficient-credit', onInsufficientCredit);
+      window.removeEventListener('coach:credit-refresh', onCreditRefresh);
+      window.removeEventListener('coach:ai-queue', onQueue);
+      window.removeEventListener('coach:ai-queue-clear', onQueueClear);
+    };
   }, []);
 
   // Close sidebar on route change (mobile)

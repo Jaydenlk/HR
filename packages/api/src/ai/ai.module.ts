@@ -11,6 +11,6 @@ import { OpsEventsModule } from '../ops/ops-events.module';
   imports: [OpsEventsModule],
   controllers: [AiController],
   providers: [ConcurrencyLimiter, AiService, ParserService, AnalyzerService, RewriterService],
-  exports: [AiService, ParserService, AnalyzerService, RewriterService],
+  exports: [AiService, ParserService, AnalyzerService, RewriterService, ConcurrencyLimiter],
 })
 export class AiModule {}

@@ -9,7 +9,21 @@ import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evalu
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { ChatService } from './chat.service';
 import { CoachContextService } from './coach-context.service';
+import { ConcurrencyLimiter } from '../ai/concurrency-limiter';
+import { CreditService } from '../credit/credit.service';
 import type { RewriteSuggestion } from '../common/types';
+
+// SSE 事件:queue 排位变化 / token 增量 / done 完成(含落库 message + 余额)/ error 可读错误。
+export type ChatStreamEvent =
+  | { type: 'queue'; position: number }
+  | { type: 'token'; text: string }
+  | {
+      type: 'done';
+      user_message: Message;
+      assistant_message: Message;
+      credit_balance: number | null;
+    }
+  | { type: 'error'; message: string };
 
 @Injectable()
 export class ConversationsService {
@@ -26,6 +40,8 @@ export class ConversationsService {
     private readonly evalRepo: Repository<OpportunityEvaluation>,
     private readonly chat: ChatService,
     private readonly coachContext: CoachContextService,
+    private readonly limiter: ConcurrencyLimiter,
+    private readonly credit: CreditService,
   ) {}
 
   async create(userId: string, dto: CreateConversationDto): Promise<Conversation> {
@@ -115,27 +131,146 @@ export class ConversationsService {
   ): Promise<{ user_message: Message; assistant_message: Message }> {
     // Verify ownership and load messages
     const conv = await this.findOne(convId, userId);
+    const history = conv.messages;
 
     // Save user message
-    const userMsg = await this.msgRepo.save(
+    const userMsg = await this.persistUserMessage(convId, content);
+
+    // Assemble context (binding + platform data + on-demand product full-text)
+    const context = await this.buildBoundContext(conv, userId);
+    const userContext = await this.buildUserContext(userId, content);
+
+    // Get AI reply (non-streaming path — kept for clients that don't use SSE)
+    const replyText = await this.chat.reply(history, content, context, userContext);
+
+    // Save assistant message
+    const assistantMsg = await this.persistAssistantMessage(convId, replyText);
+
+    await this.finalizeConversation(conv, history, content);
+
+    return { user_message: userMsg, assistant_message: assistantMsg };
+  }
+
+  /**
+   * 流式回复(SSE)。先推 queue 排位事件 → token 增量 → done(落库 + 余额);任一步报错推 error。
+   * 记账时机:仅在流正常完成(done)后扣 1 点;首 token 前/中途失败一律不扣(与 CreditInterceptor
+   * 「成功才扣」语义对齐)。余额校验由 CreditGuard 前置,本方法只在成功路径调 credit.consume。
+   */
+  async *streamMessage(
+    convId: string,
+    userId: string,
+    content: string,
+    endpoint: string,
+  ): AsyncGenerator<ChatStreamEvent, void, void> {
+    const conv = await this.findOne(convId, userId);
+    const history = conv.messages;
+    const userMsg = await this.persistUserMessage(convId, content);
+
+    // 排队可见化:进入生成前,若并发已满有积压,先推当前排位(前面还有几个请求)。
+    // chat() 内部会真正占槽并排队;此处给前端一个进入生成前的初始排位提示。
+    const backlog = this.limiter.status();
+    if (backlog.queued > 0) {
+      yield { type: 'queue', position: backlog.queued };
+    }
+
+    let context: { type: string; data: string } | undefined;
+    let userContext: string;
+    try {
+      context = await this.buildBoundContext(conv, userId);
+      userContext = await this.buildUserContext(userId, content);
+    } catch (err) {
+      yield { type: 'error', message: this.readableError(err) };
+      return;
+    }
+
+    let reply = '';
+    try {
+      for await (const chunk of this.chat.stream(
+        history,
+        content,
+        context,
+        userContext,
+      )) {
+        reply += chunk;
+        yield { type: 'token', text: chunk };
+      }
+    } catch (err) {
+      // 流失败:不落 assistant 消息、不扣点。user 消息已落库(用户能看到自己发了什么)。
+      yield { type: 'error', message: this.readableError(err) };
+      return;
+    }
+
+    // 流正常完成:落 assistant 消息 → 收尾会话 → 扣 1 点 → 推 done(含落库消息 + 新余额)。
+    const assistantMsg = await this.persistAssistantMessage(convId, reply);
+    await this.finalizeConversation(conv, history, content);
+
+    let creditBalance: number | null = null;
+    try {
+      creditBalance = await this.credit.consume(userId, endpoint);
+    } catch {
+      // 扣点失败不回滚已生成内容(与非流式拦截器一致:漏扣可见化交日志/对账,不阻断用户)。
+      creditBalance = null;
+    }
+
+    yield {
+      type: 'done',
+      user_message: userMsg,
+      assistant_message: assistantMsg,
+      credit_balance: creditBalance,
+    };
+  }
+
+  // ── Shared helpers ────────────────────────────────────────────────────────
+
+  private async persistUserMessage(
+    convId: string,
+    content: string,
+  ): Promise<Message> {
+    return this.msgRepo.save(
       this.msgRepo.create({
         conversation_id: convId,
         role: 'user',
         content,
       } as Partial<Message>),
-    ) as Message;
+    ) as Promise<Message>;
+  }
 
-    // Build history (all messages before this one)
-    const history = conv.messages;
+  private async persistAssistantMessage(
+    convId: string,
+    content: string,
+  ): Promise<Message> {
+    return this.msgRepo.save(
+      this.msgRepo.create({
+        conversation_id: convId,
+        role: 'assistant',
+        content,
+      } as Partial<Message>),
+    ) as Promise<Message>;
+  }
 
-    // Build context from diagnosis or opportunity if available
-    let context: { type: string; data: string } | undefined;
+  private async finalizeConversation(
+    conv: Conversation,
+    history: Message[],
+    content: string,
+  ): Promise<void> {
+    if (!conv.title && history.length === 0) {
+      const shortTitle = content.length > 30 ? content.slice(0, 30) + '…' : content;
+      await this.convRepo.update(conv.id, { title: shortTitle });
+    }
+    await this.convRepo.update(conv.id, { updated_at: new Date() });
+  }
+
+  // 绑定上下文:会话绑定的 diagnosis / opportunity 记录摘要(供 system prompt 的 context 段)。
+  private async buildBoundContext(
+    conv: Conversation,
+    userId: string,
+  ): Promise<{ type: string; data: string } | undefined> {
     if (conv.context_type === 'diagnosis' && conv.context_id) {
       const diagnosis = await this.diagnosisRepo.findOne({
         where: { id: conv.context_id, user_id: userId },
       });
       if (diagnosis) {
-        context = {
+        return {
           type: '简历诊断结果',
           data: `公司: ${diagnosis.jd_company || '未知'}\n岗位: ${diagnosis.jd_role || '未知'}\n匹配分: ${diagnosis.score}/100\n命中关键词: ${(diagnosis.keywords_hit || []).join(', ')}\n缺失关键词: ${(diagnosis.keywords_miss || []).join(', ')}\n改写建议: ${(diagnosis.suggestions || []).map((s: RewriteSuggestion) => s.reason).join('; ')}`,
         };
@@ -149,7 +284,7 @@ export class ConversationsService {
           where: { opportunity_id: conv.context_id },
           order: { created_at: 'DESC' },
         });
-        context = {
+        return {
           type: '机会评估结果',
           data: `公司: ${opp.company || '未知'}\n岗位: ${opp.role || '未知'}\n` +
             (eval_
@@ -158,32 +293,28 @@ export class ConversationsService {
         };
       }
     }
+    return undefined;
+  }
 
-    // Build user context from platform data
-    const userContext = await this.coachContext.buildContext(userId);
+  // 平台数据上下文 = 开场上下文(画像+主简历全文+最新诊断+产物目录)+ 本轮按需加载的旧产物全文。
+  private async buildUserContext(
+    userId: string,
+    content: string,
+  ): Promise<string> {
+    const [opening, referenced] = await Promise.all([
+      this.coachContext.buildContext(userId),
+      this.coachContext.loadReferencedProducts(userId, content),
+    ]);
+    return referenced ? `${opening}\n\n${referenced}` : opening;
+  }
 
-    // Get AI reply
-    const replyText = await this.chat.reply(history, content, context, userContext);
-
-    // Save assistant message
-    const assistantMsg = await this.msgRepo.save(
-      this.msgRepo.create({
-        conversation_id: convId,
-        role: 'assistant',
-        content: replyText,
-      } as Partial<Message>),
-    ) as Message;
-
-    // Auto-title from first user message
-    if (!conv.title && history.length === 0) {
-      const shortTitle = content.length > 30 ? content.slice(0, 30) + '…' : content;
-      await this.convRepo.update(convId, { title: shortTitle });
+  private readableError(err: unknown): string {
+    // ServiceUnavailableException 等 Nest 异常的 message 已是中文可读串;其余兜底通用提示。
+    if (err && typeof err === 'object' && 'message' in err) {
+      const m = (err as { message: unknown }).message;
+      if (typeof m === 'string' && m.length > 0) return m;
     }
-
-    // Touch updated_at
-    await this.convRepo.update(convId, { updated_at: new Date() });
-
-    return { user_message: userMsg, assistant_message: assistantMsg };
+    return 'AI 服务暂时不可用，请稍后重试。';
   }
 
   async remove(id: string, userId: string): Promise<void> {

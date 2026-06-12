@@ -1,9 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { ConversationsService } from '../src/conversations/conversations.service';
 import { CoachContextService } from '../src/conversations/coach-context.service';
 import { ChatService } from '../src/conversations/chat.service';
+import { ConcurrencyLimiter } from '../src/ai/concurrency-limiter';
+import { CreditService } from '../src/credit/credit.service';
+import { AiService } from '../src/ai/ai.service';
 import { IntelligenceModule } from '../src/intelligence/intelligence.module';
 
 // All entities (copied from evidence.e2e-spec.ts — TypeORM needs the full graph)
@@ -31,6 +35,7 @@ import { Message } from '../src/conversations/entities/message.entity';
 import { Interview } from '../src/interviews/entities/interview.entity';
 import { MockSession } from '../src/mock/entities/mock-session.entity';
 import { CoverLetter } from '../src/cover-letters/entities/cover-letter.entity';
+import { CreditTransaction } from '../src/credit/entities/credit-transaction.entity';
 
 const ALL_ENTITIES = [
   User,
@@ -57,6 +62,7 @@ const ALL_ENTITIES = [
   Interview,
   MockSession,
   CoverLetter,
+  CreditTransaction,
 ];
 
 describe('ConversationsService context integration', () => {
@@ -87,13 +93,27 @@ describe('ConversationsService context integration', () => {
           OpportunityEvaluation,
           Resume,
           Application,
+          CoverLetter,
+          CreditTransaction,
         ]),
         IntelligenceModule,
       ],
       providers: [
         ConversationsService,
         CoachContextService,
+        CreditService,
+        ConcurrencyLimiter,
         { provide: ChatService, useValue: { reply: chatReplyMock } },
+        // CoachContextService 注入 AiService(按需取数选择器);本套件无产物,选择器不会被调到。
+        {
+          provide: AiService,
+          useValue: { completeStructured: jest.fn().mockResolvedValue({ need: [] }) },
+        },
+        // ConcurrencyLimiter 注入 ConfigService('ai.concurrency')。
+        {
+          provide: ConfigService,
+          useValue: { get: () => ({ max: 2, queue: 8 }) },
+        },
       ],
     }).compile();
 
