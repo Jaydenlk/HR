@@ -1,7 +1,8 @@
 # Handoff: Coordinator → Implementer (B2 对话教练体验:行为骨架+流式+排队前端)
 
-## 状态: 待 B1 合 dev 后启动(协调者届时建 worktree 并填路径)
-## 工作目录: 【派工时填写】
+## 状态: READY_FOR_IMPL(B1 已合 dev @2da4eb9:AiService.chat 多轮流式/tier 档位/runObservable 排位订阅/GET /ai/queue-status 全部就绪)
+## 工作目录: E:\Agent program\HRBP-wt\chat-experience(git worktree,分支 feature/chat-experience)
+## ⚠️ B1 重要情报: deepseek-v4-pro 是思考模型,流式先吐大量 thinking(已被 AiService 过滤不外吐),pro 档 maxTokens 必须给足(≥4096,勿调小否则全耗在思考首字不来);排位订阅用 ConcurrencyLimiter.runObservable,详见 ai/concurrency-limiter.ts 与 handoff-coordinator-to-implementer-ai-foundation.md 遗留节
 ## 前置依赖: B1 已提供 AiService.chat(messages+tier+流式)、ConcurrencyLimiter 队列状态/排位订阅、GET /ai/queue-status
 ## 输入文件: packages/api/src/conversations/**、packages/api/src/intelligence/evidence.service.ts(只读复用)、packages/web/src/app/(main)/chat/**、packages/web/src/components/chat/**、packages/web/src/lib/api.ts
 ## 禁止触碰: ai/**(只调用不修改)、credit/**、mock/**、feed/**、.env 入库
