@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import { MobileGate } from '@/components/ui/mobile-gate';
 import './globals.css';
 
 // 全站正文/标题主字体:Plus Jakarta Sans(变量字体,自托管,无外网请求)。
@@ -22,7 +23,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className={`${jakarta.variable} h-full`}>
-      <body className="h-full antialiased">{children}</body>
+      <body className="h-full antialiased">
+        {/* 移动端访问拦截:视口 <768px 时全屏覆盖拦截,详见组件内注释 */}
+        <MobileGate />
+        {children}
+      </body>
     </html>
   );
 }

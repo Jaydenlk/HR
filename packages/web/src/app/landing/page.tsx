@@ -3,11 +3,12 @@ import Link from 'next/link';
 // ── Coach Landing Page ─────────────────────────────────────────────────────
 // Apple-disciplined, single brand color, generous whitespace.
 // Static marketing content — no API calls.
+// 诚实化原则:页面上只允许两类内容——
+//   1. 源自代码/README 的真实能力描述(90 职业 × 双难度档、三道护栏、盲评结果等);
+//   2. 明确标注「演示 / 示例」的界面示意。
+// 禁止出现任何虚构的用户数、提分数、岗位数、用户评价。
 
 export default function LandingPage() {
-  const R = 26;
-  const C = 2 * Math.PI * R;
-
   return (
     <div
       style={{
@@ -68,7 +69,7 @@ export default function LandingPage() {
           <span>Coach</span>
         </div>
 
-        {/* Nav links */}
+        {/* Nav links — 指向页面真实区块,不放虚构入口 */}
         <div
           style={{
             display: 'flex',
@@ -78,11 +79,15 @@ export default function LandingPage() {
             fontWeight: 500,
           }}
         >
-          <span style={{ cursor: 'default' }}>能力</span>
-          <span style={{ cursor: 'default' }}>面经库</span>
-          <span style={{ cursor: 'default' }}>校友故事</span>
-          <span style={{ cursor: 'default' }}>定价</span>
-          <span style={{ cursor: 'default' }}>下载</span>
+          <a href="#steps" style={{ color: '#424245', textDecoration: 'none' }}>
+            三步上手
+          </a>
+          <a href="#guardrails" style={{ color: '#424245', textDecoration: 'none' }}>
+            防编造护栏
+          </a>
+          <a href="#features" style={{ color: '#424245', textDecoration: 'none' }}>
+            能力全景
+          </a>
         </div>
 
         {/* Right: login + CTA */}
@@ -138,7 +143,7 @@ export default function LandingPage() {
       >
         {/* Left */}
         <div>
-          {/* Tag */}
+          {/* Tag — 公测口径,不放虚构用户数 */}
           <div
             style={{
               display: 'inline-flex',
@@ -163,7 +168,7 @@ export default function LandingPage() {
                 flexShrink: 0,
               }}
             />
-            <span>已陪 12,408 位同学走完秋招</span>
+            <span>公测进行中 · 邀请码制 · 试运行期免费</span>
           </div>
 
           {/* H1 */}
@@ -182,7 +187,7 @@ export default function LandingPage() {
             整个<span style={{ color: '#0a84ff' }}>秋招。</span>
           </h1>
 
-          {/* Subtitle */}
+          {/* Subtitle — 一句话讲清产品 */}
           <p
             style={{
               marginTop: '24px',
@@ -193,12 +198,12 @@ export default function LandingPage() {
               fontWeight: 500,
             }}
           >
-            不是简历模板，不是题库 —— 是一个真的 AI 教练。
+            给校招生的 AI 求职教练：诊断简历、改写表达、陪跑求职
             <br />
-            每天告诉你做什么，每场面试帮你复盘。
+            —— 句句有据，绝不编造。
           </p>
 
-          {/* CTA buttons */}
+          {/* CTA buttons — 全部指向 /login */}
           <div
             style={{
               display: 'flex',
@@ -258,26 +263,42 @@ export default function LandingPage() {
               }}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle
-                  cx="7"
-                  cy="7"
-                  r="6"
+                <rect
+                  x="2"
+                  y="5"
+                  width="10"
+                  height="7"
+                  rx="1.5"
                   stroke="currentColor"
                   strokeWidth="1.4"
                 />
                 <path
-                  d="M5.5 5.2l4 1.8-4 1.8V5.2z"
-                  fill="currentColor"
+                  d="M4.5 5V3.8a2.5 2.5 0 015 0V5"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
                 />
               </svg>
-              <span>看 30 秒</span>
+              <span>已有邀请码？登录</span>
             </Link>
           </div>
 
-          {/* Meta line */}
+          {/* 邀请码说明 — 紧贴 CTA */}
           <div
             style={{
-              marginTop: '24px',
+              marginTop: '14px',
+              fontSize: '12.5px',
+              color: '#6e6e73',
+              fontWeight: 500,
+            }}
+          >
+            公测邀请码制 —— 还没有邀请码？试运行期间向我们索取。
+          </div>
+
+          {/* Meta line — 只放可兑现的承诺 */}
+          <div
+            style={{
+              marginTop: '20px',
               fontSize: '12.5px',
               color: '#6e6e73',
               fontWeight: 500,
@@ -286,6 +307,18 @@ export default function LandingPage() {
               alignItems: 'center',
             }}
           >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path
+                  d="M6 1l1.2 3.6H11l-3 2.2 1.1 3.5L6 8.1l-3.1 2.2 1.1-3.5L1 4.6h3.8L6 1z"
+                  stroke="currentColor"
+                  strokeWidth="1.1"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span>句句有据 · 信息不足就承认</span>
+            </span>
+            <span>·</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <rect
@@ -304,24 +337,12 @@ export default function LandingPage() {
                   strokeLinecap="round"
                 />
               </svg>
-              <span>对话端到端加密</span>
-            </span>
-            <span>·</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path
-                  d="M6 1l1.2 3.6H11l-3 2.2 1.1 3.5L6 8.1l-3.1 2.2 1.1-3.5L1 4.6h3.8L6 1z"
-                  stroke="currentColor"
-                  strokeWidth="1.1"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span>免费 5 次诊断 / 周</span>
+              <span>试运行期免费 · 配额防滥用</span>
             </span>
           </div>
         </div>
 
-        {/* Right: Hero Card */}
+        {/* Right: Hero Card — 明确标注「演示对话」,展示拒绝编造的产品人设 */}
         <div
           style={{
             background: '#1d1d1f',
@@ -359,7 +380,7 @@ export default function LandingPage() {
               zIndex: 2,
             }}
           >
-            Coach · 进行中 · 5月23日 14:22
+            Coach · 演示对话
           </div>
 
           {/* Conversation */}
@@ -395,7 +416,7 @@ export default function LandingPage() {
                   fontWeight: 500,
                 }}
               >
-                今天投了 0 份简历，我是不是该休息一下？
+                这段项目经历太平了，数据帮我写好看点行吗？
               </div>
             </div>
 
@@ -445,7 +466,7 @@ export default function LandingPage() {
                   backdropFilter: 'blur(8px)',
                 }}
               >
-                可以。你已经连续 17 天打卡，过去 3 周节奏很稳。今天就 1 件事：跑完 STAR ch.2 ——周一终面有用。
+                不行。你原文里没有的数字，我不会替你编。但你已有的经历可以说得更有分量——补上口径和你负责的部分，每一句都能在你的简历里找到出处。
               </div>
             </div>
 
@@ -470,7 +491,7 @@ export default function LandingPage() {
                   fontWeight: 500,
                 }}
               >
-                好。明早再补投递。
+                行，那就按真实的改。
               </div>
             </div>
           </div>
@@ -486,12 +507,12 @@ export default function LandingPage() {
               zIndex: 2,
             }}
           >
-            — 像真的有人在陪你
+            — 演示对话 · 真实产品里，编造会被代码护栏直接拦下
           </div>
         </div>
       </section>
 
-      {/* ── STATS STRIP ───────────────────────────────────────────────── */}
+      {/* ── BETA STRIP — 公测口径,定性表述,不放虚构指标 ─────────────────── */}
       <div
         style={{
           padding: '0 56px 32px',
@@ -501,14 +522,10 @@ export default function LandingPage() {
         }}
       >
         {[
-          {
-            value: '12,408',
-            accent: '↑ 8%',
-            label: '校招用户 · 本周',
-          },
-          { value: '+24', accent: '分', label: '简历平均提分' },
-          { value: '8.4', unit: 'min', label: '平均复盘时长' },
-          { value: '3,802', label: '24h 新增岗位' },
+          { value: '公测进行中', label: '邀请码制 · 试运行期免费' },
+          { value: '句句有据', label: '拒绝编造 · 信息不足就承认' },
+          { value: '90 × 2', label: '职业预设 × 校招难度档' },
+          { value: '三道护栏', label: '编造在产出前被代码拦下' },
         ].map((s, i) => (
           <div
             key={i}
@@ -520,7 +537,7 @@ export default function LandingPage() {
           >
             <div
               style={{
-                fontSize: '34px',
+                fontSize: '26px',
                 fontWeight: 700,
                 letterSpacing: '-0.025em',
                 lineHeight: 1,
@@ -528,30 +545,6 @@ export default function LandingPage() {
               }}
             >
               {s.value}
-              {s.accent && (
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    marginLeft: '6px',
-                    color: '#34c759',
-                  }}
-                >
-                  {s.accent}
-                </span>
-              )}
-              {s.unit && (
-                <span
-                  style={{
-                    fontSize: '13px',
-                    color: '#6e6e73',
-                    fontWeight: 600,
-                    marginLeft: '4px',
-                  }}
-                >
-                  {s.unit}
-                </span>
-              )}
             </div>
             <div
               style={{
@@ -567,8 +560,353 @@ export default function LandingPage() {
         ))}
       </div>
 
+      {/* ── 三步上手 ──────────────────────────────────────────────────── */}
+      <section id="steps" style={{ padding: '64px 56px 24px', scrollMarginTop: '72px' }}>
+        <div
+          style={{
+            marginBottom: '32px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: '24px',
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 'clamp(32px, 4vw, 48px)',
+              fontWeight: 800,
+              letterSpacing: '-0.035em',
+              lineHeight: 1.05,
+              maxWidth: '18ch',
+            }}
+          >
+            三步上手。
+          </h2>
+          <div
+            style={{
+              fontSize: '15px',
+              color: '#424245',
+              maxWidth: '36ch',
+              lineHeight: 1.55,
+              fontWeight: 500,
+            }}
+          >
+            不需要学习成本 —— 传一份简历，剩下的它带你走。
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '14px',
+          }}
+        >
+          {[
+            {
+              step: '1',
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M13 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V3a1 1 0 00-1-1z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                  />
+                  <path
+                    d="M5 6h6M5 9h4"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ),
+              title: '传简历',
+              desc: '上传或粘贴你的简历，建立版本档案 —— 之后每一次改写都可回溯、可回滚。',
+            },
+            {
+              step: '2',
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M8 2l1.4 4.2H14l-3.5 2.6 1.3 4-3.8-2.7L4 12.8l1.3-4L1.8 6.2H6.6L8 2z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ),
+              title: '跑校招诊断',
+              desc: '选目标职业，按 90 职业 × 双难度档的校招标尺逐维评分 —— 每个判断都给理由和证据。',
+            },
+            {
+              step: '3',
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M2 8h12M9 3l5 5-5 5"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ),
+              title: '按建议改 + 陪跑投递',
+              desc: '逐条 before / after 改写，然后投递看板、模拟面试、复盘一路陪跑到 offer。',
+            },
+          ].map((s, i) => (
+            <div
+              key={i}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e5e5e7',
+                borderRadius: '20px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: '#f5f5f7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#424245',
+                    border: '1px solid #e5e5e7',
+                  }}
+                >
+                  {s.icon}
+                </div>
+                <span
+                  style={{
+                    fontFamily: '"JetBrains Mono",ui-monospace,monospace',
+                    fontSize: '12px',
+                    color: '#a1a1a6',
+                    fontWeight: 600,
+                  }}
+                >
+                  0{s.step}
+                </span>
+              </div>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.015em',
+                }}
+              >
+                {s.title}
+              </h3>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '13.5px',
+                  color: '#6e6e73',
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                }}
+              >
+                {s.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 三道防编造护栏 — 差异化卖点 ───────────────────────────────── */}
+      <section id="guardrails" style={{ padding: '40px 56px 24px', scrollMarginTop: '72px' }}>
+        <div
+          style={{
+            background: '#1d1d1f',
+            color: '#fff',
+            borderRadius: '28px',
+            padding: '40px',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Ambient gradient */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background:
+                'radial-gradient(700px 360px at 85% -10%,rgba(10,132,255,.22),transparent 60%)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              gap: '24px',
+              marginBottom: '28px',
+              position: 'relative',
+              zIndex: 2,
+            }}
+          >
+            <h2
+              style={{
+                margin: 0,
+                fontSize: 'clamp(28px, 3.6vw, 44px)',
+                fontWeight: 800,
+                letterSpacing: '-0.035em',
+                lineHeight: 1.08,
+                maxWidth: '20ch',
+                color: '#fff',
+              }}
+            >
+              别的工具帮你写得更像真的，
+              <br />
+              Coach 把编造<span style={{ color: '#0a84ff' }}>拦下来。</span>
+            </h2>
+            <div
+              style={{
+                fontSize: '13.5px',
+                color: 'rgba(255,255,255,0.6)',
+                maxWidth: '32ch',
+                lineHeight: 1.55,
+                fontWeight: 500,
+              }}
+            >
+              三道确定性护栏 —— 不靠 AI 自觉，靠代码硬拦。
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '14px',
+              position: 'relative',
+              zIndex: 2,
+            }}
+          >
+            {[
+              {
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+                    <path
+                      d="M8 5v3l2 1.2"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ),
+                title: '时间线勾稽',
+                desc: '「实习早于入学」「项目结束比开始还早」这类 HR 一眼出局的硬伤，由纯代码扫描简历原文抓出，写进报告最显眼处。',
+              },
+              {
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M6 2L4.5 14M11.5 2L10 14M2.5 5.5h11M2 10.5h11"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ),
+                title: '可疑数字禁背书',
+                desc: '没有基数和口径的「增长 200%」不会被夸「数据扎实」—— 相关评分直接压制，改写建议教你补上分母，而不是帮你圆谎。',
+              },
+              {
+                icon: (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M8 1.5l5.5 2v4c0 3.4-2.3 5.9-5.5 7-3.2-1.1-5.5-3.6-5.5-7v-4l5.5-2z"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M5.5 8l1.8 1.8L10.8 6"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ),
+                title: '防编造溯源',
+                desc: '改写产出里新增的任何数字、经历，必须能在你的原文里找到出处 —— 找不到，就拦下不发。',
+              },
+            ].map((g, i) => (
+              <div
+                key={i}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '16px',
+                  padding: '22px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'rgba(255,255,255,0.85)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                  }}
+                >
+                  {g.icon}
+                </div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '16px',
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em',
+                    color: '#fff',
+                  }}
+                >
+                  {g.title}
+                </h3>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '13px',
+                    color: 'rgba(255,255,255,0.65)',
+                    lineHeight: 1.55,
+                    fontWeight: 500,
+                  }}
+                >
+                  {g.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── PILLARS — 四个视角 ────────────────────────────────────────── */}
-      <section style={{ padding: '64px 56px 24px' }}>
+      <section style={{ padding: '40px 56px 24px' }}>
         {/* Heading */}
         <div
           style={{
@@ -667,7 +1005,7 @@ export default function LandingPage() {
             >
               今天
               <br />
-              该做哪 5 件事？
+              该做什么？
             </h3>
             <p
               style={{
@@ -680,10 +1018,10 @@ export default function LandingPage() {
                 zIndex: 2,
               }}
             >
-              每天清晨自动生成 5 步，覆盖投递、练习、复盘、学习。做完今天的就可以休息。
+              今日任务把投递、练习、复盘排成一张清单 —— 做完今天的就可以休息。
             </p>
 
-            {/* Today preview list */}
+            {/* Today 示例清单 — 演示界面,非真实用户数据 */}
             <div
               style={{
                 marginTop: 'auto',
@@ -695,11 +1033,11 @@ export default function LandingPage() {
               }}
             >
               {[
-                { done: true, text: '腾讯算法 · 二叉树 #8', dur: '20m' },
-                { done: true, text: '字节客户端实习 · 投递', dur: '15m' },
-                { done: false, text: '美团二面 · 录音转写复盘', dur: '10m' },
-                { done: false, text: 'STAR 法则 ch.2', dur: '25m' },
-                { done: false, text: '简历 · 项目栏目润色', dur: '30m' },
+                { done: true, text: '目标岗位 JD 解析', dur: '15m' },
+                { done: true, text: '简历针对岗位逐条改写', dur: '30m' },
+                { done: false, text: '模拟面试 · 一轮', dur: '20m' },
+                { done: false, text: '昨天一面 · 复盘录入', dur: '10m' },
+                { done: false, text: '投递看板 · 状态更新', dur: '5m' },
               ].map((row, i) => (
                 <div
                   key={i}
@@ -758,6 +1096,16 @@ export default function LandingPage() {
                   </span>
                 </div>
               ))}
+              <div
+                style={{
+                  fontSize: '10.5px',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontWeight: 500,
+                  marginTop: '4px',
+                }}
+              >
+                示例清单 · 实际任务由你的进度生成
+              </div>
             </div>
           </div>
 
@@ -796,9 +1144,9 @@ export default function LandingPage() {
                 color: '#1d1d1f',
               }}
             >
-              面经
+              求职月刊
               <br />
-              每天更新
+              定期整理
             </h3>
             <p
               style={{
@@ -808,58 +1156,8 @@ export default function LandingPage() {
                 fontWeight: 500,
               }}
             >
-              叫月刊，更新是实时的。编辑部 + 校友 + Coach 整理。
+              行业风向、招聘节奏与求职方法，整理成可读的月刊雷达 —— 时效信息联网检索并标注来源。
             </p>
-            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {[
-                {
-                  timeLabel: '🔥 2h ago',
-                  co: '字节',
-                  title: '字节二面 5 道题 + 一个 Tech Lead 陷阱',
-                  hot: true,
-                },
-                {
-                  timeLabel: '5h ago',
-                  co: '拼多多',
-                  title: 'PDD 校招前端 base 38–46k，但有个 catch',
-                  hot: false,
-                },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '3px',
-                    padding: '11px 0',
-                    borderTop: i === 0 ? 'none' : '1px solid #e5e5e7',
-                    paddingTop: i === 0 ? 0 : '11px',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '10.5px',
-                      fontWeight: 600,
-                      color: '#6e6e73',
-                      letterSpacing: '0.02em',
-                    }}
-                  >
-                    <span style={{ color: '#ff3b30' }}>{item.timeLabel}</span>
-                    {' · '}{item.co}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      color: '#1d1d1f',
-                      fontWeight: 600,
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    {item.title}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* C — Interview */}
@@ -909,97 +1207,8 @@ export default function LandingPage() {
                 fontWeight: 500,
               }}
             >
-              录音 → 转写 → 逐题评估 → 预测下一轮。
+              记录 → 转写 → 逐题评估 → 预测下一轮。
             </p>
-            {/* Interview preview */}
-            <div
-              style={{
-                marginTop: 'auto',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-              }}
-            >
-              <div
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '14px',
-                  background: '#f5f5f7',
-                  color: '#1d1d1f',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '28px',
-                  fontWeight: 800,
-                  letterSpacing: '-0.03em',
-                  border: '1px solid #e5e5e7',
-                  flexShrink: 0,
-                }}
-              >
-                B+
-              </div>
-              <div>
-                <b
-                  style={{
-                    display: 'block',
-                    fontSize: '13.5px',
-                    fontWeight: 600,
-                    color: '#1d1d1f',
-                  }}
-                >
-                  美团 · 前端二面
-                </b>
-                <span
-                  style={{
-                    fontSize: '11.5px',
-                    color: '#6e6e73',
-                    fontWeight: 500,
-                  }}
-                >
-                  昨天 16:00 · 62 min
-                </span>
-                {/* Progress bars */}
-                <div
-                  style={{
-                    marginTop: '7px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '3px',
-                    width: '80px',
-                  }}
-                >
-                  {[
-                    { width: '86%', color: '#1d1d1f' },
-                    { width: '78%', color: '#34c759' },
-                    { width: '42%', color: '#ff3b30' },
-                  ].map((bar, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        height: '4px',
-                        background: '#eeeef0',
-                        borderRadius: '2px',
-                        position: 'relative',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: 0,
-                          top: 0,
-                          height: '100%',
-                          width: bar.width,
-                          background: bar.color,
-                          borderRadius: '2px',
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* D — Resume */}
@@ -1100,274 +1309,232 @@ export default function LandingPage() {
                 fontWeight: 500,
               }}
             >
-              funnel · 薪资 · 市场温度 · 能力盘点。
+              投递 funnel · 薪资对标 · 能力盘点。
             </p>
-            {/* Overview ring preview */}
-            <div
-              style={{
-                marginTop: 'auto',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-              }}
-            >
-              <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
-                <svg width="64" height="64" viewBox="0 0 64 64">
-                  <circle
-                    cx="32"
-                    cy="32"
-                    r={R}
-                    fill="none"
-                    stroke="#eeeef0"
-                    strokeWidth="5"
-                  />
-                  <circle
-                    cx="32"
-                    cy="32"
-                    r={R}
-                    fill="none"
-                    stroke="#1d1d1f"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    strokeDasharray={C}
-                    strokeDashoffset={C * (1 - 0.73)}
-                    transform="rotate(-90 32 32)"
-                  />
-                </svg>
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '18px',
-                    fontWeight: 800,
-                    letterSpacing: '-0.02em',
-                    color: '#1d1d1f',
-                  }}
-                >
-                  P73
-                </div>
-              </div>
-              <div>
-                <b
-                  style={{
-                    display: 'block',
-                    fontSize: '13.5px',
-                    fontWeight: 600,
-                    color: '#1d1d1f',
-                  }}
-                >
-                  同校排名
-                </b>
-                <span
-                  style={{
-                    fontSize: '11.5px',
-                    color: '#6e6e73',
-                    fontWeight: 500,
-                  }}
-                >
-                  2026 届 前端
-                </span>
-                <span
-                  style={{
-                    fontFamily: '"JetBrains Mono",ui-monospace,monospace',
-                    fontSize: '11px',
-                    color: '#34c759',
-                    fontWeight: 600,
-                    marginTop: '3px',
-                    display: 'block',
-                  }}
-                >
-                  ↑ 12 位 / 月
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
       {/* ── FEATURES GRID ─────────────────────────────────────────────── */}
       <section
+        id="features"
         style={{
           padding: '0 56px 24px',
           marginTop: '14px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '12px',
+          scrollMarginTop: '72px',
         }}
       >
-        {[
-          {
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M8 2l1.4 4.2H14l-3.5 2.6 1.3 4-3.8-2.7L4 12.8l1.3-4L1.8 6.2H6.6L8 2z"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            ),
-            title: '简历馆',
-            desc: '逐条改写、关键词匹配 —— 一份简历一个岗位。',
-            slash: '/diagnose',
-          },
-          {
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
-                <path d="M6.5 5.8l4 2.2-4 2.2V5.8z" fill="currentColor" />
-              </svg>
-            ),
-            title: '模拟面试',
-            desc: '岗位定制题 · 语音 / 文字 · 自动评分。',
-            slash: '/mock',
-          },
-          {
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
-                <path
-                  d="M8 5v3l2 1.2"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            ),
-            title: '薪资雷达',
-            desc: '1,247 条真实 offer · 同岗对比。',
-            slash: '/salary',
-          },
-          {
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M13 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V3a1 1 0 00-1-1z"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                />
-                <path
-                  d="M5 6h6M5 9h4"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            ),
-            title: '求职信',
-            desc: '三种语气、一键定制。',
-            slash: '/cover',
-          },
-          {
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <rect
-                  x="2"
-                  y="2"
-                  width="12"
-                  height="12"
-                  rx="2"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                />
-                <path
-                  d="M5 8h6M5 5h6M5 11h4"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            ),
-            title: '投递追踪',
-            desc: '看板 · 节点提醒 · funnel 复盘。',
-            slash: '/track',
-          },
-          {
-            icon: (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
-                <path
-                  d="M8 1.5V8l3.5 2"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            ),
-            title: '职业地图',
-            desc: '技能盘点 · 三年路径 · 校友参考。',
-            slash: '/career',
-          },
-        ].map((tile, i) => (
-          <div
-            key={i}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            gap: '24px',
+            marginBottom: '20px',
+          }}
+        >
+          <h3
             style={{
-              background: '#ffffff',
-              border: '1px solid #e5e5e7',
-              borderRadius: '16px',
-              padding: '20px 22px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
+              margin: 0,
+              fontSize: 'clamp(24px, 3vw, 36px)',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.1,
             }}
           >
-            <div
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '10px',
-                background: '#f5f5f7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#424245',
-                border: '1px solid #e5e5e7',
-              }}
-            >
-              {tile.icon}
-            </div>
-            <h4
-              style={{
-                margin: 0,
-                fontSize: '15.5px',
-                fontWeight: 600,
-                letterSpacing: '-0.005em',
-              }}
-            >
-              {tile.title}
-            </h4>
-            <p
-              style={{
-                margin: 0,
-                fontSize: '12.5px',
-                color: '#6e6e73',
-                lineHeight: 1.5,
-                fontWeight: 500,
-              }}
-            >
-              {tile.desc}
-            </p>
-            <span
-              style={{
-                marginTop: 'auto',
-                paddingTop: '6px',
-                fontFamily: '"JetBrains Mono",ui-monospace,monospace',
-                fontSize: '10.5px',
-                color: '#a1a1a6',
-                fontWeight: 500,
-                letterSpacing: '0.02em',
-              }}
-            >
-              {tile.slash}
-            </span>
+            能力全景。
+          </h3>
+          <div
+            style={{
+              fontSize: '13px',
+              color: '#6e6e73',
+              fontWeight: 500,
+              maxWidth: '40ch',
+              textAlign: 'right',
+            }}
+          >
+            机会评估 · 行业趋势 · 学习路线 · 面试准备…… 登录后都在侧栏里。
           </div>
-        ))}
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '12px',
+          }}
+        >
+          {[
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M8 2l1.4 4.2H14l-3.5 2.6 1.3 4-3.8-2.7L4 12.8l1.3-4L1.8 6.2H6.6L8 2z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ),
+              title: '简历馆',
+              desc: '版本管理 · 一键采纳改写 · 历史回滚。',
+              slash: '/resumes',
+            },
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+                  <path d="M6.5 5.8l4 2.2-4 2.2V5.8z" fill="currentColor" />
+                </svg>
+              ),
+              title: '模拟面试',
+              desc: 'JD 定制题目 · AI 实时打分与反馈。',
+              slash: '/mock',
+            },
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+                  <path
+                    d="M8 5v3l2 1.2"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ),
+              title: '薪资对标',
+              desc: '校招薪资参考基准 · 同岗横向对比。',
+              slash: '/salary',
+            },
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M13 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V3a1 1 0 00-1-1z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                  />
+                  <path
+                    d="M5 6h6M5 9h4"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ),
+              title: '求职信 + 内推',
+              desc: '基于 JD 针对性撰写 · 三种语气可选。',
+              slash: '/cover-letter',
+            },
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <rect
+                    x="2"
+                    y="2"
+                    width="12"
+                    height="12"
+                    rx="2"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                  />
+                  <path
+                    d="M5 8h6M5 5h6M5 11h4"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ),
+              title: '投递追踪',
+              desc: '六阶段看板 · 事件时间线 · 投递策略。',
+              slash: '/applications',
+            },
+            {
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
+                  <path
+                    d="M8 1.5V8l3.5 2"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ),
+              title: '职业地图',
+              desc: '技能盘点 · 三年路径建议。',
+              slash: '/career',
+            },
+          ].map((tile, i) => (
+            <div
+              key={i}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e5e5e7',
+                borderRadius: '16px',
+                padding: '20px 22px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: '#f5f5f7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#424245',
+                  border: '1px solid #e5e5e7',
+                }}
+              >
+                {tile.icon}
+              </div>
+              <h4
+                style={{
+                  margin: 0,
+                  fontSize: '15.5px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.005em',
+                }}
+              >
+                {tile.title}
+              </h4>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '12.5px',
+                  color: '#6e6e73',
+                  lineHeight: 1.5,
+                  fontWeight: 500,
+                }}
+              >
+                {tile.desc}
+              </p>
+              <span
+                style={{
+                  marginTop: 'auto',
+                  paddingTop: '6px',
+                  fontFamily: '"JetBrains Mono",ui-monospace,monospace',
+                  fontSize: '10.5px',
+                  color: '#a1a1a6',
+                  fontWeight: 500,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {tile.slash}
+              </span>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* ── SOCIAL PROOF ──────────────────────────────────────────────── */}
+      {/* ── QUALITY — 真实盲评结果,替代虚构用户评价 ───────────────────── */}
       <section
         style={{
           margin: '48px 56px 0',
@@ -1394,7 +1561,7 @@ export default function LandingPage() {
               maxWidth: '22ch',
             }}
           >
-            不止我们说好用 —— 校友说也好用。
+            质量是验出来的，不是宣称的。
           </h3>
           <div
             style={{
@@ -1405,7 +1572,7 @@ export default function LandingPage() {
               textAlign: 'right',
             }}
           >
-            来自已签 offer 的 2026 届校友 · 已脱敏
+            发布前的真实验收记录 · 不放虚构用户评价
           </div>
         </div>
 
@@ -1418,18 +1585,14 @@ export default function LandingPage() {
         >
           {[
             {
-              quote:
-                '「整整一个月没投出一份简历。后来才明白，问题不是公司挑剔，是我自己看不上自己 —— Coach 帮我看见这一点。」',
-              initial: '张',
-              name: '张同学',
-              meta: '北京交大 · 字节前端 offer',
+              title: '33 份混合简历盲评',
+              desc: '含 5 份故意埋雷的陷阱卷、3 份真实被招聘方拒掉的卷子。「零编造 / 弱简历 100% 诚实 / 陷阱不上当 / 好简历也要指出剩余风险」四条硬杠全部通过。',
+              meta: '防编造能力 · 发布前盲评',
             },
             {
-              quote:
-                '「美团二面前一晚我跑了一次 Coach 模拟，第二天面试官问的 5 道题里有 3 道一样。主线问得心里有底。」',
-              initial: '小',
-              name: '陈小雨',
-              meta: '复旦 · 美团数据 offer',
+              title: '两轮全站逐按钮走查',
+              desc: '每个按钮、每条流程人工走一遍，P0 / P1 缺陷全部闭环 —— 上线前先把自己挑剔一遍，而不是等你来踩坑。',
+              meta: '工程质量 · 发布前验收',
             },
           ].map((card, i) => (
             <div
@@ -1441,59 +1604,39 @@ export default function LandingPage() {
                 padding: '28px 30px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '22px',
+                gap: '14px',
               }}
             >
               <div
                 style={{
                   fontSize: '18px',
-                  lineHeight: 1.45,
+                  fontWeight: 700,
+                  letterSpacing: '-0.015em',
                   color: '#1d1d1f',
-                  fontWeight: 500,
-                  letterSpacing: '-0.005em',
                 }}
               >
-                {card.quote}
+                {card.title}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: '#f5f5f7',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    color: '#1d1d1f',
-                    fontSize: '14px',
-                    flexShrink: 0,
-                  }}
-                >
-                  {card.initial}
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontSize: '13.5px',
-                      fontWeight: 600,
-                      letterSpacing: '-0.003em',
-                    }}
-                  >
-                    {card.name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '11.5px',
-                      color: '#6e6e73',
-                      fontWeight: 500,
-                      marginTop: '1px',
-                    }}
-                  >
-                    {card.meta}
-                  </div>
-                </div>
+              <div
+                style={{
+                  fontSize: '14.5px',
+                  lineHeight: 1.55,
+                  color: '#424245',
+                  fontWeight: 500,
+                }}
+              >
+                {card.desc}
+              </div>
+              <div
+                style={{
+                  marginTop: 'auto',
+                  fontSize: '11.5px',
+                  color: '#6e6e73',
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                }}
+              >
+                {card.meta}
               </div>
             </div>
           ))}
@@ -1516,9 +1659,9 @@ export default function LandingPage() {
             lineHeight: 1.05,
           }}
         >
-          把今天的 5 步，
+          先传一份简历，
           <br />
-          <span style={{ color: '#0a84ff' }}>先走完。</span>
+          <span style={{ color: '#0a84ff' }}>听它说真话。</span>
         </h2>
         <p
           style={{
@@ -1528,7 +1671,7 @@ export default function LandingPage() {
             fontWeight: 500,
           }}
         >
-          剩下的 38 天，慢慢来。
+          公测进行中 · 邀请码制 · 试运行期免费
         </p>
 
         <div
@@ -1564,7 +1707,7 @@ export default function LandingPage() {
                 strokeLinejoin="round"
               />
             </svg>
-            <span>免费开始 · 微信扫码</span>
+            <span>免费开始</span>
           </Link>
           <Link
             href="/login"
@@ -1584,11 +1727,36 @@ export default function LandingPage() {
             }}
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.4" />
-              <path d="M5.5 5.2l4 1.8-4 1.8V5.2z" fill="currentColor" />
+              <rect
+                x="2"
+                y="5"
+                width="10"
+                height="7"
+                rx="1.5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+              />
+              <path
+                d="M4.5 5V3.8a2.5 2.5 0 015 0V5"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
             </svg>
-            <span>看 30 秒介绍</span>
+            <span>已有邀请码？登录</span>
           </Link>
+        </div>
+
+        {/* 邀请码说明 — 紧贴 CTA */}
+        <div
+          style={{
+            marginTop: '14px',
+            fontSize: '12.5px',
+            color: '#6e6e73',
+            fontWeight: 500,
+          }}
+        >
+          公测邀请码制 —— 还没有邀请码？试运行期间向我们索取。
         </div>
 
         <div
@@ -1603,9 +1771,9 @@ export default function LandingPage() {
             flexWrap: 'wrap',
           }}
         >
-          <span>已陪 12,408 位同学走完秋招</span>
-          <span>对话端到端加密 · 不用于训练</span>
-          <span>Coach v4</span>
+          <span>句句有据 · 拒绝编造</span>
+          <span>试运行期免费 · 配额防滥用</span>
+          <span>Coach 公测版</span>
         </div>
       </section>
     </div>

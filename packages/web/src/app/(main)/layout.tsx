@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Toaster } from '@/components/ui/sonner';
+import OnboardingTour from '@/components/onboarding/onboarding-tour';
 import { api } from '@/lib/api';
 import type { User, Conversation, Interview, Application } from '@/lib/types';
 import {
@@ -40,11 +41,13 @@ interface NavItem {
   icon: React.ReactNode;
   badge?: string;
   dot?: boolean;
+  /** 新手导览锚点:渲染为 data-tour 属性,供 OnboardingTour 聚光灯定位 */
+  tourId?: string;
 }
 
 function buildMainNav(interviewCount: number): NavItem[] {
   return [
-    { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true },
+    { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true, tourId: 'today' },
     { id: 'monthly', label: '月刊·面经', href: '/newspaper', icon: <BookOpen size={16} /> },
     {
       id: 'debrief',
@@ -73,8 +76,8 @@ function buildToolNav(applicationCount: number): ToolNav {
   };
   return {
     core: [
-      { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} /> },
-      { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} /> },
+      { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} />, tourId: 'resumes' },
+      { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} />, tourId: 'campus' },
       { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
       tracker,
       { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
@@ -325,6 +328,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         {/* CTA — "问 Coach" */}
         <Link
           href="/chat"
+          data-tour="chat"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -354,6 +358,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             <Link
               key={item.id}
               href={item.href}
+              data-tour={item.tourId}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -423,6 +428,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.id}
                 href={item.href}
+                data-tour={item.tourId}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -688,7 +694,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               fontWeight: 500,
             }}
           >
-            Coach v 4
+            Coach 公测版
           </span>
           <button
             type="button"
@@ -736,6 +742,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       >
         {children}
       </main>
+
+      {/* 新手导览:首次使用聚光灯引导,仅桌面端渲染(完成标记在 localStorage) */}
+      {!isMobile && <OnboardingTour />}
 
       {/* 全站 toast 出口:写操作成功 toast.success / 失败 toast.error。 */}
       <Toaster position="top-center" richColors closeButton />
