@@ -1,10 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { CoverLetter, CoverLetterTone } from '@/lib/types';
 import { RefreshCw, Copy, FileText, Loader2, Plus } from 'lucide-react';
 import { ReferralPanel } from './_referral';
+import {
+  useHandoffReception,
+  HandoffConfirmDialog,
+  ReturnToCoachBanner,
+} from '@/components/chat/handoff-reception';
 
 // ─── Top-level tab ────────────────────────────────────────────────────────────
 
@@ -47,6 +53,13 @@ function formatRelativeTime(dateStr: string): string {
 // ─── Cover-letter tab content ─────────────────────────────────────────────────
 
 function CoverLetterTab() {
+  const searchParams = useSearchParams();
+  const handoffId = searchParams.get('handoff');
+  const { handoffState, handoffData, onAccept, onDismiss } = useHandoffReception(handoffId);
+  const [showReturn, setShowReturn] = useState(false);
+  const activeHandoffId = handoffId;
+  const activeConvId = handoffData?.conversation_id ?? null;
+
   const [letters, setLetters] = useState<CoverLetter[]>([]);
   const [currentLetter, setCurrentLetter] = useState<CoverLetter | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +73,25 @@ function CoverLetterTab() {
   const [tone, setTone] = useState<CoverLetterTone>('warm');
   const [lengthWords, setLengthWords] = useState(350);
   const [jdText, setJdText] = useState('');
+
+  // handoff 接待:accepted 后预填字段。
+  // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题。
+  const prevHandoffAccepted = useRef(false);
+  useEffect(() => {
+    if (handoffState === 'accepted' && handoffData && !prevHandoffAccepted.current) {
+      prevHandoffAccepted.current = true;
+      const payload = handoffData.payload;
+      setTimeout(() => {
+        if (payload.company) setCompany(String(payload.company));
+        if (payload.role) setRole(String(payload.role));
+        if (payload.tone && ['professional', 'warm', 'direct'].includes(String(payload.tone))) {
+          setTone(payload.tone as CoverLetterTone);
+        }
+        if (payload.jd_text) setJdText(String(payload.jd_text));
+      }, 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoffState]);
 
   useEffect(() => {
     (async () => {
@@ -101,6 +133,9 @@ function CoverLetterTab() {
       });
       setCurrentLetter(letter);
       setLetters((prev) => [letter, ...prev]);
+      if (activeHandoffId && activeConvId) {
+        setShowReturn(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '生成失败');
     } finally {
@@ -172,6 +207,22 @@ function CoverLetterTab() {
   };
 
   return (
+    <>
+      {handoffState === 'confirming' && handoffData && (
+        <HandoffConfirmDialog
+          target={handoffData.target}
+          payload={handoffData.payload}
+          onAccept={() => void onAccept()}
+          onDismiss={() => void onDismiss()}
+        />
+      )}
+      {showReturn && activeHandoffId && activeConvId && (
+        <ReturnToCoachBanner
+          conversationId={activeConvId}
+          handoffId={activeHandoffId}
+          onClose={() => setShowReturn(false)}
+        />
+      )}
     <div
       style={{
         display: 'flex',
@@ -626,6 +677,7 @@ function CoverLetterTab() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -739,7 +791,9 @@ export default function CoverLetterPage() {
 
       {/* Tab content — #52: render both tabs, hide inactive with display:none to preserve state */}
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: activeTab === 'cover-letter' ? 'block' : 'none' }}>
-        <CoverLetterTab />
+        <Suspense fallback={null}>
+          <CoverLetterTab />
+        </Suspense>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: activeTab === 'referral' ? 'block' : 'none' }}>
         <ReferralPanel />

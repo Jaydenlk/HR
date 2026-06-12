@@ -11,9 +11,12 @@ import { ChatService } from './chat.service';
 import { CoachContextService } from './coach-context.service';
 import { ConcurrencyLimiter } from '../ai/concurrency-limiter';
 import { CreditService } from '../credit/credit.service';
+import { CoachHandoffsService } from '../coach-handoffs/coach-handoffs.service';
+import { parseHandoff, StreamHandoffSplitter } from './handoff-parser';
 import type { RewriteSuggestion } from '../common/types';
 
-// SSE 事件:queue 排位变化 / token 增量 / done 完成(含落库 message + 余额)/ error 可读错误。
+// SSE 事件:queue 排位变化 / token 增量 / done 完成(含落库 message + 余额)/ error 可读错误
+//           / card 行动卡片(含 handoff id + target + payload 摘要)。
 export type ChatStreamEvent =
   | { type: 'queue'; position: number }
   | { type: 'token'; text: string }
@@ -23,7 +26,14 @@ export type ChatStreamEvent =
       assistant_message: Message;
       credit_balance: number | null;
     }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | {
+      type: 'card';
+      handoff_id: string;
+      target: string;
+      payload: Record<string, unknown>;
+      message_id: string;
+    };
 
 @Injectable()
 export class ConversationsService {
@@ -42,6 +52,7 @@ export class ConversationsService {
     private readonly coachContext: CoachContextService,
     private readonly limiter: ConcurrencyLimiter,
     private readonly credit: CreditService,
+    private readonly handoffs: CoachHandoffsService,
   ) {}
 
   async create(userId: string, dto: CreateConversationDto): Promise<Conversation> {
@@ -66,9 +77,6 @@ export class ConversationsService {
     contextId: string,
     userId: string,
   ): Promise<void> {
-    // context_id only carries meaning for diagnosis/opportunity bindings; any
-    // other context_type with a context_id — or a record not owned by the
-    // caller — leaves `owned` null and is rejected by the single guard below.
     let owned: { id: string } | null = null;
     if (contextType === 'diagnosis') {
       owned = await this.diagnosisRepo.findOne({
@@ -91,7 +99,6 @@ export class ConversationsService {
     });
     if (convs.length === 0) return convs;
 
-    // 为每条会话附加最新一条消息预览,避免列表显示「暂无消息」。
     const convIds = convs.map((c) => c.id);
     const lastMsgs = await this.msgRepo
       .createQueryBuilder('msg')
@@ -99,7 +106,6 @@ export class ConversationsService {
       .orderBy('msg.created_at', 'DESC')
       .getMany();
 
-    // 按 conversation_id 取第一条(已按 DESC 排序,第一个即最新)。
     const latestByConv = new Map<string, Message>();
     for (const msg of lastMsgs) {
       if (!latestByConv.has(msg.conversation_id)) {
@@ -129,22 +135,34 @@ export class ConversationsService {
     userId: string,
     content: string,
   ): Promise<{ user_message: Message; assistant_message: Message }> {
-    // Verify ownership and load messages
     const conv = await this.findOne(convId, userId);
     const history = conv.messages;
-
-    // Save user message
     const userMsg = await this.persistUserMessage(convId, content);
 
-    // Assemble context (binding + platform data + on-demand product full-text)
     const context = await this.buildBoundContext(conv, userId);
     const userContext = await this.buildUserContext(userId, content);
 
-    // Get AI reply (non-streaming path — kept for clients that don't use SSE)
-    const replyText = await this.chat.reply(history, content, context, userContext);
+    const rawReply = await this.chat.reply(history, content, context, userContext);
 
-    // Save assistant message
-    const assistantMsg = await this.persistAssistantMessage(convId, replyText);
+    // 非流式路径同样剥离标记(同一 parseHandoff 函数)。
+    const { clean, card } = parseHandoff(rawReply);
+    let richCard: Record<string, unknown> | null = null;
+
+    const assistantMsg = await this.persistAssistantMessage(convId, clean, richCard);
+
+    if (card) {
+      const handoff = await this.handoffs.create({
+        user_id: userId,
+        conversation_id: convId,
+        message_id: assistantMsg.id,
+        target: card.target,
+        payload: card.payload,
+      });
+      richCard = { handoff_id: handoff.id, target: card.target, payload: card.payload };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await this.msgRepo.update(assistantMsg.id, { rich_card: richCard as any });
+      assistantMsg.rich_card = richCard;
+    }
 
     await this.finalizeConversation(conv, history, content);
 
@@ -152,9 +170,11 @@ export class ConversationsService {
   }
 
   /**
-   * 流式回复(SSE)。先推 queue 排位事件 → token 增量 → done(落库 + 余额);任一步报错推 error。
-   * 记账时机:仅在流正常完成(done)后扣 1 点;首 token 前/中途失败一律不扣(与 CreditInterceptor
-   * 「成功才扣」语义对齐)。余额校验由 CreditGuard 前置,本方法只在成功路径调 credit.consume。
+   * 流式回复(SSE)。先推 queue 排位事件 → token 增量 → [card 行动卡片] → done(落库 + 余额)。
+   * 流式剥离:检测到 <handoff 起始即停止向客户端转发增量并入缓冲;流结束解析缓冲:
+   *   合法 → 建 coach_handoffs 记录 + 写 rich_card + SSE 推 card 事件;
+   *   非法 → 把缓冲文本原样补发(正文无损降级)。
+   * 存库的 message content 已剥离标记。
    */
   async *streamMessage(
     convId: string,
@@ -167,8 +187,6 @@ export class ConversationsService {
     const history = conv.messages;
     const userMsg = await this.persistUserMessage(convId, content);
 
-    // 排队可见化:进入生成前,若并发已满有积压,先推当前排位(前面还有几个请求)。
-    // chat() 内部会真正占槽并排队;此处给前端一个进入生成前的初始排位提示。
     const backlog = this.limiter.status();
     if (backlog.queued > 0) {
       yield { type: 'queue', position: backlog.queued };
@@ -184,7 +202,8 @@ export class ConversationsService {
       return;
     }
 
-    let reply = '';
+    const splitter = new StreamHandoffSplitter();
+    let cleanText = ''; // 已确认无标记的正文增量(剥离前)
     try {
       for await (const chunk of this.chat.stream(
         history,
@@ -193,24 +212,64 @@ export class ConversationsService {
         userContext,
         signal,
       )) {
-        reply += chunk;
-        yield { type: 'token', text: chunk };
+        const emit = splitter.feed(chunk);
+        if (emit) {
+          cleanText += emit;
+          yield { type: 'token', text: emit };
+        }
       }
     } catch (err) {
-      // 流失败:不落 assistant 消息、不扣点。user 消息已落库(用户能看到自己发了什么)。
       yield { type: 'error', message: this.readableError(err) };
       return;
     }
 
-    // 流正常完成:落 assistant 消息 → 收尾会话 → 扣 1 点 → 推 done(含落库消息 + 新余额)。
-    const assistantMsg = await this.persistAssistantMessage(convId, reply);
+    // 流正常完成:处理缓冲区(含可能的 handoff 标记)。
+    const { extra, card } = splitter.finish();
+    if (extra) {
+      // 缓冲区解析失败时的降级补发:把缓冲文本推给客户端并追加到正文。
+      cleanText += extra;
+      yield { type: 'token', text: extra };
+    }
+
+    // 落 assistant 消息(存库内容已剥离标记)。
+    const assistantMsg = await this.persistAssistantMessage(convId, cleanText, null);
+
+    // 若有合法卡片:建 handoff 记录 → 更新 message rich_card → 推 card SSE 事件。
+    if (card) {
+      try {
+        const handoff = await this.handoffs.create({
+          user_id: userId,
+          conversation_id: convId,
+          message_id: assistantMsg.id,
+          target: card.target,
+          payload: card.payload,
+        });
+        const richCard: Record<string, unknown> = {
+          handoff_id: handoff.id,
+          target: card.target,
+          payload: card.payload,
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await this.msgRepo.update(assistantMsg.id, { rich_card: richCard as any });
+        assistantMsg.rich_card = richCard;
+        yield {
+          type: 'card',
+          handoff_id: handoff.id,
+          target: card.target,
+          payload: card.payload,
+          message_id: assistantMsg.id,
+        };
+      } catch {
+        // 卡片落库失败不中断整个流程,正文已完整推送。
+      }
+    }
+
     await this.finalizeConversation(conv, history, content);
 
     let creditBalance: number | null = null;
     try {
       creditBalance = await this.credit.consume(userId, endpoint);
     } catch {
-      // 扣点失败不回滚已生成内容(与非流式拦截器一致:漏扣可见化交日志/对账,不阻断用户)。
       creditBalance = null;
     }
 
@@ -224,28 +283,23 @@ export class ConversationsService {
 
   // ── Shared helpers ────────────────────────────────────────────────────────
 
-  private async persistUserMessage(
-    convId: string,
-    content: string,
-  ): Promise<Message> {
+  private async persistUserMessage(convId: string, content: string): Promise<Message> {
     return this.msgRepo.save(
-      this.msgRepo.create({
-        conversation_id: convId,
-        role: 'user',
-        content,
-      } as Partial<Message>),
+      this.msgRepo.create({ conversation_id: convId, role: 'user', content } as Partial<Message>),
     ) as Promise<Message>;
   }
 
   private async persistAssistantMessage(
     convId: string,
     content: string,
+    richCard: Record<string, unknown> | null,
   ): Promise<Message> {
     return this.msgRepo.save(
       this.msgRepo.create({
         conversation_id: convId,
         role: 'assistant',
         content,
+        rich_card: richCard,
       } as Partial<Message>),
     ) as Promise<Message>;
   }
@@ -262,7 +316,6 @@ export class ConversationsService {
     await this.convRepo.update(conv.id, { updated_at: new Date() });
   }
 
-  // 绑定上下文:会话绑定的 diagnosis / opportunity 记录摘要(供 system prompt 的 context 段)。
   private async buildBoundContext(
     conv: Conversation,
     userId: string,
@@ -298,11 +351,7 @@ export class ConversationsService {
     return undefined;
   }
 
-  // 平台数据上下文 = 开场上下文(画像+主简历全文+最新诊断+产物目录)+ 本轮按需加载的旧产物全文。
-  private async buildUserContext(
-    userId: string,
-    content: string,
-  ): Promise<string> {
+  private async buildUserContext(userId: string, content: string): Promise<string> {
     const [opening, referenced] = await Promise.all([
       this.coachContext.buildContext(userId),
       this.coachContext.loadReferencedProducts(userId, content),
@@ -311,7 +360,6 @@ export class ConversationsService {
   }
 
   private readableError(err: unknown): string {
-    // ServiceUnavailableException 等 Nest 异常的 message 已是中文可读串;其余兜底通用提示。
     if (err && typeof err === 'object' && 'message' in err) {
       const m = (err as { message: unknown }).message;
       if (typeof m === 'string' && m.length > 0) return m;

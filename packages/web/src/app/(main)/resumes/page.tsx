@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Resume } from '@/lib/types';
 import { ResumeCard } from '@/components/resume/resume-card';
 import { ResumeUploader } from '@/components/resume/resume-uploader';
+import {
+  useHandoffReception,
+  HandoffConfirmDialog,
+} from '@/components/chat/handoff-reception';
 import { Plus, FileText } from 'lucide-react';
 
 function LoadingSkeleton() {
@@ -35,7 +39,28 @@ function LoadingSkeleton() {
 }
 
 export default function ResumesPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResumesPageInner />
+    </Suspense>
+  );
+}
+
+function ResumesPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const handoffId = searchParams.get('handoff');
+  const { handoffState, handoffData, onAccept, onDismiss } = useHandoffReception(handoffId);
+  // resume_rewrite handoff:accepted 后高亮提示用户选一份简历进行改写
+  const [showHandoffHint, setShowHandoffHint] = useState(false);
+  const handoffApplied = useRef(false);
+  useEffect(() => {
+    if (handoffState === 'accepted' && !handoffApplied.current) {
+      handoffApplied.current = true;
+      setTimeout(() => setShowHandoffHint(true), 0);
+    }
+  }, [handoffState]);
+
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +93,32 @@ export default function ResumesPage() {
 
   return (
     <>
+      {handoffState === 'confirming' && handoffData && (
+        <HandoffConfirmDialog
+          target={handoffData.target}
+          payload={handoffData.payload}
+          onAccept={() => void onAccept()}
+          onDismiss={() => void onDismiss()}
+        />
+      )}
+      {showHandoffHint && (
+        <div style={{
+          padding: '10px 24px',
+          background: 'var(--color-brand-soft)',
+          borderBottom: '1px solid var(--color-line)',
+          fontSize: '13.5px',
+          color: 'var(--color-brand)',
+          fontWeight: 500,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span>Coach 建议:点击下方简历进行改写优化</span>
+          <button
+            onClick={() => setShowHandoffHint(false)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-brand)', fontSize: '16px', fontWeight: 700 }}
+          >×</button>
+        </div>
+      )}
+
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 0.7; }

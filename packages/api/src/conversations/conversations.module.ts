@@ -15,6 +15,7 @@ import { AiModule } from '../ai/ai.module';
 import { IntelligenceModule } from '../intelligence/intelligence.module';
 import { QuotaModule } from '../quota/quota.module';
 import { CreditModule } from '../credit/credit.module';
+import { CoachHandoffsModule } from '../coach-handoffs/coach-handoffs.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CreditModule } from '../credit/credit.module';
     IntelligenceModule,
     QuotaModule,
     CreditModule,
+    CoachHandoffsModule,
   ],
   controllers: [ConversationsController],
   providers: [ConversationsService, ChatService, CoachContextService],

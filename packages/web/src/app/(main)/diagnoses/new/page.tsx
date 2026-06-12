@@ -1,11 +1,16 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Resume, Diagnosis } from '@/lib/types';
 import { JdInput } from '@/components/diagnosis/jd-input';
+import {
+  useHandoffReception,
+  HandoffConfirmDialog,
+  ReturnToCoachBanner,
+} from '@/components/chat/handoff-reception';
 import { FileText, Plus, ChevronRight, Sparkles } from 'lucide-react';
 
 type Step = 'resume' | 'jd' | 'analyzing';
@@ -217,7 +222,21 @@ function AnalyzingScreen() {
 }
 
 export default function NewDiagnosisPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewDiagnosisPageInner />
+    </Suspense>
+  );
+}
+
+function NewDiagnosisPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const handoffId = searchParams.get('handoff');
+  const { handoffState, handoffData, onAccept, onDismiss } = useHandoffReception(handoffId);
+  const [showReturn, setShowReturn] = useState(false);
+  const activeHandoffId = handoffId;
+  const activeConvId = handoffData?.conversation_id ?? null;
 
   const [step, setStep] = useState<Step>('resume');
   const [resumes, setResumes] = useState<Resume[]>([]);
@@ -245,6 +264,21 @@ export default function NewDiagnosisPage() {
       });
   }, []);
 
+  // handoff 接待:accepted 后预填 JD 字段并跳到 jd 步骤
+  // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题。
+  const handoffApplied = useRef(false);
+  useEffect(() => {
+    if (handoffState === 'accepted' && handoffData && !handoffApplied.current) {
+      handoffApplied.current = true;
+      const payload = handoffData.payload;
+      setTimeout(() => {
+        if (payload.jd_text) setJdText(String(payload.jd_text));
+        setStep('jd');
+      }, 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoffState]);
+
   function handleResumeNext() {
     if (!selectedResumeId) return;
     setStep('jd');
@@ -264,6 +298,9 @@ export default function NewDiagnosisPage() {
         resume_id: selectedResumeId,
         jd_text: jdText.trim(),
       });
+      if (activeHandoffId && activeConvId) {
+        setShowReturn(true);
+      }
       router.push(`/diagnoses/${diagnosis.id}`);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : '创建诊断失败，请重试');
@@ -276,6 +313,22 @@ export default function NewDiagnosisPage() {
   }
 
   return (
+    <>
+      {handoffState === 'confirming' && handoffData && (
+        <HandoffConfirmDialog
+          target={handoffData.target}
+          payload={handoffData.payload}
+          onAccept={() => void onAccept()}
+          onDismiss={() => void onDismiss()}
+        />
+      )}
+      {showReturn && activeHandoffId && activeConvId && (
+        <ReturnToCoachBanner
+          conversationId={activeConvId}
+          handoffId={activeHandoffId}
+          onClose={() => setShowReturn(false)}
+        />
+      )}
     <div
       style={{
         maxWidth: '680px',
@@ -715,5 +768,6 @@ export default function NewDiagnosisPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -57,7 +57,32 @@ export class ChatService {
 - 面试准备(/interview-prep):按公司+岗位聚合面试情报与题库。
 - 机会评估(/opportunities):评估某个职位机会的投递价值与风险。
 - 薪资行情(/salary)、行业趋势(/industry-trend)、offer 对比(/offer-comparator)、职业规划与学习路线(/career、/learning-roadmap)。
-提议续接时用上述模块口径的词汇,让用户知道在站内哪里能继续把这件事做完。${
+提议续接时用上述模块口径的词汇,让用户知道在站内哪里能继续把这件事做完。
+
+## 行动卡片输出规则(严格遵守,优先级仅次于防编造红线)
+当对话自然到达「该去做 X 了」的时刻,且用户已明确表达意愿(例如「我想练模拟面试」「帮我准备一下面试」「发一封求职信」),在正文回复结束后,紧接在最末尾输出 **恰好一行** 机器标记:
+
+\`\`\`
+<handoff>{"target":"<TARGET>","payload":{<KEY_FIELDS>}}</handoff>
+\`\`\`
+
+- **<TARGET>** 必须是以下之一(严格小写,不可自创):
+  - \`mock\` — 模拟面试
+  - \`diagnosis\` — 简历诊断
+  - \`cover_letter\` — 求职信
+  - \`resume_rewrite\` — 简历改写
+- **payload** 由对话内容与用户数据组装,放置用户确认过的预填字段。示例:
+  - mock: \`{"company":"字节跳动","role":"产品经理","jd_text":"用户提供的JD摘录","resume_version_note":"主简历 v2"}\`
+  - cover_letter: \`{"company":"腾讯","role":"运营","tone":"warm"}\`
+  - diagnosis: \`{"jd_company":"阿里","jd_role":"数据分析"}\`
+  - resume_rewrite: \`{"note":"针对产品岗强化数据感"}\`
+- **禁止输出标记的情况**(任一满足即不输出):
+  - 用户尚未表达进入某模块的意愿(只是在探讨/分析,还没决定做)
+  - 对话中缺乏足够信息组装 payload(如不知道目标岗位)
+  - 本次回复已非对话末尾(中间回合不输出,仅最终建议时输出)
+  - 一次回复最多一张卡,绝不输出两个 <handoff> 标记
+- 标记必须独占最后一行,前面正文结束后空一行再输出;正文本身不得含有 \`<handoff\` 文字
+- 标记之后不得再有任何文字${
       context
         ? `\n\n## 本次对话绑定的上下文\n类型:${context.type}\n数据:\n${context.data}`
         : ''

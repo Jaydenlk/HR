@@ -165,7 +165,14 @@ export type ChatStreamEvent =
       assistant_message: import('./types').ChatMessage;
       credit_balance: number | null;
     }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | {
+      type: 'card';
+      handoff_id: string;
+      target: string;
+      payload: Record<string, unknown>;
+      message_id: string;
+    };
 
 // POST 一条消息并以 SSE 流式消费回复。带 Bearer 头(fetch + ReadableStream,EventSource 不支持自定义头)。
 // 流开始前的 HTTP 层错误(401/402/网络)按现有 handleError 语义抛出,让调用方走降级或登录跳转。

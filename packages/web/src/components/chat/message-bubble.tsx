@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { ChatMessage } from '@/lib/types';
+import { HandoffCard } from './handoff-card';
 
 function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString('zh-CN', {
@@ -140,6 +141,18 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         >
           {isUser ? message.content : <MarkdownContent text={message.content} />}
         </div>
+
+        {/* Handoff action card (assistant only) */}
+        {!isUser && message.rich_card && typeof message.rich_card.handoff_id === 'string' && (
+          <HandoffCard
+            handoffId={message.rich_card.handoff_id}
+            target={String(message.rich_card.target ?? '')}
+            payload={(message.rich_card.payload as Record<string, unknown>) ?? {}}
+            initialStatus={
+              (message.rich_card.status as 'proposed' | 'accepted' | 'dismissed' | 'completed' | undefined) ?? 'proposed'
+            }
+          />
+        )}
 
         {/* Timestamp */}
         <div
