@@ -1,7 +1,14 @@
 # Handoff: Coordinator → Test Agent (credit 集成验收)
 
-## 状态: 待集成完成后启动(协调者会把 feature/credit-api + feature/credit-web 合到 feature/credit 并建 worktree,届时在此填入工作目录)
-## 工作目录: 【派工时填写】
+## 状态: READY_FOR_QA(集成完成,feature/credit @ c529292 = api 6c1edce + web 7d67174 双合入,零冲突)
+## 工作目录: E:\Agent program\HRBP-wt\credit-integration
+
+## 协调者裁决后的剧本修订(以此为准,覆盖下文冲突处)
+- 剧本 6 头像上限:>2MB 预期 **413**(Multer 硬上限,Nest 默认映射),非图片仍 400。
+- 剧本 7 并发双扣:**必须在真 Postgres 上跑**(后端行锁只在 Postgres 驱动生效,sqlite 测不到)。用 Docker 起一次性容器(如 postgres:16,随机高位端口,跑完即删),对它跑 migration 后执行并发剧本;严禁碰任何非本地实例。
+- api 包 lint 契约 = `npx tsc --noEmit`(api 无 eslint,这是项目既定约束);web 包才是 eslint+tsc。
+- 已知预存在失败:packages/api/test tasks.e2e「POST /tasks/generate」无 AI key 时 503——非本次引入,复现它不算新 bug,但要在报告里单列。
+- 本地起服可从主仓 E:\Agent program\HRBP\packages\api\.env 复制环境(永不提交);AI-live 调用走经济模式:涉及真 AI 的剧本用最小参数(模拟面试 2 题即可),不重复跑。
 ## 任务: Credit 计费全链路验收——找茬,不是确认成功。零 bug 报告默认不可信,必须附已走流程清单。
 
 ## 前置(先定成功标准再动手)
