@@ -20,6 +20,43 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   JWT_SECRET!: string;
 
+  // ── AI 通道顺序(可选):测试期默认 deepseek 主力,relay 备份。 ──
+  @IsOptional()
+  @IsIn(['deepseek', 'relay'])
+  AI_PRIMARY_PROVIDER?: string;
+
+  // ── AI DeepSeek 直连(可选,字符串):分档型号 + 直连端点。旧名 DEEPSEEK_*/AI_FALLBACK_* 兜底。──
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  AI_DEEPSEEK_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_MODEL_PRO?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_MODEL_FLASH?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_DEEPSEEK_BASE_URL?: string;
+
+  // ── AI Relay 中转(可选,字符串):auto-v2 别名。旧名 CLOUDDREAM_*/AI_PRIMARY_* 兜底。──
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  AI_RELAY_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_RELAY_MODEL?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_RELAY_BASE_URL?: string;
+
   // ── AI 大模型(可选,字符串):新名 AI_PRIMARY_*/AI_FALLBACK_* + 旧名兜底 ──
   @IsOptional()
   @IsString()
@@ -77,6 +114,22 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsNumberString()
   AI_FALLBACK_MAX_RETRIES?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AI_DEEPSEEK_TIMEOUT_MS?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AI_DEEPSEEK_MAX_RETRIES?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AI_RELAY_TIMEOUT_MS?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AI_RELAY_MAX_RETRIES?: string;
 
   @IsOptional()
   @IsNumberString()
@@ -197,10 +250,18 @@ export function validate(config: Record<string, unknown>): Record<string, unknow
   if (errors.length > 0) {
     throw new Error(`Environment validation failed:\n${errors.map((e) => e.toString()).join('\n')}`);
   }
-  // 主通道密钥跨字段必填:新名 AI_PRIMARY_API_KEY 或旧名 CLOUDDREAM_API_KEY 至少有一个非空。
-  if (!validated.AI_PRIMARY_API_KEY && !validated.CLOUDDREAM_API_KEY) {
+  // AI 通道密钥跨字段必填:至少配置一个通道(relay 或 deepseek)的密钥,否则无任何可用通道。
+  //   relay    :AI_RELAY_API_KEY / CLOUDDREAM_API_KEY / AI_PRIMARY_API_KEY(旧名兜底)
+  //   deepseek :AI_DEEPSEEK_API_KEY / DEEPSEEK_API_KEY / AI_FALLBACK_API_KEY(旧名兜底)
+  const hasRelayKey =
+    !!validated.AI_RELAY_API_KEY || !!validated.CLOUDDREAM_API_KEY || !!validated.AI_PRIMARY_API_KEY;
+  const hasDeepseekKey =
+    !!validated.AI_DEEPSEEK_API_KEY ||
+    !!validated.DEEPSEEK_API_KEY ||
+    !!validated.AI_FALLBACK_API_KEY;
+  if (!hasRelayKey && !hasDeepseekKey) {
     throw new Error(
-      'Environment validation failed:\n必须配置主通道密钥(AI_PRIMARY_API_KEY,或旧名 CLOUDDREAM_API_KEY)',
+      'Environment validation failed:\n必须配置至少一个 AI 通道密钥(AI_DEEPSEEK_API_KEY 或 AI_RELAY_API_KEY,或旧名 DEEPSEEK_API_KEY/CLOUDDREAM_API_KEY)',
     );
   }
   // 返回完整 config 而非仅声明字段的实例:@nestjs/config 用本函数返回值作为 ConfigService 的配置源。

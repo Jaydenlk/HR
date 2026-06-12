@@ -32,20 +32,28 @@ const validToolUse = (input: Record<string, unknown>) => ({
 });
 const textResponse = (text: string) => ({ content: [{ type: 'text', text }] });
 
-/** 构造一个带 mock ConfigService 的 AiService 实例,行为与旧 process.env 读取完全一致 */
+/**
+ * 构造一个带 mock ConfigService 的 AiService 实例。
+ * 沿用历史语义:primaryKey=主通道(此处映射到 relay,通道顺序 relay 在前),fallbackKey=备通道(deepseek)。
+ * 单 key 时只有 relay 一个通道("主通道");双 key 时 relay→deepseek 降级链。
+ */
 async function buildService(primaryKey: string, fallbackKey?: string): Promise<AiService> {
   const aiCfg: AiConfig = {
-    primary: {
+    primaryProvider: 'relay',
+    deepseek: {
+      apiKey: fallbackKey,
+      modelPro: 'deepseek-v4-pro',
+      modelFlash: 'deepseek-v4-flash',
+      baseURL: 'https://api.deepseek.com/anthropic',
+      timeoutMs: 120000,
+      maxRetries: 3,
+    },
+    relay: {
       apiKey: primaryKey,
       model: 'auto-v2',
       baseURL: 'https://api.tutorial.clouddreamai.com',
       timeoutMs: 60000,
-    },
-    fallback: {
-      apiKey: fallbackKey,
-      model: 'deepseek-chat',
-      baseURL: 'https://api.deepseek.com/anthropic',
-      timeoutMs: 120000,
+      maxRetries: 0,
     },
     concurrency: { max: 2, queue: 8 },
   };

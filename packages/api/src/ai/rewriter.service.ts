@@ -69,6 +69,7 @@ export class RewriterService {
       toolName: 'suggest_rewrites',
       toolDescription: '根据简历、JD 和匹配分析生成具体的简历改写建议',
       schema: REWRITE_SUGGESTIONS_SCHEMA,
+      tier: 'pro', // 改写核心产出:走重档型号
     });
 
     return this.normalizeSuggestions(result.suggestions);
@@ -88,6 +89,7 @@ export class RewriterService {
       toolName: 'suggest_rewrites',
       toolDescription: '基于简历原文与诊断给职业特化改写建议',
       schema: REWRITE_SUGGESTIONS_SCHEMA,
+      tier: 'pro', // 改写核心产出:走重档型号
     });
     const result = { suggestions: this.normalizeSuggestions(raw.suggestions) };
     // 禁编造兜底(两层),不满足者归类 gap_advice 并清空 original,防止被当成可直接粘贴的现成简历句:

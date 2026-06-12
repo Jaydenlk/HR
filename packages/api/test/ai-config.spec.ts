@@ -8,6 +8,8 @@ import {
   parseEnvNumber,
   parseTimeoutMs,
   parseMaxRetries,
+  aiConfig,
+  type AiConfig,
 } from '../src/config/ai.config';
 
 describe('parseEnvNumber()', () => {
@@ -125,5 +127,95 @@ describe('parseMaxRetries() — 最小值 0 钳制', () => {
 
   it('Infinity 字符串 → 使用 fallback', () => {
     expect(parseMaxRetries('Infinity', 3)).toBe(3);
+  });
+});
+
+// ── aiConfig() 工厂:档位型号默认值 + 通道顺序 + env 覆盖 ──────────────────────
+describe('aiConfig() 工厂', () => {
+  // 隔离 env:仅快照/还原本套用到的键,避免污染其他套件。
+  const KEYS = [
+    'AI_PRIMARY_PROVIDER',
+    'AI_DEEPSEEK_API_KEY',
+    'AI_MODEL_PRO',
+    'AI_MODEL_FLASH',
+    'AI_DEEPSEEK_BASE_URL',
+    'AI_DEEPSEEK_TIMEOUT_MS',
+    'AI_DEEPSEEK_MAX_RETRIES',
+    'AI_RELAY_API_KEY',
+    'AI_RELAY_MODEL',
+    'AI_RELAY_BASE_URL',
+    'AI_RELAY_TIMEOUT_MS',
+    'AI_RELAY_MAX_RETRIES',
+    'DEEPSEEK_API_KEY',
+    'DEEPSEEK_MODEL',
+    'DEEPSEEK_BASE_URL',
+    'AI_FALLBACK_API_KEY',
+    'AI_FALLBACK_MODEL',
+    'CLOUDDREAM_API_KEY',
+    'CLOUDDREAM_MODEL',
+    'AI_PRIMARY_API_KEY',
+    'AI_PRIMARY_MODEL',
+  ] as const;
+  const saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    for (const k of KEYS) {
+      saved[k] = process.env[k];
+      delete process.env[k];
+    }
+  });
+  afterEach(() => {
+    for (const k of KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+  });
+
+  function read(): AiConfig {
+    return aiConfig() as unknown as AiConfig;
+  }
+
+  it('全缺省 → 通道顺序 deepseek(测试期主力)、分档型号 pro/flash、relay auto-v2', () => {
+    const cfg = read();
+    expect(cfg.primaryProvider).toBe('deepseek');
+    expect(cfg.deepseek.modelPro).toBe('deepseek-v4-pro');
+    expect(cfg.deepseek.modelFlash).toBe('deepseek-v4-flash'); // 取代弃用的 deepseek-chat
+    expect(cfg.relay.model).toBe('auto-v2');
+  });
+
+  it('AI_PRIMARY_PROVIDER=relay → 通道顺序切到 relay 主力', () => {
+    process.env.AI_PRIMARY_PROVIDER = 'relay';
+    expect(read().primaryProvider).toBe('relay');
+  });
+
+  it('AI_PRIMARY_PROVIDER 非法值 → 回退 deepseek', () => {
+    process.env.AI_PRIMARY_PROVIDER = 'garbage';
+    expect(read().primaryProvider).toBe('deepseek');
+  });
+
+  it('AI_MODEL_PRO / AI_MODEL_FLASH 覆盖 → 透传', () => {
+    process.env.AI_MODEL_PRO = 'deepseek-v9-pro';
+    process.env.AI_MODEL_FLASH = 'deepseek-v9-flash';
+    const cfg = read();
+    expect(cfg.deepseek.modelPro).toBe('deepseek-v9-pro');
+    expect(cfg.deepseek.modelFlash).toBe('deepseek-v9-flash');
+  });
+
+  it('旧名 DEEPSEEK_API_KEY/DEEPSEEK_BASE_URL 兜底 deepseek 通道(向后兼容)', () => {
+    process.env.DEEPSEEK_API_KEY = 'sk-legacy';
+    process.env.DEEPSEEK_BASE_URL = 'https://legacy.deepseek/anthropic';
+    const cfg = read();
+    expect(cfg.deepseek.apiKey).toBe('sk-legacy');
+    expect(cfg.deepseek.baseURL).toBe('https://legacy.deepseek/anthropic');
+  });
+
+  it('旧名 CLOUDDREAM_API_KEY 兜底 relay 通道(向后兼容)', () => {
+    process.env.CLOUDDREAM_API_KEY = 'cd-legacy';
+    expect(read().relay.apiKey).toBe('cd-legacy');
+  });
+
+  it('旧名 DEEPSEEK_MODEL 兜底 flash 档(现状:存量 .env 用 deepseek-chat 仍生效)', () => {
+    process.env.DEEPSEEK_MODEL = 'deepseek-chat';
+    expect(read().deepseek.modelFlash).toBe('deepseek-chat');
   });
 });

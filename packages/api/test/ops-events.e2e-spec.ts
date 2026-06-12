@@ -56,18 +56,23 @@ function uniqueDb(): string {
 }
 
 // ── AiConfig stub ────────────────────────────────────────────────────────────
+// 通道顺序 relay 在前(主)→ deepseek(备),验证 AI_FAILOVER 钩子按 provider 名记录降级链。
 const aiCfg: AiConfig = {
-  primary: {
-    apiKey: 'primary-key',
+  primaryProvider: 'relay',
+  deepseek: {
+    apiKey: 'deepseek-key',
+    modelPro: 'deepseek-v4-pro',
+    modelFlash: 'deepseek-v4-flash',
+    baseURL: 'https://api.deepseek.com/anthropic',
+    timeoutMs: 120000,
+    maxRetries: 3,
+  },
+  relay: {
+    apiKey: 'relay-key',
     model: 'auto-v2',
     baseURL: 'https://api.tutorial.clouddreamai.com',
     timeoutMs: 60000,
-  },
-  fallback: {
-    apiKey: 'fallback-key',
-    model: 'deepseek-chat',
-    baseURL: 'https://api.deepseek.com/anthropic',
-    timeoutMs: 120000,
+    maxRetries: 0,
   },
   concurrency: { max: 2, queue: 8 },
 };
@@ -191,8 +196,8 @@ describe('OpsEvents: AI_FAILOVER 钩子(AiService 集成)', () => {
       'AI_FAILOVER',
       expect.objectContaining({
         op: 'complete',
-        primary: 'auto-v2',
-        fallback: 'deepseek-chat',
+        primary: 'relay',
+        fallback: 'deepseek',
       }),
     );
 

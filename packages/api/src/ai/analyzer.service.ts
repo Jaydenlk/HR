@@ -68,6 +68,7 @@ export class AnalyzerService {
       toolName: 'analyze_match',
       toolDescription: '对简历与 JD 进行多维度匹配评分分析',
       schema: MATCH_RESULT_SCHEMA,
+      tier: 'pro', // 诊断核心产出:走重档型号
     });
   }
 
@@ -104,6 +105,7 @@ export class AnalyzerService {
         toolName: 'profession_standard_review',
         toolDescription: '按职业胜任力标尺输出分维度诊断(含 why)',
         schema: PROFESSION_STANDARD_SCHEMA,
+        tier: 'pro', // 诊断核心产出:走重档型号
       });
       // 预设为权威:按顺序对齐 AI 维度,key/name/max 取自预设(消除英文 key 泄漏与结构漂移),
       // AI 只贡献 score/why/evidenceFound/gap;score 收敛到 [0, 满分]、total 重算。
