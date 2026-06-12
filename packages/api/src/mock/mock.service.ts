@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AiService } from '../ai/ai.service';
 import { CompanyRegistryService } from '../feed/company-registry.service';
+import { CompanySearchService, SearchCandidate } from './company-search.service';
 import type { Company } from '../feed/entities/company.entity';
 import { MockSession, Question, Answer, Evaluation } from './entities/mock-session.entity';
 import { CreateMockSessionDto } from './dto/create-mock-session.dto';
@@ -20,19 +21,43 @@ interface CompanyLookup {
   matched: Company | null;
 }
 
+/** 前端确认的联网搜索公司信息 */
+export interface ConfirmedCompanyInfo {
+  name: string;
+  summary: string;
+  source_url: string;
+  searched_at: string; // ISO date string, 由前端填写
+}
+
 /** 出题 prompt 所需的公司上下文字符串 */
-function buildCompanyContext(lookup: CompanyLookup, companyName: string): string {
-  if (!lookup.company_known || !lookup.matched) {
-    return `公司：${companyName || '（未提供）'}`;
+function buildCompanyContext(
+  lookup: CompanyLookup,
+  companyName: string,
+  confirmed?: ConfirmedCompanyInfo,
+): string {
+  // 库内命中：使用公司库数据
+  if (lookup.company_known && lookup.matched) {
+    const c = lookup.matched;
+    const lines: string[] = [
+      `公司：${c.name}（以下公司背景来自本站公司库）`,
+    ];
+    if (c.sector) lines.push(`行业：${c.sector}`);
+    if (c.company_type) lines.push(`公司类型：${c.company_type}`);
+    if (c.role_focus?.length) lines.push(`重点岗位方向：${c.role_focus.join('、')}`);
+    return lines.join('\n');
   }
-  const c = lookup.matched;
-  const lines: string[] = [
-    `公司：${c.name}（以下公司背景来自本站公司库）`,
-  ];
-  if (c.sector) lines.push(`行业：${c.sector}`);
-  if (c.company_type) lines.push(`公司类型：${c.company_type}`);
-  if (c.role_focus?.length) lines.push(`重点岗位方向：${c.role_focus.join('、')}`);
-  return lines.join('\n');
+
+  // 前端已确认的联网搜索结果
+  if (confirmed) {
+    return [
+      `公司：${confirmed.name}`,
+      `简介（来源 ${confirmed.source_url}，检索日期 ${confirmed.searched_at}）：${confirmed.summary}`,
+      `⚠ 以上公司信息来自联网搜索，仅供出题背景参考，不得在此之外编造该公司的任何细节。`,
+    ].join('\n');
+  }
+
+  // 库外且无搜索确认：仅公司名
+  return `公司：${companyName || '（未提供）'}`;
 }
 
 @Injectable()
@@ -42,6 +67,7 @@ export class MockService {
     private readonly repo: Repository<MockSession>,
     private readonly ai: AiService,
     private readonly companyRegistry: CompanyRegistryService,
+    private readonly companySearch: CompanySearchService,
   ) {}
 
   /** 查库：name 为空直接返回未命中 */
@@ -51,23 +77,51 @@ export class MockService {
     return { company_known: matched !== null, matched };
   }
 
+  /**
+   * 库外公司搜索确认：查库未命中时调用博查搜索。
+   * 返回 {company_known, search_candidate} 供前端展示确认框。
+   */
+  async checkCompany(name: string): Promise<{
+    company_known: boolean;
+    search_candidate: SearchCandidate | null;
+  }> {
+    const lookup = await this.lookupCompany(name);
+    if (lookup.company_known) {
+      return { company_known: true, search_candidate: null };
+    }
+
+    // 库外：追加博查搜索
+    const searchOutcome = await this.companySearch.search(name.trim());
+    const candidate = searchOutcome.available ? searchOutcome.candidate : null;
+    return { company_known: false, search_candidate: candidate };
+  }
+
   async generateQuestions(
     jdText: string,
     company: string,
     role: string,
     count: number,
     lookup: CompanyLookup,
+    confirmed?: ConfirmedCompanyInfo,
   ): Promise<Question[]> {
-    // 防编造规则：视命中情况分两路
-    const antiHallucination = lookup.company_known
-      ? `## 防编造规则（硬性，违反即为错误输出）
+    // 防编造规则：三种情况——库内/联网已确认/纯通用
+    let antiHallucination: string;
+    if (lookup.company_known) {
+      antiHallucination = `## 防编造规则（硬性，违反即为错误输出）
 1. 公司特定信息仅限以下"公司背景"字段所提供的内容，不得补充任何未在此列出的公司内部信息。
 2. 不得编造该公司的具体面试流程、内部评价标准、历年真题来源。
-3. 可基于公司类型与岗位方向合理推断通用题型，但不得伪装成该公司独有机密信息。`
-      : `## 防编造规则（硬性，违反即为错误输出）
+3. 可基于公司类型与岗位方向合理推断通用题型，但不得伪装成该公司独有机密信息。`;
+    } else if (confirmed) {
+      antiHallucination = `## 防编造规则（硬性，违反即为错误输出）
+1. 公司信息来自联网搜索（来源 ${confirmed.source_url}，检索日期 ${confirmed.searched_at}），仅限所提供的简介范围内使用。
+2. 不得在简介之外编造该公司的内部流程、评价标准、历年真题或任何未提及细节。
+3. 可合理推断通用校招题型，但不得伪装成该公司独有内幕信息。`;
+    } else {
+      antiHallucination = `## 防编造规则（硬性，违反即为错误输出）
 1. 该公司不在本站资料库，严禁编造该公司的任何具体面试风格、内部流程或评价标准。
 2. 出题完全依据 JD 内容与岗位名称驱动，以通用校招面试逻辑为准。
 3. 不得伪装了解该公司，不得用"据了解该公司通常……"等句式暗示了解该公司内情。`;
+    }
 
     const systemPrompt = `你是一位经验丰富的技术面试官，专注于帮助候选人做模拟面试练习。
 根据提供的职位描述、公司信息和岗位名称，生成高质量的面试问题。
@@ -77,12 +131,12 @@ export class MockService {
 
 ${antiHallucination}`;
 
-    const companyContext = buildCompanyContext(lookup, company);
+    const companyContext = buildCompanyContext(lookup, company, confirmed);
     const userPrompt = `请为以下职位生成 ${count} 道面试题：
 
 ${companyContext}
 ${role ? `岗位：${role}` : ''}
-${!lookup.company_known ? '出题策略：以通用校招面试 + JD/岗位驱动出题，不依赖对该公司的具体了解。' : ''}
+${!lookup.company_known && !confirmed ? '出题策略：以通用校招面试 + JD/岗位驱动出题，不依赖对该公司的具体了解。' : ''}
 ${jdText ? `\n职位描述：\n${jdText}` : ''}
 
 请使用 generate_questions 工具返回结构化的面试题列表。`;
@@ -259,13 +313,14 @@ ${qaList}
       required: ['overall_score', 'overall_grade', 'strengths', 'weaknesses', 'summary'],
     };
 
-    // tier: 'pro' — 总评标记高质量模型；AiService 暂无 tier 参数时此字段被忽略（B1 后协调者收口）
+    // tier: 'pro' — 总评用重档模型，确保综合评语质量
     return this.ai.completeStructured<Evaluation>({
       system: systemPrompt,
       prompt: userPrompt,
       toolName: 'generate_evaluation',
       toolDescription: '生成模拟面试综合评估',
       schema,
+      tier: 'pro',
     });
   }
 
@@ -300,6 +355,7 @@ ${qaList}
       role,
       count,
       lookup,
+      dto.confirmed_company_info,
     );
 
     const session = this.repo.create({

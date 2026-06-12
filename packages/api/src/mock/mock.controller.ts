@@ -26,7 +26,7 @@ export class MockController {
 
   @Get('company-check')
   companyCheck(@Query() query: CompanyCheckQueryDto) {
-    return this.mock.lookupCompany(query.name ?? '').then((r) => ({ company_known: r.company_known }));
+    return this.mock.checkCompany(query.name ?? '');
   }
 
   @Get()

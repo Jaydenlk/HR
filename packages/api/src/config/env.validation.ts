@@ -207,6 +207,13 @@ export class EnvironmentVariables {
   @IsIn(['0', '1'])
   DB_MIGRATIONS_RUN?: string;
 
+  // ── 联网搜索(可选) ──────────────────────────────────────────────
+  // 博查 Web 搜索 API 密钥;仅 mock 模块的库外公司搜索使用。缺失时降级为通用模式。
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  BOCHA_API_KEY?: string;
+
   // ── 备份(可选) ───────────────────────────────────────────────────
   // 备份脚本(scripts/backup.sh)输出目录;留空默认 packages/api/backups。
   @IsOptional()
