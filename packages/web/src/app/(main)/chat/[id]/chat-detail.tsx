@@ -378,9 +378,6 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
       {/* Input */}
       <div style={{ flexShrink: 0 }}>
         <ChatInput onSend={handleSend} loading={sending} />
-        <div style={{ textAlign: 'center', paddingBottom: '8px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
-        </div>
       </div>
     </div>
   );

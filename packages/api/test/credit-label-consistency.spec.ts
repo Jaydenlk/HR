@@ -15,6 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const WEB_ROOT = path.resolve(__dirname, '../../web/src/app/(main)');
+const WEB_SRC = path.resolve(__dirname, '../../web/src');
 
 function readFile(relPath: string): string {
   const absPath = path.join(WEB_ROOT, relPath);
@@ -60,26 +61,36 @@ describe('Credit 标注一致性静态检查 (剧本 8)', () => {
   });
 
   /**
-   * BUG CHECK: 聊天页面缺少"消耗 1 点"标注
-   * 后端 POST /conversations/:id/messages 已挂 CreditGuard + CreditInterceptor,
-   * 但前端聊天页面没有任何"消耗"提示。
+   * 聊天页"消耗 1 点"标注来源校验
+   *
+   * 标注由 ChatInput 组件负责渲染(chat-input.tsx:163 含"消耗 1 点")。
+   * chat-detail.tsx 自身不需要重复标注——只需确认它 import + 使用了 ChatInput。
+   * chat-input.tsx 去掉注释后确认包含"消耗 1 点"。
    */
-  it('【BUG检查】聊天页面(chat-detail.tsx)应含"消耗"标注(排除注释)', () => {
-    const content = readFile('chat/[id]/chat-detail.tsx');
-    // 去掉所有 JSX 行注释({/* ... */})和单行注释(// ...)后再检查,避免注释骗过断言
-    const withoutComments = content
+  it('聊天页(chat-detail.tsx)渲染 ChatInput 且 ChatInput 含"消耗 1 点"(真实渲染来源)', () => {
+    const detailContent = readFile('chat/[id]/chat-detail.tsx');
+
+    // 1. chat-detail.tsx 必须 import ChatInput
+    const hasImport = /import\s+.*ChatInput.*from/.test(detailContent);
+    expect(hasImport).toBe(true);
+
+    // 2. chat-detail.tsx JSX 中必须使用 <ChatInput
+    // 去掉 JSX 注释和行注释后检查
+    const detailWithoutComments = detailContent
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
       .replace(/\/\/[^\n]*/g, '');
-    const hasLabel = withoutComments.includes('消耗');
-    if (!hasLabel) {
-      console.warn(
-        '[BUG] chat/[id]/chat-detail.tsx 缺少"消耗 N 点"标注(排除注释后仍无)。' +
-        '\n  后端 POST /conversations/:id/messages 已挂 CreditGuard,每次发消息扣 1 点。' +
-        '\n  用户无感知,体验差。',
-      );
-    }
-    // 修复后断言:chat-detail.tsx 渲染 JSX 中已包含"消耗"标注(非注释)
-    expect(hasLabel).toBe(true);
+    const hasJsx = detailWithoutComments.includes('<ChatInput');
+    expect(hasJsx).toBe(true);
+
+    // 3. chat-input.tsx 非注释内容含"消耗 1 点"——真实的标注渲染源头
+    const chatInputPath = path.join(WEB_SRC, 'components/chat/chat-input.tsx');
+    const chatInputRaw = fs.existsSync(chatInputPath)
+      ? fs.readFileSync(chatInputPath, 'utf-8')
+      : '';
+    const chatInputWithoutComments = chatInputRaw
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/\/\/[^\n]*/g, '');
+    expect(chatInputWithoutComments).toContain('消耗 1 点');
   });
 
   it('侧边栏布局(layout.tsx)含余额展示逻辑', () => {
