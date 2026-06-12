@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { QuotaGuard } from '../quota/quota.guard';
+import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
+import { CreditInterceptor } from '../credit/credit.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ApplicationsService } from './applications.service';
 import { StrategyService } from './strategy.service';
@@ -37,8 +38,8 @@ export class ApplicationsController {
   }
 
   @Post('strategy')
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   generateStrategy(@Body() dto: ApplicationStrategyDto) {
     return this.strategy.generateStrategy(dto);
   }

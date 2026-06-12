@@ -55,15 +55,20 @@ export class UsersService {
     await this.repo.update({ id, terms_agreed_at: IsNull() }, { terms_agreed_at: new Date() });
   }
 
+  // 更新用户头像:存上传文件的 key(对齐简历 file_url 现行模式)。
+  async updateAvatar(id: string, avatarKey: string): Promise<void> {
+    await this.repo.update({ id }, { avatar_url: avatarKey });
+  }
+
   // 管理后台:全量用户(20 人规模不分页)。
   findAll(): Promise<User[]> {
     return this.repo.find({ order: { created_at: 'ASC' } });
   }
 
-  // 管理后台:按主键更新 status/role/daily_quota_override(由 controller 校验字段与自操作约束)。
+  // 管理后台:按主键更新 status/role(由 controller 校验字段与自操作约束)。
   async updateById(
     id: string,
-    patch: Partial<Pick<User, 'status' | 'role' | 'daily_quota_override'>>,
+    patch: Partial<Pick<User, 'status' | 'role'>>,
   ): Promise<User | null> {
     await this.repo.update({ id }, patch);
     return this.findById(id);

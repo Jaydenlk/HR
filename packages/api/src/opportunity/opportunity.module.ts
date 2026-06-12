@@ -10,6 +10,7 @@ import { DailyTask } from '../tasks/entities/daily-task.entity';
 import { AiModule } from '../ai/ai.module';
 import { IntelligenceModule } from '../intelligence/intelligence.module';
 import { QuotaModule } from '../quota/quota.module';
+import { CreditModule } from '../credit/credit.module';
 import { OpportunityService } from './opportunity.service';
 import { OpportunityParserService } from './opportunity-parser.service';
 import { OpportunityRiskService } from './opportunity-risk.service';
@@ -26,6 +27,7 @@ import { OpportunityController } from './opportunity.controller';
     AiModule,
     IntelligenceModule,
     QuotaModule,
+    CreditModule,
   ],
   controllers: [OpportunityController],
   providers: [

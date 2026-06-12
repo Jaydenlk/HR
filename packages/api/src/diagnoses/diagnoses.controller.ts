@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Param, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { QuotaGuard } from '../quota/quota.guard';
+import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
+import { CreditInterceptor } from '../credit/credit.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { DiagnosesService } from './diagnoses.service';
 import { CreateDiagnosisDto } from './dto/create-diagnosis.dto';
@@ -25,8 +26,8 @@ export class DiagnosesController {
   }
 
   @Post()
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   create(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateDiagnosisDto,
@@ -35,8 +36,8 @@ export class DiagnosesController {
   }
 
   @Post('campus')
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   createCampus(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateCampusDiagnosisDto,

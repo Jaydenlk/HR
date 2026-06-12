@@ -31,6 +31,7 @@ import { LearningRoadmapModule } from './learning-roadmap/learning-roadmap.modul
 import { FollowUpModule } from './follow-up/follow-up.module';
 import { IndustryTrendModule } from './industry-trend/industry-trend.module';
 import { QuotaModule } from './quota/quota.module';
+import { CreditModule } from './credit/credit.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { OpsEventsModule } from './ops/ops-events.module';
@@ -101,9 +102,12 @@ import { OpsEventsModule } from './ops/ops-events.module';
     LearningRoadmapModule,
     FollowUpModule,
     IndustryTrendModule,
-    // @Global QuotaModule:各 AI feature module 已传递性 import,此处显式挂一次
-    // 保证非 feature 入口也能用,并与试运行接线约定一致。
+    // AiUsageInterceptor 仍由各 AI feature module 经 QuotaModule 传递性 import(运营口径 ai_usage);
+    // QuotaGuard 已退役,但 QuotaModule 仍导出 AiUsageInterceptor,故保留挂载。
     QuotaModule,
+    // CreditModule:CreditGuard/CreditInterceptor 经各 AI feature module 传递性 import,此处显式挂一次
+    // 保证 CreditService 在非 feature 入口(auth 注册赠送 / users-me / admin 充值)也可注入。
+    CreditModule,
     AdminModule,
     // 健康检查:GET /api/health(探针/监控用),不依赖任何 feature module。
     HealthModule,

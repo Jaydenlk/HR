@@ -9,9 +9,8 @@ import { request } from './test-utils';
 
 // ─── 管理后台 e2e(AdminController + AdminGuard)──────────────────────────────
 //
-// 用 AppModule(QuotaGuard 已接入 AI 控制器),mock AiService 让 /api/salary/analyze
-// 成功返回结构化结果(201,计一次配额),以验证「配额覆盖即时生效」。
-// admin 账户经 ADMIN_EMAILS=admin@coach.dev 引导;普通用户走邀请码注册。
+// 用 AppModule;mock AiService 让 AI 端点稳定返回结构化结果(注册流程不依赖,但 AppModule
+// 校验 AI 配置存在)。admin 账户经 ADMIN_EMAILS=admin@coach.dev 引导;普通用户走邀请码注册。
 
 const ANALYSIS_RESULT = {
   summary: '测试用薪资分析结果。',
@@ -40,13 +39,6 @@ async function registerUser(app: INestApplication, email: string, name: string):
     .post('/api/auth/login')
     .send({ email, code: devCode, invite_code: 'COACH2026', name });
   return loginRes.body.access_token as string;
-}
-
-function callAnalyze(app: INestApplication, token: string) {
-  return request(app.getHttpServer())
-    .post('/api/salary/analyze')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ role: '后端工程师', city: '北京' });
 }
 
 describe('Admin (e2e)', () => {
@@ -125,7 +117,8 @@ describe('Admin (e2e)', () => {
       });
       expect(admin).toHaveProperty('usage_today');
       expect(admin).toHaveProperty('usage_total');
-      expect(admin).toHaveProperty('daily_quota_override');
+      expect(admin).toHaveProperty('credit_balance');
+      expect(typeof admin.credit_balance).toBe('number');
       expect(admin).toHaveProperty('created_at');
 
       // 契约 3:每行带出最近登录四字段。admin 经真实登录注册 → IP/时间必非空;
@@ -222,42 +215,32 @@ describe('Admin (e2e)', () => {
     });
   });
 
-  // ─── 配额覆盖:QuotaGuard 阈值变化 ─────────────────────────────────────────
-  describe('配额覆盖即时生效', () => {
-    let quotaToken: string;
-    let quotaUserId: string;
+  // ─── 管理员充值:credit_balance 变化即时生效 ──────────────────────────────────
+  describe('管理员充值即时生效', () => {
+    let rechargeToken: string;
+    let rechargeUserId: string;
 
     beforeAll(async () => {
-      quotaToken = await registerUser(app, 'quota-admin@coach.dev', '配额测试');
-      const quotaUser = await userRepo.findOneBy({ email: 'quota-admin@coach.dev' });
-      quotaUserId = quotaUser!.id;
+      rechargeToken = await registerUser(app, 'recharge-admin@coach.dev', '充值测试');
+      const u = await userRepo.findOneBy({ email: 'recharge-admin@coach.dev' });
+      rechargeUserId = u!.id;
     }, 30000);
 
-    it('admin 设 override=2 → 该用户第 3 次调用 429', async () => {
-      const patch = await request(app.getHttpServer())
-        .patch(`/api/admin/users/${quotaUserId}`)
+    it('admin 充值 +30 → 返回最新余额(注册 50 + 30 = 80)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/admin/users/${rechargeUserId}/credits`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ daily_quota_override: 2 });
-      expect(patch.status).toBe(200);
-      expect(patch.body.daily_quota_override).toBe(2);
-
-      expect((await callAnalyze(app, quotaToken)).status).toBe(201);
-      expect((await callAnalyze(app, quotaToken)).status).toBe(201);
-      const third = await callAnalyze(app, quotaToken);
-      expect(third.status).toBe(429);
+        .send({ delta: 30, note: '运营补点' });
+      expect(res.status).toBe(201);
+      expect(res.body.credit_balance).toBe(80);
     }, 30000);
 
-    it('admin 提额 override=10 → 阈值上移,该用户可继续调用', async () => {
-      // 上一用例已计 2 次成功(+1 次 429 不计)。提额到 10 后应能继续到 201。
-      const patch = await request(app.getHttpServer())
-        .patch(`/api/admin/users/${quotaUserId}`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ daily_quota_override: 10 });
-      expect(patch.status).toBe(200);
-      expect(patch.body.daily_quota_override).toBe(10);
-
-      // 阈值变化即时生效:第 3 次成功调用(此前被 429 卡住)现在应 201。
-      expect((await callAnalyze(app, quotaToken)).status).toBe(201);
+    it('充值即时生效:用户 /me 余额随之上调', async () => {
+      const me = await request(app.getHttpServer())
+        .get('/api/me')
+        .set('Authorization', `Bearer ${rechargeToken}`);
+      expect(me.status).toBe(200);
+      expect(me.body.credit_balance).toBe(80);
     }, 30000);
   });
 
