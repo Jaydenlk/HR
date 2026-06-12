@@ -103,6 +103,38 @@ describe('CompanySearchService — 超时路径', () => {
 
     expect(result).toEqual({ available: false, reason: 'timeout' });
   });
+
+  it('超时后第二次调用重新发起 fetch，不走缓存', async () => {
+    // 第一次：超时
+    fetchMock.mockImplementationOnce(() =>
+      new Promise((_, reject) => {
+        const err = new Error('The user aborted a request.');
+        err.name = 'AbortError';
+        setTimeout(() => reject(err), 10);
+      }),
+    );
+    // 第二次：成功
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          webPages: {
+            value: [{ name: '重试公司', url: 'https://retry.com', summary: '重试成功' }],
+          },
+        },
+      }),
+    });
+
+    const svc = makeService('test-key');
+    const first = await svc.search('重试测试公司XYZ');
+    expect(first).toEqual({ available: false, reason: 'timeout' });
+
+    const second = await svc.search('重试测试公司XYZ');
+    expect(second.available).toBe(true);
+
+    // 超时不缓存，所以第二次真实发起了 fetch，总共 2 次
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('CompanySearchService — 网络错误路径', () => {
@@ -113,5 +145,45 @@ describe('CompanySearchService — 网络错误路径', () => {
     const result = await svc.search('网络错误测试公司');
 
     expect(result).toEqual({ available: false, reason: 'error' });
+  });
+});
+
+describe('CompanySearchService — HTTP 状态语义', () => {
+  it('HTTP 401 返回 {available:false, reason:"no_key"}', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401 });
+    const svc = makeService('test-key');
+    const result = await svc.search('401测试公司');
+    expect(result).toEqual({ available: false, reason: 'no_key' });
+  });
+
+  it('HTTP 403 返回 {available:false, reason:"no_key"}', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 403 });
+    const svc = makeService('test-key');
+    const result = await svc.search('403测试公司');
+    expect(result).toEqual({ available: false, reason: 'no_key' });
+  });
+
+  it('其他非 2xx（如 500）返回 {available:false, reason:"error"}', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500 });
+    const svc = makeService('test-key');
+    const result = await svc.search('500测试公司');
+    expect(result).toEqual({ available: false, reason: 'error' });
+  });
+
+  it('HTTP 非 2xx 时不写缓存，第二次调用重新发起 fetch', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500 });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: { webPages: { value: [{ name: '恢复公司', url: 'https://ok.com', summary: '恢复了' }] } },
+      }),
+    });
+
+    const svc = makeService('test-key');
+    await svc.search('缓存语义测试公司');
+    const second = await svc.search('缓存语义测试公司');
+
+    expect(second.available).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -220,10 +220,9 @@ export default function MockPage() {
                   value={form.company}
                   onChange={(e) => {
                     setForm((f) => ({ ...f, company: e.target.value }));
-                    if (!e.target.value.trim()) {
-                      setCheckResult(null);
-                      setCandidateConfirmed(null);
-                    }
+                    // 任何变化都重置搜索状态，防止旧确认结果随新公司名一起提交
+                    setCheckResult(null);
+                    setCandidateConfirmed(null);
                   }}
                   placeholder="如：字节跳动"
                   style={{

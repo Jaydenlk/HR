@@ -63,12 +63,16 @@ export class CompanySearchService {
     const query = `${companyName} 公司 简介 校招`;
     const outcome = await this.fetchBocha(query);
 
-    // LRU 淘汰：超过上限时删最旧一条
-    if (this.cache.size >= CACHE_MAX) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) this.cache.delete(firstKey);
+    // 只缓存成功结果（available===true），失败/超时/无key 不缓存
+    // 这样博查恢复后可立即重试，不会被错误结果锁死 24h
+    if (outcome.available) {
+      // LRU 淘汰：超过上限时删最旧一条
+      if (this.cache.size >= CACHE_MAX) {
+        const firstKey = this.cache.keys().next().value;
+        if (firstKey !== undefined) this.cache.delete(firstKey);
+      }
+      this.cache.set(companyName, { outcome, expireAt: Date.now() + CACHE_TTL_MS });
     }
-    this.cache.set(companyName, { outcome, expireAt: Date.now() + CACHE_TTL_MS });
 
     return outcome;
   }
@@ -90,7 +94,10 @@ export class CompanySearchService {
 
       if (!response.ok) {
         this.logger.warn(`博查搜索 HTTP ${response.status}`);
-        return { available: true, candidate: null };
+        if (response.status === 401 || response.status === 403) {
+          return { available: false, reason: 'no_key' };
+        }
+        return { available: false, reason: 'error' };
       }
 
       const data = (await response.json()) as BochaResponse;

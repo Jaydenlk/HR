@@ -1,18 +1,22 @@
-import { IsString, IsOptional, IsIn, IsInt, Min, Max, IsObject, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsInt, Min, Max, IsObject, ValidateNested, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { ConfirmedCompanyInfo } from '../mock.service';
 
 class ConfirmedCompanyInfoDto implements ConfirmedCompanyInfo {
   @IsString()
+  @MaxLength(100)
   name!: string;
 
   @IsString()
+  @MaxLength(500)
   summary!: string;
 
   @IsString()
+  @MaxLength(500)
   source_url!: string;
 
   @IsString()
+  @MaxLength(40)
   searched_at!: string;
 }
 
