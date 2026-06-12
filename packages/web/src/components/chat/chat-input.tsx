@@ -160,6 +160,7 @@ export function ChatInput({ onSend, loading }: ChatInputProps) {
             </kbd>
             换行
           </span>
+          <span>消耗 1 点</span>
         </div>
       </div>
     </div>

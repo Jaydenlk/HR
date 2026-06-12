@@ -463,11 +463,12 @@ function PlaybookTab({ state, patch }: { state: PlaybookState; patch: (p: Partia
             onChange={(e) => setIntel(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', flexDirection: 'column', gap: '4px', marginTop: '14px' }}>
           <button onClick={submit} disabled={loading} style={PRIMARY_BTN(loading)}>
             {loading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Building2 size={15} />}
             {loading ? '生成中…' : '生成手册'}
           </button>
+          <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
         </div>
       </div>
     </TabShell>
@@ -635,10 +636,13 @@ function StarTab({ state, patch }: { state: StarState; patch: (p: Partial<StarSt
             <Plus size={13} />
             添加一段经历
           </button>
-          <button onClick={submit} disabled={loading} style={PRIMARY_BTN(loading)}>
-            {loading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <BookOpen size={15} />}
-            {loading ? '提炼中…' : '提炼故事'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+            <button onClick={submit} disabled={loading} style={PRIMARY_BTN(loading)}>
+              {loading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <BookOpen size={15} />}
+              {loading ? '提炼中…' : '提炼故事'}
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
         </div>
       </div>
     </TabShell>
@@ -837,11 +841,12 @@ function TechTab({ state, patch }: { state: TechState; patch: (p: Partial<TechSt
             onChange={(e) => setIntel(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', flexDirection: 'column', gap: '4px', marginTop: '14px' }}>
           <button onClick={submit} disabled={loading} style={PRIMARY_BTN(loading)}>
             {loading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Code2 size={15} />}
             {loading ? '生成中…' : '生成计划'}
           </button>
+          <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
         </div>
       </div>
     </TabShell>
@@ -986,11 +991,12 @@ function CaseTab({ state, patch }: { state: CaseState; patch: (p: Partial<CaseSt
           <Field label="目标公司/行业" value={targetCompany} onChange={setTargetCompany} placeholder="麦肯锡 / 互联网产品岗" />
           <Field label="重点方向" value={focusArea} onChange={setFocusArea} placeholder="B端产品设计 / 盈利型 Case" />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end', flexDirection: 'column', gap: '4px', marginTop: '14px' }}>
           <button onClick={submit} disabled={loading} style={PRIMARY_BTN(loading)}>
             {loading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Lightbulb size={15} />}
             {loading ? '生成中…' : '生成指导'}
           </button>
+          <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
         </div>
       </div>
     </TabShell>

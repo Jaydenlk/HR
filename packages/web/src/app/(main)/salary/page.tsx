@@ -1321,36 +1321,39 @@ function AiAnalysisSection() {
               />
             </div>
           </div>
-          <button
-            type="submit"
-            disabled={state.kind === 'loading'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 20px',
-              borderRadius: '10px',
-              border: 'none',
-              background: state.kind === 'loading' ? 'var(--color-surface-3)' : 'var(--color-brand)',
-              color: state.kind === 'loading' ? 'var(--color-ink-3)' : '#fff',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              cursor: state.kind === 'loading' ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            {state.kind === 'loading' ? (
-              <>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                分析中…
-              </>
-            ) : (
-              <>
-                <Sparkles size={14} />
-                开始分析
-              </>
-            )}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <button
+              type="submit"
+              disabled={state.kind === 'loading'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 20px',
+                borderRadius: '10px',
+                border: 'none',
+                background: state.kind === 'loading' ? 'var(--color-surface-3)' : 'var(--color-brand)',
+                color: state.kind === 'loading' ? 'var(--color-ink-3)' : '#fff',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                cursor: state.kind === 'loading' ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {state.kind === 'loading' ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  分析中…
+                </>
+              ) : (
+                <>
+                  <Sparkles size={14} />
+                  开始分析
+                </>
+              )}
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
         </form>
 
         {/* States */}
@@ -2241,36 +2244,39 @@ function CityIndustryFitSection() {
               />
             </div>
           </div>
-          <button
-            type="submit"
-            disabled={state.kind === 'loading'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '9px 20px',
-              borderRadius: '10px',
-              border: 'none',
-              background: state.kind === 'loading' ? 'var(--color-surface-3)' : 'var(--color-brand)',
-              color: state.kind === 'loading' ? 'var(--color-ink-3)' : '#fff',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              cursor: state.kind === 'loading' ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            {state.kind === 'loading' ? (
-              <>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                分析中…
-              </>
-            ) : (
-              <>
-                <MapPin size={14} />
-                开始适配分析
-              </>
-            )}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <button
+              type="submit"
+              disabled={state.kind === 'loading'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 20px',
+                borderRadius: '10px',
+                border: 'none',
+                background: state.kind === 'loading' ? 'var(--color-surface-3)' : 'var(--color-brand)',
+                color: state.kind === 'loading' ? 'var(--color-ink-3)' : '#fff',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                cursor: state.kind === 'loading' ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {state.kind === 'loading' ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  分析中…
+                </>
+              ) : (
+                <>
+                  <MapPin size={14} />
+                  开始适配分析
+                </>
+              )}
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
         </form>
 
         {/* States */}

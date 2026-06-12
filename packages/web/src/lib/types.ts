@@ -1301,6 +1301,35 @@ export interface CityIndustryFitResult {
   recommendation: string;
 }
 
+// ─── Credit 系统 ──────────────────────────────────────────────────────────────
+
+export type CreditType = 'signup_grant' | 'admin_grant' | 'consume';
+
+export interface CreditLedgerItem {
+  id: string;
+  delta: number;
+  type: CreditType;
+  balance_after: number;
+  note: string | null;
+  endpoint: string | null;
+  created_at: string;
+}
+
+export interface CreditLedgerPage {
+  items: CreditLedgerItem[];
+  total: number;
+}
+
+export interface MeProfile {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  invite_code: string | null;
+  created_at: string;
+  credit_balance: number;
+}
+
 // ─── 管理后台(/admin) ────────────────────────────────────────────────────────
 // GET /api/admin/users:全量用户 + 今日/累计 AI 调用次数 + 最近登录信息。
 // last_login_* 四字段可为 null(从未登录或旧数据);内网/localhost 登录时
@@ -1319,6 +1348,7 @@ export interface AdminUserRow {
   last_login_province: string | null;
   last_login_city: string | null;
   last_login_at: string | null;
+  credit_balance: number;
 }
 
 // GET /api/admin/invites:邀请码全集。

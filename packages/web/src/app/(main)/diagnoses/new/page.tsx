@@ -686,28 +686,31 @@ export default function NewDiagnosisPage() {
               上一步
             </button>
 
-            <button
-              onClick={handleSubmit}
-              disabled={jdText.trim().length < 10}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '11px 24px',
-                background:
-                  jdText.trim().length >= 10 ? 'var(--color-brand)' : 'var(--color-surface-3)',
-                color: jdText.trim().length >= 10 ? '#fff' : 'var(--color-ink-4)',
-                border: 'none',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: jdText.trim().length >= 10 ? 'pointer' : 'default',
-                transition: 'background 0.15s',
-              }}
-            >
-              <Sparkles size={16} />
-              开始诊断
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+              <button
+                onClick={handleSubmit}
+                disabled={jdText.trim().length < 10}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '11px 24px',
+                  background:
+                    jdText.trim().length >= 10 ? 'var(--color-brand)' : 'var(--color-surface-3)',
+                  color: jdText.trim().length >= 10 ? '#fff' : 'var(--color-ink-4)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: jdText.trim().length >= 10 ? 'pointer' : 'default',
+                  transition: 'background 0.15s',
+                }}
+              >
+                <Sparkles size={16} />
+                开始诊断
+              </button>
+              <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+            </div>
           </div>
         </div>
       )}
