@@ -1,6 +1,6 @@
 # Handoff: Coordinator → Implementer (B1 AI 基础层)
 
-## 状态: READY_FOR_REVIEW(实现完成,门禁全绿;relay 真机冒烟因所给 .env 无 CloudDreamAI 密钥被阻塞,见遗留问题)
+## 状态: READY_FOR_REVIEW(B1 审计后微修批完成:补 runStreaming 放弃测试 2 条/thinking_delta 注释/遗留裁定确认;commit d28b8d3)
 ## 工作目录: E:\Agent program\HRBP-wt\ai-foundation(分支 feature/ai-foundation)
 ## 任务: AiService 升级——真多轮 messages + 流式 + 场景档位(pro|flash)+ 备用通道型号迁移 + 并发队列可见化
 ## 输入文件: packages/api/src/ai/**、packages/api/src/config/ai.config.ts、packages/api/src/diagnoses|resumes 的 AI 调用点(仅加 tier 参数)
