@@ -1,6 +1,6 @@
 # Handoff: Coordinator → Implementer (B1 AI 基础层)
 
-## 状态: READY_FOR_REVIEW(实现完成,门禁全绿;relay 真机冒烟因所给 .env 无 CloudDreamAI 密钥被阻塞,见遗留问题)
+## 状态: READY_FOR_REVIEW(B1 审计后微修批完成:补 runStreaming 放弃测试 2 条/thinking_delta 注释/遗留裁定确认;commit d28b8d3)
 ## 工作目录: E:\Agent program\HRBP-wt\ai-foundation(分支 feature/ai-foundation)
 ## 任务: AiService 升级——真多轮 messages + 流式 + 场景档位(pro|flash)+ 备用通道型号迁移 + 并发队列可见化
 ## 输入文件: packages/api/src/ai/**、packages/api/src/config/ai.config.ts、packages/api/src/diagnoses|resumes 的 AI 调用点(仅加 tier 参数)
@@ -76,7 +76,8 @@
 ## 遗留问题
 - 【阻塞·交回 Coordinator】auto-v2(CloudDreamAI 中转)流式真机冒烟未做:所给主仓 .env 不含 CloudDreamAI 密钥(两槽都是 deepseek 直连)。需 Coordinator/用户提供 relay key(AI_RELAY_API_KEY/CLOUDDREAM_API_KEY)后补跑「relay 流式一次」以验证中转 SSE 是否支持(handoff 已核实事实里标注「主通道中转流式未经验证」正是要本步实测)。代码侧 relay 流式路径已就绪(streamProvider 通用,只认 text_delta)。
 - 【需 B2/调用方注意】deepseek-v4-pro 是思考模型:流式会先产大量 thinking_delta 再产 text_delta。chat() 默认 maxTokens=4096 对 pro 够用,但若调用方调小预算可能全耗在思考、首字迟迟不来(实测 max_tokens=200 时 0 正文)。建议 B2 的流式 chat 对 pro 档设较大 maxTokens(冒烟用 1500 正常)。streamProvider 已只对外吐 text_delta(不泄思考),符合设计。
-- 【判断说明】auditFaithfulness(防编造复核,flag_fabrication)保持 flash 未标 pro:它是「返回 index 列表」的分类型增强项(失败不阻断),非核心产出;按模型选型常识分类任务走 flash 更经济。若 Reviewer 认为该步也属改写核心产出,可一行加 tier:'pro'。
+- 【判断说明】auditFaithfulness(防编造复核,flag_fabrication)保持 flash 未标 pro:它是「返回 index 列表」的分类型增强项(失败不阻断),非核心产出;按模型选型常识分类任务走 flash 更经济。若 Reviewer 认为该步也属改写核心产出,可一行加 tier:'pro'。(协调者已裁定认可,维持 flash)
+- 【auto-v2 中转冒烟】待补跑 relay 流式一次以验证中转 SSE 支持。(协调者裁定:列入部署彩排清单执行)
 - 队列「排位变化订阅」以 runObservable(task,onPosition) 形式提供给 B2;B2 的 SSE 端点应用 runObservable 包住整段 chat 消费(或自行组合 runStreaming + 订阅)。本批未建 SSE 端点(属 B2/conversations,禁止触碰)。
 
 ## 决策上下文
