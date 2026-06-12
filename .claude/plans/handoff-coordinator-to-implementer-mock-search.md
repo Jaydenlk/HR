@@ -1,7 +1,7 @@
 # Handoff: Coordinator → Implementer (D2 模拟面试库外公司联网搜索层)
 
-## 状态: 待 D1 合 dev 后启动(协调者届时建 worktree 并填路径)
-## 工作目录: 【派工时填写】
+## 状态: READY_FOR_IMPL(D1 已合 dev @e76d552;B1 也已在 dev,AiService 已有 tier 参数,第 5 条收口项可直接做)
+## 工作目录: E:\Agent program\HRBP-wt\mock-company(git worktree,分支 feature/mock-search,node_modules 已就绪免装)
 ## 前置依赖: D1 已落地(公司库 600 家、company_known 双路径、防编造 prompt);BOCHA_API_KEY 已在主仓 packages/api/.env(复制到 worktree,永不提交)
 ## 输入文件: packages/api/src/mock/**、packages/web/src/app/(main)/mock/page.tsx
 ## 禁止触碰: ai/**、conversations/**、credit/**、feed/**(公司库读复用 D1 产物)、interview-prep/**
