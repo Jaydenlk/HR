@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { MockSession } from '@/lib/types';
@@ -46,6 +46,8 @@ export default function MockPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   // company_known: null=未查, true=命中, false=未命中
   const [companyKnown, setCompanyKnown] = useState<boolean | null>(null);
+  // latest-wins: 每次发起新请求时中止上一次未完成的请求
+  const checkAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     api
@@ -62,12 +64,18 @@ export default function MockPage() {
 
   async function checkCompany(name: string) {
     if (!name.trim()) { setCompanyKnown(null); return; }
+    // latest-wins: 中止上一次未完成的请求，防止旧响应覆盖新状态
+    checkAbortRef.current?.abort();
+    const controller = new AbortController();
+    checkAbortRef.current = controller;
     try {
       const res = await api.get<{ company_known: boolean }>(
         `/mock-sessions/company-check?name=${encodeURIComponent(name.trim())}`,
+        { signal: controller.signal },
       );
       setCompanyKnown(res.company_known);
     } catch {
+      // AbortError 属正常取消，其余失败静默不阻断创建流程
       setCompanyKnown(null);
     }
   }

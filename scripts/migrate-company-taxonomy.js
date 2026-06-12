@@ -14,12 +14,19 @@
 const path = require('path');
 const fs = require('fs');
 
-// js-yaml 通过 pnpm 虚拟路径解析
-const yamlPath = path.resolve(
-  __dirname,
-  '../node_modules/.pnpm/js-yaml@4.1.1/node_modules/js-yaml',
-);
-const yaml = require(yamlPath);
+// js-yaml 在 pnpm workspace 中未直接暴露为顶层 node_modules，
+// 动态解析 pnpm 内容寻址路径以避免硬编码版本号。
+function requireJsYaml() {
+  // 优先尝试标准路径（安装为直接依赖时可用）
+  try { return require('js-yaml'); } catch (_) { /* fall through */ }
+  // 回退：在 pnpm 内容存储中动态查找（取最高版本）
+  const pnpmDir = path.resolve(__dirname, '../node_modules/.pnpm');
+  const entries = require('fs').readdirSync(pnpmDir).filter((e) => e.startsWith('js-yaml@'));
+  if (entries.length === 0) throw new Error('js-yaml 未找到，请运行 pnpm install');
+  const latest = entries.sort().reverse()[0];
+  return require(path.resolve(pnpmDir, latest, 'node_modules/js-yaml'));
+}
+const yaml = requireJsYaml();
 
 // ── 路径 ──────────────────────────────────────────────────────────────────────
 const ROOT = path.resolve(__dirname, '..');
@@ -51,9 +58,32 @@ const TYPE_MAP = {
   consulting_fmcg:         'foreign_brand',
   consulting_advertising:  'foreign_brand',
   healthcare_biotech:      'stable_mid',
+  // ai_robot_global 在 YAML 中未出现，但已有 seed 条目使用该类型，此处补全防止回退到 stable_mid
+  ai_robot_global:         'ai_robot_global',
 };
 
 const FALLBACK_TYPE = 'stable_mid';
+
+// ── sector 映射：yaml company_type → sector 中文标签 ─────────────────────────
+// 注：YAML 源数据无 sector 字段，此字典按 company_type 语义给新增公司赋最合理的 sector。
+// 映射不到的类型（YAML 未出现的）留 null 并在注释中说明。
+const SECTOR_MAP = {
+  internet_big_tech:       '互联网',
+  stable_mid_tech:         '互联网',
+  ecommerce_local:         '互联网',
+  foreign_enterprise:      '外企科技',
+  overseas:                '外企科技',
+  overseas_cross_border:   '外企科技',
+  ai_startup:              'AI创业',
+  new_energy:              '新能源汽车',
+  finance:                 '金融',
+  state_owned:             '国企',
+  gaming_content:          '游戏',
+  consulting_fmcg:         '管理咨询',
+  consulting_advertising:  '管理咨询',
+  healthcare_biotech:      '硬科技',
+  // ai_robot_global 在 YAML 中未出现，保持 null（YAML 无 sector 字段，无法推断）
+};
 
 function mapCompanyType(yamlType) {
   return TYPE_MAP[yamlType] ?? FALLBACK_TYPE;
@@ -79,9 +109,8 @@ function toSeedEntry(yc) {
     role_focus: Array.isArray(yc.main_roles)
       ? yc.main_roles.map((r) => String(r))
       : [],
-    sector: Array.isArray(yc.cities) && yc.cities.length > 0
-      ? null
-      : null,
+    // YAML 无 sector 字段，按 company_type 语义推断；映射不到则留 null
+    sector: SECTOR_MAP[yc.company_type] ?? null,
     reason_type: 'product_judgment',
     reason: null,
   };

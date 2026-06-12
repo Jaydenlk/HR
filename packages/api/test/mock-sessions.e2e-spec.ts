@@ -617,5 +617,24 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
 
       expect(res.status).toBe(401);
     });
+
+    it('name exceeds 100 chars → 400 (input validation)', async () => {
+      const longName = 'A'.repeat(101);
+      const res = await request(app.getHttpServer())
+        .get(`/api/mock-sessions/company-check?name=${longName}`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+    });
+
+    it('name exactly 100 chars → 200 (within limit)', async () => {
+      const normalName = 'B'.repeat(100);
+      const res = await request(app.getHttpServer())
+        .get(`/api/mock-sessions/company-check?name=${normalName}`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('company_known', false);
+    });
   });
 });

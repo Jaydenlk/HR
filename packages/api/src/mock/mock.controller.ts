@@ -7,6 +7,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MockService } from './mock.service';
 import { CreateMockSessionDto } from './dto/create-mock-session.dto';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
+import { CompanyCheckQueryDto } from './dto/company-check-query.dto';
 
 @Controller('mock-sessions')
 @UseGuards(JwtAuthGuard)
@@ -24,8 +25,8 @@ export class MockController {
   }
 
   @Get('company-check')
-  companyCheck(@Query('name') name: string) {
-    return this.mock.lookupCompany(name ?? '').then((r) => ({ company_known: r.company_known }));
+  companyCheck(@Query() query: CompanyCheckQueryDto) {
+    return this.mock.lookupCompany(query.name ?? '').then((r) => ({ company_known: r.company_known }));
   }
 
   @Get()
