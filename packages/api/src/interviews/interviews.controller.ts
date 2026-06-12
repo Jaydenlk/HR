@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { QuotaGuard } from '../quota/quota.guard';
+import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
+import { CreditInterceptor } from '../credit/credit.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { InterviewsService } from './interviews.service';
 import { CreateInterviewDto } from './dto/create-interview.dto';
@@ -14,8 +15,8 @@ export class InterviewsController {
 
   // 无 transcript 的草稿也计 1 次 AI 配额——试运行防滥用优先于精确计量,与 opportunity create 同语义
   @Post()
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   create(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateInterviewDto,
@@ -35,8 +36,8 @@ export class InterviewsController {
 
   // 纯元数据 PATCH 也计 1 次 AI 配额——试运行防滥用优先于精确计量,与 opportunity create 同语义
   @Patch(':id')
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   update(
     @Param('id') id: string,
     @CurrentUser() user: { id: string },
@@ -47,8 +48,8 @@ export class InterviewsController {
 
   // IMPORTANT: /:id/analyze must be defined BEFORE generic /:id routes
   @Post(':id/analyze')
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   analyze(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.interviews.analyze(id, user.id);
   }

@@ -12,6 +12,7 @@ import { CoachContextService } from './coach-context.service';
 import { AiModule } from '../ai/ai.module';
 import { IntelligenceModule } from '../intelligence/intelligence.module';
 import { QuotaModule } from '../quota/quota.module';
+import { CreditModule } from '../credit/credit.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { QuotaModule } from '../quota/quota.module';
     AiModule,
     IntelligenceModule,
     QuotaModule,
+    CreditModule,
   ],
   controllers: [ConversationsController],
   providers: [ConversationsService, ChatService, CoachContextService],

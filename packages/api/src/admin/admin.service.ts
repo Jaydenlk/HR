@@ -7,20 +7,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Between, MoreThanOrEqual, Repository } from 'typeorm';
 import { UsersService } from '../users/users.service';
 import { InvitesService } from '../invites/invites.service';
+import { CreditService } from '../credit/credit.service';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { User } from '../users/entities/user.entity';
 import { InviteCode } from '../invites/entities/invite-code.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
 
-// 管理后台返回的用户行:实体字段 + 今日/累计 AI 调用次数 + 最近登录 IP/归属/时间。
+// 管理后台返回的用户行:实体字段 + credit 余额 + 今日/累计 AI 调用次数 + 最近登录 IP/归属/时间。
 export interface AdminUserRow {
   id: string;
   email: string;
   name: string;
   role: string;
   status: string;
-  daily_quota_override: number | null;
+  credit_balance: number;
   created_at: Date;
   last_login_ip: string | null;
   last_login_province: string | null;
@@ -41,6 +42,7 @@ export class AdminService {
   constructor(
     private readonly users: UsersService,
     private readonly invites: InvitesService,
+    private readonly credit: CreditService,
     @InjectRepository(AiUsage) private readonly usageRepo: Repository<AiUsage>,
   ) {}
 
@@ -60,7 +62,7 @@ export class AdminService {
           name: u.name,
           role: u.role,
           status: u.status,
-          daily_quota_override: u.daily_quota_override,
+          credit_balance: u.credit_balance,
           created_at: u.created_at,
           last_login_ip: u.last_login_ip,
           last_login_province: u.last_login_province,
@@ -83,20 +85,32 @@ export class AdminService {
         throw new BadRequestException('不能封禁自己');
       }
     }
-    if (dto.status === undefined && dto.role === undefined && dto.daily_quota_override === undefined) {
+    if (dto.status === undefined && dto.role === undefined) {
       throw new BadRequestException('请至少修改一项');
     }
-    const patch: Partial<Pick<User, 'status' | 'role' | 'daily_quota_override'>> = {};
+    const patch: Partial<Pick<User, 'status' | 'role'>> = {};
     if (dto.status !== undefined) patch.status = dto.status;
     if (dto.role !== undefined) patch.role = dto.role;
-    if (dto.daily_quota_override !== undefined) {
-      patch.daily_quota_override = dto.daily_quota_override;
-    }
     const updated = await this.users.updateById(targetId, patch);
     if (!updated) {
       throw new NotFoundException('用户不存在');
     }
     return updated;
+  }
+
+  // 管理员充值:给目标用户加点(admin_grant,记充值管理员 id 与备注)。返回最新余额。
+  async grantCredits(
+    actingUserId: string,
+    targetId: string,
+    delta: number,
+    note?: string,
+  ): Promise<{ credit_balance: number }> {
+    const target = await this.users.findById(targetId);
+    if (!target) {
+      throw new NotFoundException('用户不存在');
+    }
+    const balance = await this.credit.grant(targetId, delta, 'admin_grant', note, actingUserId);
+    return { credit_balance: balance };
   }
 
   listInvites(): Promise<InviteCode[]> {

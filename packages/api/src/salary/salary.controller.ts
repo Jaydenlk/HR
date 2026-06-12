@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { QuotaGuard } from '../quota/quota.guard';
+import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
+import { CreditInterceptor } from '../credit/credit.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SalaryService } from './salary.service';
 import { SalaryAnalysisService } from './salary-analysis.service';
@@ -34,16 +35,16 @@ export class SalaryController {
   }
 
   @Post('analyze')
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   analyze(@Body() dto: AnalyzeSalaryDto) {
     return this.analysis.analyze(dto);
   }
 
   // IMPORTANT: /city-industry-fit must be before /:id to avoid route collision
   @Post('city-industry-fit')
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   cityIndustryFitAnalyze(@Body() dto: CityIndustryFitDto) {
     return this.cityIndustryFit.analyze(dto);
   }

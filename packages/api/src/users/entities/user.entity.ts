@@ -28,8 +28,14 @@ export class User {
   status: string;
 
   // 每用户每日 AI 配额覆盖值;null 表示用全局 DAILY_AI_QUOTA。
+  // credit 完全替代制后退役:列保留不读(QuotaGuard 已删,不再写入),迁移不删列。
   @Column({ type: 'int', nullable: true })
   daily_quota_override: number | null;
+
+  // credit 余额;每次 AI 端点成功调用扣 1 点,余额 < 1 由 CreditGuard 拦截(402)。
+  // 注册赠送 50、管理员充值、消耗均经 CreditService 在事务+行锁内更新,同步写 credit_transactions。
+  @Column({ type: 'int', default: 0 })
+  credit_balance: number;
 
   @Column({ default: 'zh' })
   locale: string;

@@ -7,6 +7,7 @@ import { ResumesModule } from '../resumes/resumes.module';
 import { AiModule } from '../ai/ai.module';
 import { ProfessionPresetsModule } from '../profession-presets/profession-presets.module';
 import { QuotaModule } from '../quota/quota.module';
+import { CreditModule } from '../credit/credit.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { QuotaModule } from '../quota/quota.module';
     AiModule,
     ProfessionPresetsModule,
     QuotaModule,
+    CreditModule,
   ],
   controllers: [DiagnosesController],
   providers: [DiagnosesService],

@@ -17,6 +17,7 @@ import { UsersService } from '../users/users.service';
 import { InvitesService } from '../invites/invites.service';
 import { MailService } from '../mail/mail.service';
 import { IpRegionService } from '../geo/ip-region.service';
+import { CreditService } from '../credit/credit.service';
 import { User } from '../users/entities/user.entity';
 import { LoginCode } from './entities/login-code.entity';
 import { RequestCodeDto } from './dto/request-code.dto';
@@ -25,6 +26,7 @@ import { LoginDto } from './dto/login.dto';
 const CODE_TTL_MS = 10 * 60 * 1000; // 验证码 10 分钟有效
 const MAX_ATTEMPTS = 5; // 错误尝试上限
 const RESEND_COOLDOWN_MS = 60 * 1000; // 同邮箱重发冷却 60 秒
+const SIGNUP_CREDIT_GRANT = 50; // 新注册用户赠送 credit 点数
 
 @Injectable()
 export class AuthService {
@@ -35,6 +37,7 @@ export class AuthService {
     private readonly invites: InvitesService,
     private readonly mail: MailService,
     private readonly geo: IpRegionService,
+    private readonly credit: CreditService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     @InjectRepository(LoginCode) private readonly codes: Repository<LoginCode>,
@@ -120,6 +123,8 @@ export class AuthService {
         throw new ForbiddenException('邀请码无效或已用完');
       }
       user = await this.users.createUser(dto.email, dto.name, dto.invite_code, isAdmin);
+      // 新注册赠送 50 点(事务内更新余额 + 写 signup_grant 流水),回填内存对象保证响应余额准确。
+      user.credit_balance = await this.credit.grant(user.id, SIGNUP_CREDIT_GRANT, 'signup_grant');
     }
 
     // 至此用户已确定/创建成功,烧掉验证码(单次有效)。
@@ -160,6 +165,8 @@ export class AuthService {
     } else {
       // 测试通道新建用户:邀请码列非空约束,填入哨兵值 'dev-login' 标识来源。
       user = await this.users.createUser(normalized, normalized, 'dev-login', isAdmin);
+      // 与正常注册口径一致:新用户赠送 50 点,回填内存对象。
+      user.credit_balance = await this.credit.grant(user.id, SIGNUP_CREDIT_GRANT, 'signup_grant');
     }
 
     // 测试通道同样记录登录 IP/归属(本机调用即 127.0.0.1/::1 → 归属「内网」)。
