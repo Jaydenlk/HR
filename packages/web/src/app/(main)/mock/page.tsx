@@ -268,30 +268,34 @@ export default function MockPage() {
                 </div>
               )}
 
-              <button
-                onClick={() => void handleCreate()}
-                disabled={creating || !form.role.trim()}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '12px 24px',
-                  background: 'var(--color-brand)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: creating || !form.role.trim() ? 'not-allowed' : 'pointer',
-                  opacity: creating || !form.role.trim() ? 0.7 : 1,
-                  transition: 'opacity 0.12s',
-                  marginTop: '4px',
-                }}
-              >
-                <Play size={16} />
-                {creating ? '正在生成题目…' : '开始模拟面试'}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                <button
+                  onClick={() => void handleCreate()}
+                  disabled={creating || !form.role.trim()}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '12px 24px',
+                    background: 'var(--color-brand)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: creating || !form.role.trim() ? 'not-allowed' : 'pointer',
+                    opacity: creating || !form.role.trim() ? 0.7 : 1,
+                    transition: 'opacity 0.12s',
+                  }}
+                >
+                  <Play size={16} />
+                  {creating ? '正在生成题目…' : '开始模拟面试'}
+                </button>
+                <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>
+                  本场约消耗 7 点（出题 1 点 + 每题作答 1 点 × 5 + 总评 1 点）
+                </span>
+              </div>
             </div>
           </div>
         </div>

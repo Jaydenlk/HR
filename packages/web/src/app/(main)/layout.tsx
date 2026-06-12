@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import OnboardingTour from '@/components/onboarding/onboarding-tour';
 import { api } from '@/lib/api';
-import type { User, Conversation, Interview, Application } from '@/lib/types';
+import type { User, Conversation, Interview, Application, MeProfile } from '@/lib/types';
 import {
   CalendarDays,
   BookOpen,
@@ -32,6 +33,7 @@ import {
   ChevronRight,
   Shield,
   LogOut,
+  Coins,
 } from 'lucide-react';
 
 interface NavItem {
@@ -113,6 +115,7 @@ function formatRelativeTime(dateStr: string): string {
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -136,6 +139,13 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  function refreshCreditBalance() {
+    api
+      .get<MeProfile>('/me')
+      .then((data) => setCreditBalance(data.credit_balance))
+      .catch(() => {});
+  }
+
   useEffect(() => {
     api
       .get<User>('/auth/me')
@@ -155,6 +165,15 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       .get<Application[]>('/applications')
       .then((data) => setApplicationCount(data.length))
       .catch(() => {});
+    refreshCreditBalance();
+
+    // 全局 402 监听:点数不足时弹提示并刷新余额
+    function onInsufficientCredit() {
+      toast.error('点数不足，请联系管理员充值');
+      refreshCreditBalance();
+    }
+    window.addEventListener('coach:insufficient-credit', onInsufficientCredit);
+    return () => window.removeEventListener('coach:insufficient-credit', onInsufficientCredit);
   }, []);
 
   // Close sidebar on route change (mobile)
@@ -265,8 +284,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             : {}),
         }}
       >
-        {/* User row */}
-        <div
+        {/* User row — 点击头像/姓名进入 /me */}
+        <Link
+          href="/me"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -274,35 +294,52 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             padding: '2px 6px 16px',
             marginBottom: '6px',
             borderBottom: '1px solid var(--color-line)',
+            textDecoration: 'none',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
             {/* Avatar */}
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                background: 'var(--color-brand-soft)',
-                color: 'var(--color-brand-ink)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '13px',
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-              {initial}
-            </div>
-            <div>
+            {user?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatar_url}
+                alt="头像"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  flexShrink: 0,
+                  border: '1px solid var(--color-line)',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'var(--color-brand-soft)',
+                  color: 'var(--color-brand-ink)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {initial}
+              </div>
+            )}
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
                   fontSize: '14px',
                   fontWeight: 600,
                   color: 'var(--color-ink)',
                   letterSpacing: '-0.005em',
-                  maxWidth: '140px',
+                  maxWidth: '130px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -310,20 +347,25 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               >
                 {user?.name ?? '···'}
               </div>
-              <span
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--color-ink-3)',
-                  fontWeight: 500,
-                  display: 'block',
-                  marginTop: '1px',
-                }}
-              >
-                {user?.email ?? ''}
-              </span>
+              {creditBalance !== null && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--color-brand)',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    marginTop: '2px',
+                  }}
+                >
+                  <Coins size={11} />
+                  {creditBalance} 点
+                </span>
+              )}
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* CTA — "问 Coach" */}
         <Link

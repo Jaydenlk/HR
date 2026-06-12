@@ -666,32 +666,35 @@ export default function TodayPage() {
               点击下方按钮让 AI 根据你的求职进度生成个性化任务。
             </div>
           </div>
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '10px 20px',
-              fontSize: '14px',
-              fontWeight: 600,
-              color: '#fff',
-              background: 'var(--color-ink)',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: generating ? 'not-allowed' : 'pointer',
-              opacity: generating ? 0.7 : 1,
-              transition: 'opacity 0.1s',
-            }}
-          >
-            {generating ? (
-              <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <Zap size={15} />
-            )}
-            生成今日任务
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                padding: '10px 20px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#fff',
+                background: 'var(--color-ink)',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: generating ? 'not-allowed' : 'pointer',
+                opacity: generating ? 0.7 : 1,
+                transition: 'opacity 0.1s',
+              }}
+            >
+              {generating ? (
+                <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Zap size={15} />
+              )}
+              生成今日任务
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
         </div>
       )}
 

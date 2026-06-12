@@ -9,6 +9,7 @@ import { ResumesModule } from '../resumes/resumes.module';
 import { ApplicationsModule } from '../applications/applications.module';
 import { InterviewsModule } from '../interviews/interviews.module';
 import { QuotaModule } from '../quota/quota.module';
+import { CreditModule } from '../credit/credit.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { QuotaModule } from '../quota/quota.module';
     ApplicationsModule,
     InterviewsModule,
     QuotaModule,
+    CreditModule,
   ],
   controllers: [TasksController],
   providers: [TasksService, TaskGeneratorService],

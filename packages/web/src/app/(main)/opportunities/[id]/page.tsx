@@ -347,15 +347,18 @@ export default function OpportunityDetailPage() {
           <AlertCircle size={24} />
           <h2>评估失败</h2>
           {opp.error_message && <p className="error-message">{opp.error_message}</p>}
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => void handleReevaluate()}
-            disabled={reevaluating}
-          >
-            {reevaluating ? <Loader2 className="spin" size={15} /> : <RefreshCcw size={15} />}
-            {reevaluating ? '重试中...' : '重新评估'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => void handleReevaluate()}
+              disabled={reevaluating}
+            >
+              {reevaluating ? <Loader2 className="spin" size={15} /> : <RefreshCcw size={15} />}
+              {reevaluating ? '重试中...' : '重新评估'}
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
         </section>
       )}
 
@@ -536,19 +539,22 @@ export default function OpportunityDetailPage() {
         </Link>
 
         {!isEvaluating && (
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => void handleReevaluate()}
-            disabled={reevaluating}
-          >
-            {reevaluating ? (
-              <Loader2 className="spin" size={15} />
-            ) : (
-              <RefreshCcw size={15} />
-            )}
-            {reevaluating ? '评估中...' : '重新评估'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void handleReevaluate()}
+              disabled={reevaluating}
+            >
+              {reevaluating ? (
+                <Loader2 className="spin" size={15} />
+              ) : (
+                <RefreshCcw size={15} />
+              )}
+              {reevaluating ? '评估中...' : '重新评估'}
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
         )}
       </section>
     </main>

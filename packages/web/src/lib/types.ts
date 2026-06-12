@@ -7,7 +7,6 @@ export interface User {
   // /api/auth/me 一直返回完整实体,role/status 始终存在;此前类型未声明,补齐(向后兼容只增不改)。
   role: 'user' | 'admin';
   status: 'active' | 'banned';
-  daily_quota_override: number | null;
 }
 
 // ─── Auth (两步式登录:邮箱验证码 + 邀请制) ──────────────────────────────
@@ -1301,6 +1300,35 @@ export interface CityIndustryFitResult {
   recommendation: string;
 }
 
+// ─── Credit 系统 ──────────────────────────────────────────────────────────────
+
+export type CreditType = 'signup_grant' | 'admin_grant' | 'consume';
+
+export interface CreditLedgerItem {
+  id: string;
+  delta: number;
+  type: CreditType;
+  balance_after: number;
+  note: string | null;
+  endpoint: string | null;
+  created_at: string;
+}
+
+export interface CreditLedgerPage {
+  items: CreditLedgerItem[];
+  total: number;
+}
+
+export interface MeProfile {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string | null;
+  invite_code: string | null;
+  created_at: string;
+  credit_balance: number;
+}
+
 // ─── 管理后台(/admin) ────────────────────────────────────────────────────────
 // GET /api/admin/users:全量用户 + 今日/累计 AI 调用次数 + 最近登录信息。
 // last_login_* 四字段可为 null(从未登录或旧数据);内网/localhost 登录时
@@ -1311,7 +1339,6 @@ export interface AdminUserRow {
   name: string;
   role: 'user' | 'admin';
   status: 'active' | 'banned';
-  daily_quota_override: number | null;
   created_at: string;
   usage_today: number;
   usage_total: number;
@@ -1319,6 +1346,7 @@ export interface AdminUserRow {
   last_login_province: string | null;
   last_login_city: string | null;
   last_login_at: string | null;
+  credit_balance: number;
 }
 
 // GET /api/admin/invites:邀请码全集。

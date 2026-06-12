@@ -282,29 +282,31 @@ function StrategyPanel() {
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={!form.user_profile.trim()}
-                  style={{
-                    alignSelf: 'flex-start',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    padding: '9px 18px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    background: 'var(--color-brand)',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    opacity: form.user_profile.trim() ? 1 : 0.5,
-                    transition: 'background 0.12s',
-                  }}
-                >
-                  <Target size={14} />
-                  生成策略
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignSelf: 'flex-start' }}>
+                  <button
+                    type="submit"
+                    disabled={!form.user_profile.trim()}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '9px 18px',
+                      borderRadius: '9px',
+                      border: 'none',
+                      background: 'var(--color-brand)',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      opacity: form.user_profile.trim() ? 1 : 0.5,
+                      transition: 'background 0.12s',
+                    }}
+                  >
+                    <Target size={14} />
+                    生成策略
+                  </button>
+                  <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+                </div>
               </div>
             </form>
           )}

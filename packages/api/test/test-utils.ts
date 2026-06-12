@@ -1,10 +1,19 @@
 import { Test } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { unlinkSync } from 'fs';
 import * as supertest from 'supertest';
 import { AppModule } from '../src/app.module';
+import { User } from '../src/users/entities/user.entity';
+
+// 功能型 AI e2e(interview-prep/follow-up 等)单用户在一个套件内会连发数十次 AI 调用,
+// credit 完全替代制下每次扣 1,注册仅送 50,会在套件后段被 CreditGuard 402 误伤。
+// 与 quota 时代 jest-setup-env 设 DAILY_AI_QUOTA=100000 同理:测试用户统一充足额度。
+// 这是测试夹具配置,不改变产品行为(signup_grant 仍为 50,见 credit.e2e-spec 断言)。
+const TEST_CREDIT_TOPUP = 1_000_000;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const request: typeof supertest = (supertest as any).default ?? supertest;
@@ -62,5 +71,8 @@ export async function loginUser(app: INestApplication, email = 'test@coach.dev',
   const res = await request(app.getHttpServer())
     .post('/api/auth/login')
     .send({ email, code: devCode, name, invite_code: 'COACH2026' });
+  // 充足额度,避免功能型 AI 套件后段被 402 误伤(夹具配置,不改产品行为)。
+  const userRepo = app.get<Repository<User>>(getRepositoryToken(User));
+  await userRepo.update({ email: email.trim().toLowerCase() }, { credit_balance: TEST_CREDIT_TOPUP });
   return res.body.access_token;
 }

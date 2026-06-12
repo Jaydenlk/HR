@@ -1,15 +1,16 @@
 import { Controller, Post, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { QuotaGuard } from '../quota/quota.guard';
+import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
+import { CreditInterceptor } from '../credit/credit.interceptor';
 import { NetworkingService } from './networking.service';
 import { NetworkingMessageDto } from './dto/networking-message.dto';
 import { ReferralStrategyDto } from './dto/referral-strategy.dto';
 
 // 2 个端点全为 AI;Jwt 先行(填充 request.user)再 Quota 计数,顺序由数组决定。
 @Controller('networking')
-@UseGuards(JwtAuthGuard, QuotaGuard)
-@UseInterceptors(AiUsageInterceptor)
+@UseGuards(JwtAuthGuard, CreditGuard)
+@UseInterceptors(AiUsageInterceptor, CreditInterceptor)
 export class NetworkingController {
   constructor(private readonly networking: NetworkingService) {}
 

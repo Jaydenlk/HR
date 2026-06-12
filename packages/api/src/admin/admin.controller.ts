@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { GrantCreditsDto } from './dto/grant-credits.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { UpdateInviteDto } from './dto/update-invite.dto';
 
@@ -33,6 +34,16 @@ export class AdminController {
     @Body() dto: UpdateUserDto,
   ) {
     return this.admin.updateUser(req.user.id, id, dto);
+  }
+
+  // 管理员充值:给目标用户加点(admin_grant),返回最新余额。
+  @Post('users/:id/credits')
+  grantCredits(
+    @Request() req: { user: { id: string } },
+    @Param('id') id: string,
+    @Body() dto: GrantCreditsDto,
+  ) {
+    return this.admin.grantCredits(req.user.id, id, dto.delta, dto.note);
   }
 
   @Get('invites')

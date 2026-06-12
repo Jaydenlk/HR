@@ -534,16 +534,19 @@ export default function IndustryTrendPage() {
               </div>
             )}
 
-            <button onClick={handleSubmit} disabled={loading} style={btnPrimaryStyle(loading)}>
-              {loading ? (
-                <>
-                  <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                  分析中…
-                </>
-              ) : (
-                '分析行业趋势'
-              )}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <button onClick={handleSubmit} disabled={loading} style={btnPrimaryStyle(loading)}>
+                {loading ? (
+                  <>
+                    <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                    分析中…
+                  </>
+                ) : (
+                  '分析行业趋势'
+                )}
+              </button>
+              <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+            </div>
           </div>
         </div>
 

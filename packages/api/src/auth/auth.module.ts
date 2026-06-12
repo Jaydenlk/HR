@@ -10,6 +10,7 @@ import { UsersModule } from '../users/users.module';
 import { MailModule } from '../mail/mail.module';
 import { GeoModule } from '../geo/geo.module';
 import { InvitesModule } from '../invites/invites.module';
+import { CreditModule } from '../credit/credit.module';
 import { JwtStrategy } from '../common/guards/jwt.strategy';
 
 @Module({
@@ -19,6 +20,7 @@ import { JwtStrategy } from '../common/guards/jwt.strategy';
     MailModule,
     GeoModule,
     InvitesModule,
+    CreditModule,
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

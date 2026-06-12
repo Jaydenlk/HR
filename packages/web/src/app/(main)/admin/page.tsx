@@ -8,7 +8,7 @@ import type {
   AdminInvite,
   AdminUsageOverview,
 } from '@/lib/types';
-import { Loader2, Shield, Users, Ticket, BarChart2 } from 'lucide-react';
+import { Loader2, Shield, Users, Ticket, BarChart2, X, Coins } from 'lucide-react';
 
 // ─── 共享样式 ─────────────────────────────────────────────────────────────────
 
@@ -118,9 +118,13 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 配额输入暂存:userId → 输入框当前值(字符串,空串表示清除覆盖)。
-  const [quotaDraft, setQuotaDraft] = useState<Record<string, string>>({});
   const [savingUser, setSavingUser] = useState<string | null>(null);
+
+  // 充值弹窗状态
+  const [chargeTarget, setChargeTarget] = useState<AdminUserRow | null>(null);
+  const [chargeDelta, setChargeDelta] = useState('');
+  const [chargeNote, setChargeNote] = useState('');
+  const [charging, setCharging] = useState(false);
 
   // 邀请码新建表单
   const [newCode, setNewCode] = useState('');
@@ -153,11 +157,6 @@ export default function AdminPage() {
       setUsers(u);
       setInvites(inv);
       setUsage(usg);
-      setQuotaDraft(
-        Object.fromEntries(
-          u.map((row) => [row.id, row.daily_quota_override === null ? '' : String(row.daily_quota_override)]),
-        ),
-      );
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
@@ -167,7 +166,7 @@ export default function AdminPage() {
 
   async function patchUser(
     id: string,
-    body: { status?: 'active' | 'banned'; role?: 'user' | 'admin'; daily_quota_override?: number | null },
+    body: { status?: 'active' | 'banned'; role?: 'user' | 'admin' },
   ) {
     setSavingUser(id);
     setError(null);
@@ -181,18 +180,34 @@ export default function AdminPage() {
     }
   }
 
-  function saveQuota(id: string) {
-    const raw = (quotaDraft[id] ?? '').trim();
-    if (raw === '') {
-      void patchUser(id, { daily_quota_override: null });
+  async function submitCharge() {
+    if (!chargeTarget) return;
+    const n = Number(chargeDelta.trim());
+    if (!Number.isInteger(n) || n <= 0) {
+      setError('充值点数需为正整数');
       return;
     }
-    const n = Number(raw);
-    if (!Number.isInteger(n) || n < 0) {
-      setError('配额需为 0 或正整数');
-      return;
+    setCharging(true);
+    setError(null);
+    try {
+      const { credit_balance } = await api.post<{ credit_balance: number }>(`/admin/users/${chargeTarget.id}/credits`, {
+        delta: n,
+        ...(chargeNote.trim() ? { note: chargeNote.trim() } : {}),
+      });
+      // 行内更新余额:使用后端返回的 credit_balance,而非乐观 +n,避免并发漂移
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === chargeTarget.id ? { ...u, credit_balance } : u,
+        ),
+      );
+      setChargeTarget(null);
+      setChargeDelta('');
+      setChargeNote('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '充值失败');
+    } finally {
+      setCharging(false);
     }
-    void patchUser(id, { daily_quota_override: n });
   }
 
   async function createInvite() {
@@ -383,7 +398,7 @@ export default function AdminPage() {
               <Users size={17} /> 用户管理（{users.length}）
             </div>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '860px' }}>
                 <thead>
                   <tr>
                     <th style={thStyle}>邮箱</th>
@@ -392,7 +407,7 @@ export default function AdminPage() {
                     <th style={thStyle}>状态</th>
                     <th style={thStyle}>今日 / 累计</th>
                     <th style={thStyle}>最近登录</th>
-                    <th style={thStyle}>配额覆盖</th>
+                    <th style={thStyle}>余额（点）</th>
                     <th style={thStyle}>操作</th>
                   </tr>
                 </thead>
@@ -459,24 +474,34 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td style={tdStyle}>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            <input
-                              type="number"
-                              min={0}
-                              value={quotaDraft[u.id] ?? ''}
-                              onChange={(e) =>
-                                setQuotaDraft((prev) => ({ ...prev, [u.id]: e.target.value }))
-                              }
-                              placeholder="全局"
-                              style={{ ...inputStyle, width: '72px' }}
-                            />
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <span
+                              style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '14px',
+                                fontWeight: 700,
+                                color: 'var(--color-ink)',
+                                minWidth: '28px',
+                              }}
+                            >
+                              {u.credit_balance}
+                            </span>
                             <button
                               type="button"
-                              onClick={() => saveQuota(u.id)}
+                              onClick={() => {
+                                setChargeTarget(u);
+                                setChargeDelta('');
+                                setChargeNote('');
+                              }}
                               disabled={saving}
-                              style={smallBtn('neutral')}
+                              style={{
+                                ...smallBtn('primary'),
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
                             >
-                              保存
+                              <Coins size={12} /> 充值
                             </button>
                           </div>
                         </td>
@@ -591,6 +616,178 @@ export default function AdminPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 充值弹窗 ── */}
+      {chargeTarget && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setChargeTarget(null);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 400,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--color-surface)',
+              borderRadius: '20px',
+              border: '1px solid var(--color-line)',
+              padding: '28px 28px 24px',
+              width: '100%',
+              maxWidth: '420px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+            }}
+          >
+            {/* 标题行 */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '20px',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: '17px',
+                  fontWeight: 700,
+                  color: 'var(--color-ink)',
+                  letterSpacing: '-0.02em',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Coins size={17} style={{ color: 'var(--color-brand)' }} />
+                充值点数
+              </h3>
+              <button
+                type="button"
+                onClick={() => setChargeTarget(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--color-ink-3)',
+                  padding: '4px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* 目标用户 */}
+            <div style={{ fontSize: '13px', color: 'var(--color-ink-3)', marginBottom: '16px' }}>
+              用户：
+              <span style={{ color: 'var(--color-ink)', fontWeight: 600 }}>
+                {chargeTarget.name}（{chargeTarget.email}）
+              </span>
+              <br />
+              当前余额：
+              <span style={{ color: 'var(--color-brand)', fontWeight: 700 }}>
+                {chargeTarget.credit_balance} 点
+              </span>
+            </div>
+
+            {/* 充值表单 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--color-ink-3)',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  充值点数（正整数）
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={chargeDelta}
+                  onChange={(e) => setChargeDelta(e.target.value)}
+                  placeholder="例如：50"
+                  style={{ ...inputStyle, width: '100%' }}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--color-ink-3)',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  备注（可选）
+                </label>
+                <input
+                  type="text"
+                  value={chargeNote}
+                  onChange={(e) => setChargeNote(e.target.value)}
+                  placeholder="例如：2026-06 充值"
+                  style={{ ...inputStyle, width: '100%' }}
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                style={{
+                  background: 'var(--color-danger-soft)',
+                  color: 'var(--color-danger)',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  fontSize: '13px',
+                  marginTop: '12px',
+                  fontWeight: 500,
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* 按钮行 */}
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setChargeTarget(null)}
+                style={smallBtn('neutral')}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitCharge()}
+                disabled={charging}
+                style={smallBtn('primary')}
+              >
+                {charging ? '充值中…' : '确认充值'}
+              </button>
             </div>
           </div>
         </div>

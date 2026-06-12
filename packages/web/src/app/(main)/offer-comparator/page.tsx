@@ -915,37 +915,39 @@ export default function OfferComparatorPage() {
               添加 Offer（最多 5 个）
             </button>
           )}
-          <button
-            onClick={handleCompare}
-            disabled={loading}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '10px 24px',
-              borderRadius: '10px',
-              border: 'none',
-              background: loading ? 'var(--color-surface-3)' : 'var(--color-brand)',
-              color: loading ? 'var(--color-ink-3)' : '#fff',
-              fontSize: '13.5px',
-              fontWeight: 700,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit',
-              marginLeft: 'auto',
-            }}
-          >
-            {loading ? (
-              <>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                分析中…
-              </>
-            ) : (
-              <>
-                <Scale size={15} />
-                开始比对
-              </>
-            )}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', marginLeft: 'auto' }}>
+            <button
+              onClick={handleCompare}
+              disabled={loading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                padding: '10px 24px',
+                borderRadius: '10px',
+                border: 'none',
+                background: loading ? 'var(--color-surface-3)' : 'var(--color-brand)',
+                color: loading ? 'var(--color-ink-3)' : '#fff',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  分析中…
+                </>
+              ) : (
+                <>
+                  <Scale size={15} />
+                  开始比对
+                </>
+              )}
+            </button>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
         </div>
 
         {/* Error state */}

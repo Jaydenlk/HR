@@ -130,7 +130,8 @@ export class EnvironmentVariables {
   @IsString()
   ADMIN_EMAILS?: string;
 
-  // 每日 AI 调用配额(整数,默认 20);QuotaGuard 经 ConfigService 读取。
+  // 每日 AI 调用配额(整数);credit 完全替代制后 QuotaGuard 已退役、不再读取此值。
+  // 保留为可选环境变量(不校验失败),避免存量 .env 注入时报未声明。
   @IsOptional()
   @IsNumberString()
   DAILY_AI_QUOTA?: string;

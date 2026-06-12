@@ -1,7 +1,8 @@
 import { Controller, Post, Body, UseGuards, UseInterceptors, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { QuotaGuard } from '../quota/quota.guard';
+import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
+import { CreditInterceptor } from '../credit/credit.interceptor';
 import {
   InterviewPrepService,
   CompanyPlaybookResult,
@@ -16,8 +17,8 @@ import { CaseCoachDto } from './dto/case-coach.dto';
 
 // 4 个端点全为 AI;Jwt 先行(填充 request.user)再 Quota 计数,顺序由数组决定。
 @Controller('interview-prep')
-@UseGuards(JwtAuthGuard, QuotaGuard)
-@UseInterceptors(AiUsageInterceptor)
+@UseGuards(JwtAuthGuard, CreditGuard)
+@UseInterceptors(AiUsageInterceptor, CreditInterceptor)
 export class InterviewPrepController {
   constructor(private readonly interviewPrep: InterviewPrepService) {}
 

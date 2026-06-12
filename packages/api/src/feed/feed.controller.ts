@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { QuotaGuard } from '../quota/quota.guard';
+import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
+import { CreditInterceptor } from '../credit/credit.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FeedService } from './feed.service';
 import { CreateFeedItemDto } from './dto/create-feed-item.dto';
@@ -45,8 +46,8 @@ export class FeedController {
   }
 
   @Post('import')
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   import(@Body() dto: ImportFeedDto) {
     return this.ingestion.import(dto);
   }
@@ -57,8 +58,8 @@ export class FeedController {
   }
 
   @Post('digest')
-  @UseGuards(QuotaGuard)
-  @UseInterceptors(AiUsageInterceptor)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   async generateDigest() {
     const item = await this.digestGenerator.generateWeeklyDigest();
     return item;

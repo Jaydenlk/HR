@@ -3,9 +3,10 @@ import { AiModule } from '../ai/ai.module';
 import { InterviewPrepController } from './interview-prep.controller';
 import { InterviewPrepService } from './interview-prep.service';
 import { QuotaModule } from '../quota/quota.module';
+import { CreditModule } from '../credit/credit.module';
 
 @Module({
-  imports: [AiModule, QuotaModule],
+  imports: [AiModule, QuotaModule, CreditModule],
   controllers: [InterviewPrepController],
   providers: [InterviewPrepService],
 })
