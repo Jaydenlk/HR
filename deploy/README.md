@@ -1,6 +1,6 @@
-# Coach 生产部署手册(单机 4C4G)
+# Coach 生产部署手册(单机 2C2G 起)
 
-本手册覆盖 Coach(校招求职 AI SaaS)在单台 4C4G 服务器上的容器化部署:
+本手册覆盖 Coach(校招求职 AI SaaS)在单台服务器(2C2G 起,配额见 §6)上的容器化部署:
 PostgreSQL 16 + API(NestJS)+ Web(Next.js)+ Caddy(反代 / 自动 HTTPS)。
 
 所有命令在**仓库根目录**执行(即包含 `docker-compose.prod.yml` 的目录)。
@@ -52,23 +52,32 @@ cp .env.production.example .env.production
 > ⚠️ 安全:`.env.production` 含明文密钥。确认它已被 git 忽略(见下方"安全提醒"),
 > 切勿提交到仓库。
 
-### 1.2 构建并启动
+### 1.2 构建镜像
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+docker compose -f docker-compose.prod.yml --env-file .env.production build
 ```
 
 首次会拉取 postgres/caddy 镜像并构建 api/web 两镜像(含 native 依赖编译,约数分钟)。
 
-### 1.3 初始化数据库
+### 1.3 初始化数据库(先于启动!)
 
-生产走 PostgreSQL,**不依赖 synchronize 自动建表**(production 已关闭),首次需跑 migration:
+生产走 PostgreSQL,**不依赖 synchronize 自动建表**(production 已关闭),首次需跑 migration。
+⚠️ 顺序必须是「先 migration/seed,后 up」:API 启动时 onModuleInit 就要查表,
+表不存在会进入崩溃重启循环(虽然建表后能自愈,但 `exec` 进不去重启中的容器)。
+`run --rm` 起一次性容器执行,会自动把 postgres 依赖带起来:
 
 ```bash
-# 在 api 容器内执行数据库 migration(用编译产物 + node,runner 镜像无 pnpm/ts-node)
-docker compose -f docker-compose.prod.yml exec api node_modules/.bin/typeorm -d dist/database/data-source.js migration:run
+# 数据库 migration(用编译产物 + node,runner 镜像无 pnpm/ts-node)
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm api node_modules/.bin/typeorm -d dist/database/data-source.js migration:run
 # 灌入市场薪资/面经种子数据 + 初始邀请码(INITIAL_INVITE_CODE 从环境变量读,幂等可重跑)
-docker compose -f docker-compose.prod.yml exec api node dist/seed.js
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm api node dist/seed.js
+```
+
+### 1.3b 启动全家桶
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 ```
 
 > ⚠️ runner 镜像是精简运行镜像:**没有 pnpm、没有 ts-node、没有 src/**,只有 `dist/` 编译产物与
@@ -225,8 +234,9 @@ docker compose -f docker-compose.prod.yml down -v
 - `/api/*` → `api:3002`(保留前缀,后端 `setGlobalPrefix('api')` 需要)
 - 其余 → `web:3000`
 
-资源限制(`docker-compose.prod.yml`,总和约 3.5G,为 4C4G 留余量):
-postgres 1C/1G,api 2C/1.5G,web 1C/0.8G,caddy 0.5C/0.25G。
+资源限制(`docker-compose.prod.yml`,按 2C2G 独占机保守设定,总和约 1.28G,留 ~300M 给宿主):
+postgres 1C/384M,api 1.5C/512M,web 1C/256M,caddy 0.5C/128M。
+迁到 4C4G 机器时可按比例上调 limits 与 PG 缓冲参数(shared_buffers 等)。
 
 ---
 

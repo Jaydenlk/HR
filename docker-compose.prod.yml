@@ -130,8 +130,9 @@ services:
       # HTTP/3 走 QUIC(UDP 443);不映射则浏览器静默回退 HTTP/2,故显式开放。
       - "${HTTPS_PORT:-443}:443/udp"
     environment:
-      # Caddyfile 用 {$DOMAIN} 取域名;留空则按 :80 纯 HTTP 起(便于内网/IP 调试)。
-      DOMAIN: ${DOMAIN:-}
+      # Caddyfile 站点地址直接用 {$DOMAIN}。未配域名时这里兜底注入 ":80"(纯 HTTP);
+      # 不能注入空串——Caddy 会把空站点名的块误判为全局配置块而启动失败。
+      DOMAIN: ${DOMAIN:-:80}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

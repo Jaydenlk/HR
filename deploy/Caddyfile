@@ -5,11 +5,12 @@
 #
 # 站点地址取环境变量 {$DOMAIN}:
 #   - 配置了域名(如 coach.example.com)→ Caddy 自动申请 Let's Encrypt 证书,走 HTTPS。
-#   - 留空 → 回退 :80 纯 HTTP(内网 / 用 IP 直连调试场景)。
-# DOMAIN 由 docker-compose.prod.yml 从 .env.production 注入。
+#   - 未配域名 → compose 注入 ":80" 纯 HTTP(内网 / 用 IP 直连调试场景)。
+# DOMAIN 由 docker-compose.prod.yml 从 .env.production 注入(空值在 compose 层兜底为 :80,
+# 不能让空串到达这里——Caddy 会把空站点名的块误判为全局配置块)。
 # ──────────────────────────────────────────────────────────────────────────────
 
-{$DOMAIN::80} {
+{$DOMAIN} {
 	# gzip/zstd 压缩,降低带宽。
 	encode zstd gzip
 

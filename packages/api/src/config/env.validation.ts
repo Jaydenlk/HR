@@ -173,6 +173,17 @@ export class EnvironmentVariables {
 const SEALED_OPS_ENV_KEYS = ['DEV_LOGIN', 'ADMIN_EMAILS'] as const;
 
 export function validate(config: Record<string, unknown>): Record<string, unknown> {
+  // 把值为空字符串(或纯空白)的键从待校验输入中剔除。
+  // 动机:.env 模板约定"留空走默认",但 docker compose env_file 会把 `KEY=` 这类
+  // 空值行注入为 '' 而非 undefined。class-validator 的 @IsOptional() 只豁免
+  // null/undefined,不豁免空串——导致 isIn/isNumberString 约束失败,容器启动即崩。
+  // 剔除后:可选项走字段默认值;必填项被视为"缺失"而非"非法值",报错语义更准确。
+  for (const key of Object.keys(config)) {
+    const val = config[key];
+    if (typeof val === 'string' && val.trim() === '') {
+      delete config[key];
+    }
+  }
   if (process.env.__SEAL_OPS_ENV__ === '1') {
     for (const key of SEALED_OPS_ENV_KEYS) {
       if (!(key in process.env)) delete config[key];
