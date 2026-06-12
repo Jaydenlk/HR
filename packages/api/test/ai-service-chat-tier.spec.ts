@@ -12,6 +12,8 @@ interface Call {
   provider: 'deepseek' | 'relay';
   model: string;
   messages: unknown;
+  // F1:stream 调用透传的 AbortSignal(若有)。
+  signal?: AbortSignal;
 }
 const calls: Call[] = [];
 
@@ -39,8 +41,8 @@ jest.mock('@anthropic-ai/sdk', () => {
           const val = typeof next === 'function' ? (next as () => unknown)() : next;
           return Promise.resolve(val ?? { content: [{ type: 'text', text: 'ok' }] });
         },
-        stream: (params: { model: string; messages: unknown }) => {
-          calls.push({ provider: providerOf(this.baseURL), model: params.model, messages: params.messages });
+        stream: (params: { model: string; messages: unknown }, opts?: { signal?: AbortSignal }) => {
+          calls.push({ provider: providerOf(this.baseURL), model: params.model, messages: params.messages, signal: opts?.signal });
           const factory = streamQueue.shift();
           if (!factory) throw new Error('streamQueue 为空:测试未预置 stream 返回');
           return factory();
@@ -193,6 +195,41 @@ describe('AiService.chat 流式', () => {
       ServiceUnavailableException,
     );
     expect(calls.map((c) => c.provider)).toEqual(['deepseek', 'relay']);
+  });
+
+  // F1:signal 透传断言——chat() 携带 signal 时,SDK messages.stream 必须收到该 signal。
+  it('F1 signal 透传:chat signal 被原样传入 SDK messages.stream', async () => {
+    streamQueue.push(streamOf(['ok']));
+    const svc = await buildService({ primaryProvider: 'deepseek', deepseekKey: 'dk' });
+    const controller = new AbortController();
+    await drain(svc.chat({ system: 'sys', messages: MESSAGES, signal: controller.signal }));
+    // SDK stream 调用必须收到同一个 signal 对象。
+    expect(calls[0].signal).toBe(controller.signal);
+  });
+
+  // F1 abort 语义:AbortError 上抛后槽位归零。
+  // 用一个在首 token 前即抛 AbortError 的 stream 模拟 SDK abort 行为。
+  it('F1 abort 中断:AbortError 上抛后并发槽立即归零', async () => {
+    const controller = new AbortController();
+    controller.abort(); // 预先 abort,SDK 立刻抛错
+    // 构造一个已 abort 时直接抛 AbortError 的 stream
+    streamQueue.push(() =>
+      (async function* () {
+        const err = new Error('The operation was aborted.');
+        err.name = 'AbortError';
+        throw err;
+        // eslint-disable-next-line no-unreachable
+        yield undefined;
+      })(),
+    );
+    const svc = await buildService({ primaryProvider: 'deepseek', deepseekKey: 'dk' });
+    const limiter = (svc as unknown as { limiter: import('../src/ai/concurrency-limiter').ConcurrencyLimiter }).limiter;
+
+    // 首 token 前失败:视为可切通道,但只有一个通道且已失败 → 抛 503 或 AbortError
+    await expect(drain(svc.chat({ system: 'sys', messages: MESSAGES, signal: controller.signal }))).rejects.toThrow();
+
+    // 无论抛什么,槽位必须归零
+    expect(limiter.status().active).toBe(0);
   });
 });
 

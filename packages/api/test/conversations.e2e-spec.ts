@@ -244,6 +244,61 @@ describe('Conversations (e2e)', () => {
     });
   });
 
+  describe('POST /api/conversations/:id/messages/stream (SSE)', () => {
+    let convId: string;
+
+    beforeAll(async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/conversations')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ title: 'Stream Test Conv' });
+      convId = res.body.id;
+    });
+
+    it('without JWT → 401', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/conversations/${convId}/messages/stream`)
+        .send({ content: '无授权流式' });
+      expect(res.status).toBe(401);
+    });
+
+    it('missing content → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/conversations/${convId}/messages/stream`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({});
+      expect(res.status).toBe(400);
+    });
+
+    it('sends a stream message — SSE content-type + data frames (AI may 503)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/conversations/${convId}/messages/stream`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ content: '你好，帮我看看简历' })
+        .timeout(30000);
+
+      // SSE 端点恒 200 + text/event-stream;成功/失败都以 data: 事件帧表达(不靠 HTTP 状态码)。
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('text/event-stream');
+      // 响应体是 SSE 帧串:至少含一个 data: 事件(done 或 error)。
+      expect(res.text).toContain('data: ');
+      // 无论 AI 成败,末尾必是 done 或 error 事件之一。
+      expect(/"type":"(done|error)"/.test(res.text)).toBe(true);
+    }, 30000);
+
+    it('cross-user stream → SSE error frame (生成器首拉抛 404 → error 事件)', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/conversations/${convId}/messages/stream`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ content: '越权流式' })
+        .timeout(30000);
+
+      // CreditGuard 通过(otherUser 有额度),越权在 service.findOne 抛 404 → 以 error 事件表达。
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('"type":"error"');
+    }, 30000);
+  });
+
   describe('DELETE /api/conversations/:id', () => {
     let convId: string;
 

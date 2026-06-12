@@ -5,6 +5,8 @@ import { Message } from './entities/message.entity';
 import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { Opportunity } from '../opportunity/entities/opportunity.entity';
 import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
+import { Resume } from '../resumes/entities/resume.entity';
+import { CoverLetter } from '../cover-letters/entities/cover-letter.entity';
 import { ConversationsController } from './conversations.controller';
 import { ConversationsService } from './conversations.service';
 import { ChatService } from './chat.service';
@@ -18,6 +20,7 @@ import { CreditModule } from '../credit/credit.module';
   imports: [
     TypeOrmModule.forFeature([
       Conversation, Message, Diagnosis, Opportunity, OpportunityEvaluation,
+      Resume, CoverLetter,
     ]),
     AiModule,
     IntelligenceModule,

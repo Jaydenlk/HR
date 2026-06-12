@@ -1,0 +1,410 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
+import { Repository } from 'typeorm';
+import { ConversationsService, ChatStreamEvent } from '../src/conversations/conversations.service';
+import { CoachContextService } from '../src/conversations/coach-context.service';
+import { ChatService } from '../src/conversations/chat.service';
+import { ConcurrencyLimiter } from '../src/ai/concurrency-limiter';
+import { CreditService } from '../src/credit/credit.service';
+import { AiService } from '../src/ai/ai.service';
+import { IntelligenceModule } from '../src/intelligence/intelligence.module';
+
+// Entities (full graph — TypeORM needs all referenced entities present)
+import { User } from '../src/users/entities/user.entity';
+import { Resume } from '../src/resumes/entities/resume.entity';
+import { ResumeVersion } from '../src/resumes/entities/resume-version.entity';
+import { Diagnosis } from '../src/diagnoses/entities/diagnosis.entity';
+import { Application } from '../src/applications/entities/application.entity';
+import { ApplicationEvent } from '../src/applications/entities/application-event.entity';
+import { DailyTask } from '../src/tasks/entities/daily-task.entity';
+import { Opportunity } from '../src/opportunity/entities/opportunity.entity';
+import { OpportunityEvaluation } from '../src/opportunity/entities/opportunity-evaluation.entity';
+import { OpportunityEvidence } from '../src/opportunity/entities/opportunity-evidence.entity';
+import { OpportunityAction } from '../src/opportunity/entities/opportunity-action.entity';
+import { FeedItem } from '../src/feed/entities/feed-item.entity';
+import { FeedSource } from '../src/feed/entities/feed-source.entity';
+import { Company } from '../src/feed/entities/company.entity';
+import { Department } from '../src/feed/entities/department.entity';
+import { RoleCategory } from '../src/feed/entities/role-category.entity';
+import { CoverageMetric } from '../src/feed/entities/coverage-metric.entity';
+import { DigestRun } from '../src/feed/entities/digest-run.entity';
+import { SalaryEntry } from '../src/salary/entities/salary-entry.entity';
+import { Conversation } from '../src/conversations/entities/conversation.entity';
+import { Message } from '../src/conversations/entities/message.entity';
+import { Interview } from '../src/interviews/entities/interview.entity';
+import { MockSession } from '../src/mock/entities/mock-session.entity';
+import { CoverLetter } from '../src/cover-letters/entities/cover-letter.entity';
+import { CreditTransaction } from '../src/credit/entities/credit-transaction.entity';
+
+const ALL_ENTITIES = [
+  User, Resume, ResumeVersion, Diagnosis, Application, ApplicationEvent, DailyTask,
+  Opportunity, OpportunityEvaluation, OpportunityEvidence, OpportunityAction,
+  FeedSource, Company, Department, RoleCategory, CoverageMetric, DigestRun, FeedItem,
+  SalaryEntry, Conversation, Message, Interview, MockSession, CoverLetter,
+  CreditTransaction,
+];
+
+// Async generator helper: yields a fixed sequence of text chunks (a "stream").
+async function* streamOf(chunks: string[]): AsyncGenerator<string, void, void> {
+  for (const c of chunks) yield c;
+}
+// Async generator that yields some chunks then throws (mid-stream failure).
+async function* streamThenThrow(
+  chunks: string[],
+  msg: string,
+): AsyncGenerator<string, void, void> {
+  for (const c of chunks) yield c;
+  throw new Error(msg);
+}
+
+async function drain(
+  gen: AsyncGenerator<ChatStreamEvent, void, void>,
+): Promise<ChatStreamEvent[]> {
+  const out: ChatStreamEvent[] = [];
+  for await (const e of gen) out.push(e);
+  return out;
+}
+
+describe('Chat SSE stream + accounting + on-demand context', () => {
+  let moduleRef: TestingModule;
+  let service: ConversationsService;
+  let chatService: ChatService;
+  let userRepo: Repository<User>;
+  let resumeRepo: Repository<Resume>;
+  let diagnosisRepo: Repository<Diagnosis>;
+  let coverRepo: Repository<CoverLetter>;
+  let limiter: ConcurrencyLimiter;
+
+  // chat.stream / completeStructured mocks (AiService is fully mocked).
+  let chatStreamImpl: () => AsyncGenerator<string, void, void>;
+  let selectorImpl: () => Promise<unknown>;
+
+  beforeAll(async () => {
+    const aiMock: Partial<AiService> = {
+      chat: () => chatStreamImpl(),
+      completeStructured: <T>() => selectorImpl() as Promise<T>,
+    };
+
+    moduleRef = await Test.createTestingModule({
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'better-sqlite3',
+          database: ':memory:',
+          synchronize: true,
+          entities: ALL_ENTITIES,
+        }),
+        TypeOrmModule.forFeature([
+          User, Conversation, Message, Diagnosis, Opportunity, OpportunityEvaluation,
+          Resume, CoverLetter, CreditTransaction,
+        ]),
+        IntelligenceModule,
+      ],
+      providers: [
+        ConversationsService,
+        CoachContextService,
+        ChatService,
+        CreditService,
+        ConcurrencyLimiter,
+        { provide: AiService, useValue: aiMock },
+        {
+          // ConcurrencyLimiter injects ConfigService('ai.concurrency').
+          provide: ConfigService,
+          useValue: { get: () => ({ max: 2, queue: 8 }) },
+        },
+      ],
+    }).compile();
+
+    service = moduleRef.get(ConversationsService);
+    chatService = moduleRef.get(ChatService);
+    limiter = moduleRef.get(ConcurrencyLimiter);
+    userRepo = moduleRef.get(getRepositoryToken(User));
+    resumeRepo = moduleRef.get(getRepositoryToken(Resume));
+    diagnosisRepo = moduleRef.get(getRepositoryToken(Diagnosis));
+    coverRepo = moduleRef.get(getRepositoryToken(CoverLetter));
+  }, 30_000);
+
+  afterAll(async () => {
+    await moduleRef.close();
+  });
+
+  // Default: selector returns nothing; stream yields a short reply.
+  beforeEach(() => {
+    selectorImpl = () => Promise.resolve({ need: [] });
+    chatStreamImpl = () => streamOf(['你好', '，', '我来帮你']);
+  });
+
+  async function newUser(email: string, balance = 10): Promise<User> {
+    return userRepo.save(
+      userRepo.create({
+        email,
+        name: email.split('@')[0],
+        invite_code: email.slice(0, 7),
+        credit_balance: balance,
+      }),
+    );
+  }
+
+  // ── SSE event sequence ────────────────────────────────────────────────────
+
+  it('streamMessage 产出 token 增量序列,最后 done(含落库消息)', async () => {
+    const user = await newUser('stream-ok@test.dev', 5);
+    const conv = await service.create(user.id, {});
+
+    const events = await drain(
+      service.streamMessage(conv.id, user.id, '帮我看简历', '/api/test'),
+    );
+
+    const tokens = events.filter((e) => e.type === 'token');
+    expect(tokens.map((t) => (t as { text: string }).text)).toEqual([
+      '你好', '，', '我来帮你',
+    ]);
+
+    const done = events.find((e) => e.type === 'done');
+    expect(done).toBeDefined();
+    const d = done as Extract<ChatStreamEvent, { type: 'done' }>;
+    expect(d.user_message.content).toBe('帮我看简历');
+    expect(d.assistant_message.content).toBe('你好，我来帮你');
+    // 落库:assistant 消息真写进 DB。
+    const persisted = await service.findOne(conv.id, user.id);
+    const roles = persisted.messages.map((m) => m.role);
+    expect(roles).toEqual(['user', 'assistant']);
+  });
+
+  it('流正常完成 → 扣 1 点;done 携带新余额', async () => {
+    const user = await newUser('stream-credit@test.dev', 7);
+    const conv = await service.create(user.id, {});
+
+    const events = await drain(
+      service.streamMessage(conv.id, user.id, 'hi', '/api/test'),
+    );
+    const done = events.find((e) => e.type === 'done') as
+      | Extract<ChatStreamEvent, { type: 'done' }>
+      | undefined;
+    expect(done?.credit_balance).toBe(6); // 7 - 1
+
+    const after = await userRepo.findOneByOrFail({ id: user.id });
+    expect(after.credit_balance).toBe(6);
+  });
+
+  it('流中途失败 → error 事件 + 不扣点 + 不落 assistant 消息', async () => {
+    const user = await newUser('stream-fail@test.dev', 4);
+    const conv = await service.create(user.id, {});
+    chatStreamImpl = () => streamThenThrow(['前半段'], 'mid-stream reset');
+
+    const events = await drain(
+      service.streamMessage(conv.id, user.id, 'boom', '/api/test'),
+    );
+
+    // 已交付的 token 保留 + 末尾 error;无 done。
+    expect(events.some((e) => e.type === 'token')).toBe(true);
+    const err = events.find((e) => e.type === 'error');
+    expect(err).toBeDefined();
+    expect(events.some((e) => e.type === 'done')).toBe(false);
+
+    // 不扣点。
+    const after = await userRepo.findOneByOrFail({ id: user.id });
+    expect(after.credit_balance).toBe(4);
+
+    // 不落 assistant 消息(user 消息已落,用户能看到自己发了什么)。
+    const persisted = await service.findOne(conv.id, user.id);
+    expect(persisted.messages.map((m) => m.role)).toEqual(['user']);
+  });
+
+  it('排队积压时先推 queue 事件(前面还有 N 个)', async () => {
+    const user = await newUser('stream-queue@test.dev', 5);
+    const conv = await service.create(user.id, {});
+
+    // 人为占满并发槽,制造队列积压:max=2,先占 2 个不释放 → 再让 3 个排队。
+    const blockers: Array<() => void> = [];
+    const hold = () =>
+      limiter.run(
+        () => new Promise<void>((resolve) => blockers.push(resolve)),
+      );
+    void hold();
+    void hold();
+    // 让两个 acquire 落定。
+    await new Promise((r) => setImmediate(r));
+    void limiter.run(() => new Promise<void>((resolve) => blockers.push(resolve)));
+    await new Promise((r) => setImmediate(r));
+
+    expect(limiter.status().queued).toBeGreaterThan(0);
+
+    const events = await drain(
+      service.streamMessage(conv.id, user.id, '排队中', '/api/test'),
+    );
+    const queueEvt = events.find((e) => e.type === 'queue') as
+      | Extract<ChatStreamEvent, { type: 'queue' }>
+      | undefined;
+    expect(queueEvt).toBeDefined();
+    expect(queueEvt!.position).toBeGreaterThan(0);
+
+    // 放行 blockers,清理。
+    blockers.forEach((r) => r());
+  });
+
+  // ── 非流式旧端点回归(降级路径) ──────────────────────────────────────────
+
+  it('非流式 sendMessage 仍可用(降级路径):返回 user/assistant 消息', async () => {
+    const user = await newUser('nonstream@test.dev', 5);
+    const conv = await service.create(user.id, {});
+
+    const res = await service.sendMessage(conv.id, user.id, '老端点还在吗');
+    expect(res.user_message.content).toBe('老端点还在吗');
+    expect(res.assistant_message.content).toBe('你好，我来帮你');
+  });
+
+  // ── 行为骨架七要素 system prompt ──────────────────────────────────────────
+
+  it('system prompt 含行为骨架七要素关键句', () => {
+    const prompt = chatService.buildSystemPrompt(undefined, '画像数据');
+    // ① 追问纪律
+    expect(prompt).toContain('最多追问 3 轮');
+    expect(prompt).toMatch(/每个问题都附一句「为什么需要/);
+    // ② 主动盘点
+    expect(prompt).toContain('主动盘点');
+    expect(prompt).toContain('不看会损失什么');
+    // ③ 续接提议
+    expect(prompt).toContain('续接');
+    expect(prompt).toContain('用户确认才执行');
+    // ④ 句句标源(五种标签)
+    expect(prompt).toContain('[据简历]');
+    expect(prompt).toContain('[据诊断]');
+    expect(prompt).toContain('[据平台记录]');
+    expect(prompt).toContain('[推断]');
+    expect(prompt).toContain('[通用经验]');
+    // ⑤ 防编造红线
+    expect(prompt).toContain('防编造红线');
+    expect(prompt).toContain('未经核实的口头主张');
+    // ⑥ 身份与语气
+    expect(prompt).toContain('求职主理人');
+    expect(prompt).toContain('结论先行');
+    // ⑦ 模块地图
+    expect(prompt).toContain('站内能力地图');
+    expect(prompt).toContain('/diagnoses');
+    expect(prompt).toContain('/mock');
+    // 上下文注入。
+    expect(prompt).toContain('画像数据');
+  });
+
+  it('buildMessages 构造真多轮 user/assistant 数组(首条为 user)', () => {
+    const history = [
+      { role: 'user', content: 'q1' },
+      { role: 'assistant', content: 'a1' },
+    ] as Message[];
+    const msgs = chatService.buildMessages(history, 'q2');
+    expect(msgs).toEqual([
+      { role: 'user', content: 'q1' },
+      { role: 'assistant', content: 'a1' },
+      { role: 'user', content: 'q2' },
+    ]);
+  });
+
+  // ── 按需取数:选择器命中 → 上下文含对应全文;抛错 → 静默降级 ─────────────
+
+  it('选择器返回 need[cover_letter] → 上下文并入该求职信全文', async () => {
+    const user = await newUser('ondemand@test.dev', 5);
+    const cover = await coverRepo.save(
+      coverRepo.create({
+        user_id: user.id,
+        company: '字节跳动',
+        role: '后端开发',
+        tone: 'warm',
+        content: '尊敬的招聘官，这是一封独一无二的求职信正文XYZ。',
+      }),
+    );
+
+    selectorImpl = () =>
+      Promise.resolve({ need: [{ kind: 'cover_letter', id: cover.id }] });
+
+    const ctx = await moduleRef
+      .get(CoachContextService)
+      .loadReferencedProducts(user.id, '帮我改改我给字节的求职信');
+    expect(ctx).toContain('求职信全文');
+    expect(ctx).toContain('独一无二的求职信正文XYZ');
+  });
+
+  it('选择器幻觉 id(不在目录)→ 被过滤,不并入', async () => {
+    const user = await newUser('ondemand-hallucinate@test.dev', 5);
+    await coverRepo.save(
+      coverRepo.create({
+        user_id: user.id,
+        company: 'A',
+        role: 'B',
+        tone: 'warm',
+        content: '真实求职信',
+      }),
+    );
+    selectorImpl = () =>
+      Promise.resolve({
+        need: [{ kind: 'cover_letter', id: '00000000-0000-0000-0000-000000000000' }],
+      });
+
+    const ctx = await moduleRef
+      .get(CoachContextService)
+      .loadReferencedProducts(user.id, '随便问问');
+    expect(ctx).toBe('');
+  });
+
+  it('选择器抛错 → 静默降级返回空串(不抛错)', async () => {
+    const user = await newUser('ondemand-err@test.dev', 5);
+    const resume = await resumeRepo.save(
+      resumeRepo.create({
+        user_id: user.id,
+        title: 'r',
+        raw_text: 'x',
+        is_primary: true,
+      }),
+    );
+    await diagnosisRepo.save(
+      diagnosisRepo.create({
+        user_id: user.id,
+        resume_id: resume.id,
+        mode: 'jd_match',
+        jd_company: 'C',
+        jd_role: 'D',
+        score: 70,
+        keywords_hit: [],
+        keywords_miss: [],
+        suggestions: [],
+      }),
+    );
+    selectorImpl = () => Promise.reject(new Error('selector down'));
+
+    await expect(
+      moduleRef.get(CoachContextService).loadReferencedProducts(user.id, '问诊断'),
+    ).resolves.toBe('');
+  });
+
+  it('开场上下文含主简历全文 + 最新诊断要点 + 产物目录', async () => {
+    const user = await newUser('opening@test.dev', 5);
+    const resume = await resumeRepo.save(
+      resumeRepo.create({
+        user_id: user.id,
+        title: '我的简历',
+        raw_text: '简历正文里有一句独特口令ABC123',
+        is_primary: true,
+      }),
+    );
+    await diagnosisRepo.save(
+      diagnosisRepo.create({
+        user_id: user.id,
+        resume_id: resume.id,
+        mode: 'jd_match',
+        jd_company: '腾讯',
+        jd_role: '产品经理',
+        score: 82,
+        keywords_hit: ['用户增长'],
+        keywords_miss: ['数据分析'],
+        suggestions: [],
+      }),
+    );
+
+    const ctx = await moduleRef.get(CoachContextService).buildContext(user.id);
+    expect(ctx).toContain('主简历全文');
+    expect(ctx).toContain('独特口令ABC123');
+    expect(ctx).toContain('最新诊断要点');
+    expect(ctx).toContain('腾讯');
+    expect(ctx).toContain('产物目录');
+  });
+});

@@ -1,6 +1,11 @@
 import { Test } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { CoachContextService } from '../src/conversations/coach-context.service';
 import { EvidenceService } from '../src/intelligence/evidence.service';
+import { AiService } from '../src/ai/ai.service';
+import { Resume } from '../src/resumes/entities/resume.entity';
+import { Diagnosis } from '../src/diagnoses/entities/diagnosis.entity';
+import { CoverLetter } from '../src/cover-letters/entities/cover-letter.entity';
 import type { UserIntelligence } from '../src/intelligence/evidence.types';
 
 describe('CoachContextService', () => {
@@ -14,11 +19,21 @@ describe('CoachContextService', () => {
       gatherForCompany: jest.fn(),
       getCompaniesOfInterest: jest.fn(),
     };
+    // 本套件聚焦 buildContext 调用 evidence 的契约;按需取数所需的仓库返回空,
+    // 故 buildContext 只产出 formatForAI 串(无额外简历/诊断/目录段)。
+    const emptyRepo = {
+      findOne: jest.fn().mockResolvedValue(null),
+      find: jest.fn().mockResolvedValue([]),
+    };
 
     const module = await Test.createTestingModule({
       providers: [
         CoachContextService,
         { provide: EvidenceService, useValue: mockEvidence },
+        { provide: AiService, useValue: { completeStructured: jest.fn() } },
+        { provide: getRepositoryToken(Resume), useValue: emptyRepo },
+        { provide: getRepositoryToken(Diagnosis), useValue: emptyRepo },
+        { provide: getRepositoryToken(CoverLetter), useValue: emptyRepo },
       ],
     }).compile();
 
