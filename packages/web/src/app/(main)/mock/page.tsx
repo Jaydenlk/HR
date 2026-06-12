@@ -44,6 +44,8 @@ export default function MockPage() {
   const [form, setForm] = useState<NewSessionForm>({ company: '', role: '', jd_text: '' });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  // company_known: null=未查, true=命中, false=未命中
+  const [companyKnown, setCompanyKnown] = useState<boolean | null>(null);
 
   useEffect(() => {
     api
@@ -58,6 +60,18 @@ export default function MockPage() {
       });
   }, []);
 
+  async function checkCompany(name: string) {
+    if (!name.trim()) { setCompanyKnown(null); return; }
+    try {
+      const res = await api.get<{ company_known: boolean }>(
+        `/mock-sessions/company-check?name=${encodeURIComponent(name.trim())}`,
+      );
+      setCompanyKnown(res.company_known);
+    } catch {
+      setCompanyKnown(null);
+    }
+  }
+
   async function handleCreate() {
     setCreating(true);
     setCreateError(null);
@@ -67,9 +81,10 @@ export default function MockPage() {
       if (form.role.trim()) payload.role = form.role.trim();
       if (form.jd_text.trim()) payload.jd_text = form.jd_text.trim();
 
-      const session = await api.post<MockSession>('/mock-sessions', payload);
+      const session = await api.post<MockSession & { company_known: boolean }>('/mock-sessions', payload);
       setDialogOpen(false);
       setForm({ company: '', role: '', jd_text: '' });
+      setCompanyKnown(null);
       router.push(`/mock/${session.id}`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : '创建失败');
@@ -160,7 +175,10 @@ export default function MockPage() {
                 <input
                   type="text"
                   value={form.company}
-                  onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, company: e.target.value }));
+                    if (!e.target.value.trim()) setCompanyKnown(null);
+                  }}
                   placeholder="如：字节跳动"
                   style={{
                     width: '100%',
@@ -175,8 +193,21 @@ export default function MockPage() {
                     boxSizing: 'border-box',
                   }}
                   onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-brand)'; }}
-                  onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-line)'; }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-line)';
+                    void checkCompany(form.company);
+                  }}
                 />
+                {companyKnown === false && (
+                  <p style={{
+                    margin: '6px 0 0',
+                    fontSize: '12px',
+                    color: 'var(--color-ink-3)',
+                    lineHeight: 1.5,
+                  }}>
+                    该公司不在资料库，将以通用面试+JD 驱动出题，不会假装了解这家公司
+                  </p>
+                )}
               </div>
 
               <div>

@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe, ServiceUnavailableException } from '@
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
+import { CompanyRegistryService } from '../src/feed/company-registry.service';
 import { request, loginUser } from './test-utils';
 
 /* ------------------------------------------------------------------ */
@@ -24,6 +25,8 @@ import { request, loginUser } from './test-utils';
 let failTool: string | null = null;
 // Counts how many times the evaluation LLM call actually ran (idempotency proof).
 let evaluationCallCount = 0;
+// Captures last call args for prompt-content assertions.
+let lastGenerateCall: { system: string; prompt: string } | null = null;
 
 const QUESTIONS = [
   { n: 1, type: '技术', topic: 'JavaScript 闭包', difficulty: '中等', question: '请解释 JavaScript 中的闭包及其常见使用场景。', hint: '从作用域链和变量捕获角度思考。' },
@@ -32,7 +35,8 @@ const QUESTIONS = [
 
 const mockAiService = {
   complete: jest.fn().mockResolvedValue('mock response'),
-  completeStructured: jest.fn().mockImplementation(({ toolName }: { toolName: string }) => {
+  completeStructured: jest.fn().mockImplementation((args: { toolName: string; system: string; prompt: string }) => {
+    const { toolName } = args;
     if (failTool === toolName) {
       // 模拟真实 AiService 主备通道均失败时抛出的 503。
       return Promise.reject(
@@ -41,6 +45,7 @@ const mockAiService = {
     }
 
     if (toolName === 'generate_questions') {
+      lastGenerateCall = { system: args.system, prompt: args.prompt };
       return Promise.resolve({ questions: QUESTIONS });
     }
 
@@ -471,6 +476,144 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
     it('without JWT → 401', async () => {
       const res = await request(app.getHttpServer())
         .delete('/api/mock-sessions/some-id');
+
+      expect(res.status).toBe(401);
+    });
+  });
+
+  // ── 公司库双路径 + 防编造 prompt 断言 ──────────────────────────────────────
+  describe('Company registry lookup & anti-hallucination prompts', () => {
+    beforeEach(() => {
+      lastGenerateCall = null;
+      failTool = null;
+    });
+
+    it('known company (字节跳动 alias 抖音) → prompt contains library context + 库内背景注入', async () => {
+      await request(app.getHttpServer())
+        .post('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '抖音', role: '产品经理', question_count: 2 });
+
+      expect(lastGenerateCall).not.toBeNull();
+      // 库内背景标注
+      expect(lastGenerateCall!.prompt).toContain('以下公司背景来自本站公司库');
+      // 防编造约束（命中路径）
+      expect(lastGenerateCall!.system).toContain('不得编造该公司的具体面试流程');
+      // 不含通用路径指令
+      expect(lastGenerateCall!.prompt).not.toContain('通用面试+JD驱动');
+    });
+
+    it('unknown company (量子翻斗云科技) → prompt uses generic mode, anti-hallucination forbids company impersonation', async () => {
+      await request(app.getHttpServer())
+        .post('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '量子翻斗云科技', role: '后端开发工程师', question_count: 2 });
+
+      expect(lastGenerateCall).not.toBeNull();
+      // 通用出题策略指令
+      expect(lastGenerateCall!.prompt).toContain('通用校招面试 + JD/岗位驱动出题');
+      // 不含库内背景注入
+      expect(lastGenerateCall!.prompt).not.toContain('以下公司背景来自本站公司库');
+      // 防编造约束（未命中路径）：不得伪装了解该公司
+      expect(lastGenerateCall!.system).toContain('不得伪装了解该公司');
+    });
+
+    it('evaluate_answer system prompt contains anti-hallucination rule', async () => {
+      // 需要有已创建的会话，借用 sessionIdA（已答过 1 题，仍有第 2 题待答）
+      // 先创建一个新会话来提交答案以检查评分 system prompt
+      const newSession = await request(app.getHttpServer())
+        .post('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '量子翻斗云科技', role: '测试工程师', question_count: 2 });
+      const newId = newSession.body.id;
+
+      // 捕获 evaluate_answer 的 system 参数
+      let evalSystem = '';
+      const originalImpl = mockAiService.completeStructured.getMockImplementation();
+      mockAiService.completeStructured.mockImplementation((args: { toolName: string; system: string; prompt: string }) => {
+        if (args.toolName === 'evaluate_answer') evalSystem = args.system;
+        return originalImpl!(args);
+      });
+
+      await request(app.getHttpServer())
+        .post(`/api/mock-sessions/${newId}/answer`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ answer: '我会使用分层测试策略，覆盖单元/集成/e2e三层。' });
+
+      // 恢复原始 mock
+      mockAiService.completeStructured.mockImplementation(originalImpl!);
+
+      expect(evalSystem).toContain('不得引用候选人回答中未提及的任何信息');
+      expect(evalSystem).toContain('不得编造该公司的内部评价标准');
+    });
+
+    it('generate_evaluation system prompt contains anti-hallucination rule', async () => {
+      // 创建并完成一个会话来检查总评 system prompt
+      const newSession = await request(app.getHttpServer())
+        .post('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '量子翻斗云科技', role: '运营专员', question_count: 2 });
+      const newId = newSession.body.id;
+
+      let evalSystem = '';
+      const originalImpl = mockAiService.completeStructured.getMockImplementation();
+      mockAiService.completeStructured.mockImplementation((args: { toolName: string; system: string; prompt: string }) => {
+        if (args.toolName === 'generate_evaluation') evalSystem = args.system;
+        return originalImpl!(args);
+      });
+
+      await request(app.getHttpServer())
+        .post(`/api/mock-sessions/${newId}/complete`)
+        .set('Authorization', `Bearer ${token}`);
+
+      mockAiService.completeStructured.mockImplementation(originalImpl!);
+
+      expect(evalSystem).toContain('不得编造目标公司的内部录用标准');
+      expect(evalSystem).toContain('不得伪装了解该公司的具体面试流程');
+    });
+  });
+
+  // ── GET /api/mock-sessions/company-check ────────────────────────────────
+  describe('GET /api/mock-sessions/company-check', () => {
+    it('known company → { company_known: true }', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/mock-sessions/company-check?name=字节跳动')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.company_known).toBe(true);
+    });
+
+    it('known company alias → { company_known: true }', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/mock-sessions/company-check?name=抖音')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.company_known).toBe(true);
+    });
+
+    it('unknown company → { company_known: false }', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/mock-sessions/company-check?name=量子翻斗云科技')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.company_known).toBe(false);
+    });
+
+    it('empty name → { company_known: false }', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/mock-sessions/company-check?name=')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.company_known).toBe(false);
+    });
+
+    it('without JWT → 401', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/mock-sessions/company-check?name=字节跳动');
 
       expect(res.status).toBe(401);
     });
