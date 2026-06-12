@@ -150,7 +150,7 @@ export class ConversationsService {
 
     const assistantMsg = await this.persistAssistantMessage(convId, clean, richCard);
 
-    if (card) {
+    if (card && ConversationsService.isPayloadWithinLimit(card.payload)) {
       const handoff = await this.handoffs.create({
         user_id: userId,
         conversation_id: convId,
@@ -159,9 +159,8 @@ export class ConversationsService {
         payload: card.payload,
       });
       richCard = { handoff_id: handoff.id, target: card.target, payload: card.payload };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await this.msgRepo.update(assistantMsg.id, { rich_card: richCard as any });
       assistantMsg.rich_card = richCard;
+      await this.msgRepo.save(assistantMsg);
     }
 
     await this.finalizeConversation(conv, history, content);
@@ -219,6 +218,11 @@ export class ConversationsService {
         }
       }
     } catch (err) {
+      // 流中途出错:先把 splitter pending/缓冲中的内容 flush 给客户端,再发 error 事件。
+      const { extra: pendingFlush } = splitter.finish();
+      if (pendingFlush) {
+        yield { type: 'token', text: pendingFlush };
+      }
       yield { type: 'error', message: this.readableError(err) };
       return;
     }
@@ -234,8 +238,8 @@ export class ConversationsService {
     // 落 assistant 消息(存库内容已剥离标记)。
     const assistantMsg = await this.persistAssistantMessage(convId, cleanText, null);
 
-    // 若有合法卡片:建 handoff 记录 → 更新 message rich_card → 推 card SSE 事件。
-    if (card) {
+    // 若有合法卡片且 payload 在限额内:建 handoff 记录 → 更新 message rich_card → 推 card SSE 事件。
+    if (card && ConversationsService.isPayloadWithinLimit(card.payload)) {
       try {
         const handoff = await this.handoffs.create({
           user_id: userId,
@@ -249,9 +253,8 @@ export class ConversationsService {
           target: card.target,
           payload: card.payload,
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await this.msgRepo.update(assistantMsg.id, { rich_card: richCard as any });
         assistantMsg.rich_card = richCard;
+        await this.msgRepo.save(assistantMsg);
         yield {
           type: 'card',
           handoff_id: handoff.id,
@@ -357,6 +360,17 @@ export class ConversationsService {
       this.coachContext.loadReferencedProducts(userId, content),
     ]);
     return referenced ? `${opening}\n\n${referenced}` : opening;
+  }
+
+  /** payload 序列化后超过此字符数判为非法,不建 handoff 记录(正文已完整落库)。 */
+  private static readonly MAX_PAYLOAD_CHARS = 4000;
+
+  private static isPayloadWithinLimit(payload: Record<string, unknown>): boolean {
+    try {
+      return JSON.stringify(payload).length <= ConversationsService.MAX_PAYLOAD_CHARS;
+    } catch {
+      return false;
+    }
   }
 
   private readableError(err: unknown): string {

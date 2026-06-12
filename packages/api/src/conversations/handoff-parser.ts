@@ -104,10 +104,19 @@ export class StreamHandoffSplitter {
   // 更保守:以 '<handoff' 为前缀(8 字符)触发缓冲,结束时用 parseHandoff 处理完整缓冲区
   private static readonly PREFIX = '<handoff';
   private static readonly PREFIX_LEN = StreamHandoffSplitter.PREFIX.length; // 8
+  // 缓冲区上限(字符数):超限说明不是合法 handoff 标记,直通补发保护内存
+  private static readonly MAX_BUFFER = 8192;
 
   feed(chunk: string): string {
     if (this.buffering) {
       this.buffer += chunk;
+      // 超出缓冲上限:判定为非法标记,把缓冲内容原样补发并退出缓冲模式。
+      if (this.buffer.length > StreamHandoffSplitter.MAX_BUFFER) {
+        const flush = this.buffer;
+        this.buffer = '';
+        this.buffering = false;
+        return flush;
+      }
       return '';
     }
 

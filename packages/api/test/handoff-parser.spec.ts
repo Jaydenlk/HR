@@ -170,6 +170,47 @@ describe('StreamHandoffSplitter', () => {
   });
 });
 
+// ─── MAX_BUFFER 上限保护 ──────────────────────────────────────────────────────
+
+describe('StreamHandoffSplitter MAX_BUFFER', () => {
+  it('超长未闭合标记超过 8192 字符 → 全部缓冲内容原样补发(一字不丢),退出缓冲模式', () => {
+    const splitter = new StreamHandoffSplitter();
+    // 先触发缓冲模式
+    splitter.feed('<handoff>');
+    // 喂入超过 8192 字符的内容(不含闭合标记)
+    const oversize = 'x'.repeat(8200);
+    const emitted = splitter.feed(oversize);
+    // 超限时:整个缓冲区原样 flush,返回值非空
+    expect(emitted.length).toBeGreaterThan(0);
+    // flush 内容包含开头的 <handoff> 标记以及超长内容
+    expect(emitted).toContain('<handoff>');
+    expect(emitted).toContain(oversize.slice(0, 10));
+    // 退出缓冲模式后:后续 feed 正常通过(不再缓冲)
+    const afterFlush = splitter.feed('后续正文');
+    // 后续内容需要经过 pending 窗口,但整段会在 finish 时补发
+    const { card, extra } = splitter.finish();
+    expect(card).toBeNull();
+    // 后续正文出现在 afterFlush 或 extra 中(内存有界,无 infinite buffer)
+    expect(afterFlush + extra).toContain('后续');
+  });
+
+  it('未超限的合法 handoff 缓冲正常工作(MAX_BUFFER 不干扰正常流程)', () => {
+    const splitter = new StreamHandoffSplitter();
+    const payload = { company: '字节', role: 'PM' };
+    const tag = `<handoff>${JSON.stringify({ target: 'mock', payload })}</handoff>`;
+    // tag 远小于 8192 字符
+    expect(tag.length).toBeLessThan(8192);
+    splitter.feed('前文正文足够长以突破窗口。\n\n');
+    const emitted = splitter.feed(tag);
+    const { card, extra } = splitter.finish();
+    // 合法标记正常解析
+    expect(card).not.toBeNull();
+    expect(card!.target).toBe('mock');
+    // emitted + extra 不含 <handoff>(标记已被缓冲区处理,不透传)
+    expect(emitted + extra).not.toContain('<handoff>');
+  });
+});
+
 // ─── 非流式与流式结果一致性 ──────────────────────────────────────────────────
 
 describe('parseHandoff vs StreamHandoffSplitter consistency', () => {

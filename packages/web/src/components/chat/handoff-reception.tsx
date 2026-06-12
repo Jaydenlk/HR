@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
 export interface HandoffPayload {
@@ -77,7 +78,8 @@ export function useHandoffReception(handoffId: string | null): UseHandoffRecepti
     try {
       await api.patch(`/coach-handoffs/${handoffData.id}/status`, { status: 'accepted' });
     } catch {
-      // 静默失败:状态流转失败不阻断创建流程
+      toast.error('网络异常，请重试');
+      return; // 保持确认框可重试,不推进状态
     }
     setHandoffState('accepted');
   }

@@ -9,6 +9,7 @@ import { ResumeUploader } from '@/components/resume/resume-uploader';
 import {
   useHandoffReception,
   HandoffConfirmDialog,
+  ReturnToCoachBanner,
 } from '@/components/chat/handoff-reception';
 import { Plus, FileText } from 'lucide-react';
 
@@ -53,6 +54,9 @@ function ResumesPageInner() {
   const { handoffState, handoffData, onAccept, onDismiss } = useHandoffReception(handoffId);
   // resume_rewrite handoff:accepted 后高亮提示用户选一份简历进行改写
   const [showHandoffHint, setShowHandoffHint] = useState(false);
+  const [showReturn, setShowReturn] = useState(false);
+  const activeHandoffId = handoffId;
+  const activeConvId = handoffData?.conversation_id ?? null;
   const handoffApplied = useRef(false);
   useEffect(() => {
     if (handoffState === 'accepted' && !handoffApplied.current) {
@@ -99,6 +103,13 @@ function ResumesPageInner() {
           payload={handoffData.payload}
           onAccept={() => void onAccept()}
           onDismiss={() => void onDismiss()}
+        />
+      )}
+      {showReturn && activeHandoffId && activeConvId && (
+        <ReturnToCoachBanner
+          conversationId={activeConvId}
+          handoffId={activeHandoffId}
+          onClose={() => setShowReturn(false)}
         />
       )}
       {showHandoffHint && (
@@ -318,7 +329,13 @@ function ResumesPageInner() {
               <ResumeCard
                 key={resume.id}
                 resume={resume}
-                onClick={() => router.push(`/resumes/${resume.id}`)}
+                onClick={() => {
+                  // 完成回流:若本次源于 handoff,点选简历后弹提示再跳转
+                  if (activeHandoffId && activeConvId && handoffState === 'accepted') {
+                    setShowReturn(true);
+                  }
+                  router.push(`/resumes/${resume.id}`);
+                }}
               />
             ))}
           </div>

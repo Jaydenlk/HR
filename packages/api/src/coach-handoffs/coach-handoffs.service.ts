@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -65,10 +64,4 @@ export class CoachHandoffsService {
     return this.repo.save(handoff) as Promise<CoachHandoff>;
   }
 
-  // owner 校验版 findOne,禁止越权:非所有者视同不存在。
-  async findOneOwned(id: string, userId: string): Promise<CoachHandoff> {
-    const handoff = await this.repo.findOne({ where: { id, user_id: userId } });
-    if (!handoff) throw new NotFoundException();
-    return handoff;
-  }
 }
