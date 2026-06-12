@@ -17,6 +17,7 @@
    - 后端 create:收到 confirmed_company_info 时注入出题 prompt,标注"以下公司信息来自联网搜索(来源 URL,检索日期),仅供出题背景,不得在此之外编造该公司细节"。
 3. **配额口径**:company-check 的搜索不扣用户 credit(搜索是博查成本不是 AI 调用;quota 装饰器不挂 company-check)。
 4. **缓存**:同名公司搜索结果内存缓存 24h(简单 Map+时间戳即可,2C 内存友好,上限 200 条 LRU 淘汰),避免重复烧博查额度。
+5. **D1 遗留收口**:mock.service.ts 总评(complete)的 AI 调用加 `tier: 'pro'`(D1 注释已标位,B1 届时已合入提供该参数);出题/单题评分保持 flash。verify: jest 断言总评调用参数。
 
 ## 执行计划 (step→verify)
 1. pnpm install + 复制 .env → verify: build 基线绿
