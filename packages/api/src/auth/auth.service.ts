@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   HttpException,
   HttpStatus,
@@ -15,6 +16,7 @@ import { createHmac, randomInt } from 'crypto';
 import { UsersService } from '../users/users.service';
 import { InvitesService } from '../invites/invites.service';
 import { MailService } from '../mail/mail.service';
+import { IpRegionService } from '../geo/ip-region.service';
 import { User } from '../users/entities/user.entity';
 import { LoginCode } from './entities/login-code.entity';
 import { RequestCodeDto } from './dto/request-code.dto';
@@ -32,6 +34,7 @@ export class AuthService {
     private readonly users: UsersService,
     private readonly invites: InvitesService,
     private readonly mail: MailService,
+    private readonly geo: IpRegionService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     @InjectRepository(LoginCode) private readonly codes: Repository<LoginCode>,
@@ -48,6 +51,11 @@ export class AuthService {
   // 返回 registered 标识该邮箱是否已注册。
   // 注:试运行邀请制下,registered 暴露存在枚举风险,但运营可控,可接受。
   async requestCode(dto: RequestCodeDto): Promise<{ registered: boolean; dev_code?: string }> {
+    // 条款门:未显式同意用户条款,直接 400 短路——冷却判断/生成验证码/发邮件全部不执行。
+    if (dto.terms_agreed !== true) {
+      throw new BadRequestException('请先阅读并同意用户条款');
+    }
+
     const email = dto.email;
     const existing = await this.users.findByEmail(email);
 
@@ -87,7 +95,7 @@ export class AuthService {
   // 消费顺序(关键):先「校验」验证码但不烧码,再校验新用户的邀请码/姓名并烧邀请码,
   // 全部通过后才把验证码标 consumed。这样邀请码无效时不会误烧验证码——用户可用同一验证码
   // 改对邀请码重试,前端「废码失效横幅」不再因一次邀请码笔误而提前作废验证码。
-  async login(dto: LoginDto): Promise<{ access_token: string; user: User }> {
+  async login(dto: LoginDto, ip: string | null): Promise<{ access_token: string; user: User }> {
     const codeRecord = await this.checkCode(dto.email, dto.code);
 
     const existing = await this.users.findByEmail(dto.email);
@@ -117,6 +125,8 @@ export class AuthService {
     // 至此用户已确定/创建成功,烧掉验证码(单次有效)。
     await this.consumeCode(codeRecord);
 
+    await this.recordLogin(user.id, ip);
+
     const token = this.jwt.sign({ sub: user.id, email: user.email });
     return { access_token: token, user };
   }
@@ -130,7 +140,7 @@ export class AuthService {
   // 测试通道登录:跳过验证码与邀请码,findOrCreate 用户后签发与正常登录完全相同的 JWT。
   // 仅当 DEV_LOGIN==='1' 且 NODE_ENV!=='production' 时可用;否则一律 404(不暴露端点存在性)。
   // 命中 ADMIN_EMAILS 的邮箱确保 role=admin;banned 用户拒绝。
-  async devLogin(email: string): Promise<{ access_token: string; user: User }> {
+  async devLogin(email: string, ip: string | null): Promise<{ access_token: string; user: User }> {
     const enabled = this.config.get<string>('DEV_LOGIN') === '1';
     const isProd = this.config.get<string>('NODE_ENV') === 'production';
     if (!enabled || isProd) {
@@ -152,8 +162,19 @@ export class AuthService {
       user = await this.users.createUser(normalized, normalized, 'dev-login', isAdmin);
     }
 
+    // 测试通道同样记录登录 IP/归属(本机调用即 127.0.0.1/::1 → 归属「内网」)。
+    await this.recordLogin(user.id, ip);
+
     const token = this.jwt.sign({ sub: user.id, email: user.email });
     return { access_token: token, user };
+  }
+
+  // 登录成功后记录:IP/离线归属省市/登录时间;terms_agreed_at 首次写入(已有值不覆盖)。
+  // 正常登录链路必经 request-code 条款门,故登录成功即视为已同意条款;
+  // dev-login 为非生产测试通道,走同一路径保持口径一致。
+  private async recordLogin(userId: string, ip: string | null): Promise<void> {
+    const region = ip ? await this.geo.resolve(ip) : null;
+    await this.users.recordLogin(userId, ip, region?.province ?? null, region?.city ?? null);
   }
 
   // 校验验证码(不烧码):取该邮箱最新未消费码,判过期/锁定/匹配;错误则累加 attempts。

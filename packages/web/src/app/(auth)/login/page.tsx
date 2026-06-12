@@ -1,9 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { api } from '@/lib/api';
-import type { LoginResponse, RequestCodeResponse } from '@/lib/types';
+import { Toaster } from '@/components/ui/sonner';
+import type {
+  LoginResponse,
+  RequestCodeRequest,
+  RequestCodeResponse,
+} from '@/lib/types';
 
 // 两步式登录(契约见 packages/web/src/lib/types.ts):
 //   步骤1 邮箱 → POST /auth/request-code → 返回 registered(是否已注册)与 dev_code(开发态)。
@@ -56,6 +63,11 @@ export default function LoginPage() {
   const [sending, setSending] = useState(false);
   const [resendLeft, setResendLeft] = useState(0); // 重发倒计时(秒);>0 时禁止重发
 
+  // 用户条款门:默认不勾选,必须手动勾选才允许发验证码(后端同样强校验)。
+  // termsShake 触发复选框行抖动 + 红描边提示,动画结束自动复位。
+  const [termsAgreed, setTermsAgreed] = useState(false);
+  const [termsShake, setTermsShake] = useState(false);
+
   // 步骤2
   const [code, setCode] = useState('');
   const [registered, setRegistered] = useState<boolean | null>(null);
@@ -86,6 +98,13 @@ export default function LoginPage() {
   // 请求验证码:步骤1 提交,或步骤2 内的「重新发送」。成功后进入步骤2、起 60s 倒计时;
   // dev_code 存在则自动填充验证码并提示开发模式。
   async function requestCode() {
+    // 条款门:未勾选时不发任何请求,toast 提示 + 复选框行抖动红描边。
+    // (步骤2 的重发也走这里;能到步骤2 说明已勾选,此分支不会误拦。)
+    if (!termsAgreed) {
+      toast.error('请先阅读并同意《用户条款》');
+      setTermsShake(true);
+      return;
+    }
     const trimmed = email.trim();
     if (!trimmed) {
       setError('请输入邮箱');
@@ -94,9 +113,8 @@ export default function LoginPage() {
     setSending(true);
     setError(null);
     try {
-      const res = await api.post<RequestCodeResponse>('/auth/request-code', {
-        email: trimmed,
-      });
+      const body: RequestCodeRequest = { email: trimmed, terms_agreed: true };
+      const res = await api.post<RequestCodeResponse>('/auth/request-code', body);
       setRegistered(res.registered);
       setStep('code');
       setResendLeft(60);
@@ -206,6 +224,19 @@ export default function LoginPage() {
         padding: '24px',
       }}
     >
+      {/* (auth) 无共享布局,toast 出口在页面内挂载(与 (main) 布局同参数) */}
+      <Toaster position="top-center" richColors closeButton />
+      {/* 条款行抖动提示动画:仅本页使用,作用域限页面内 */}
+      <style>{`
+        @keyframes terms-shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-5px); }
+          40% { transform: translateX(5px); }
+          60% { transform: translateX(-3px); }
+          80% { transform: translateX(3px); }
+        }
+        .terms-shake { animation: terms-shake 0.4s ease; }
+      `}</style>
       <div style={{ width: '100%', maxWidth: '400px' }}>
         {/* Card */}
         <div
@@ -343,6 +374,56 @@ export default function LoginPage() {
                   onBlur={blurInput}
                 />
               </div>
+
+              {/* 用户条款勾选行:未勾选点「获取验证码」时抖动 + 红描边提示 */}
+              <label
+                className={termsShake ? 'terms-shake' : undefined}
+                onAnimationEnd={() => setTermsShake(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  border: termsShake
+                    ? '1.5px solid var(--color-danger)'
+                    : '1.5px solid transparent',
+                  fontSize: '13px',
+                  color: 'var(--color-ink-2)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'border-color 0.15s',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={termsAgreed}
+                  onChange={(e) => setTermsAgreed(e.target.checked)}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    accentColor: 'var(--color-brand)',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                />
+                <span>
+                  我已阅读并同意
+                  {/* 点链接只开新标签,不会触发 label 勾选(浏览器对交互元素的标准行为) */}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: 'var(--color-brand)',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    《用户条款》
+                  </Link>
+                </span>
+              </label>
 
               <button
                 type="submit"

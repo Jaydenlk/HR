@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { LoginCode } from './entities/login-code.entity';
 import { UsersModule } from '../users/users.module';
 import { MailModule } from '../mail/mail.module';
+import { GeoModule } from '../geo/geo.module';
 import { InvitesModule } from '../invites/invites.module';
 import { JwtStrategy } from '../common/guards/jwt.strategy';
 
@@ -16,6 +17,7 @@ import { JwtStrategy } from '../common/guards/jwt.strategy';
     TypeOrmModule.forFeature([LoginCode]),
     UsersModule,
     MailModule,
+    GeoModule,
     InvitesModule,
     PassportModule,
     JwtModule.registerAsync({

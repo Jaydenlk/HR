@@ -178,5 +178,22 @@ describe('Auth dev-login (e2e)', () => {
         .send({ email: 'not-an-email' });
       expect(res.status).toBe(400);
     });
+
+    it('dev-login 同样落盘登录记录:IP 非空、归属「内网」、last_login_at/terms_agreed_at 非空', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/dev-login')
+        .send({ email: 'devrecord@coach.dev' });
+      expect(res.status).toBe(201);
+
+      const row = await users.findOneBy({ email: 'devrecord@coach.dev' });
+      expect(row).not.toBeNull();
+      // supertest 本机回环(::1 / ::ffff:127.0.0.1)→ 内网归属契约。
+      expect(typeof row!.last_login_ip).toBe('string');
+      expect(row!.last_login_ip!.length).toBeGreaterThan(0);
+      expect(row!.last_login_province).toBe('内网');
+      expect(row!.last_login_city).toBeNull();
+      expect(row!.last_login_at).toBeInstanceOf(Date);
+      expect(row!.terms_agreed_at).toBeInstanceOf(Date);
+    });
   });
 });

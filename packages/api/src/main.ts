@@ -45,6 +45,12 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.setGlobalPrefix('api');
 
+  // Caddy 反代背景:生产环境流量经 Caddy 反向代理进来,Express 直接拿到的 socket 地址
+  // 只会是代理的内网 IP。开启 trust proxy 后,req.ip 改取 X-Forwarded-For(由 Caddy 注入)
+  // 最左侧的真实客户端 IP——登录 IP 记录与限流计数都按真实来源算。
+  // 生产 API 端口仅 Caddy 可达(compose 内网),不存在绕过代理伪造 XFF 的暴露面。
+  app.set('trust proxy', true);
+
   // 安全响应头:CSP 等默认策略对纯 JSON API 友好,无需关闭。
   app.use(helmet());
 

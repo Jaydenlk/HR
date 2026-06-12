@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import * as supertest from 'supertest';
 import { validate } from '../src/config/env.validation';
 import { AuthModule } from '../src/auth/auth.module';
+import { MailService } from '../src/mail/mail.service';
 import { InviteCode } from '../src/invites/entities/invite-code.entity';
 import { LoginCode } from '../src/auth/entities/login-code.entity';
 import { User } from '../src/users/entities/user.entity';
@@ -40,6 +41,7 @@ describe('Auth (e2e)', () => {
   let invites: Repository<InviteCode>;
   let codes: Repository<LoginCode>;
   let users: Repository<User>;
+  let mail: MailService;
 
   beforeAll(async () => {
     // ADMIN_EMAILS 须在 ConfigModule 初始化前设好(在模块编译前)。
@@ -56,6 +58,7 @@ describe('Auth (e2e)', () => {
     invites = app.get<Repository<InviteCode>>(getRepositoryToken(InviteCode));
     codes = app.get<Repository<LoginCode>>(getRepositoryToken(LoginCode));
     users = app.get<Repository<User>>(getRepositoryToken(User));
+    mail = app.get(MailService);
   });
 
   afterAll(async () => {
@@ -63,11 +66,11 @@ describe('Auth (e2e)', () => {
     delete process.env.ADMIN_EMAILS;
   });
 
-  // 申请验证码,返回 {registered, dev_code}。
+  // 申请验证码(已同意条款),返回 {registered, dev_code}。
   async function requestCode(email: string): Promise<{ registered: boolean; dev_code?: string }> {
     const res = await request(app.getHttpServer())
       .post('/api/auth/request-code')
-      .send({ email });
+      .send({ email, terms_agreed: true });
     expect(res.status).toBe(201);
     return res.body as { registered: boolean; dev_code?: string };
   }
@@ -94,8 +97,42 @@ describe('Auth (e2e)', () => {
     it('无效邮箱 → 400', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/request-code')
-        .send({ email: 'not-an-email' });
+        .send({ email: 'not-an-email', terms_agreed: true });
       expect(res.status).toBe(400);
+    });
+
+    it('条款门:terms_agreed!==true → 400 且绝不生成验证码、绝不调用发邮件', async () => {
+      const email = 'no-terms@coach.dev';
+      // spy 不替换实现(开发态 sendLoginCode 只打日志),只记调用次数。
+      const sendSpy = jest.spyOn(mail, 'sendLoginCode');
+      const callsBefore = sendSpy.mock.calls.length;
+
+      // false → 服务层拦截,定语文案精确匹配。
+      const refused = await request(app.getHttpServer())
+        .post('/api/auth/request-code')
+        .send({ email, terms_agreed: false });
+      expect(refused.status).toBe(400);
+      expect(refused.body.message).toBe('请先阅读并同意用户条款');
+
+      // 缺失 → DTO 层 400,文案同样指向用户条款(ValidationPipe message 为数组)。
+      const missing = await request(app.getHttpServer())
+        .post('/api/auth/request-code')
+        .send({ email });
+      expect(missing.status).toBe(400);
+      expect(JSON.stringify(missing.body.message)).toContain('用户条款');
+
+      // 两次被拒后:发邮件分支零调用,且该邮箱不存在任何验证码记录(发码分支根本没执行)。
+      expect(sendSpy.mock.calls.length).toBe(callsBefore);
+      expect(await codes.count({ where: { email } })).toBe(0);
+
+      // 对照:terms_agreed:true → 201 正常发码,sendLoginCode 恰好被调用一次(6 位码)。
+      const ok = await request(app.getHttpServer())
+        .post('/api/auth/request-code')
+        .send({ email, terms_agreed: true });
+      expect(ok.status).toBe(201);
+      expect(sendSpy.mock.calls.length).toBe(callsBefore + 1);
+      expect(sendSpy).toHaveBeenLastCalledWith(email, expect.stringMatching(/^\d{6}$/));
+      sendSpy.mockRestore();
     });
 
     it('未注册邮箱 → registered:false + dev_code(无 SMTP 开发态)', async () => {
@@ -142,7 +179,7 @@ describe('Auth (e2e)', () => {
       // 紧接着第二次申码:同邮箱 60s 冷却应拒绝。
       const second = await request(app.getHttpServer())
         .post('/api/auth/request-code')
-        .send({ email });
+        .send({ email, terms_agreed: true });
       expect(second.status).toBe(429);
       expect(second.body.message).toBe('请求过于频繁,请稍后再试');
     });
@@ -356,6 +393,56 @@ describe('Auth (e2e)', () => {
       const res = await register('boss@coach.dev', '管理员', 'COACH2026');
       expect(res.status).toBe(201);
       expect(res.body.user.role).toBe('admin');
+    });
+  });
+
+  describe('登录落盘 — last_login_* 与 terms_agreed_at(契约 2)', () => {
+    it('完整登录后:last_login_ip/last_login_at/terms_agreed_at 非空,本机回环 IP 归属「内网」', async () => {
+      const email = 'record-login@coach.dev';
+      const res = await register(email, '落盘用户', 'COACH2026');
+      expect(res.status).toBe(201);
+
+      const row = await users.findOneBy({ email });
+      expect(row).not.toBeNull();
+      // supertest 走本机回环(::1 / ::ffff:127.0.0.1)→ IP 必非空。
+      expect(typeof row!.last_login_ip).toBe('string');
+      expect(row!.last_login_ip!.length).toBeGreaterThan(0);
+      expect(row!.last_login_at).toBeInstanceOf(Date);
+      expect(row!.terms_agreed_at).toBeInstanceOf(Date);
+      // 内网判定契约:127.x/::1/10.x/172.16-31/192.168.x → province「内网」,city null。
+      expect(row!.last_login_province).toBe('内网');
+      expect(row!.last_login_city).toBeNull();
+    });
+
+    it('terms_agreed_at 仅首写不覆盖;last_login_at 随每次登录刷新', async () => {
+      const email = 'record-twice@coach.dev';
+      const first = await register(email, '复登用户', 'COACH2026');
+      expect(first.status).toBe(201);
+      const afterFirst = await users.findOneBy({ email });
+      expect(afterFirst!.terms_agreed_at).toBeInstanceOf(Date);
+
+      // 把首次同意时间锚定为固定旧值:二次登录若覆盖,该值会变回「现在」。
+      // 锚定后读回一次,以同一条 ORM 水合路径取期望值,规避 sqlite datetime 精度/时区差异。
+      const anchor = new Date('2026-01-02T03:04:05');
+      await users.update({ email }, { terms_agreed_at: anchor });
+      const anchored = await users.findOneBy({ email });
+      expect(anchored!.terms_agreed_at!.getTime()).not.toBe(afterFirst!.terms_agreed_at!.getTime());
+
+      // 老用户二次登录(首码已 consumed,无冷却障碍;只需 email+code)。
+      const { dev_code } = await requestCode(email);
+      const second = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email, code: dev_code });
+      expect(second.status).toBe(201);
+
+      const afterSecond = await users.findOneBy({ email });
+      // 不覆盖:仍是锚定旧值,而非二次登录时间。
+      expect(afterSecond!.terms_agreed_at!.getTime()).toBe(anchored!.terms_agreed_at!.getTime());
+      // last_login_at 刷新(同秒内允许相等)。
+      expect(afterSecond!.last_login_at!.getTime()).toBeGreaterThanOrEqual(
+        afterFirst!.last_login_at!.getTime(),
+      );
+      expect(typeof afterSecond!.last_login_ip).toBe('string');
     });
   });
 

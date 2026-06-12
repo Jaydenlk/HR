@@ -12,9 +12,15 @@ export interface User {
 
 // ─── Auth (两步式登录:邮箱验证码 + 邀请制) ──────────────────────────────
 // 与认证 API 契约一致:
-// POST /api/auth/request-code  body {email}
+// POST /api/auth/request-code  body {email, terms_agreed}
 //   → { registered, dev_code? }  registered 表示该邮箱是否已注册;
 //     dev_code 仅在 SMTP 未配置且非 production 时返回(开发态自动填充)。
+// terms_agreed 必填:不为 true 时后端返回 400 且不发送邮件(用户条款门)。
+export interface RequestCodeRequest {
+  email: string;
+  terms_agreed: boolean;
+}
+
 export interface RequestCodeResponse {
   registered: boolean;
   dev_code?: string;
@@ -1296,7 +1302,9 @@ export interface CityIndustryFitResult {
 }
 
 // ─── 管理后台(/admin) ────────────────────────────────────────────────────────
-// GET /api/admin/users:全量用户 + 今日/累计 AI 调用次数。
+// GET /api/admin/users:全量用户 + 今日/累计 AI 调用次数 + 最近登录信息。
+// last_login_* 四字段可为 null(从未登录或旧数据);内网/localhost 登录时
+// 后端将归属记为「内网」。
 export interface AdminUserRow {
   id: string;
   email: string;
@@ -1307,6 +1315,10 @@ export interface AdminUserRow {
   created_at: string;
   usage_today: number;
   usage_total: number;
+  last_login_ip: string | null;
+  last_login_province: string | null;
+  last_login_city: string | null;
+  last_login_at: string | null;
 }
 
 // GET /api/admin/invites:邀请码全集。

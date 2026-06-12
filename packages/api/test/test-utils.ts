@@ -52,7 +52,7 @@ export async function createTestApp(): Promise<INestApplication> {
 export async function loginUser(app: INestApplication, email = 'test@coach.dev', name = 'Test'): Promise<string> {
   const codeRes = await request(app.getHttpServer())
     .post('/api/auth/request-code')
-    .send({ email });
+    .send({ email, terms_agreed: true });
   const devCode: string | undefined = codeRes.body.dev_code;
   if (!devCode) {
     throw new Error(

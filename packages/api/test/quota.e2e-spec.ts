@@ -65,7 +65,7 @@ async function login(
 ): Promise<string> {
   const codeRes = await request(app.getHttpServer())
     .post('/api/auth/request-code')
-    .send({ email });
+    .send({ email, terms_agreed: true });
   const devCode = codeRes.body.dev_code as string | undefined;
   if (!devCode) {
     throw new Error(`request-code 未返回 dev_code(SMTP 应未配置):${JSON.stringify(codeRes.body)}`);

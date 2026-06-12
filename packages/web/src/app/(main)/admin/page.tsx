@@ -63,6 +63,28 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
+// 相对时间(刚刚/N 分钟前/N 小时前/N 天前),超过 30 天回退绝对日期(本地格式)。
+// 沿用全站各页局部 helper 的既有约定。
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} 天前`;
+  return new Date(iso).toLocaleDateString('zh-CN');
+}
+
+// 登录归属展示:内网登录后端记 province='内网';归属缺失显示「—」。
+function loginRegion(u: AdminUserRow): string {
+  if (u.last_login_province === '内网') return '内网';
+  if (u.last_login_province && u.last_login_city)
+    return `${u.last_login_province}·${u.last_login_city}`;
+  return u.last_login_province ?? u.last_login_city ?? '—';
+}
+
 function smallBtn(variant: 'primary' | 'danger' | 'neutral'): React.CSSProperties {
   const bg =
     variant === 'primary'
@@ -361,7 +383,7 @@ export default function AdminPage() {
               <Users size={17} /> 用户管理（{users.length}）
             </div>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
                 <thead>
                   <tr>
                     <th style={thStyle}>邮箱</th>
@@ -369,6 +391,7 @@ export default function AdminPage() {
                     <th style={thStyle}>角色</th>
                     <th style={thStyle}>状态</th>
                     <th style={thStyle}>今日 / 累计</th>
+                    <th style={thStyle}>最近登录</th>
                     <th style={thStyle}>配额覆盖</th>
                     <th style={thStyle}>操作</th>
                   </tr>
@@ -405,6 +428,35 @@ export default function AdminPage() {
                         </td>
                         <td style={tdStyle}>
                           {u.usage_today} / {u.usage_total}
+                        </td>
+                        <td style={tdStyle}>
+                          {/* 上行 IP(等宽小号),下行「归属 · 相对时间」;从未登录(无 IP)整格「—」 */}
+                          {u.last_login_ip === null ? (
+                            <span style={{ color: 'var(--color-ink-4)' }}>—</span>
+                          ) : (
+                            <div style={{ whiteSpace: 'nowrap' }}>
+                              <div
+                                style={{
+                                  fontFamily: 'var(--font-mono)',
+                                  fontSize: '11.5px',
+                                  color: 'var(--color-ink-2)',
+                                }}
+                              >
+                                {u.last_login_ip}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '11.5px',
+                                  color: 'var(--color-ink-4)',
+                                  marginTop: '2px',
+                                }}
+                              >
+                                {loginRegion(u)}
+                                {u.last_login_at !== null &&
+                                  ` · ${relativeTime(u.last_login_at)}`}
+                              </div>
+                            </div>
+                          )}
                         </td>
                         <td style={tdStyle}>
                           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>

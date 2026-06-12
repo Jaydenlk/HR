@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Resume } from '../../resumes/entities/resume.entity';
+import { TIMESTAMP_COLUMN_TYPE } from '../../database/column-types';
 
 @Entity('users')
 export class User {
@@ -32,6 +33,25 @@ export class User {
 
   @Column({ default: 'zh' })
   locale: string;
+
+  // 最近登录 IP(Caddy 反代后经 trust proxy 还原的真实客户端 IP)。
+  @Column({ type: 'varchar', nullable: true })
+  last_login_ip: string | null;
+
+  // 最近登录 IP 的离线归属省/市(ip2region 解析;内网为「内网」,解析失败为 null,不编造)。
+  @Column({ type: 'varchar', nullable: true })
+  last_login_province: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  last_login_city: string | null;
+
+  // 最近登录时间。可空时间列须显式列类型(双端兼容),见 src/database/column-types.ts。
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
+  last_login_at: Date | null;
+
+  // 首次同意用户条款时间;已有值不覆盖。
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
+  terms_agreed_at: Date | null;
 
   @OneToMany(() => Resume, (r) => r.user)
   resumes: Resume[];

@@ -36,6 +36,7 @@
     "class-validator": "^0.15.1",
     "dotenv": "^16.6.1",
     "helmet": "^8.2.0",
+    "ip2region-ts": "^2.0.1",
     "mammoth": "^1.12.0",
     "node-cache": "^5.1.2",
     "nodemailer": "^8.0.10",

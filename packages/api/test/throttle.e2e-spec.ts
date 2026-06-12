@@ -55,13 +55,13 @@ describe('Throttle (限流) e2e', () => {
     for (let i = 1; i <= 3; i++) {
       const res = await request(app.getHttpServer())
         .post('/api/auth/request-code')
-        .send({ email: `throttle-rc-${i}@coach.dev` });
+        .send({ email: `throttle-rc-${i}@coach.dev`, terms_agreed: true });
       expect(res.status).toBe(201);
     }
     // 第 4 次触发限流。
     const fourth = await request(app.getHttpServer())
       .post('/api/auth/request-code')
-      .send({ email: 'throttle-rc-4@coach.dev' });
+      .send({ email: 'throttle-rc-4@coach.dev', terms_agreed: true });
     expect(fourth.status).toBe(429);
   });
 

@@ -13,7 +13,7 @@ import { InviteCode } from '../invites/entities/invite-code.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
 
-// 管理后台返回的用户行:实体字段 + 今日/累计 AI 调用次数。
+// 管理后台返回的用户行:实体字段 + 今日/累计 AI 调用次数 + 最近登录 IP/归属/时间。
 export interface AdminUserRow {
   id: string;
   email: string;
@@ -22,6 +22,10 @@ export interface AdminUserRow {
   status: string;
   daily_quota_override: number | null;
   created_at: Date;
+  last_login_ip: string | null;
+  last_login_province: string | null;
+  last_login_city: string | null;
+  last_login_at: Date | null;
   usage_today: number;
   usage_total: number;
 }
@@ -58,6 +62,10 @@ export class AdminService {
           status: u.status,
           daily_quota_override: u.daily_quota_override,
           created_at: u.created_at,
+          last_login_ip: u.last_login_ip,
+          last_login_province: u.last_login_province,
+          last_login_city: u.last_login_city,
+          last_login_at: u.last_login_at,
           usage_today: usageToday,
           usage_total: usageTotal,
         };

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 
 @Injectable()
@@ -33,6 +33,26 @@ export class UsersService {
       return this.repo.save(user);
     }
     return user;
+  }
+
+  // 登录成功落盘:最近登录 IP/离线归属省市/时间。
+  // terms_agreed_at 带 IsNull 条件单独更新:仅首次写入,已有值绝不覆盖。
+  async recordLogin(
+    id: string,
+    ip: string | null,
+    province: string | null,
+    city: string | null,
+  ): Promise<void> {
+    await this.repo.update(
+      { id },
+      {
+        last_login_ip: ip,
+        last_login_province: province,
+        last_login_city: city,
+        last_login_at: new Date(),
+      },
+    );
+    await this.repo.update({ id, terms_agreed_at: IsNull() }, { terms_agreed_at: new Date() });
   }
 
   // 管理后台:全量用户(20 人规模不分页)。

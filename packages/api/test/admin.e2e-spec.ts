@@ -33,7 +33,7 @@ const mockAiService = {
 
 // 普通用户登录(注册):request-code → dev_code → login(带 COACH2026 + 姓名)。
 async function registerUser(app: INestApplication, email: string, name: string): Promise<string> {
-  const codeRes = await request(app.getHttpServer()).post('/api/auth/request-code').send({ email });
+  const codeRes = await request(app.getHttpServer()).post('/api/auth/request-code').send({ email, terms_agreed: true });
   const devCode = codeRes.body.dev_code as string | undefined;
   if (!devCode) throw new Error(`无 dev_code:${JSON.stringify(codeRes.body)}`);
   const loginRes = await request(app.getHttpServer())
@@ -111,7 +111,7 @@ describe('Admin (e2e)', () => {
       expect(res.body.message).toBe('无管理员权限');
     });
 
-    it('admin 访问 → 200 含字段', async () => {
+    it('admin 访问 → 200 含字段(含最近登录 IP/归属/时间四个新字段)', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/admin/users')
         .set('Authorization', `Bearer ${adminToken}`);
@@ -127,6 +127,16 @@ describe('Admin (e2e)', () => {
       expect(admin).toHaveProperty('usage_total');
       expect(admin).toHaveProperty('daily_quota_override');
       expect(admin).toHaveProperty('created_at');
+
+      // 契约 3:每行带出最近登录四字段。admin 经真实登录注册 → IP/时间必非空;
+      // supertest 本机回环 → 归属「内网」,city null。
+      expect(typeof admin.last_login_ip).toBe('string');
+      expect(admin.last_login_ip.length).toBeGreaterThan(0);
+      expect(admin.last_login_province).toBe('内网');
+      expect(admin.last_login_city).toBeNull();
+      // JSON 序列化后时间为字符串,须可解析为有效日期。
+      expect(typeof admin.last_login_at).toBe('string');
+      expect(Number.isNaN(new Date(admin.last_login_at).getTime())).toBe(false);
     });
   });
 
@@ -171,7 +181,7 @@ describe('Admin (e2e)', () => {
       // 重新登录(老用户只需 email+code)。
       const codeRes = await request(app.getHttpServer())
         .post('/api/auth/request-code')
-        .send({ email: 'victim@coach.dev' });
+        .send({ email: 'victim@coach.dev', terms_agreed: true });
       const loginRes = await request(app.getHttpServer())
         .post('/api/auth/login')
         .send({ email: 'victim@coach.dev', code: codeRes.body.dev_code });
@@ -311,7 +321,7 @@ describe('Admin (e2e)', () => {
       // 新用户用已停用码注册 → 403。
       const codeRes = await request(app.getHttpServer())
         .post('/api/auth/request-code')
-        .send({ email: 'new-with-disabled@coach.dev' });
+        .send({ email: 'new-with-disabled@coach.dev', terms_agreed: true });
       const reg = await request(app.getHttpServer())
         .post('/api/auth/login')
         .send({
