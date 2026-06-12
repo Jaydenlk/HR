@@ -32,7 +32,7 @@
 
 ## Phase D:模拟面试公司层(可与 B2/C 并行,文件集不相交:mock/feed-companies/search)
 - D1(不依赖 key):600 家公司库 yaml→seed 转换灌库(兼容 feed 现有 80 家,按 name 去重合并)+ mock 三段 prompt 防编造硬约束(对齐 interview-prep.service.ts:594 写法+代码 guard)+ 创建流程公司库命中检查。
-- D2(依赖 BOCHA_API_KEY):搜索服务封装 + 库外公司搜索→用户确认交互→确认信息进 prompt 并标源;搜不到/否认→通用模式明示文案。key 未到位时 D2 不启动,库外直接走通用模式明示(诚实降级,无死代码)。
+- D2(依赖 BOCHA_API_KEY):搜索服务封装 + 库外公司搜索→用户确认交互→确认信息进 prompt 并标源;搜不到/否认→通用模式明示文案。**key 已到位(2026-06-12 夜,用户提供,存本机 .env 与运维手册,值不入库;web-search 端点冒烟 200 OK)→ D2 解锁,排在 D1 合入后。**
 
 ## 部署纪律(全部完成后)
 - 先本机彩排:migration(credit 字段+存量补50)→ 容器顺序(先 migration/seed 后 up -d)→ 公网视角验证。
