@@ -1,6 +1,6 @@
 # Handoff: Coordinator → Implementer (D2 模拟面试库外公司联网搜索层)
 
-## 状态: READY_FOR_REVIEW
+## 状态: READY_FOR_REVIEW (D2 审计修复批已完成)
 ## 工作目录: E:\Agent program\HRBP-wt\mock-company(git worktree,分支 feature/mock-search,commit 0c2bb17)
 ## 前置依赖: D1 已落地(公司库 600 家、company_known 双路径、防编造 prompt);BOCHA_API_KEY 已在主仓 packages/api/.env(复制到 worktree,永不提交)
 ## 输入文件: packages/api/src/mock/**、packages/web/src/app/(main)/mock/page.tsx
@@ -58,8 +58,16 @@
 - Step 6: PASS — api tsc 0错; jest 287通过(+12新增); web eslint 0错; web tsc 0错; next build 成功
 - Step 7: PASS — commit 0c2bb17，未 push
 
+## D2 审计修复批验证结果:
+- 失败不缓存: PASS — 超时后第二次调用重新发起 fetch(fetchMock calledTimes=2)
+- HTTP 语义归类: PASS — 401/403→no_key; 500→error; 非2xx不再返回 available:true
+- 前端脏状态: PASS — onChange 任何变化重置 checkResult+candidateConfirmed(代码审查+tsc 0错)
+- DTO MaxLength: PASS — 5例(合法/name超/summary超/url超/at超)全部通过
+- 全量门禁: PASS — api tsc 0错; jest 297通过(+10); web eslint 0错; web tsc 0错; next build 成功
+
 ## 遗留问题:
 - step 3 未本地起服截图(服务器需 DB)，三态逻辑通过 tsc+单测覆盖，可在集成环境验收
+- 并发同名搜索可能双发博查请求（后写覆盖，无害仅浪费 1 次额度，频率极低）：P2 观察项，协调者裁定不修
 
 ## 决策上下文:
 - 已选方案: CompanySearchService 独立 service 于 mock 模块下，不做全局抽象(KISS)
