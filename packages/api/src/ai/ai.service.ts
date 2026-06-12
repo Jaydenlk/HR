@@ -228,6 +228,13 @@ export class AiService {
       ) {
         yield event.delta.text;
       }
+      // thinking_delta(DeepSeek-v4-pro 思考模型产生)在此被静默跳过:
+      //   1. 不对外吐出:thinking 是内部推理过程,不属于用户面内容,透出会污染前端流。
+      //   2. 不置位 emitted:emitted 标志"用户已收到首字节",思考增量从未透出,
+      //      故主通道若只产出 thinking 就挂掉,上层 chat() 视为"首 token 前失败"
+      //      → 可安全切备通道重发。用户不会看到重复内容(思考从未到达前端)。
+      //   代价:pro 档在纯思考阶段挂掉会触发备通道重发,比 flash 额外增加一次完整延迟,
+      //   属有意取舍——防止用户看到半截重复内容的代价高于偶发额外延迟。
     }
   }
 

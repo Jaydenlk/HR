@@ -153,6 +153,53 @@ describe('ConcurrencyLimiter', () => {
       expect(posC[posC.length - 1]).toBe(0);
     });
 
+    it('runStreaming:消费方 for-await break 提前退出 → 槽位必须被释放', async () => {
+      const limiter = buildLimiter(1, 8);
+
+      async function* infinite(): AsyncGenerator<number> {
+        let i = 0;
+        while (true) yield i++;
+      }
+
+      // 消费方中途 break,停在第一个 chunk
+      for await (const n of limiter.runStreaming(() => infinite())) {
+        expect(n).toBe(0);
+        break; // 提前退出
+      }
+
+      // break 触发生成器 return() → finally 释放槽位
+      expect(limiter.status()).toEqual({ active: 0, queued: 0 });
+
+      // 后续请求能正常获得槽位(不阻塞)
+      const result = await limiter.run(async () => 'ok');
+      expect(result).toBe('ok');
+    });
+
+    it('runStreaming:直接调用迭代器 return() 放弃 → 槽位必须被释放', async () => {
+      const limiter = buildLimiter(1, 8);
+
+      async function* infinite(): AsyncGenerator<number> {
+        let i = 0;
+        while (true) yield i++;
+      }
+
+      const iter = limiter.runStreaming(() => infinite());
+      // 取第一个 chunk
+      const first = await iter.next();
+      expect(first.value).toBe(0);
+      expect(first.done).toBe(false);
+
+      // 直接调用 return() 放弃迭代器
+      await iter.return(undefined);
+
+      // return() 触发 finally → 槽位归零
+      expect(limiter.status()).toEqual({ active: 0, queued: 0 });
+
+      // 后续请求能正常获得槽位
+      const result = await limiter.run(async () => 'ok-after-return');
+      expect(result).toBe('ok-after-return');
+    });
+
     it('runStreaming:持槽至流耗尽才释放(后半段不脱离护栏)', async () => {
       const limiter = buildLimiter(1, 8);
       let resumeStream!: () => void;
