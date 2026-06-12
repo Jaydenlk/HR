@@ -1,7 +1,7 @@
 # Handoff: Coordinator → Implementer (B1 AI 基础层)
 
-## 状态: 待 Phase A 合 dev 后启动(协调者届时建 worktree feature/ai-foundation 并填入路径)
-## 工作目录: 【派工时填写】
+## 状态: READY_FOR_IMPL(Phase A 已合 dev @614cb6f,本分支基于其上;注意所有 AI 端点现在挂的是 CreditGuard+CreditInterceptor,改动 ai 层不要破坏其语义)
+## 工作目录: E:\Agent program\HRBP-wt\ai-foundation(git worktree,分支 feature/ai-foundation)
 ## 任务: AiService 升级——真多轮 messages + 流式 + 场景档位(pro|flash)+ 备用通道型号迁移 + 并发队列可见化
 ## 输入文件: packages/api/src/ai/**、packages/api/src/config/ai.config.ts、packages/api/src/diagnoses|resumes 的 AI 调用点(仅加 tier 参数)
 ## 禁止触碰: packages/web/**、conversations/**(B2 的事)、mock/**(D1 的事)、credit/quota 模块、.env 入库(本地可复制主仓 .env 到 worktree 用,永不提交)

@@ -1,7 +1,7 @@
 # Handoff: Coordinator → Implementer (D1 模拟面试公司层,不含联网搜索)
 
-## 状态: 待 Phase A 合 dev 后启动(可与 B1 并行,文件集不相交;协调者届时建 worktree feature/mock-company 并填入路径)
-## 工作目录: 【派工时填写】
+## 状态: READY_FOR_IMPL(Phase A 已合 dev @614cb6f,本分支基于其上;mock/page.tsx 已有"7 点"标注与 CreditGuard,改动别破坏)
+## 工作目录: E:\Agent program\HRBP-wt\mock-company(git worktree,分支 feature/mock-company)
 ## 任务: 600 家公司库移植 + 模拟面试防编造 + 公司库命中/未命中双路径明示
 ## 输入文件: packages/api/src/mock/**、packages/api/src/feed/company-registry.service.ts(读懂灌库与匹配逻辑)、data/sources/company_seed.json、career-skills-marketplace/skills/_career-skills-shared/knowledge/company-taxonomy/*.yaml(只读源数据)、packages/web/src/app/(main)/mock/page.tsx(小改:未命中提示)
 ## 禁止触碰: ai/**、conversations/**、credit/**、interview-prep/**(只许参考其防编造写法,不许改它)、.env
