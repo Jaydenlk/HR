@@ -64,18 +64,22 @@ describe('Credit 标注一致性静态检查 (剧本 8)', () => {
    * 后端 POST /conversations/:id/messages 已挂 CreditGuard + CreditInterceptor,
    * 但前端聊天页面没有任何"消耗"提示。
    */
-  it('【BUG检查】聊天页面(chat-detail.tsx)应含"消耗"标注', () => {
+  it('【BUG检查】聊天页面(chat-detail.tsx)应含"消耗"标注(排除注释)', () => {
     const content = readFile('chat/[id]/chat-detail.tsx');
-    const hasLabel = content.includes('消耗');
+    // 去掉所有 JSX 行注释({/* ... */})和单行注释(// ...)后再检查,避免注释骗过断言
+    const withoutComments = content
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/\/\/[^\n]*/g, '');
+    const hasLabel = withoutComments.includes('消耗');
     if (!hasLabel) {
       console.warn(
-        '[BUG] chat/[id]/chat-detail.tsx 缺少"消耗 N 点"标注。' +
+        '[BUG] chat/[id]/chat-detail.tsx 缺少"消耗 N 点"标注(排除注释后仍无)。' +
         '\n  后端 POST /conversations/:id/messages 已挂 CreditGuard,每次发消息扣 1 点。' +
         '\n  用户无感知,体验差。',
       );
     }
-    // 修复后断言:chat-detail.tsx 已包含"消耗"标注
-    expect(hasLabel).toBe(true); // 已修复:chat-detail.tsx 包含消耗提示
+    // 修复后断言:chat-detail.tsx 渲染 JSX 中已包含"消耗"标注(非注释)
+    expect(hasLabel).toBe(true);
   });
 
   it('侧边栏布局(layout.tsx)含余额展示逻辑', () => {
