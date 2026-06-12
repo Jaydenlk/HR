@@ -73,4 +73,113 @@ describe('ConcurrencyLimiter', () => {
     const active = (limiter as unknown as { active: number }).active;
     expect(active).toBe(0);
   });
+
+  // ── 队列可见化:status() + 排位回调(B2 SSE 推送用)──────────────────────
+  describe('队列可见化', () => {
+    it('并发压 3 个请求(max=1)→ status() 的 active/queued 数字正确', async () => {
+      const limiter = buildLimiter(1, 8);
+      const releases: Array<() => void> = [];
+      const hang = () =>
+        limiter.run(() => new Promise<void>((resolve) => releases.push(resolve)));
+
+      // 起 3 个:第 1 个占满并发槽,第 2、3 个进队列
+      const p1 = hang();
+      const p2 = hang();
+      const p3 = hang();
+      // 让各 run 的 acquire 同步入队
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(limiter.status()).toEqual({ active: 1, queued: 2 });
+
+      // 放行第 1 个 → 队首(第 2 个)被唤醒,active 仍 1,queued 降到 1
+      releases.shift()!();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(limiter.status()).toEqual({ active: 1, queued: 1 });
+
+      // 依次放干净
+      releases.shift()!();
+      await Promise.resolve();
+      await Promise.resolve();
+      releases.shift()!();
+      await Promise.all([p1, p2, p3]);
+      expect(limiter.status()).toEqual({ active: 0, queued: 0 });
+    });
+
+    it('runObservable:排位回调按序触发(入队初始位 → 前移 → 0 开始执行)', async () => {
+      const limiter = buildLimiter(1, 8);
+      const releases: Array<() => void> = [];
+      const hang = (onPos: (p: number) => void) =>
+        limiter.runObservable(
+          () => new Promise<void>((resolve) => releases.push(resolve)),
+          onPos,
+        );
+
+      const posA: number[] = [];
+      const posB: number[] = [];
+      const posC: number[] = [];
+
+      const pA = hang((p) => posA.push(p)); // 立即占槽 → 仅 0
+      await Promise.resolve();
+      const pB = hang((p) => posB.push(p)); // 入队:初始排位 1
+      await Promise.resolve();
+      const pC = hang((p) => posC.push(p)); // 入队:初始排位 2
+      await Promise.resolve();
+
+      // A 已执行(0);B 排第 1;C 排第 2
+      expect(posA).toEqual([0]);
+      expect(posB[0]).toBe(1);
+      expect(posC[0]).toBe(2);
+
+      // 放行 A → B 进入执行(收到 0),C 前移到第 1
+      releases.shift()!();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(posB).toContain(0); // B 开始执行
+      expect(posC).toContain(1); // C 前移到队首
+
+      // 放行 B → C 执行(收到 0)
+      releases.shift()!();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(posC).toContain(0);
+
+      releases.shift()!();
+      await Promise.all([pA, pB, pC]);
+      // 每个请求的最后一个排位都应是 0(已开始执行)
+      expect(posA[posA.length - 1]).toBe(0);
+      expect(posB[posB.length - 1]).toBe(0);
+      expect(posC[posC.length - 1]).toBe(0);
+    });
+
+    it('runStreaming:持槽至流耗尽才释放(后半段不脱离护栏)', async () => {
+      const limiter = buildLimiter(1, 8);
+      let resumeStream!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        resumeStream = resolve;
+      });
+      async function* slow(): AsyncGenerator<number> {
+        yield 1;
+        await gate; // 卡在中途,模拟流未结束
+        yield 2;
+      }
+
+      const collected: number[] = [];
+      const consume = (async () => {
+        for await (const n of limiter.runStreaming(() => slow())) collected.push(n);
+      })();
+
+      // 消费到第一个 chunk 后,流仍未结束 → 槽位仍被占用
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(limiter.status().active).toBe(1);
+
+      // 放行流的后半段 → 耗尽后释放
+      resumeStream();
+      await consume;
+      expect(collected).toEqual([1, 2]);
+      expect(limiter.status()).toEqual({ active: 0, queued: 0 });
+    });
+  });
 });

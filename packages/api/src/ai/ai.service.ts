@@ -2,7 +2,7 @@ import { Injectable, Optional, ServiceUnavailableException, Logger } from '@nest
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { ConcurrencyLimiter } from './concurrency-limiter';
-import { AiConfig } from '../config/ai.config';
+import { AiConfig, AiTier } from '../config/ai.config';
 import { OpsEventsService } from '../ops/ops-events.service';
 
 interface CompleteParams {
@@ -10,6 +10,8 @@ interface CompleteParams {
   prompt: string;
   tools?: Anthropic.Tool[];
   maxTokens?: number;
+  // 场景档位:'pro' 走重档型号(诊断/改写核心产出),'flash'(默认)走轻档(解析类)。
+  tier?: AiTier;
 }
 
 interface CompleteStructuredParams {
@@ -20,19 +22,29 @@ interface CompleteStructuredParams {
   schema: Record<string, unknown>;
   // 结构化输出默认上限 8192:4合1/比对类重 schema 在 4096 下易被截断。可按调用方上调。
   maxTokens?: number;
+  tier?: AiTier;
 }
 
+interface ChatParams {
+  system: string;
+  // 真多轮:user/assistant 交替的完整消息数组(首条须 user)。
+  messages: Anthropic.MessageParam[];
+  maxTokens?: number;
+  tier?: AiTier;
+}
+
+// 通道:封装 SDK client + 按 tier 选型号的 modelFor。deepseek 直连按档分型号,relay 中转单一别名。
 interface Provider {
   name: string;
   client: Anthropic;
-  model: string;
+  modelFor: (tier: AiTier) => string;
 }
 
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  private readonly primary: Provider;
-  private readonly fallback: Provider | null;
+  // 按 AI_PRIMARY_PROVIDER 排序后的可用通道:[0]=主、[1]=备(若存在)。
+  private readonly providers: Provider[];
 
   constructor(
     private readonly limiter: ConcurrencyLimiter,
@@ -41,42 +53,51 @@ export class AiService {
   ) {
     const ai = config.get<AiConfig>('ai')!;
 
-    if (!ai.primary.apiKey) {
-      throw new Error('CLOUDDREAM_API_KEY is required but not set');
-    }
-
-    // 主通道:CloudDreamAI 中转(auto-v2)。默认 maxRetries=0 快速失败,交由降级逻辑切备用,
-    // 避免中转挂起时长时间阻塞。超时/重试经 AI_PRIMARY_TIMEOUT_MS / AI_PRIMARY_MAX_RETRIES 调整。
-    this.primary = {
-      name: ai.primary.model,
-      model: ai.primary.model,
-      client: new Anthropic({
-        apiKey: ai.primary.apiKey,
-        baseURL: ai.primary.baseURL,
-        timeout: ai.primary.timeoutMs,
-        maxRetries: ai.primary.maxRetries,
-      }),
-    };
-
-    // 备用通道:DeepSeek(Anthropic 兼容端点)。仅当配置了 DEEPSEEK_API_KEY 时启用。
+    // DeepSeek 直连官方(Anthropic 兼容端点,支持 SSE 流式)。按 tier 选 pro/flash 型号。
     // 默认 maxRetries=3:SDK 对瞬时连接错误(Connection error/ECONNRESET/5xx/429)自动指数退避重试,
-    // 使单次网络抖动不再直接冒泡成 503。可经 AI_FALLBACK_MAX_RETRIES 调整。
-    this.fallback = ai.fallback.apiKey
+    // 使单次网络抖动不再直接冒泡成 503。
+    const deepseek: Provider | null = ai.deepseek.apiKey
       ? {
-          name: ai.fallback.model,
-          model: ai.fallback.model,
+          name: 'deepseek',
           client: new Anthropic({
-            apiKey: ai.fallback.apiKey,
-            baseURL: ai.fallback.baseURL,
-            timeout: ai.fallback.timeoutMs,
-            maxRetries: ai.fallback.maxRetries,
+            apiKey: ai.deepseek.apiKey,
+            baseURL: ai.deepseek.baseURL,
+            timeout: ai.deepseek.timeoutMs,
+            maxRetries: ai.deepseek.maxRetries,
           }),
+          modelFor: (tier) => (tier === 'pro' ? ai.deepseek.modelPro : ai.deepseek.modelFlash),
         }
       : null;
+
+    // CloudDreamAI 中转(auto-v2):pro/flash 共用同一别名(降档保命)。默认 maxRetries=0 快速失败,
+    // 交由降级逻辑切另一通道,避免中转挂起时长时间阻塞。
+    const relay: Provider | null = ai.relay.apiKey
+      ? {
+          name: 'relay',
+          client: new Anthropic({
+            apiKey: ai.relay.apiKey,
+            baseURL: ai.relay.baseURL,
+            timeout: ai.relay.timeoutMs,
+            maxRetries: ai.relay.maxRetries,
+          }),
+          modelFor: () => ai.relay.model,
+        }
+      : null;
+
+    // 按通道顺序排列:测试期默认 deepseek 在前。配置的主通道无密钥时,顺位由另一通道顶上。
+    const ordered =
+      ai.primaryProvider === 'relay' ? [relay, deepseek] : [deepseek, relay];
+    this.providers = ordered.filter((p): p is Provider => p !== null);
+
+    if (this.providers.length === 0) {
+      throw new Error(
+        '至少需要配置一个 AI 通道密钥(AI_DEEPSEEK_API_KEY 或 AI_RELAY_API_KEY,或旧名 DEEPSEEK_API_KEY/CLOUDDREAM_API_KEY)',
+      );
+    }
   }
 
   async complete(params: CompleteParams): Promise<string> {
-    const { system, prompt, tools, maxTokens = 4096 } = params;
+    const { system, prompt, tools, maxTokens = 4096, tier = 'flash' } = params;
     const build = (model: string): Anthropic.MessageCreateParamsNonStreaming => {
       const p: Anthropic.MessageCreateParamsNonStreaming = {
         model,
@@ -90,7 +111,7 @@ export class AiService {
 
     return this.withFailover('complete', async (provider) => {
       const response = await this.limiter.run(() =>
-        provider.client.messages.create(build(provider.model)),
+        provider.client.messages.create(build(provider.modelFor(tier))),
       );
       for (const block of response.content) {
         if (block.type === 'text' && block.text.length > 0) return block.text;
@@ -102,7 +123,8 @@ export class AiService {
   }
 
   async completeStructured<T>(params: CompleteStructuredParams): Promise<T> {
-    const { system, prompt, toolName, toolDescription, schema, maxTokens = 8192 } = params;
+    const { system, prompt, toolName, toolDescription, schema, maxTokens = 8192, tier = 'flash' } =
+      params;
 
     const tool: Anthropic.Tool = {
       name: toolName,
@@ -120,35 +142,124 @@ export class AiService {
     });
 
     return this.withFailover('completeStructured', (provider) =>
-      this.attemptStructured<T>(provider, build(provider.model), toolName, schema),
+      this.attemptStructured<T>(provider, build(provider.modelFor(tier)), toolName, schema),
     );
   }
 
-  // 默认走主通道;主通道抛错(超时/连接/5xx/空块耗尽)即降级到备用通道;两者都失败才抛 503。
-  private async withFailover<T>(op: string, run: (provider: Provider) => Promise<T>): Promise<T> {
-    try {
-      return await run(this.primary);
-    } catch (primaryErr) {
-      if (!this.fallback) {
-        throw this.unavailable(op, primaryErr);
-      }
-      this.logger.warn(
-        `${op}: 主通道(${this.primary.name})失败,降级到备用(${this.fallback.name}) —— ${this.errMsg(primaryErr)}`,
-      );
-      // 记录降级事件;catch 吞掉写入失败,不阻断主流程;opsEvents 不存在(单元测试无 DB)则跳过
-      void this.opsEvents
-        ?.record('AI_FAILOVER', { op, primary: this.primary.name, fallback: this.fallback.name, error: this.errMsg(primaryErr) })
-        .catch((e: unknown) => this.logger.warn(`OpsEvents AI_FAILOVER 写入失败:${this.errMsg(e)}`));
+  /**
+   * 多轮对话(流式)。返回增量文本的 async iterable:逐 chunk 交付,供上层(B2 SSE)推送给前端。
+   * 降级语义:**首 token 之前**任一通道失败 → 切下一通道重试;**首 token 之后**通道失败 → 直接上抛
+   * 明确错误(不静默换通道重发——否则用户会看到前半段重复)。所有通道在首 token 前皆失败 → 503。
+   */
+  async *chat(params: ChatParams): AsyncGenerator<string, void, void> {
+    const { system, messages, maxTokens = 4096, tier = 'flash' } = params;
+    const build = (model: string): Anthropic.MessageStreamParams => ({
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages,
+    });
+
+    let lastErr: unknown;
+    for (let i = 0; i < this.providers.length; i++) {
+      const provider = this.providers[i];
+      const isLast = i === this.providers.length - 1;
+      let emitted = false;
       try {
-        return await run(this.fallback);
-      } catch (fallbackErr) {
-        // 记录两通道皆败事件;catch 吞掉写入失败,不阻断主流程;opsEvents 不存在(单元测试无 DB)则跳过
+        // 流式调用仍占并发槽:runStreaming 在整段流消费完毕(或抛错/提前关闭)后才释放槽位,
+        // 避免后半段流脱离并发护栏。
+        const chunks = this.limiter.runStreaming(() =>
+          this.streamProvider(provider, build(provider.modelFor(tier))),
+        );
+        for await (const text of chunks) {
+          emitted = true;
+          yield text;
+        }
+        return;
+      } catch (err) {
+        lastErr = err;
+        if (emitted) {
+          // 首 token 之后失败:绝不换通道重发(会让用户看到重复内容)。上抛明确错误。
+          throw new Error(
+            `通道 ${provider.name} 流式中途失败(已输出部分内容,不重试):${this.errMsg(err)}`,
+          );
+        }
+        if (isLast) break;
+        // 首 token 之前失败:可安全切下一通道。
+        this.logger.warn(
+          `chat: 通道 ${provider.name} 首 token 前失败,切下一通道 —— ${this.errMsg(err)}`,
+        );
+        const next = this.providers[i + 1];
         void this.opsEvents
-          ?.record('AI_BOTH_DOWN', { op, primary: this.primary.name, fallback: this.fallback.name, error: this.errMsg(fallbackErr) })
-          .catch((e: unknown) => this.logger.warn(`OpsEvents AI_BOTH_DOWN 写入失败:${this.errMsg(e)}`));
-        throw this.unavailable(op, fallbackErr);
+          ?.record('AI_FAILOVER', {
+            op: 'chat',
+            primary: provider.name,
+            fallback: next.name,
+            error: this.errMsg(err),
+          })
+          .catch((e: unknown) =>
+            this.logger.warn(`OpsEvents AI_FAILOVER 写入失败:${this.errMsg(e)}`),
+          );
       }
     }
+    // 所有通道首 token 前皆失败。
+    void this.opsEvents
+      ?.record('AI_BOTH_DOWN', {
+        op: 'chat',
+        providers: this.providers.map((p) => p.name).join(','),
+        error: this.errMsg(lastErr),
+      })
+      .catch((e: unknown) => this.logger.warn(`OpsEvents AI_BOTH_DOWN 写入失败:${this.errMsg(e)}`));
+    throw this.unavailable('chat', lastErr);
+  }
+
+  // 用 SDK messages.stream 消费 SSE,逐 text_delta 产出增量文本。
+  // 该生成器的首次 yield 即"首 token 到达";其前抛错代表首 token 前失败(可切通道)。
+  private async *streamProvider(
+    provider: Provider,
+    params: Anthropic.MessageStreamParams,
+  ): AsyncGenerator<string, void, void> {
+    const stream = provider.client.messages.stream(params);
+    for await (const event of stream) {
+      if (
+        event.type === 'content_block_delta' &&
+        event.delta.type === 'text_delta' &&
+        event.delta.text.length > 0
+      ) {
+        yield event.delta.text;
+      }
+    }
+  }
+
+  // 默认走主通道(providers[0]);失败按顺序降级到后续通道;全部失败才抛 503。
+  private async withFailover<T>(op: string, run: (provider: Provider) => Promise<T>): Promise<T> {
+    let lastErr: unknown;
+    for (let i = 0; i < this.providers.length; i++) {
+      const provider = this.providers[i];
+      try {
+        return await run(provider);
+      } catch (err) {
+        lastErr = err;
+        const next = this.providers[i + 1];
+        if (!next) break;
+        this.logger.warn(
+          `${op}: 主通道(${provider.name})失败,降级到备用(${next.name}) —— ${this.errMsg(err)}`,
+        );
+        // 记录降级事件;catch 吞掉写入失败,不阻断主流程;opsEvents 不存在(单元测试无 DB)则跳过
+        void this.opsEvents
+          ?.record('AI_FAILOVER', { op, primary: provider.name, fallback: next.name, error: this.errMsg(err) })
+          .catch((e: unknown) => this.logger.warn(`OpsEvents AI_FAILOVER 写入失败:${this.errMsg(e)}`));
+      }
+    }
+    // 全部通道失败:记录两通道皆败事件后抛 503。
+    void this.opsEvents
+      ?.record('AI_BOTH_DOWN', {
+        op,
+        providers: this.providers.map((p) => p.name).join(','),
+        error: this.errMsg(lastErr),
+      })
+      .catch((e: unknown) => this.logger.warn(`OpsEvents AI_BOTH_DOWN 写入失败:${this.errMsg(e)}`));
+    throw this.unavailable(op, lastErr);
   }
 
   private async attemptStructured<T>(
