@@ -97,8 +97,6 @@ function buildToolNav(applicationCount: number): ToolNav {
   };
 }
 
-// Recent threads will be fetched from API when chat feature is built.
-
 function formatRelativeTime(dateStr: string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();

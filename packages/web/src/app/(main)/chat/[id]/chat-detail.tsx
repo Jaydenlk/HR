@@ -136,6 +136,16 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
   // 排队提示:进入生成前若有积压,显示「前面还有 x 个请求」。
   const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const feedRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     api
@@ -216,13 +226,17 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
       return;
     }
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     let acc = '';
     let firstTokenSeen = false;
     let done = false;
     try {
       for await (const evt of api.postStream(`/conversations/${id}/messages/stream`, {
         content,
-      })) {
+      }, controller.signal)) {
+        if (!mountedRef.current) break;
         if (evt.type === 'queue') {
           setQueuePosition(evt.position);
         } else if (evt.type === 'token') {
@@ -260,14 +274,20 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
         }
       }
     } catch (err) {
+      // 组件已卸载(abort 触发):直接退出,不再 setState。
+      if (!mountedRef.current) return;
+      // 用户主动 abort 的错误:静默退出不报错。
+      if (err instanceof Error && err.name === 'AbortError') return;
+
       // 流在首 token 前失败(含 HTTP 层 401/402/网络)。
       // 首 token 前且未显式 error → 退回非流式降级;首 token 后失败则保留已渲染内容只报错。
       if (!done && !firstTokenSeen) {
         try {
           await sendNonStream(content, optimisticMsg.id);
-          setSending(false);
+          if (mountedRef.current) setSending(false);
           return;
         } catch (fallbackErr) {
+          if (!mountedRef.current) return;
           setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
           setError(
             fallbackErr instanceof Error ? fallbackErr.message : '发送失败，请重试',
@@ -290,9 +310,11 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
         setError(err instanceof Error ? err.message : 'AI 服务中断，请稍后重试');
       }
     } finally {
-      setStreamingText('');
-      setQueuePosition(null);
-      setSending(false);
+      if (mountedRef.current) {
+        setStreamingText('');
+        setQueuePosition(null);
+        setSending(false);
+      }
     }
   }
 

@@ -79,12 +79,16 @@ export class ConversationsController {
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     };
 
+    const abort = new AbortController();
+    res.on('close', () => abort.abort());
+
     try {
       for await (const event of this.conversations.streamMessage(
         id,
         user.id,
         dto.content,
         '/api/conversations/:id/messages/stream',
+        abort.signal,
       )) {
         write(event);
       }

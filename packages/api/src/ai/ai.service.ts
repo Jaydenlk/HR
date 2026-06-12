@@ -31,6 +31,8 @@ interface ChatParams {
   messages: Anthropic.MessageParam[];
   maxTokens?: number;
   tier?: AiTier;
+  // 可选中止信号:客户端断连时由上层传入,透传给 SDK 以释放并发槽。
+  signal?: AbortSignal;
 }
 
 // 通道:封装 SDK client + 按 tier 选型号的 modelFor。deepseek 直连按档分型号,relay 中转单一别名。
@@ -152,7 +154,7 @@ export class AiService {
    * 明确错误(不静默换通道重发——否则用户会看到前半段重复)。所有通道在首 token 前皆失败 → 503。
    */
   async *chat(params: ChatParams): AsyncGenerator<string, void, void> {
-    const { system, messages, maxTokens = 4096, tier = 'flash' } = params;
+    const { system, messages, maxTokens = 4096, tier = 'flash', signal } = params;
     const build = (model: string): Anthropic.MessageStreamParams => ({
       model,
       max_tokens: maxTokens,
@@ -169,7 +171,7 @@ export class AiService {
         // 流式调用仍占并发槽:runStreaming 在整段流消费完毕(或抛错/提前关闭)后才释放槽位,
         // 避免后半段流脱离并发护栏。
         const chunks = this.limiter.runStreaming(() =>
-          this.streamProvider(provider, build(provider.modelFor(tier))),
+          this.streamProvider(provider, build(provider.modelFor(tier)), signal),
         );
         for await (const text of chunks) {
           emitted = true;
@@ -218,8 +220,9 @@ export class AiService {
   private async *streamProvider(
     provider: Provider,
     params: Anthropic.MessageStreamParams,
+    signal?: AbortSignal,
   ): AsyncGenerator<string, void, void> {
-    const stream = provider.client.messages.stream(params);
+    const stream = provider.client.messages.stream(params, { signal });
     for await (const event of stream) {
       if (
         event.type === 'content_block_delta' &&

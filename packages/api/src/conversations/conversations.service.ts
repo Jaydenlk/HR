@@ -161,6 +161,7 @@ export class ConversationsService {
     userId: string,
     content: string,
     endpoint: string,
+    signal?: AbortSignal,
   ): AsyncGenerator<ChatStreamEvent, void, void> {
     const conv = await this.findOne(convId, userId);
     const history = conv.messages;
@@ -190,6 +191,7 @@ export class ConversationsService {
         content,
         context,
         userContext,
+        signal,
       )) {
         reply += chunk;
         yield { type: 'token', text: chunk };

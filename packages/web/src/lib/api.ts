@@ -78,9 +78,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return parseBody<T>(res);
 }
 
-// ── 全局排队提示 ─────────────────────────────────────────────────────────────
-// AI 端点 post 等待超过 2.5s 时,轮询 GET /ai/queue-status(2s 间隔);有排队就广播
-// 全局轻提示「前面还有 x 个请求」,请求一完成立即清除。实现为全局机制,各 AI 页无需逐页改造。
+// ── 全局排队提示(仅非流式路径)────────────────────────────────────────────────
+// 仅非流式路径走此轮询:AI 端点 post 等待超过 2.5s 时,轮询 GET /ai/queue-status(2s 间隔);
+// 有排队就广播全局轻提示「前面还有 x 个请求」,请求一完成立即清除。
+// 流式路径的排队状态由后端在 SSE 连接内直接推送 queue 事件,不经此机制。
 // 事件:coach:ai-queue { position } 显示;coach:ai-queue-clear 清除。由布局层挂一个监听渲染 toast。
 
 interface QueueStatus {
@@ -220,6 +221,10 @@ async function* postStream(
       }
     }
   } finally {
+    // signal 已 abort 时 cancel 底层流(释放网络连接),然后再 releaseLock。
+    if (signal?.aborted) {
+      await reader.cancel().catch(() => {});
+    }
     reader.releaseLock();
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { EvidenceService } from '../intelligence/evidence.service';
 import { AiService } from '../ai/ai.service';
 import { Resume } from '../resumes/entities/resume.entity';
@@ -31,6 +31,18 @@ export class CoachContextService {
     private readonly coverLetterRepo: Repository<CoverLetter>,
   ) {}
 
+  // 简历全文截断上限:防止超长简历撑爆上下文窗口。
+  private static readonly RESUME_MAX_CHARS = 6000;
+
+  // 截断简历原文到上限,超出时追加可读提示。独立函数便于单测。
+  static truncateResumeText(raw: string): string {
+    if (raw.length <= CoachContextService.RESUME_MAX_CHARS) return raw;
+    return (
+      raw.slice(0, CoachContextService.RESUME_MAX_CHARS) +
+      '\n……(简历过长,以上为前 6000 字,完整内容可在简历页查看)'
+    );
+  }
+
   // 开场上下文:画像(证据层)+ 主简历全文 + 最新诊断要点 + 产物目录(type/标题/日期/id)。
   // 产物目录给模型「站内有哪些可深挖的旧产物」的词汇,用户引用时由选择器按需加载全文。
   async buildContext(userId: string): Promise<string> {
@@ -46,7 +58,7 @@ export class CoachContextService {
 
     if (primaryResume) {
       sections.push(
-        `## 主简历全文（is_primary）\n标题：${primaryResume.title}\n${primaryResume.raw_text}`,
+        `## 主简历全文（is_primary）\n标题：${primaryResume.title}\n${CoachContextService.truncateResumeText(primaryResume.raw_text)}`,
       );
     }
 
@@ -68,14 +80,16 @@ export class CoachContextService {
     userId: string,
     userMessage: string,
   ): Promise<string> {
-    const catalogIds = await this.gatherCatalogIds(userId);
+    // 一次查询同时取 ids + 选择器描述文案,两处复用无重复 DB 往返。
+    const catalog = await this.gatherSelectorCatalog(userId);
+    const { ids: catalogIds } = catalog;
     if (catalogIds.diagnosis.length === 0 && catalogIds.cover_letter.length === 0) {
       return '';
     }
 
     let selection: SelectorResult;
     try {
-      selection = await this.runSelector(userMessage, catalogIds);
+      selection = await this.runSelector(userMessage, catalog.text);
     } catch (err) {
       // 静默降级:选择器抛错不影响主对话,记一行日志即可。
       this.logger.warn(
@@ -114,9 +128,8 @@ export class CoachContextService {
 
   private async runSelector(
     userMessage: string,
-    catalogIds: { diagnosis: string[]; cover_letter: string[] },
+    catalogText: string,
   ): Promise<SelectorResult> {
-    const catalogText = await this.describeCatalogForSelector(catalogIds);
     const schema = {
       type: 'object',
       required: ['need'],
@@ -211,42 +224,29 @@ export class CoachContextService {
     return lines.join('\n');
   }
 
-  private async gatherCatalogIds(
-    userId: string,
-  ): Promise<{ diagnosis: string[]; cover_letter: string[] }> {
+  // 一次查询同时取 id + 标题字段,供 ids 验权过滤和选择器文案两处复用,减少每条消息约 6 次目录查询。
+  private async gatherSelectorCatalog(userId: string): Promise<{
+    ids: { diagnosis: string[]; cover_letter: string[] };
+    text: string;
+  }> {
     const [diagnoses, coverLetters] = await Promise.all([
       this.diagnosisRepo.find({
         where: { user_id: userId },
         order: { created_at: 'DESC' },
         take: 10,
-        select: { id: true },
+        select: { id: true, jd_company: true, jd_role: true, score: true },
       }),
       this.coverLetterRepo.find({
         where: { user_id: userId },
         order: { created_at: 'DESC' },
         take: 10,
-        select: { id: true },
+        select: { id: true, company: true, role: true },
       }),
     ]);
-    return {
+    const ids = {
       diagnosis: diagnoses.map((d) => d.id),
       cover_letter: coverLetters.map((c) => c.id),
     };
-  }
-
-  private async describeCatalogForSelector(catalogIds: {
-    diagnosis: string[];
-    cover_letter: string[];
-  }): Promise<string> {
-    // 选择器只需 id + 简短标题即可判定引用了哪几份。按 id 列表批量取标题字段。
-    const [diagnoses, coverLetters] = await Promise.all([
-      catalogIds.diagnosis.length
-        ? this.diagnosisRepo.find({ where: { id: In(catalogIds.diagnosis) } })
-        : Promise.resolve([] as Diagnosis[]),
-      catalogIds.cover_letter.length
-        ? this.coverLetterRepo.find({ where: { id: In(catalogIds.cover_letter) } })
-        : Promise.resolve([] as CoverLetter[]),
-    ]);
     const lines: string[] = [];
     for (const d of diagnoses) {
       lines.push(
@@ -258,7 +258,7 @@ export class CoachContextService {
         `kind=cover_letter id=${c.id} ${c.company || ''}/${c.role || ''}`.trim(),
       );
     }
-    return lines.join('\n');
+    return { ids, text: lines.join('\n') };
   }
 
   private async loadDiagnosisFull(

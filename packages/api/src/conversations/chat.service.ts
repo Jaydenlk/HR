@@ -115,9 +115,10 @@ export class ChatService {
     userMessage: string,
     context?: { type: string; data: string },
     userContext?: string,
+    signal?: AbortSignal,
   ): AsyncGenerator<string, void, void> {
     const system = this.buildSystemPrompt(context, userContext);
     const messages = this.buildMessages(history, userMessage);
-    return this.ai.chat({ system, messages, tier: 'pro', maxTokens: 4096 });
+    return this.ai.chat({ system, messages, tier: 'pro', maxTokens: 4096, signal });
   }
 }
