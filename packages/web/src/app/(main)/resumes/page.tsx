@@ -278,23 +278,27 @@ function ResumesPageInner() {
             </div>
             <p
               style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: 'var(--color-ink-2)',
-                marginBottom: '8px',
+                fontSize: '17px',
+                fontWeight: 700,
+                color: 'var(--color-ink)',
+                marginBottom: '10px',
                 letterSpacing: '-0.01em',
               }}
             >
-              还没有简历
+              把简历传进来,看它说真话
             </p>
             <p
               style={{
                 fontSize: '13.5px',
-                color: 'var(--color-ink-4)',
+                color: 'var(--color-ink-3)',
                 marginBottom: '24px',
+                maxWidth: '360px',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                lineHeight: 1.6,
               }}
             >
-              上传你的第一份简历，开始 AI 诊断之旅
+              传进来就能看到你的第一份诚实诊断 —— 按校招标准逐条体检,改了几版都能找回。
             </p>
             <button
               onClick={() => setUploaderOpen(true)}
@@ -302,18 +306,18 @@ function ResumesPageInner() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '7px',
-                padding: '10px 22px',
+                padding: '12px 24px',
                 borderRadius: '10px',
                 border: 'none',
                 background: 'var(--color-brand)',
                 color: '#fff',
-                fontSize: '13.5px',
+                fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
               <Plus size={15} />
-              上传第一份简历
+              上传简历
             </button>
           </div>
         ) : (

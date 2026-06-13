@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import type { DailyTask } from '@/lib/types';
+import StarterChecklist from '@/components/onboarding/starter-checklist';
 import {
   CalendarDays,
   RefreshCw,
@@ -382,6 +383,9 @@ export default function TodayPage() {
         gap: '20px',
       }}
     >
+      {/* ── 校招启动清单(引导脊柱:常驻、真实进度、可收起,全部完成自动隐藏) ── */}
+      <StarterChecklist />
+
       {/* ── Hero header card ─────────────────────────────────────────── */}
       <div
         style={{

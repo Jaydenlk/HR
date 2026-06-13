@@ -812,8 +812,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         {children}
       </main>
 
-      {/* 新手导览:首次使用聚光灯引导,仅桌面端渲染(完成标记在 localStorage) */}
-      {!isMobile && <OnboardingTour />}
+      {/* 新手导览:首次使用引导。桌面聚光灯 / 移动端居中卡降级,由组件内部按 isMobile 决定形态(完成标记在 localStorage) */}
+      <OnboardingTour />
 
       {/* 全站 toast 出口:写操作成功 toast.success / 失败 toast.error。 */}
       <Toaster position="top-center" richColors closeButton />
