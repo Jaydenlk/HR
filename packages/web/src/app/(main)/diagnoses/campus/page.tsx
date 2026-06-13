@@ -244,6 +244,7 @@ export default function CampusDiagnosisPage() {
         }),
         timeoutPromise,
       ]);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
       router.push(`/diagnoses/${diagnosis.id}`);
     } catch (err) {
       const isTimeout = err instanceof Error && err.message === 'TIMEOUT';

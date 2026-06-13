@@ -170,6 +170,7 @@ function MockPageInner() {
       setForm({ company: '', role: '', jd_text: '' });
       setCheckResult(null);
       setCandidateConfirmed(null);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
       // 完成回流:若本次源于 handoff,弹提示后跳到面试页
       if (activeHandoffId && activeConvId) {
         setShowReturn(true);

@@ -128,7 +128,7 @@ export default function MePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── 加载个人信息 ──────────────────────────────────────────────────────────
-  useEffect(() => {
+  function fetchProfile() {
     api
       .get<MeProfile>('/me')
       .then((data) => {
@@ -139,6 +139,26 @@ export default function MePage() {
         setProfileError(err instanceof Error ? err.message : '加载失败');
         setProfileLoading(false);
       });
+  }
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  // ── 监听点数刷新事件 ──────────────────────────────────────────────────────
+  useEffect(() => {
+    function onCreditRefresh() {
+      api
+        .get<MeProfile>('/me')
+        .then((data) => setProfile(data))
+        .catch(() => {
+          // 静默失败：余额刷新不强制报错，用户可手动刷新页面
+        });
+    }
+    window.addEventListener('coach:credit-refresh', onCreditRefresh);
+    return () => {
+      window.removeEventListener('coach:credit-refresh', onCreditRefresh);
+    };
   }, []);
 
   // ── 加载流水 ──────────────────────────────────────────────────────────────
