@@ -55,6 +55,35 @@ const STALE_MONTHS = 18;
 // 否则会把任意含该短词的编造信号 source 误判为可溯源。
 const MIN_REVERSE_MATCH_LEN = 3;
 
+// FG-5: 信号 source 本身的最短有效长度。AI 把信号 source 写成"AI""网""报告"这类极短泛词时,
+// 由于真实证据 title 往往很长、极易子串包含这类泛词,正向匹配会把编造信号挂靠到无关真来源上。
+// 信号 source 必须有实质来源支撑(≥4 字),短于此一律视为"无有效溯源",剔除该信号。
+const MIN_SIGNAL_SOURCE_LEN = 4;
+
+// FG-5: 泛词来源黑名单(归一化小写)。即便长度达标,这些纯泛指词本身不构成"具体来源",
+// 不得据此放行信号(防"AI 分析""网络报道""行业报告"等空壳 source 挂靠真证据)。
+const GENERIC_SOURCE_TERMS: ReadonlySet<string> = new Set([
+  'ai',
+  'ai分析',
+  'ai生成',
+  '网络',
+  '网上',
+  '报告',
+  '行业报告',
+  '研究报告',
+  '数据',
+  '统计',
+  '新闻',
+  '报道',
+  '资料',
+  '来源',
+  '官方',
+  '权威机构',
+  '相关报道',
+  '公开数据',
+  '互联网',
+]);
+
 // #P1: 可信域名白名单。非白名单域名的证据仍参与 URL 格式校验，但在 evidence_used
 // 返回时标记 verified=false，并在 summary 中诚实声明。
 // 注：服务端无联网核验能力，所有 URL 均为 AI 自产，white-list 仅降低误信风险。
@@ -288,6 +317,9 @@ export class IndustryTrendService {
   // 匹配规则：证据 source 串包含信号 source（正向），或证据 source 足够长（≥3）时信号 source
   // 包含证据 source（反向），或信号 source 命中证据 URL 的 host。
   // #P3: 过短证据 source（如"网""报告"）不走反向匹配，否则会放行编造信号。
+  // FG-5: 信号 source 本身是泛词/极短(如"AI""网""报告")时,正向匹配极易被长 title 子串命中放行,
+  //       故先做"信号 source 实质性"校验——无实质来源支撑的信号一律不可溯源。
+  //       但信号 source 命中证据 URL host 时例外:host 是真实可溯源锚点,即便信号 source 较短也算有效。
   private isSignalTraceable(
     signalSource: string | undefined,
     webEvidence: Array<{ source: string; url: string }>,
@@ -295,16 +327,32 @@ export class IndustryTrendService {
     if (!signalSource) return false;
     const sig = signalSource.trim();
     if (!sig) return false;
-    return webEvidence.some((e) => {
-      const evSource = (e.source ?? '').trim();
-      if (evSource) {
-        if (evSource.includes(sig)) return true;
-        // 反向匹配仅在证据 source 足够长（≥3）时启用，避免过短词命中放行编造信号。
-        if (evSource.length >= MIN_REVERSE_MATCH_LEN && sig.includes(evSource)) return true;
-      }
+
+    // host 命中:URL host 是确定性可溯源锚点,优先判定(不受信号 source 实质性约束)。
+    const hostHit = webEvidence.some((e) => {
       const host = this.extractHost(e.url);
       return host.length > 0 && sig.includes(host);
     });
+    if (hostHit) return true;
+
+    // FG-5: 信号 source 无实质性(过短或纯泛词)→ 不能据"与证据 title 的子串关系"放行。
+    if (!this.isSubstantialSignalSource(sig)) return false;
+
+    return webEvidence.some((e) => {
+      const evSource = (e.source ?? '').trim();
+      if (!evSource) return false;
+      if (evSource.includes(sig)) return true;
+      // 反向匹配仅在证据 source 足够长（≥3）时启用，避免过短词命中放行编造信号。
+      return evSource.length >= MIN_REVERSE_MATCH_LEN && sig.includes(evSource);
+    });
+  }
+
+  // FG-5: 信号 source 是否具备"实质来源"——长度达标且非纯泛词。
+  // 不达标者(如"AI""网""行业报告")只是空壳指代,不构成可挂靠的具体来源。
+  private isSubstantialSignalSource(sig: string): boolean {
+    if (sig.length < MIN_SIGNAL_SOURCE_LEN) return false;
+    const normalized = sig.replace(/\s+/g, '').toLowerCase();
+    return !GENERIC_SOURCE_TERMS.has(normalized);
   }
 
   private extractHost(url: string): string {

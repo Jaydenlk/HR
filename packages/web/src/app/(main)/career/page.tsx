@@ -152,6 +152,10 @@ function skillTooltipText(skill: SkillAuditItem): string {
   }
   if (skill.scoreSource === 'suppressed') {
     const ai = skill.aiScore != null ? `AI 原想给 ${skill.aiScore} 分,但` : '';
+    // FG-1:区分"本无证据" vs "证据与该技能不相关(张冠李戴,已剔除)",后者标注相关性存疑。
+    if (skill.evidenceRelevance === 'unrelated') {
+      return `${ai}AI 给出的证据与该技能并不相关（疑似引用了简历中其他技能/经历的内容），已视为无效并下调到 ${skill.current} 分。补上该技能本身的项目/经历后会更准。`;
+    }
     return `${ai}未在简历中找到该技能的具体证据，分数已下调到 ${skill.current} 分。补上对应项目/经历后会更准。`;
   }
   // ai 来源
@@ -513,15 +517,19 @@ export default function CareerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [noResume, setNoResume] = useState(false);
+  // FG-4:有简历可生成但尚无任何已生成结果的空态——进页只读历史不扣点,此态给"主动生成"引导。
+  const [neverGenerated, setNeverGenerated] = useState(false);
   const [showSelfAssess, setShowSelfAssess] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   // 历史回看:展示某条历史记录的只读快照(null 表示看实时结果)。
   const [viewing, setViewing] = useState<CareerAnalysis | null>(null);
 
-  const load = useCallback(async () => {
+  // FG-4 主动生成:仅用户点"重新评估/生成"时调用——GET /career/analysis 扣 1 点 + 跑 AI + 落库。
+  const generate = useCallback(async () => {
     setLoading(true);
     setError(null);
     setNoResume(false);
+    setNeverGenerated(false);
     setViewing(null);
     try {
       const data = await api.get<CareerAnalysis>('/career/analysis');
@@ -540,12 +548,35 @@ export default function CareerPage() {
     }
   }, []);
 
+  // FG-4 进页只读:复用最近一次已生成结果(GET /career/history → /career/history/:id,均不扣点、不跑 AI、
+  // 不落库)。看页面不花钱;有结果直接展示,没结果显示"主动生成"引导,从不进页自动扣点。
+  const loadLatest = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setNoResume(false);
+    setNeverGenerated(false);
+    setViewing(null);
+    try {
+      const history = await api.get<CareerHistoryItem[]>('/career/history');
+      if (history.length === 0) {
+        setNeverGenerated(true);
+        return;
+      }
+      const latest = await api.get<CareerAnalysis>(`/career/history/${history[0].id}`);
+      setAnalysis(latest);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     // async IIFE:把 setState 推迟到同步 effect body 之后,避免 set-state-in-effect 级联渲染告警。
     (async () => {
-      await load();
+      await loadLatest();
     })();
-  }, [load]);
+  }, [loadLatest]);
 
   async function openHistoryDetail(id: string) {
     try {
@@ -619,10 +650,11 @@ export default function CareerPage() {
             <History size={15} />
             历史
           </button>
-          {!loading && (analysis || error) && (
+          {/* FG-4:仅有已生成结果时显示"重新评估"(主动扣点重生成);进页只读态/空态不在此处扣点。 */}
+          {!loading && analysis && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
               <button
-                onClick={load}
+                onClick={generate}
                 disabled={loading}
                 style={{
                   display: 'inline-flex',
@@ -766,6 +798,64 @@ export default function CareerPage() {
             前往简历馆
           </Link>
         </div>
+      ) : neverGenerated ? (
+        /* FG-4 空态:进页只读历史发现尚无任何已生成结果。不自动扣点,引导用户主动生成。 */
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '64px 32px',
+            textAlign: 'center',
+            background: 'var(--color-surface)',
+            borderRadius: '16px',
+            border: '1.5px dashed var(--color-line-2)',
+            gap: '12px',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '14px',
+              background: 'var(--color-brand-soft)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Map size={26} color="var(--color-brand)" />
+          </div>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-ink-2)', letterSpacing: '-0.01em' }}>
+            还没有生成过职业地图
+          </p>
+          <p style={{ fontSize: '13.5px', color: 'var(--color-ink-4)', lineHeight: 1.5 }}>
+            点击下方按钮，AI 会基于你的简历生成技能盘点与三年路径建议。
+            <br />
+            生成会消耗 1 点；之后再来本页查看结果不再扣点。
+          </p>
+          <button
+            onClick={generate}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '11px 24px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'var(--color-brand)',
+              color: '#fff',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <Sparkles size={16} />
+            生成职业地图（消耗 1 点）
+          </button>
+        </div>
       ) : error ? (
         <div
           style={{
@@ -780,7 +870,7 @@ export default function CareerPage() {
           {error}
           <div style={{ marginTop: '12px' }}>
             <button
-              onClick={load}
+              onClick={loadLatest}
               style={{
                 padding: '8px 16px',
                 borderRadius: '8px',

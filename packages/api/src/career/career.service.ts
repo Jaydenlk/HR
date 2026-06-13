@@ -25,6 +25,14 @@ export type SkillScoreSource = 'ai' | 'self' | 'suppressed';
 // 技能类别:'general' 普通技能;'ai' AI 相关能力(前端单独成组渲染)。
 export type SkillCategory = 'general' | 'ai';
 
+// 证据相关性(FG-1 张冠李戴护栏判定结果):
+//  'grounded'  证据可回指简历 + 与该技能有相关性信号(技能名/别名/邻近溯源)→ 可信;
+//  'unrelated' 证据是简历真句但与该技能无任何相关性信号(典型张冠李戴:把别的技能/姓名学历段
+//              安给本技能)→ 视为无效证据,evidenceFound 清空并纳入退化压分;
+//  'none'      AI 本就没给证据(evidenceFound 空)。
+//  前端据此对 'unrelated'(理论上已被清空压分)与低置信场景标注"证据相关性存疑"。
+export type EvidenceRelevance = 'grounded' | 'unrelated' | 'none';
+
 export interface SkillAuditItem {
   name: string;
   current: number;
@@ -40,6 +48,9 @@ export interface SkillAuditItem {
   // 缺口/达标判定专用的"保守分":展示用 current(尊重自评),但 gap 与 ok 用保守分(=min(自评,AI原分)),
   // 防自评虚高让缺口凭空消失。非自评来源时 gapScore 与 current 同值。前端据此渲染缺口危险色。
   gapScore: number;
+  // FG-1 证据相关性判定:'grounded' 可信 / 'unrelated' 张冠李戴(已清空压分)/ 'none' 本无证据。
+  // 前端据此对相关性存疑的证据给出标注;'unrelated' 在服务端已触发清空+压分,不可能再现高分。
+  evidenceRelevance: EvidenceRelevance;
 }
 
 export interface CareerAnalysis {
@@ -88,6 +99,27 @@ const DEGENERATE_CAPPED_SCORE = 2;
 // 自评分合法区间(与量程 0-10 一致),越界拒收(防脏数据落库)。
 const SELF_SCORE_MIN = 0;
 const SELF_SCORE_MAX = 10;
+
+// FG-1 张冠李戴护栏:相关性信号判定相关常量。
+// 邻近溯源按"句子"窗口:证据所在句 + 紧邻的前后各一句构成窗口,窗口内含技能名/别名/技能词 token
+// 即视为"证据所在那段话在谈这个技能"。用句子(而非固定字符数)切窗,符合"技能名与其项目描述
+// 常在同一句、用逗号串接"的简历写法(如"熟悉 Java...负责订单与支付模块;"整句以分号收尾)。
+// 句子边界只用强标点(。!?;\n 及其全角),逗号不切句——逗号连接的是同一描述的并列小句。
+const SENTENCE_SPLIT_RE = /[。！？；!?;\n]+/;
+// 邻近窗口的相邻句半径:证据所在句往前后各扩 1 句,容忍证据与技能名被一个强标点分隔的情况。
+const RELEVANCE_SENTENCE_RADIUS = 1;
+// 技能名拆出的"实质词" token 最短长度:短于此的词(如单字)不作为相关性信号,避免泛字巧合命中。
+const RELEVANCE_TERM_MIN_LEN = 2;
+// 技能别名表(归一化小写键):仅补"邻近窗口也兜不住"的少数中英混写技能。
+// 不建大词典(违反 KISS/YAGNI):绝大多数技能靠"技能名直含 + 邻近溯源"即可判相关性,
+// 此表只收录"技能名是中文、但简历惯用英文工具名"等邻近也对不上的高频对。
+const SKILL_ALIASES: Record<string, string[]> = {
+  // AI 辅助编码 / AI 辅助工作流:简历常写工具名 Copilot/Cursor,而非中文技能名。
+  ai辅助编码: ['copilot', 'cursor', 'githubcopilot', 'ai辅助'],
+  ai辅助工作流: ['copilot', 'cursor', 'ai辅助'],
+  // Java 生态:简历常以框架名 Spring Boot 体现 Java 工程能力。
+  java: ['springboot', 'spring'],
+};
 
 @Injectable()
 export class CareerService {
@@ -218,15 +250,20 @@ export class CareerService {
   /**
    * 单条技能的防编造校准:
    * 1) clamp current/needed 到 [0,10];evidenceFound 归一为字符串;category 归一为 general/ai。
-   * 2) 假证据校验(FIX-2):evidenceFound 非空还不够,必须能在简历 raw_text 里真实回指到
-   *    (子串命中,或剔除技能名后仍有关键词命中)。只照抄技能名、或简历里根本没有的文字 → 判为无效证据,
-   *    按"无证据"处理(evidenceFound 清空)。堵住"AutoCAD(熟练)拿技能名当证据骗过压分"的漏洞。
-   * 3) 退化检测:current≥4 但(经校验后的)证据为空 → 判定凭技能名泛化的编造,压到 DEGENERATE_CAPPED_SCORE,
-   *    scoreSource='suppressed',aiScore 留原始 AI 分(前端可显示"未在简历找到证据,分数已下调")。
+   * 2) 证据相关性校验(FIX-2 + FG-1):evidenceFound 非空还不够,必须满足两道关:
+   *    ① 能在简历 raw_text 里真实回指到(子串命中,或剔除技能名后仍有关键词命中);
+   *    ② 与该技能有相关性信号(技能名/别名直含,或证据在简历里出现处的邻近窗口含技能名/别名)。
+   *    只照抄技能名、简历里没有的文字、或把别的技能/姓名学历段安给本技能(张冠李戴)→ 判为无效证据,
+   *    evidenceFound 清空、按"无证据"处理。relevance 记 'grounded'/'unrelated'/'none'。
+   * 3) 退化检测:current≥4 但(经校验后的)证据为空 → 判定凭技能名泛化或张冠李戴的编造,
+   *    压到 DEGENERATE_CAPPED_SCORE,scoreSource='suppressed',aiScore 留原始 AI 分。
    * 4) 用户自评覆盖:该技能有自评 → current 用 self_score(展示尊重自评),scoreSource='self',aiScore 留 AI 分。
    *    (自评是人工纠偏,优先级高于退化检测——用户对自己的真实水平最有发言权。)
-   * 5) 缺口保守分(FIX-5):gapScore = 自评覆盖时取 min(自评, AI原分),否则 = current;
-   *    ok 与缺口危险色一律按 gapScore 判,防自评虚高让缺口凭空消失(界面尊重自评,缺口不被自评欺骗)。
+   * 5) 缺口保守分(FIX-5):gapScore = 自评覆盖时取 min(自评, AI原分),否则 = current(压分后用压分值)。
+   *    ok 与缺口危险色按 gapScore 判。
+   * 6) FG-2 被压分必判未达标:scoreSource='suppressed' 表示"高分但无有效证据",该能力未坐实,
+   *    一律 ok=false——绝不能因 AI 给了极低 needed(0/1/2)致压后分 ≥needed 而反显"达标(绿)",
+   *    那会让缺口危险色失效、把未坐实能力包装成达标。自评覆盖优先级更高(用户主观纠偏),不在此列。
    */
   private calibrateSkill(
     s: RawSkillAuditItem & { current: number; needed: number },
@@ -239,12 +276,11 @@ export class CareerService {
     const rawEvidence = typeof s.evidenceFound === 'string' ? s.evidenceFound.trim() : '';
     const category: SkillCategory = s.category === 'ai' ? 'ai' : 'general';
 
-    // 假证据校验:证据必须能在简历里真实回指;只照抄技能名或简历没有的文字 → 视为无证据。
-    const evidenceFound = this.isEvidenceGroundedInResume(rawEvidence, name, resumeText)
-      ? rawEvidence
-      : '';
+    // 证据相关性校验:既要可回指,又要与本技能相关;张冠李戴(借用无关真句)在此被判 'unrelated'。
+    const relevance = this.assessEvidenceRelevance(rawEvidence, name, resumeText);
+    const evidenceFound = relevance === 'grounded' ? rawEvidence : '';
 
-    // 退化检测:无(有效)证据却给中高分 → 压分留痕。
+    // 退化检测:无(有效)证据却给中高分 → 压分留痕(无关证据已被清空,同样落入此网)。
     const isDegenerate = aiRaw >= DEGENERATE_SUSPICION_FLOOR && evidenceFound.length === 0;
     let current = isDegenerate ? DEGENERATE_CAPPED_SCORE : aiRaw;
     let scoreSource: SkillScoreSource = isDegenerate ? 'suppressed' : 'ai';
@@ -263,21 +299,51 @@ export class CareerService {
       gapScore = Math.min(self, aiRaw);
     }
 
+    // FG-2:被退化压分(suppressed)的技能一律判未达标——无有效证据的高分代表能力未坐实,
+    // 不得因 AI 给极低 needed(0/1/2)使压后分 ≥needed 而反显"达标(绿)"。自评覆盖优先级更高,不受此约束。
+    const ok = scoreSource === 'suppressed' ? false : gapScore >= needed;
+
     return {
       name,
       current,
       needed,
-      ok: gapScore >= needed,
+      ok,
       category,
       evidenceFound,
       scoreSource,
       aiScore,
       gapScore,
+      evidenceRelevance: relevance,
     };
   }
 
   /**
-   * 假证据校验(FIX-2):evidenceFound 是否能在简历正文里真实回指。
+   * 证据相关性判定(FIX-2 假证据 + FG-1 张冠李戴):
+   *  - 'none'      证据为空、或只照抄技能名、或简历里根本不存在该措辞 → 等同无证据(旧 FIX-2 行为)。
+   *  - 'unrelated' 证据确实是简历里的真句,但与本技能无任何相关性信号(典型张冠李戴:
+   *                把别的技能/姓名学历段安给本技能)→ 视为无效证据,清空并压分。
+   *  - 'grounded'  证据可回指简历 + 与本技能有相关性信号(技能名/别名直含 或 邻近窗口含)→ 可信。
+   *
+   * 相关性信号(满足任一即视为相关):
+   *  ① 直含:归一化证据文本里出现技能名整体、技能名的某个实质词 token、或技能别名;
+   *  ② 邻近溯源:证据片段在简历正文中真实出现,其出现处前后 RELEVANCE_PROXIMITY_RADIUS 字的窗口里
+   *     含技能名/别名/技能词 token——即"证据所在那段话确实在谈这个技能"。
+   * 都不命中 → 'unrelated':证据可能取自简历别处(别的技能段/姓名学历),不能为本技能背书。
+   */
+  private assessEvidenceRelevance(
+    evidence: string,
+    skillName: string,
+    resumeText: string,
+  ): EvidenceRelevance {
+    if (evidence.length === 0) return 'none';
+    if (!this.isEvidenceGroundedInResume(evidence, skillName, resumeText)) return 'none';
+    return this.isEvidenceRelevantToSkill(evidence, skillName, resumeText)
+      ? 'grounded'
+      : 'unrelated';
+  }
+
+  /**
+   * 假证据校验(FIX-2):evidenceFound 是否能在简历正文里真实回指(只判"存在",不判"相关")。
    * 合格条件(任一):
    *  - 证据整体是简历正文的子串(AI 照抄了原文片段);
    *  - 剔除"技能名本身"后,证据里仍有 ≥4 字的连续片段能在简历里找到(避免只回指技能名,
@@ -313,6 +379,80 @@ export class CareerService {
     return false;
   }
 
+  /**
+   * 相关性判定(FG-1 核心):证据(已确认可回指简历)是否与本技能相关。
+   * ① 直含:证据文本含技能名/别名/技能词 token;
+   * ② 邻近溯源:证据所在句(+紧邻前后各一句)的窗口含技能名/别名/技能词 token。
+   * 二者皆不命中 → 不相关(张冠李戴:把别的技能段/姓名学历安给本技能)。
+   */
+  private isEvidenceRelevantToSkill(evidence: string, skillName: string, resumeText: string): boolean {
+    const terms = this.skillRelevanceTerms(skillName);
+    if (terms.length === 0) return true; // 技能名无可用相关词(异常)→ 不冤压,放行交退化网兜底。
+
+    const ev = this.normalizeForMatch(evidence);
+    // 信号①:证据文本直接含某个相关词。
+    if (terms.some((t) => ev.includes(t))) return true;
+
+    // 信号②:邻近溯源——找证据落在简历的哪些句,把这些句±RADIUS 句拼成窗口,看窗口里有无相关词。
+    const sentences = resumeText.split(SENTENCE_SPLIT_RE).map((x) => this.normalizeForMatch(x));
+    const hitIdx = this.locateEvidenceSentences(ev, sentences);
+    for (const idx of hitIdx) {
+      const from = Math.max(0, idx - RELEVANCE_SENTENCE_RADIUS);
+      const to = Math.min(sentences.length - 1, idx + RELEVANCE_SENTENCE_RADIUS);
+      const window = sentences.slice(from, to + 1).join('');
+      if (terms.some((t) => window.includes(t))) return true;
+    }
+    return false;
+  }
+
+  /**
+   * 找证据落在归一化简历句子数组里的哪些句的下标。
+   * 先用证据整体子串匹配;无整句包含时退而用 ≥4 字滑窗片段(对齐 grounding 的回指逻辑)定位。
+   */
+  private locateEvidenceSentences(ev: string, sentences: string[]): number[] {
+    const whole: number[] = [];
+    sentences.forEach((s, i) => {
+      if (s.length > 0 && (s.includes(ev) || ev.includes(s))) whole.push(i);
+    });
+    if (whole.length > 0) return whole;
+
+    const frag: number[] = [];
+    const MIN_FRAGMENT = 4;
+    for (let len = Math.min(ev.length, 16); len >= MIN_FRAGMENT && frag.length === 0; len--) {
+      for (let i = 0; i + len <= ev.length; i++) {
+        const piece = ev.slice(i, i + len);
+        sentences.forEach((s, idx) => {
+          if (s.includes(piece) && !frag.includes(idx)) frag.push(idx);
+        });
+      }
+    }
+    return frag;
+  }
+
+  /**
+   * 生成技能的相关性词表(归一化小写):技能名整体 + 技能名拆出的实质词 token + 别名。
+   * 拆词:按非字母数字/中文边界切分,过滤掉短于 RELEVANCE_TERM_MIN_LEN 的泛字 token。
+   */
+  private skillRelevanceTerms(skillName: string): string[] {
+    const terms = new Set<string>();
+    const whole = this.normalizeForMatch(skillName);
+    if (whole.length > 0) terms.add(whole);
+
+    // 拆词:把斜杠/括号/空格/标点等当分隔符,保留连续的字母数字或中文段。
+    const tokens = skillName
+      .toLowerCase()
+      .split(/[^a-z0-9一-龥]+/i)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= RELEVANCE_TERM_MIN_LEN);
+    for (const t of tokens) terms.add(t);
+
+    // 别名:按技能名整体键查。
+    const aliases = SKILL_ALIASES[whole];
+    if (aliases) for (const a of aliases) terms.add(this.normalizeForMatch(a));
+
+    return [...terms];
+  }
+
   // 匹配归一:去所有空白 + 转小写,使"Spring Boot"与"springboot"、大小写/空格差异不影响子串命中。
   private normalizeForMatch(text: string): string {
     return text.replace(/\s+/g, '').toLowerCase();
@@ -346,9 +486,14 @@ export class CareerService {
     return row.result_json;
   }
 
-  /** 用户自评 upsert:每用户每技能保留最新一条。不扣 credit。返回写入条数。 */
+  /**
+   * 用户自评 upsert:每用户每技能保留最新一条。不扣 credit。返回写入条数。
+   * FG-6: 批量 upsert 替代逐条 findOne+save 的 N+1。先在请求内去重(同技能取最后一条,
+   * 避免批内冲突),再用唯一约束 (user_id, skill_name) 一次 ON CONFLICT DO UPDATE 写入。
+   */
   async upsertSelfAssessment(userId: string, items: SelfAssessmentInput[]): Promise<number> {
-    let written = 0;
+    // 校验 + 去重:键用 trim 后 skill_name(与唯一约束字段一致),Map 后写覆盖前写。
+    const dedup = new Map<string, number>();
     for (const item of items) {
       const skillName = typeof item.skill_name === 'string' ? item.skill_name.trim() : '';
       if (skillName.length === 0) continue;
@@ -357,25 +502,18 @@ export class CareerService {
       if (score < SELF_SCORE_MIN || score > SELF_SCORE_MAX) {
         throw new BadRequestException(`自评分 ${score} 越界,应在 ${SELF_SCORE_MIN}-${SELF_SCORE_MAX} 之间`);
       }
-      const normalized = Math.round(score);
-      const existing = await this.selfAssessments.findOne({
-        where: { user_id: userId, skill_name: skillName },
-      });
-      if (existing) {
-        existing.self_score = normalized;
-        await this.selfAssessments.save(existing);
-      } else {
-        await this.selfAssessments.save(
-          this.selfAssessments.create({
-            user_id: userId,
-            skill_name: skillName,
-            self_score: normalized,
-          }),
-        );
-      }
-      written += 1;
+      dedup.set(skillName, Math.round(score));
     }
-    return written;
+    if (dedup.size === 0) return 0;
+
+    const rows = [...dedup].map(([skill_name, self_score]) => ({
+      user_id: userId,
+      skill_name,
+      self_score,
+    }));
+    // conflictPaths 对齐唯一索引 (user_id, skill_name):命中则更新 self_score(及 @UpdateDateColumn)。
+    await this.selfAssessments.upsert(rows, ['user_id', 'skill_name']);
+    return rows.length;
   }
 
   /** 加载用户全部自评为 Map(归一化技能名 → self_score),供 analyze 覆盖用。 */

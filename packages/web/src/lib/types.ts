@@ -552,6 +552,8 @@ export interface CareerPath {
 
 export type SkillScoreSource = 'ai' | 'self' | 'suppressed';
 export type SkillCategory = 'general' | 'ai';
+// 证据相关性(FG-1):grounded 可信 / unrelated 张冠李戴(已清空压分) / none 本无证据。
+export type EvidenceRelevance = 'grounded' | 'unrelated' | 'none';
 
 export interface SkillAuditItem {
   name: string;
@@ -567,6 +569,8 @@ export interface SkillAuditItem {
   aiScore: number | null;
   // 缺口/达标判定专用的保守分(自评覆盖时 = min(自评,AI原分));展示用 current,缺口用 gapScore。
   gapScore: number;
+  // FG-1 证据相关性:旧落库历史可能无此字段,前端需容忍 undefined。
+  evidenceRelevance?: EvidenceRelevance;
 }
 
 export interface CareerAnalysis {
