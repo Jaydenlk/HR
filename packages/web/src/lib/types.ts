@@ -550,9 +550,34 @@ export interface CareerPath {
   alumni_count: number | null;
 }
 
+export type SkillScoreSource = 'ai' | 'self' | 'suppressed';
+export type SkillCategory = 'general' | 'ai';
+
+export interface SkillAuditItem {
+  name: string;
+  current: number;
+  needed: number;
+  ok: boolean;
+  category: SkillCategory;
+  // 该技能在简历中的证据原文片段;无证据则空字符串。
+  evidenceFound: string;
+  // current 分的来源:ai 评估 / 用户自评覆盖 / 退化压分(高分无证据)。
+  scoreSource: SkillScoreSource;
+  // 被自评覆盖或退化压分时保留的 AI 原始分(参考);否则 null。
+  aiScore: number | null;
+}
+
 export interface CareerAnalysis {
   paths: CareerPath[];
-  skill_audit: Array<{ name: string; current: number; needed: number; ok: boolean }>;
+  skill_audit: SkillAuditItem[];
+}
+
+export interface CareerHistoryItem {
+  id: string;
+  created_at: string;
+  top_path: string | null;
+  path_count: number;
+  skill_count: number;
 }
 
 export interface DashboardData {

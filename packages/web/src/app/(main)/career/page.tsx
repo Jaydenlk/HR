@@ -1,10 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import type { CareerAnalysis, CareerPath } from '@/lib/types';
-import { RefreshCw, Loader2, Map } from 'lucide-react';
+import type {
+  CareerAnalysis,
+  CareerPath,
+  SkillAuditItem,
+  CareerHistoryItem,
+} from '@/lib/types';
+import { Tooltip } from '@/components/ui/tooltip';
+import { RefreshCw, Loader2, Map, Sparkles, History, SlidersHorizontal, X } from 'lucide-react';
 
 function FitBadge({ pct }: { pct: number }) {
   const isHigh = pct >= 80;
@@ -30,9 +36,7 @@ function PathCard({ path, chosen }: { path: CareerPath; chosen: boolean }) {
     <div
       style={{
         background: chosen ? '#fafcff' : 'var(--color-surface)',
-        border: chosen
-          ? '1.5px solid var(--color-brand)'
-          : '1px solid var(--color-line)',
+        border: chosen ? '1.5px solid var(--color-brand)' : '1px solid var(--color-line)',
         borderRadius: '16px',
         padding: '18px 20px',
         display: 'flex',
@@ -97,17 +101,366 @@ function PathCard({ path, chosen }: { path: CareerPath; chosen: boolean }) {
         }}
       >
         <span>校友参考</span>
-        <b
-          style={{
-            color: 'var(--color-ink)',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 700,
-          }}
-        >
+        <b style={{ color: 'var(--color-ink)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
           {path.alumni_count != null ? `${path.alumni_count} 人` : '暂无数据'}
         </b>
       </div>
     </div>
+  );
+}
+
+/** 分数 tooltip 文案:解释"这分怎么来的"——证据 / 压分 / 自评。 */
+function skillTooltipText(skill: SkillAuditItem): string {
+  if (skill.scoreSource === 'self') {
+    const ai = skill.aiScore != null ? `（AI 原评 ${skill.aiScore} 分,已按你的自评校准）` : '';
+    return `这是你的自评分 ${skill.current} 分${ai}。`;
+  }
+  if (skill.scoreSource === 'suppressed') {
+    const ai = skill.aiScore != null ? `AI 原想给 ${skill.aiScore} 分,但` : '';
+    return `${ai}未在简历中找到该技能的具体证据，分数已下调到 ${skill.current} 分。补上对应项目/经历后会更准。`;
+  }
+  // ai 来源
+  if (skill.evidenceFound.trim().length > 0) {
+    return `依据简历中的证据评分：${skill.evidenceFound}`;
+  }
+  return `简历中未找到该技能的具体证据，给低档分 ${skill.current} 分。`;
+}
+
+function SkillRow({ skill }: { skill: SkillAuditItem }) {
+  const isOk = skill.ok;
+  // bigGap bug 修:量程 0-10,差距阈值 >3 才算大缺口(原 >30 永远触发不到,危险色失效)。
+  const bigGap = !isOk && skill.needed - skill.current > 3;
+  const barColor = isOk
+    ? 'var(--color-success)'
+    : bigGap
+    ? 'var(--color-danger)'
+    : 'var(--color-brand)';
+
+  return (
+    <div style={{ fontSize: '13px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', alignItems: 'center' }}>
+        <span style={{ fontWeight: 600, color: 'var(--color-ink-2)' }}>{skill.name}</span>
+        <Tooltip content={skillTooltipText(skill)} triggerRender={<span />} side="top">
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'help',
+              borderBottom: '1px dotted var(--color-ink-4)',
+              color: isOk ? 'var(--color-success)' : bigGap ? 'var(--color-danger)' : 'var(--color-ink)',
+            }}
+          >
+            {skill.current}{' '}
+            <span style={{ color: 'var(--color-ink-4)', fontWeight: 500 }}>/ {skill.needed}</span>
+            {skill.scoreSource === 'self' && (
+              <span style={{ marginLeft: '4px', fontSize: '9.5px', color: 'var(--color-brand)', fontWeight: 700 }}>
+                自评
+              </span>
+            )}
+            {skill.scoreSource === 'suppressed' && (
+              <span style={{ marginLeft: '4px', fontSize: '9.5px', color: 'var(--color-danger)', fontWeight: 700 }}>
+                无证据
+              </span>
+            )}
+          </span>
+        </Tooltip>
+      </div>
+      <div
+        style={{
+          height: '6px',
+          background: 'var(--color-surface-2)',
+          borderRadius: '3px',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: `${(skill.current / 10) * 100}%`,
+            background: barColor,
+            borderRadius: '3px',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: '-2px',
+            left: `${(skill.needed / 10) * 100}%`,
+            width: '2px',
+            height: '10px',
+            background: 'var(--color-ink-3)',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SkillGroup({
+  title,
+  icon,
+  skills,
+  accent,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  skills: SkillAuditItem[];
+  accent?: boolean;
+}) {
+  if (skills.length === 0) return null;
+  return (
+    <div style={{ marginBottom: '4px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          marginBottom: '10px',
+          fontSize: '13px',
+          fontWeight: 700,
+          color: accent ? 'var(--color-brand)' : 'var(--color-ink-2)',
+        }}
+      >
+        {icon}
+        {title}
+        <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>
+          {skills.length} 项
+        </span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 28px' }}>
+        {skills.map((skill) => (
+          <SkillRow key={skill.name} skill={skill} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ModalShell({
+  title,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 100,
+        padding: '24px',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--color-surface)',
+          borderRadius: '18px',
+          width: '100%',
+          maxWidth: '520px',
+          maxHeight: '82vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '18px 22px',
+            borderBottom: '1px solid var(--color-line)',
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--color-ink)' }}>
+            {title}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              color: 'var(--color-ink-3)',
+              display: 'flex',
+            }}
+            aria-label="关闭"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div style={{ padding: '18px 22px', overflowY: 'auto', flex: 1 }}>{children}</div>
+        {footer && (
+          <div style={{ padding: '14px 22px', borderTop: '1px solid var(--color-line)' }}>{footer}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SelfAssessmentModal({
+  skills,
+  onClose,
+  onSaved,
+}: {
+  skills: SkillAuditItem[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [scores, setScores] = useState<Record<string, number>>(() =>
+    Object.fromEntries(skills.map((s) => [s.name, s.current])),
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSaving(true);
+    setError(null);
+    try {
+      await api.post<{ written: number }>(
+        '/career/self-assessment',
+        skills.map((s) => ({ skill_name: s.name, self_score: scores[s.name] ?? s.current })),
+      );
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '保存失败');
+      setSaving(false);
+    }
+  }
+
+  return (
+    <ModalShell
+      title="填自评精进 · 校准你的真实水平"
+      onClose={onClose}
+      footer={
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {error && <span style={{ fontSize: '12.5px', color: 'var(--color-danger)' }}>{error}</span>}
+          <button
+            onClick={submit}
+            disabled={saving}
+            style={{
+              padding: '11px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'var(--color-brand)',
+              color: '#fff',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: saving ? 'default' : 'pointer',
+              opacity: saving ? 0.7 : 1,
+            }}
+          >
+            {saving ? '保存中…' : '保存并按自评重新评估'}
+          </button>
+        </div>
+      }
+    >
+      <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
+        觉得 AI 的分不准？拖动滑块写下你对自己的真实评估。保存后职业地图会用你的自评分覆盖 AI 评分（AI 分仍保留作参考）。
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {skills.map((s) => (
+          <div key={s.name}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                {s.name}
+                {s.category === 'ai' && (
+                  <span style={{ marginLeft: '6px', fontSize: '10px', color: 'var(--color-brand)', fontWeight: 700 }}>
+                    AI
+                  </span>
+                )}
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700, color: 'var(--color-brand)' }}>
+                {scores[s.name] ?? s.current}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={scores[s.name] ?? s.current}
+              onChange={(e) => setScores((prev) => ({ ...prev, [s.name]: Number(e.target.value) }))}
+              style={{ width: '100%', accentColor: 'var(--color-brand)' }}
+            />
+          </div>
+        ))}
+      </div>
+    </ModalShell>
+  );
+}
+
+function HistoryModal({
+  onClose,
+  onOpen,
+}: {
+  onClose: () => void;
+  onOpen: (id: string) => void;
+}) {
+  const [items, setItems] = useState<CareerHistoryItem[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api.get<CareerHistoryItem[]>('/career/history');
+        setItems(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '加载失败');
+      }
+    })();
+  }, []);
+
+  return (
+    <ModalShell title="历史记录" onClose={onClose}>
+      {error ? (
+        <p style={{ fontSize: '13px', color: 'var(--color-danger)' }}>{error}</p>
+      ) : items === null ? (
+        <p style={{ fontSize: '13px', color: 'var(--color-ink-3)' }}>加载中…</p>
+      ) : items.length === 0 ? (
+        <p style={{ fontSize: '13px', color: 'var(--color-ink-3)' }}>还没有历史记录，生成一次职业地图后会出现在这里。</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {items.map((it) => (
+            <button
+              key={it.id}
+              onClick={() => onOpen(it.id)}
+              style={{
+                textAlign: 'left',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                border: '1px solid var(--color-line)',
+                background: 'var(--color-surface)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--color-ink)' }}>
+                {it.top_path ?? '职业地图'}
+              </span>
+              <span style={{ fontSize: '11.5px', color: 'var(--color-ink-3)' }}>
+                {new Date(it.created_at).toLocaleString('zh-CN')} · {it.path_count} 条路径 · {it.skill_count} 项技能
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </ModalShell>
   );
 }
 
@@ -116,14 +469,21 @@ export default function CareerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [noResume, setNoResume] = useState(false);
+  const [showSelfAssess, setShowSelfAssess] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  // 历史回看:展示某条历史记录的只读快照(null 表示看实时结果)。
+  const [viewing, setViewing] = useState<CareerAnalysis | null>(null);
 
-  async function fetchAnalysis() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     setNoResume(false);
+    setViewing(null);
     try {
       const data = await api.get<CareerAnalysis>('/career/analysis');
       setAnalysis(data);
+      // 扣点成功后广播,刷新侧边栏点数(对齐其他页写法)。
+      window.dispatchEvent(new Event('coach:credit-refresh'));
     } catch (err) {
       const msg = err instanceof Error ? err.message : '分析失败';
       if (msg.includes('404') || msg.includes('no resume') || msg.includes('简历')) {
@@ -134,28 +494,25 @@ export default function CareerPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
+    // async IIFE:把 setState 推迟到同步 effect body 之后,避免 set-state-in-effect 级联渲染告警。
     (async () => {
-      setLoading(true);
-      setError(null);
-      setNoResume(false);
-      try {
-        const data = await api.get<CareerAnalysis>('/career/analysis');
-        setAnalysis(data);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : '分析失败';
-        if (msg.includes('404') || msg.includes('no resume') || msg.includes('简历')) {
-          setNoResume(true);
-        } else {
-          setError(msg);
-        }
-      } finally {
-        setLoading(false);
-      }
+      await load();
     })();
-  }, []);
+  }, [load]);
+
+  async function openHistoryDetail(id: string) {
+    try {
+      const data = await api.get<CareerAnalysis>(`/career/history/${id}`);
+      setViewing(data);
+      setShowHistory(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载历史失败');
+      setShowHistory(false);
+    }
+  }
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--color-surface)',
@@ -163,6 +520,11 @@ export default function CareerPage() {
     borderRadius: '18px',
     padding: '20px 24px',
   };
+
+  // 当前展示的数据:看历史则用 viewing 快照,否则用实时 analysis。
+  const shown = viewing ?? analysis;
+  const generalSkills = shown ? shown.skill_audit.filter((s) => s.category !== 'ai') : [];
+  const aiSkills = shown ? shown.skill_audit.filter((s) => s.category === 'ai') : [];
 
   return (
     <div
@@ -176,14 +538,7 @@ export default function CareerPage() {
       }}
     >
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
           <h1
             style={{
@@ -200,32 +555,84 @@ export default function CareerPage() {
             技能盘点 · 三年路径建议 · 校友参考
           </p>
         </div>
-        {!loading && (analysis || error) && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <button
-              onClick={fetchAnalysis}
-              disabled={loading}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '7px',
-                padding: '10px 18px',
-                borderRadius: '10px',
-                border: '1px solid var(--color-line)',
-                background: 'var(--color-surface)',
-                color: 'var(--color-ink)',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <RefreshCw size={15} />
-              重新评估
-            </button>
-            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={() => setShowHistory(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '1px solid var(--color-line)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-ink-2)',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <History size={15} />
+            历史
+          </button>
+          {!loading && (analysis || error) && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+              <button
+                onClick={load}
+                disabled={loading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '10px 18px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--color-line)',
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-ink)',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <RefreshCw size={15} />
+                重新评估
+              </button>
+              <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+            </div>
+          )}
+        </div>
       </div>
+
+      {viewing && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            background: 'var(--color-surface-2)',
+            borderRadius: '10px',
+            fontSize: '12.5px',
+            color: 'var(--color-ink-2)',
+            fontWeight: 500,
+          }}
+        >
+          正在回看一条历史记录（只读）
+          <button
+            onClick={() => setViewing(null)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--color-brand)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontSize: '12.5px',
+            }}
+          >
+            返回实时结果
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div
@@ -250,21 +657,10 @@ export default function CareerPage() {
               justifyContent: 'center',
             }}
           >
-            <Loader2
-              size={28}
-              color="var(--color-brand)"
-              style={{ animation: 'spin 1s linear infinite' }}
-            />
+            <Loader2 size={28} color="var(--color-brand)" style={{ animation: 'spin 1s linear infinite' }} />
           </div>
           <div style={{ textAlign: 'center' }}>
-            <p
-              style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: 'var(--color-ink-2)',
-                marginBottom: '6px',
-              }}
-            >
+            <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-ink-2)', marginBottom: '6px' }}>
               AI 正在分析你的简历…
             </p>
             <p style={{ fontSize: '13.5px', color: 'var(--color-ink-4)' }}>
@@ -301,14 +697,7 @@ export default function CareerPage() {
           >
             <Map size={26} color="var(--color-ink-4)" />
           </div>
-          <p
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: 'var(--color-ink-2)',
-              letterSpacing: '-0.01em',
-            }}
-          >
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-ink-2)', letterSpacing: '-0.01em' }}>
             请先上传你的简历
           </p>
           <p style={{ fontSize: '13.5px', color: 'var(--color-ink-4)' }}>
@@ -347,7 +736,7 @@ export default function CareerPage() {
           {error}
           <div style={{ marginTop: '12px' }}>
             <button
-              onClick={fetchAnalysis}
+              onClick={load}
               style={{
                 padding: '8px 16px',
                 borderRadius: '8px',
@@ -363,7 +752,7 @@ export default function CareerPage() {
             </button>
           </div>
         </div>
-      ) : analysis ? (
+      ) : shown ? (
         <>
           {/* Hero */}
           <div
@@ -388,19 +777,10 @@ export default function CareerPage() {
                   color: 'var(--color-ink)',
                 }}
               >
-                三年后 ·{' '}
-                <span style={{ color: 'var(--color-brand)' }}>你会在哪？</span>
+                三年后 · <span style={{ color: 'var(--color-brand)' }}>你会在哪？</span>
               </h2>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '14px',
-                  color: 'var(--color-ink-2)',
-                  fontWeight: 500,
-                  lineHeight: 1.55,
-                }}
-              >
-                基于你的技能盘点 + 校友真实轨迹 · Coach 给你 {analysis.paths.length} 个最可能 / 最适合的方向
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-ink-2)', fontWeight: 500, lineHeight: 1.55 }}>
+                基于你的技能盘点 + 校友真实轨迹 · Coach 给你 {shown.paths.length} 个最可能 / 最适合的方向
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -413,7 +793,7 @@ export default function CareerPage() {
                   lineHeight: 1,
                 }}
               >
-                {analysis.paths.length}
+                {shown.paths.length}
               </div>
               <div
                 style={{
@@ -431,143 +811,62 @@ export default function CareerPage() {
           </div>
 
           {/* Path cards */}
-          {analysis.paths.length > 0 && (
+          {shown.paths.length > 0 && (
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: `repeat(${Math.min(analysis.paths.length, 3)}, 1fr)`,
+                gridTemplateColumns: `repeat(${Math.min(shown.paths.length, 3)}, 1fr)`,
                 gap: '12px',
               }}
             >
-              {analysis.paths.map((path, i) => (
+              {shown.paths.map((path, i) => (
                 <PathCard key={path.title} path={path} chosen={i === 0} />
               ))}
             </div>
           )}
 
           {/* Skill audit */}
-          {analysis.skill_audit.length > 0 && (
+          {shown.skill_audit.length > 0 && (
             <div style={cardStyle}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'baseline',
-                  marginBottom: '16px',
-                }}
-              >
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: '17px',
-                    fontWeight: 700,
-                    letterSpacing: '-0.012em',
-                  }}
-                >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, letterSpacing: '-0.012em' }}>
                   能力盘点 · 你 vs 路径要求
                 </h3>
-                <span
-                  style={{
-                    fontSize: '12px',
-                    color: 'var(--color-ink-3)',
-                    fontWeight: 500,
-                  }}
-                >
-                  共 {analysis.skill_audit.length} 项技能
-                </span>
+                {!viewing && (
+                  <button
+                    onClick={() => setShowSelfAssess(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '7px 12px',
+                      borderRadius: '9px',
+                      border: '1px solid var(--color-brand)',
+                      background: 'var(--color-brand-soft)',
+                      color: 'var(--color-brand)',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <SlidersHorizontal size={14} />
+                    觉得分数不准？填自评精进
+                  </button>
+                )}
               </div>
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '10px 28px',
-                }}
-              >
-                {analysis.skill_audit.map((skill) => {
-                  const isOk = skill.ok;
-                  const bigGap = !isOk && skill.needed - skill.current > 30;
-                  const barColor = isOk
-                    ? 'var(--color-success)'
-                    : bigGap
-                    ? 'var(--color-danger)'
-                    : 'var(--color-brand)';
-
-                  return (
-                    <div key={skill.name} style={{ fontSize: '13px' }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          marginBottom: '5px',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            color: 'var(--color-ink-2)',
-                          }}
-                        >
-                          {skill.name}
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            color: isOk
-                              ? 'var(--color-success)'
-                              : bigGap
-                              ? 'var(--color-danger)'
-                              : 'var(--color-ink)',
-                          }}
-                        >
-                          {skill.current}{' '}
-                          <span
-                            style={{
-                              color: 'var(--color-ink-4)',
-                              fontWeight: 500,
-                            }}
-                          >
-                            / {skill.needed}
-                          </span>
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          height: '6px',
-                          background: 'var(--color-surface-2)',
-                          borderRadius: '3px',
-                          overflow: 'hidden',
-                          position: 'relative',
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: '100%',
-                            width: `${(skill.current / 10) * 100}%`,
-                            background: barColor,
-                            borderRadius: '3px',
-                          }}
-                        />
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '-2px',
-                            left: `${(skill.needed / 10) * 100}%`,
-                            width: '2px',
-                            height: '10px',
-                            background: 'var(--color-ink-3)',
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <SkillGroup title="通用能力" skills={generalSkills} />
+                <SkillGroup
+                  title="AI 能力"
+                  icon={<Sparkles size={14} />}
+                  skills={aiSkills}
+                  accent
+                />
               </div>
 
               {/* Gap summary */}
-              {analysis.skill_audit.some((s) => !s.ok) && (
+              {shown.skill_audit.some((s) => !s.ok) && (
                 <div
                   style={{
                     marginTop: '16px',
@@ -581,7 +880,7 @@ export default function CareerPage() {
                   }}
                 >
                   <b>主要缺口 ——</b>{' '}
-                  {analysis.skill_audit
+                  {shown.skill_audit
                     .filter((s) => !s.ok)
                     .map((s) => s.name)
                     .join('、')}{' '}
@@ -592,6 +891,21 @@ export default function CareerPage() {
           )}
         </>
       ) : null}
+
+      {showSelfAssess && analysis && (
+        <SelfAssessmentModal
+          skills={analysis.skill_audit}
+          onClose={() => setShowSelfAssess(false)}
+          onSaved={() => {
+            setShowSelfAssess(false);
+            void load();
+          }}
+        />
+      )}
+
+      {showHistory && (
+        <HistoryModal onClose={() => setShowHistory(false)} onOpen={openHistoryDetail} />
+      )}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
