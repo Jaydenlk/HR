@@ -141,6 +141,12 @@ export class AiService {
       messages: [{ role: 'user', content: prompt }],
       tools: [tool],
       tool_choice: { type: 'tool', name: toolName },
+      // 关思考(ThinkingConfigDisabled={type:'disabled'}):DeepSeek v4-pro 默认思考模式与强制
+      // tool_choice 冲突 → 直连返 HTTP 400 "Thinking mode does not support this tool_choice",
+      // 被迫 failover 降级到 flash 才出结果(pro 档形同虚设)。结构化输出本就不需思考,显式关闭后
+      // v4-pro 完全支持强制工具调用,直出 pro 质量。该字段对所有 Anthropic 兼容端点合法(显式声明
+      // 不思考);备通道某型号若不识别,SDK 仅透传不报错,降级容错不受影响。
+      thinking: { type: 'disabled' },
     });
 
     return this.withFailover('completeStructured', (provider) =>

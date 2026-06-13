@@ -396,6 +396,93 @@ describe('IndustryTrend (e2e) — deterministic guard tests', () => {
       expect(res.status).toBe(200);
       expect(res.body.risk_signals).toEqual([]);
     });
+
+    // ── FG-5:信号 source 本身是泛词/极短(空壳来源)→ 即便能子串挂靠真证据 title 也不算可溯源 ──
+    it('FG-5:信号 source="行业报告"(泛词,长度达标)被长证据 title 子串包含 → 仍剔除', async () => {
+      mockResult = makeAiResult({
+        // 真证据 source 很长,正向匹配会让 evSource.includes("行业报告") 命中(旧逻辑放行)。
+        evidence_used: [
+          { source: '艾瑞咨询2024中国新能源汽车行业报告', url: 'https://www.iresearch.com.cn/r', date: RECENT_DATE },
+        ],
+        growth_signals: [
+          // 信号 source 仅泛词"行业报告":无实质来源,不得据"与长 title 的子串关系"放行。
+          { signal: '产能翻倍', strength: 'strong', source: '行业报告', date: RECENT_DATE },
+        ],
+        risk_signals: [],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      expect(res.body.growth_signals).toEqual([]); // 泛词 source → 不可溯源 → 剔除
+    });
+
+    it('FG-5:信号 source="AI"(极短泛词)被长证据 title 包含 → 仍剔除', async () => {
+      mockResult = makeAiResult({
+        evidence_used: [
+          { source: '某AI研究院年度白皮书', url: 'https://example.com/r', date: RECENT_DATE },
+        ],
+        growth_signals: [
+          // source="AI",长度<4 且在泛词黑名单:长 title 含"AI"会被正向命中,但应被实质性校验拦下。
+          { signal: '智能化渗透率提升', strength: 'strong', source: 'AI', date: RECENT_DATE },
+        ],
+        risk_signals: [],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      expect(res.body.growth_signals).toEqual([]);
+    });
+
+    it('FG-5 不误伤:泛词 source 但同时命中证据 URL host → host 是确定锚点,保留', async () => {
+      mockResult = makeAiResult({
+        evidence_used: [
+          { source: '行业门户', url: 'https://www.iresearch.com.cn/report', date: RECENT_DATE },
+        ],
+        growth_signals: [
+          // source 虽含泛词,但文本里含证据 URL 的 host(iresearch.com.cn)→ host 命中优先,可溯源。
+          { signal: '市场规模扩大', strength: 'moderate', source: '据 www.iresearch.com.cn 行业报告', date: RECENT_DATE },
+        ],
+        risk_signals: [],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      expect(res.body.growth_signals.length).toBe(1); // host 命中 → 不误删
+    });
+
+    it('FG-5 不误伤:实质性 source(非泛词、≥4字)子串命中真证据 → 正常保留', async () => {
+      mockResult = makeAiResult({
+        evidence_used: [
+          { source: '艾瑞咨询新能源行业研究', url: 'https://www.iresearch.com.cn/r', date: RECENT_DATE },
+        ],
+        growth_signals: [
+          // "艾瑞咨询"是实质机构名(非泛词),正向子串命中真证据 → 应保留(护栏不矫枉过正)。
+          { signal: '渗透率上升', strength: 'strong', source: '艾瑞咨询', date: RECENT_DATE },
+        ],
+        risk_signals: [],
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/industry-trend/analyze')
+        .set('Authorization', `Bearer ${token}`)
+        .send(VALID_PAYLOAD);
+
+      expect(res.status).toBe(200);
+      expect(res.body.growth_signals.length).toBe(1);
+      expect(res.body.growth_signals[0].signal).toBe('渗透率上升');
+    });
   });
 
   // ── #8: 陈旧信号剔除 + 时效性免责 ────────────────────────────────────────────

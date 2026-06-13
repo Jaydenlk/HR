@@ -45,6 +45,8 @@ interface ResSkill {
   evidenceFound: string;
   scoreSource: 'ai' | 'self' | 'suppressed';
   aiScore: number | null;
+  gapScore: number;
+  evidenceRelevance: 'grounded' | 'unrelated' | 'none';
 }
 
 /* A realistic, ≥30-char Chinese resume so the service does NOT short-circuit.
@@ -333,6 +335,176 @@ describe('Career (e2e) — deterministic AI mock asserts fixed behavior', () => 
     });
   });
 
+  // ─── FG-1:张冠李戴护栏(跨技能借用真句 → unrelated + 压分 + 清空 + ok=false) ──────
+  //
+  // 第一波对抗样本的确定性复刻:AI 把别的技能/姓名学历段的"简历真句"安给本技能。
+  // 这类证据可回指简历(子串命中,旧 FIX-2 会放行),但与本技能毫无相关性信号 →
+  // 必须被判 evidenceRelevance='unrelated',清空 evidenceFound + 退化压分 + ok=false。
+  // 同时合法证据不得误伤(关键:护栏不能矫枉过正把真证据一并杀掉)。
+  describe('FG-1 张冠李戴:借用无关真句的高分必被判 unrelated 并压分', () => {
+    it('对抗①:Rust 借 Java 真句"订单与支付模块"(简历真句但与Rust无关)→ unrelated+压分+清空+ok=false', async () => {
+      // "订单与支付模块"确实在简历里(Java 那句),但 Rust 在简历里根本不存在;
+      // 证据文本无 rust 信号、其所在句邻近窗口(Java/Spring Boot 那句)也无 rust → 张冠李戴。
+      nextAiResult = {
+        paths: [{ title: '系统工程师', fit_pct: 70, description: 'd', skills: ['Rust'], alumni_count: null }],
+        skill_audit: [{ name: 'Rust', current: 8, needed: 6, evidenceFound: '订单与支付模块', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const rust = res.body.skill_audit[0] as ResSkill;
+      expect(rust.name).toBe('Rust');
+      expect(rust.evidenceRelevance).toBe('unrelated'); // 张冠李戴被识别
+      expect(rust.evidenceFound).toBe(''); // 无关证据被清空
+      expect(rust.scoreSource).toBe('suppressed'); // 清空后落入退化压分网
+      expect(rust.current).toBe(2); // 压到低档
+      expect(rust.aiScore).toBe(8); // AI 原始虚高分留痕
+      expect(rust.ok).toBe(false); // 2 < 6,且 suppressed 一律不达标
+    });
+
+    it('对抗②:Rust 借姓名学历段"计算机科学与技术专业"→ unrelated+压分+清空', async () => {
+      // 把姓名/学历段(简历真句)安给 Rust:可回指但与 Rust 无任何相关性信号 → 张冠李戴。
+      nextAiResult = {
+        paths: [{ title: '系统工程师', fit_pct: 70, description: 'd', skills: ['Rust'], alumni_count: null }],
+        skill_audit: [
+          { name: 'Rust', current: 7, needed: 5, evidenceFound: '计算机科学与技术专业', category: 'general' },
+        ],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const rust = res.body.skill_audit[0] as ResSkill;
+      expect(rust.evidenceRelevance).toBe('unrelated');
+      expect(rust.evidenceFound).toBe('');
+      expect(rust.scoreSource).toBe('suppressed');
+      expect(rust.current).toBe(2);
+      expect(rust.aiScore).toBe(7);
+      expect(rust.ok).toBe(false);
+    });
+
+    it('不误伤①:Java 用同句含"java"的真句"熟悉 Java 与 Spring Boot 后端开发"→ grounded 保留', async () => {
+      // 证据本身含技能名 java(直含相关性信号),且是简历真句 → grounded,不该被张冠李戴误杀。
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 82, description: 'd', skills: ['Java'], alumni_count: null }],
+        skill_audit: [
+          { name: 'Java', current: 8, needed: 6, evidenceFound: '熟悉 Java 与 Spring Boot 后端开发', category: 'general' },
+        ],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const java = res.body.skill_audit[0] as ResSkill;
+      expect(java.evidenceRelevance).toBe('grounded'); // 与 Java 相关 → 可信
+      expect(java.scoreSource).toBe('ai'); // 不压分
+      expect(java.current).toBe(8);
+      expect(java.evidenceFound).toBe('熟悉 Java 与 Spring Boot 后端开发'); // 透传不清空
+      expect(java.ok).toBe(true);
+    });
+
+    it('不误伤②:中文技能名"AI 辅助编码"借英文工具别名 Copilot 的真句 → 别名命中 grounded 保留', async () => {
+      // 简历写工具名 Copilot,技能名却是中文"AI 辅助编码":靠别名表 + 邻近溯源命中 → grounded。
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 75, description: 'd', skills: ['Java'], alumni_count: null }],
+        skill_audit: [
+          { name: 'AI 辅助编码', current: 6, needed: 5, evidenceFound: '日常用 Copilot 提效开发', category: 'ai' },
+        ],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const copilot = res.body.skill_audit[0] as ResSkill;
+      expect(copilot.category).toBe('ai');
+      expect(copilot.evidenceRelevance).toBe('grounded'); // 别名 copilot 命中 → 相关
+      expect(copilot.scoreSource).toBe('ai'); // 不压分
+      expect(copilot.current).toBe(6);
+      expect(copilot.evidenceFound).toBe('日常用 Copilot 提效开发');
+    });
+
+    it('真无证据(空)→ evidenceRelevance=none(区别于 unrelated 的张冠李戴)', async () => {
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 70, description: 'd', skills: ['Scala'], alumni_count: null }],
+        skill_audit: [{ name: 'Scala', current: 7, needed: 6, evidenceFound: '', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const scala = res.body.skill_audit[0] as ResSkill;
+      expect(scala.evidenceRelevance).toBe('none'); // 本无证据,非张冠李戴
+      expect(scala.scoreSource).toBe('suppressed');
+      expect(scala.current).toBe(2);
+    });
+  });
+
+  // ─── FG-2:被退化压分(suppressed)的技能一律 ok=false ──────────────────────────
+  // 绝不能因 AI 给极低 needed(0/1/2)使压后分(2)≥needed 而反显"达标(绿)",
+  // 那会让缺口危险色失效、把"未坐实能力"包装成达标。
+  describe('FG-2 suppressed 一律未达标:即便压后分 ≥ needed 也必 ok=false', () => {
+    it('压分到 2 且 AI 给极低 needed=1(2≥1 本会显达标)→ 仍 ok=false', async () => {
+      // 高分无证据被压到 2;AI 给 needed=1,gapScore(2) ≥ needed(1) 本会让旧逻辑显"达标"。
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 70, description: 'd', skills: ['Elixir'], alumni_count: null }],
+        skill_audit: [{ name: 'Elixir', current: 9, needed: 1, evidenceFound: '', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const sk = res.body.skill_audit[0] as ResSkill;
+      expect(sk.scoreSource).toBe('suppressed');
+      expect(sk.current).toBe(2);
+      expect(sk.gapScore).toBe(2);
+      expect(sk.needed).toBe(1);
+      expect(sk.ok).toBe(false); // FG-2 核心:suppressed 一律未达标,不被极低 needed 反显达标
+    });
+
+    it('张冠李戴压分 + 极低 needed=0 → 同样 ok=false(无关证据已清空,落 suppressed)', async () => {
+      // needed=0 时 gapScore(2)≥0 必然成立,只有 FG-2 的 suppressed 短路才能压住"达标"。
+      nextAiResult = {
+        paths: [{ title: '系统工程师', fit_pct: 70, description: 'd', skills: ['Haskell'], alumni_count: null }],
+        // 借 Redis 真句作 Haskell 证据(张冠李戴),AI 给 needed=0。
+        skill_audit: [{ name: 'Haskell', current: 8, needed: 0, evidenceFound: 'Redis 缓存优化', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const sk = res.body.skill_audit[0] as ResSkill;
+      expect(sk.evidenceRelevance).toBe('unrelated');
+      expect(sk.evidenceFound).toBe('');
+      expect(sk.scoreSource).toBe('suppressed');
+      expect(sk.ok).toBe(false);
+    });
+
+    it('对照:自评覆盖(self)优先级高于 FG-2,不受 suppressed 约束(用户主观纠偏)', async () => {
+      // 自评是人工纠偏,scoreSource='self' 不是 'suppressed',ok 仍按 gapScore 正常判。
+      await request(app.getHttpServer())
+        .post('/api/career/self-assessment')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{ skill_name: 'Clojure', self_score: 8 }]);
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 70, description: 'd', skills: ['Clojure'], alumni_count: null }],
+        // AI 高分无证据本会压分(suppressed),但有自评 → self 覆盖,不进 suppressed 分支;
+        // ok 按保守分 gapScore=min(自评8, AI原分9)=8 正常判,不被 FG-2 短路成 false。
+        skill_audit: [{ name: 'Clojure', current: 9, needed: 6, evidenceFound: '', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const sk = res.body.skill_audit[0] as ResSkill;
+      expect(sk.scoreSource).toBe('self'); // 非 suppressed → 不受 FG-2 约束
+      expect(sk.current).toBe(8); // 展示自评
+      expect(sk.aiScore).toBe(9); // AI 原始分留参考(未经压分)
+      expect(sk.gapScore).toBe(8); // min(自评8, AI原分9)=8
+      expect(sk.ok).toBe(true); // 保守分 8 ≥ needed 6 → 达标(self 不被 FG-2 短路成 false)
+    });
+  });
+
   // ─── FIX-5:自评覆盖时缺口用保守分 min(自评,AI原分) ──────────────────────────
   describe('FIX-5 缺口用保守分:展示尊重自评,缺口不被自评虚高欺骗', () => {
     beforeAll(async () => {
@@ -571,6 +743,46 @@ describe('Career (e2e) — deterministic AI mock asserts fixed behavior', () => 
       expect(res.status).toBe(400);
     });
 
+    // FG-6:单次自评条目数上限(SELF_ASSESSMENT_MAX_ITEMS=50)防刷爆。
+    it('FG-6:超过 50 条自评 → 400(数组上限,防 N+1 放大/刷接口)', async () => {
+      const items = Array.from({ length: 51 }, (_, i) => ({
+        skill_name: `技能${i}`,
+        self_score: 3,
+      }));
+      const res = await request(app.getHttpServer())
+        .post('/api/career/self-assessment')
+        .set('Authorization', `Bearer ${token}`)
+        .send(items);
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('最多提交');
+    });
+
+    it('FG-6:恰好 50 条边界 → 通过(written=50,批量 upsert 一次写入)', async () => {
+      const items = Array.from({ length: 50 }, (_, i) => ({
+        skill_name: `批量技能${i}`,
+        self_score: 4,
+      }));
+      const res = await request(app.getHttpServer())
+        .post('/api/career/self-assessment')
+        .set('Authorization', `Bearer ${token}`)
+        .send(items);
+      expect(res.status).toBe(201);
+      expect(res.body.written).toBe(50);
+    });
+
+    it('FG-6:批内同技能重复 → 去重后取最后一条(written 计数=去重后条数)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/career/self-assessment')
+        .set('Authorization', `Bearer ${token}`)
+        .send([
+          { skill_name: 'DedupSkill', self_score: 2 },
+          { skill_name: 'DedupSkill', self_score: 7 }, // 同技能后写覆盖前写
+          { skill_name: 'OtherSkill', self_score: 5 },
+        ]);
+      expect(res.status).toBe(201);
+      expect(res.body.written).toBe(2); // 去重后 2 条
+    });
+
     it('POST 自评 upsert → written 计数', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/career/self-assessment')
@@ -599,11 +811,15 @@ describe('Career (e2e) — deterministic AI mock asserts fixed behavior', () => 
 
     it('analyze 时有自评的技能用自评覆盖 AI 分(scoreSource=self,aiScore 留 AI 原始分)', async () => {
       // AI 想给 Python 8 分(且有证据本不会被压),但用户自评 3 分 → 必须用 3。
+      // FG-1 后:对照技能的证据须与该技能相关(grounded),否则会被张冠李戴护栏清空压分。
+      // 原 'Go'+'微服务实践' 在 VALID_RESUME_TEXT 里"微服务实践"虽真句但与 Go 无关(简历无 Go),
+      // FG-1 会正确判 unrelated 并压分——不符本用例"非自评技能保持 ai 来源"的本意。
+      // 改用 Redis + 简历真有的相关证据 'Redis 缓存优化'(含技能名 redis,grounded+相关)。
       nextAiResult = {
-        paths: [{ title: '后端工程师', fit_pct: 75, description: 'd', skills: ['Python', 'Java'], alumni_count: null }],
+        paths: [{ title: '后端工程师', fit_pct: 75, description: 'd', skills: ['Python', 'Redis'], alumni_count: null }],
         skill_audit: [
           { name: 'Python', current: 8, needed: 7, evidenceFound: '数据脚本项目', category: 'general' },
-          { name: 'Go', current: 5, needed: 6, evidenceFound: '微服务实践', category: 'general' },
+          { name: 'Redis', current: 5, needed: 6, evidenceFound: 'Redis 缓存优化', category: 'general' },
         ],
       };
       const res = await request(app.getHttpServer())
@@ -616,10 +832,11 @@ describe('Career (e2e) — deterministic AI mock asserts fixed behavior', () => 
       expect(py.current).toBe(3); // 用户最新自评
       expect(py.aiScore).toBe(8); // AI 原始分留参考
       expect(py.ok).toBe(false); // 3 < 7
-      // 无自评的技能保持 AI 来源。
-      const go = skills.find((s) => s.name === 'Go')!;
-      expect(go.scoreSource).toBe('ai');
-      expect(go.current).toBe(5);
+      // 无自评的技能保持 AI 来源(证据 grounded+相关,不被张冠李戴误伤)。
+      const redis = skills.find((s) => s.name === 'Redis')!;
+      expect(redis.scoreSource).toBe('ai');
+      expect(redis.current).toBe(5);
+      expect(redis.evidenceRelevance).toBe('grounded');
     });
 
     it('自评覆盖优先级高于退化压分:AI 高分无证据但有自评 → 用自评分', async () => {
@@ -697,16 +914,36 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
         }
 
         for (const audit of body.skill_audit) {
-          expect(typeof audit.current).toBe('number');
-          expect(typeof audit.needed).toBe('number');
-          expect(typeof audit.ok).toBe('boolean');
-          expect(audit.ok).toBe(audit.current >= audit.needed);
-          expect(['general', 'ai']).toContain(audit.category);
-          expect(['ai', 'self', 'suppressed']).toContain(audit.scoreSource);
-          expect(typeof audit.evidenceFound).toBe('string');
+          const a = audit as ResSkill;
+          expect(typeof a.current).toBe('number');
+          expect(typeof a.needed).toBe('number');
+          expect(typeof a.ok).toBe('boolean');
+          // ok 不变式(FG-2 后):ok 用保守分 gapScore 判,且 suppressed 一律 false。
+          if (a.scoreSource === 'suppressed') {
+            expect(a.ok).toBe(false); // FG-2:无有效证据的高分一律不达标
+          } else {
+            expect(a.ok).toBe(a.gapScore >= a.needed); // gapScore 而非 current(自评走保守分)
+          }
+          expect(['general', 'ai']).toContain(a.category);
+          expect(['ai', 'self', 'suppressed']).toContain(a.scoreSource);
+          expect(['grounded', 'unrelated', 'none']).toContain(a.evidenceRelevance);
+          expect(typeof a.evidenceFound).toBe('string');
           // 防编造不变式:无证据(空 evidenceFound)且来源为 ai 的分必 < 阈值(否则应被压)。
-          if (audit.scoreSource === 'ai' && audit.evidenceFound.trim().length === 0) {
-            expect(audit.current).toBeLessThan(4);
+          if (a.scoreSource === 'ai' && a.evidenceFound.trim().length === 0) {
+            expect(a.current).toBeLessThan(4);
+          }
+          // FG-1 不变式:张冠李戴(unrelated)的证据必被清空(evidenceFound 空),且绝不留高分。
+          // 退化压分仅在 AI 原始分 ≥ 退化阈值(4)时触发(高分无证据=可疑编造,压到 suppressed);
+          // 原本就低于阈值的 unrelated 项不构成编造风险,合理保留 scoreSource='ai' + 低分,
+          // 由上方"ai+空证据→current<4"不变式兜底。两种情况都满足"不可能再现高分"的反编造保证。
+          if (a.evidenceRelevance === 'unrelated') {
+            expect(a.evidenceFound).toBe('');
+            if (a.scoreSource === 'ai') expect(a.current).toBeLessThan(4);
+            else expect(a.scoreSource).toBe('suppressed');
+          }
+          // grounded 必有非空证据(空证据只能是 none)。
+          if (a.scoreSource === 'ai' && a.evidenceFound.trim().length > 0) {
+            expect(a.evidenceRelevance).toBe('grounded');
           }
         }
       } else {

@@ -690,16 +690,40 @@ export class CoachContextService {
       .join('\n');
     if (paths) lines.push(`发展路径:\n${paths}`);
     const skills = (result?.skill_audit || [])
-      .map(
-        (s: SkillAuditItem) =>
-          `- ${s.name}：当前 ${s.current}/所需 ${s.needed}${s.ok ? '（达标）' : '（缺口）'}` +
-          (s.evidenceFound ? `　证据：${s.evidenceFound}` : '　证据：无'),
-      )
+      .map((s: SkillAuditItem) => this.formatCareerSkillLine(s))
       .join('\n');
     if (skills) {
-      lines.push(`能力盘点:\n${CoachContextService.truncateText(skills)}`);
+      // FG-3:能力盘点前置语义说明,防止 chat 把"用户自评分"当平台权威结论复述。
+      lines.push(
+        `能力盘点（注意区分分数来源:标【用户自评】的是用户自己填的主观分,不是平台评估结论,` +
+          `引用时须说明这是用户自评、不可当平台权威分;标【平台评分】的才是本平台基于简历证据的评分）:\n` +
+          CoachContextService.truncateText(skills),
+      );
     }
     // 整份 block 总帽:paths 数组(多路径×技能列表)累积可能超 FULL_MAX_CHARS。
     return CoachContextService.truncateText(lines.join('\n'));
+  }
+
+  /**
+   * FG-3:格式化单条能力盘点行,按 scoreSource 区分分数语义,杜绝自评虚高被 chat 当平台权威分复述。
+   *  - 'self'       【用户自评】X 分(用户主观填写)+ 平台原评 aiScore 分(若有),并标注"非平台结论";
+   *  - 'suppressed' 【平台评分】X 分(AI 初评 aiScore 分但简历无对应证据,平台已下调);
+   *  - 'ai' / 旧数据 【平台评分】X 分。
+   * 旧落库历史可能缺 scoreSource/aiScore,缺则按 'ai' 平台评分处理(向后兼容)。
+   */
+  private formatCareerSkillLine(s: SkillAuditItem): string {
+    const evidence = s.evidenceFound ? `　证据：${s.evidenceFound}` : '　证据：无';
+    const ok = s.ok ? '（达标）' : '（缺口）';
+    if (s.scoreSource === 'self') {
+      const aiRef =
+        typeof s.aiScore === 'number' ? `,平台原评 ${s.aiScore} 分` : '';
+      return `- ${s.name}：【用户自评】当前 ${s.current} 分（用户主观自评,非平台评估结论${aiRef}）/所需 ${s.needed}${ok}${evidence}`;
+    }
+    if (s.scoreSource === 'suppressed') {
+      const aiRef =
+        typeof s.aiScore === 'number' ? `（AI 初评 ${s.aiScore} 分,但简历无对应证据,平台已下调）` : '';
+      return `- ${s.name}：【平台评分】当前 ${s.current} 分${aiRef}/所需 ${s.needed}${ok}${evidence}`;
+    }
+    return `- ${s.name}：【平台评分】当前 ${s.current} 分/所需 ${s.needed}${ok}${evidence}`;
   }
 }

@@ -379,6 +379,65 @@ describe('CoachContextService', () => {
       expect(result).toContain('简历提及SQL');
     });
 
+    // FG-3:能力盘点须区分"自评分 vs 平台分",防 chat 把用户主观自评当平台权威结论复述。
+    it('FG-3:自评技能标【用户自评】+非平台声明;平台技能标【平台评分】', async () => {
+      seedCatalog('career', { id: 'cr-fg3', created_at: new Date('2026-06-12') });
+      selectorReturns([{ kind: 'career', id: 'cr-fg3' }]);
+      repos.career.findOne.mockResolvedValue({
+        id: 'cr-fg3',
+        created_at: new Date('2026-06-12'),
+        result_json: {
+          paths: [
+            {
+              title: '后端工程师',
+              fit_pct: 80,
+              description: '匹配后端方向',
+              skills: ['Java'],
+              alumni_count: null,
+            },
+          ],
+          skill_audit: [
+            // 用户自评:虚高 9 分,平台原评仅 4 分 → 必须标【用户自评】并声明非平台结论。
+            {
+              name: '架构设计',
+              current: 9,
+              needed: 7,
+              ok: true,
+              category: 'general',
+              evidenceFound: '主导过系统拆分',
+              scoreSource: 'self',
+              aiScore: 4,
+              gapScore: 4,
+            },
+            // 平台评分:正常 AI 来源 → 标【平台评分】。
+            {
+              name: 'MySQL',
+              current: 6,
+              needed: 6,
+              ok: true,
+              category: 'general',
+              evidenceFound: '索引优化',
+              scoreSource: 'ai',
+              aiScore: 6,
+              gapScore: 6,
+            },
+          ],
+        },
+      });
+
+      const result = await service.loadReferencedProducts(UID, '回顾我的能力盘点');
+      // 顶部语义说明:明确告诉 chat 区分两种分数来源。
+      expect(result).toContain('用户自评');
+      expect(result).toContain('不是平台评估结论');
+      // 架构设计是自评 → 行内标【用户自评】+ 非平台结论 + 平台原评参考。
+      expect(result).toContain('架构设计');
+      expect(result).toMatch(/架构设计[^\n]*【用户自评】/);
+      expect(result).toMatch(/架构设计[^\n]*非平台评估结论/);
+      expect(result).toMatch(/架构设计[^\n]*平台原评 4 分/);
+      // MySQL 是平台分 → 行内标【平台评分】,不得被标成自评。
+      expect(result).toMatch(/MySQL[^\n]*【平台评分】/);
+    });
+
     it('白名单过滤幻觉 id:目录之外的 id 不加载', async () => {
       seedCatalog('interview', {
         id: 'iv-real',
