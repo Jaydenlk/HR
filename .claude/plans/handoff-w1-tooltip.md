@@ -1,6 +1,6 @@
 # Handoff: 第1批·线2 — tooltip 组件封装 + 诊断分数提示
 
-## 状态: READY_FOR_IMPL
+## 状态: DONE (commit e8b6abc on feature/tooltip, 未 push)
 ## 工作目录: E:\Agent program\HRBP-wt\tooltip(分支 feature/tooltip,基于 dev @b24521d)
 ## 禁止触碰: career/page.tsx(留第2批用本批组件)、layout.tsx(留给线1点数同步,避免抢)、ai/**、后端
 
