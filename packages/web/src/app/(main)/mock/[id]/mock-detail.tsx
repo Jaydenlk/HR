@@ -69,6 +69,7 @@ export function MockDetail({ params }: MockDetailProps) {
       // 而非单条 answer。直接用返回的会话覆盖,最新一条点评/得分才不会丢失。
       const updated = await api.post<MockSession>(`/mock-sessions/${id}/answer`, { answer });
       setSession(updated);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
     } catch (err) {
       alert(err instanceof Error ? err.message : '提交失败，请重试');
     } finally {
@@ -81,6 +82,7 @@ export function MockDetail({ params }: MockDetailProps) {
     try {
       const updated = await api.post<MockSession>(`/mock-sessions/${id}/complete`, {});
       setSession(updated);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
     } catch (err) {
       alert(err instanceof Error ? err.message : '结束失败，请重试');
       setCompleting(false);

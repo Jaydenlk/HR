@@ -133,6 +133,7 @@ function CoverLetterTab() {
       });
       setCurrentLetter(letter);
       setLetters((prev) => [letter, ...prev]);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
       if (activeHandoffId && activeConvId) {
         setShowReturn(true);
       }
@@ -151,6 +152,7 @@ function CoverLetterTab() {
       const letter = await api.post<CoverLetter>(`/cover-letters/${currentLetter.id}/regenerate`, {});
       setCurrentLetter(letter);
       setLetters((prev) => [letter, ...prev]);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
     } catch (err) {
       setError(err instanceof Error ? err.message : '重新生成失败');
     } finally {
