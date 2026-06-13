@@ -475,6 +475,7 @@ export default function IndustryTrendPage() {
         timeframe: timeframe.trim() || undefined,
       });
       setResult(data);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
     } catch (err) {
       setError(err instanceof Error ? err.message : '分析失败，请稍后重试');
     } finally {
