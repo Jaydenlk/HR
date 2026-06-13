@@ -553,7 +553,8 @@ export class CoachContextService {
     if (i.transcript) {
       lines.push(`转录:\n${CoachContextService.truncateText(i.transcript)}`);
     }
-    return lines.join('\n');
+    // 整份 block 总帽:questions 数组逐题可能累积超 FULL_MAX_CHARS。
+    return CoachContextService.truncateText(lines.join('\n'));
   }
 
   // 模拟面试全文:总评(分数/评级/优劣势/小结)+ 逐题问答与反馈。
@@ -590,7 +591,8 @@ export class CoachContextService {
       })
       .join('\n');
     if (qa) lines.push(`逐题问答:\n${CoachContextService.truncateText(qa)}`);
-    return lines.join('\n');
+    // 整份 block 总帽:questions 数组逐题累积可能超 FULL_MAX_CHARS。
+    return CoachContextService.truncateText(lines.join('\n'));
   }
 
   // 投递管道全文:阶段/公司岗位/备注 + 阶段流转事件时间线。
@@ -602,9 +604,11 @@ export class CoachContextService {
       where: { id, user_id: userId },
     });
     if (!a) return null;
+    // 最近 20 条事件足够上下文;防止投递事件无限膨胀。
     const events = await this.applicationEventRepo.find({
       where: { application_id: id },
       order: { created_at: 'ASC' },
+      take: 20,
     });
     const lines = [
       `### 投递全文 id=${id}`,
@@ -613,7 +617,9 @@ export class CoachContextService {
         (a.deadline ? `　截止：${a.deadline}` : ''),
     ];
     if (a.salary_range) lines.push(`薪资范围：${a.salary_range}`);
-    if (a.notes) lines.push(`备注：${a.notes}`);
+    // notes 字段截断,防止超长备注撑爆整份 block。
+    if (a.notes)
+      lines.push(`备注：${CoachContextService.truncateText(a.notes)}`);
     const timeline = events
       .map(
         (ev) =>
@@ -622,7 +628,9 @@ export class CoachContextService {
       )
       .join('\n');
     if (timeline) lines.push(`阶段时间线:\n${timeline}`);
-    return lines.join('\n');
+    // 整份 block 最终总帽:防止 notes+timeline 组合超 FULL_MAX_CHARS。
+    const raw = lines.join('\n');
+    return CoachContextService.truncateText(raw);
   }
 
   // 机会评估全文:职位信息 + 最新一次评估的各维度分/建议/风险/优势/差距/下一步。
@@ -656,7 +664,8 @@ export class CoachContextService {
     } else {
       lines.push('（评估未完成）');
     }
-    return lines.join('\n');
+    // 整份 block 总帽:strengths/gaps/risk_flags/next_actions 数组组合可能超 FULL_MAX_CHARS。
+    return CoachContextService.truncateText(lines.join('\n'));
   }
 
   // 职业地图历史全文:各发展路径(标题/匹配度/描述/技能)+ 能力盘点(当前/所需/证据)。
@@ -690,6 +699,7 @@ export class CoachContextService {
     if (skills) {
       lines.push(`能力盘点:\n${CoachContextService.truncateText(skills)}`);
     }
-    return lines.join('\n');
+    // 整份 block 总帽:paths 数组(多路径×技能列表)累积可能超 FULL_MAX_CHARS。
+    return CoachContextService.truncateText(lines.join('\n'));
   }
 }
