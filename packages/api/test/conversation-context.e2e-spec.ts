@@ -38,6 +38,7 @@ import { Interview } from '../src/interviews/entities/interview.entity';
 import { MockSession } from '../src/mock/entities/mock-session.entity';
 import { CoverLetter } from '../src/cover-letters/entities/cover-letter.entity';
 import { CreditTransaction } from '../src/credit/entities/credit-transaction.entity';
+import { CareerAnalysisRecord } from '../src/career/entities/career-analysis.entity';
 
 const ALL_ENTITIES = [
   User,
@@ -66,6 +67,7 @@ const ALL_ENTITIES = [
   CoverLetter,
   CreditTransaction,
   CoachHandoff,
+  CareerAnalysisRecord,
 ];
 
 describe('ConversationsService context integration', () => {
@@ -96,9 +98,13 @@ describe('ConversationsService context integration', () => {
           OpportunityEvaluation,
           Resume,
           Application,
+          ApplicationEvent,
           CoverLetter,
           CreditTransaction,
           CoachHandoff,
+          Interview,
+          MockSession,
+          CareerAnalysisRecord,
         ]),
         IntelligenceModule,
       ],
