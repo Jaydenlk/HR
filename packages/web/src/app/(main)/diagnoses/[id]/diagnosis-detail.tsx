@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { getScoreColor } from '@/lib/score-utils';
 import { SuggestionCard } from '@/components/diagnosis/suggestion-card';
+import { Tooltip } from '@/components/ui/tooltip';
 
 function LoadingState() {
   return (
@@ -48,9 +49,9 @@ function LoadingState() {
   );
 }
 
-function ScoreBadge({ score }: { score: number }) {
+function ScoreBadge({ score, tooltipText }: { score: number; tooltipText?: string }) {
   const { color, bg } = getScoreColor(score);
-  return (
+  const badge = (
     <span
       style={{
         display: 'inline-flex',
@@ -61,10 +62,17 @@ function ScoreBadge({ score }: { score: number }) {
         fontWeight: 700,
         color,
         background: bg,
+        cursor: tooltipText ? 'help' : undefined,
       }}
     >
       {score}分
     </span>
+  );
+  if (!tooltipText) return badge;
+  return (
+    <Tooltip content={tooltipText} triggerRender={<span />} side="top">
+      {badge}
+    </Tooltip>
   );
 }
 
@@ -87,18 +95,25 @@ function DimensionRow({ label, score, max }: { label: string; score: number; max
       >
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '99px' }} />
       </div>
-      <div
-        style={{
-          width: '36px',
-          textAlign: 'right',
-          fontSize: '12px',
-          fontWeight: 600,
-          color: 'var(--color-ink-2)',
-          flexShrink: 0,
-        }}
+      <Tooltip
+        content={`${label}维度：得分 ${score}/${max}（${pct}%）——AI 对该维度与岗位要求匹配度的评分`}
+        triggerRender={<span />}
+        side="top"
       >
-        {score}/{max}
-      </div>
+        <div
+          style={{
+            width: '36px',
+            textAlign: 'right',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: 'var(--color-ink-2)',
+            flexShrink: 0,
+            cursor: 'help',
+          }}
+        >
+          {score}/{max}
+        </div>
+      </Tooltip>
     </div>
   );
 }
@@ -134,19 +149,26 @@ function ProfessionDimensionCard({ dim }: { dim: ProfessionStandardDimension }) 
         >
           <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '99px' }} />
         </div>
-        <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '12.5px',
-            fontWeight: 600,
-            color: 'var(--color-ink-2)',
-            flexShrink: 0,
-            fontVariantNumeric: 'tabular-nums',
-          }}
-          aria-label={`${dim.name}得分 ${dim.score} 分，满分 ${dim.max} 分`}
+        <Tooltip
+          content={`满分 ${dim.max} 分，当前得 ${dim.score} 分（${pct}%）。${dim.why ? '' : '综合简历内容与该维度要求的匹配程度计算。'}`}
+          triggerRender={<span />}
+          side="top"
         >
-          {dim.score}/{dim.max}
-        </div>
+          <div
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              color: 'var(--color-ink-2)',
+              flexShrink: 0,
+              fontVariantNumeric: 'tabular-nums',
+              cursor: 'help',
+            }}
+            aria-label={`${dim.name}得分 ${dim.score} 分，满分 ${dim.max} 分`}
+          >
+            {dim.score}/{dim.max}
+          </div>
+        </Tooltip>
       </div>
 
       {/* why — 必显(信任铁律) */}
@@ -295,7 +317,7 @@ function ProfessionStandardView({
           flexWrap: 'wrap',
         }}
       >
-        <ScoreBadge score={result.total_score} />
+        <ScoreBadge score={result.total_score} tooltipText={`职业标尺总分（满分 ${result.dimensions.reduce((s, d) => s + d.max, 0)} 分），各维度得分加总，体现校招标准下的综合匹配程度`} />
         <div style={{ flex: 1, minWidth: '200px' }}>
           <div
             style={{
@@ -670,7 +692,7 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
           gap: '28px',
         }}
       >
-        <ScoreBadge score={diagnosis.score} />
+        <ScoreBadge score={diagnosis.score} tooltipText="综合匹配总分（满分 100）：技能、经验、学历及关键词匹配加权计算，≥80 代表强匹配" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1
             style={{
