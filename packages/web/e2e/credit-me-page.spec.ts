@@ -4,13 +4,18 @@
  * 前提:
  *   - API 在 http://localhost:3002 运行(DEV_LOGIN=1)
  *   - Web 在 http://localhost:3001 运行
- *   - 邀请码 COACH2026 可用
  *
  * 覆盖剧本:
  *   6a. /me 页基本信息/余额/流水/价目文案均渲染真数据(非骨架屏永远)
- *   6b. 头像上传 jpeg<2MB 成功,侧边栏头像区域随之更新
  *   6c. >2MB 图片被拒,提示友好
  *   6d. 非图片文件被拒,提示友好
+ *   402. 余额相关页面非白屏
+ *
+ * 认证修复:原 registerAndGetToken 走 /request-code + dev_code,但生产等同环境下
+ *   RESEND_API_KEY 已配置(mail.configured=true),auth.service.ts 不回传 dev_code,
+ *   该路径在本栈无法运行。改用 dev-login 端点(与 credit-full-flow.spec.ts 一致),
+ *   首次登录新邮箱即走注册赠送 50 点。localStorage key 修正为 'token'(web app 实际读取
+ *   的 key,见 src/lib/api.ts:25;原 'coach_token' 不被识别会重定向登录页)。
  *
  * 运行:cd packages/web && npx playwright test e2e/credit-me-page.spec.ts
  */
@@ -23,45 +28,47 @@ const API_URL = 'http://localhost:3002';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * 用 dev-login 拿 token(全局 fetch,首次登录新邮箱即注册并赠送 50 点)。
+ * dev-login 有 5/min/IP 节流;全量套件并跑时会撞 429,故带退避重试
+ * (与 credit-full-flow.spec.ts beforeAll 同款策略,window 是 60s)。
+ */
 async function registerAndGetToken(email: string, name: string): Promise<string> {
-  // 请求验证码
-  const codeRes = await fetch(`${API_URL}/api/auth/request-code`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, terms_agreed: true }),
-  });
-  const codeBody = await codeRes.json() as { dev_code?: string };
-  const devCode = codeBody.dev_code;
-  if (!devCode) throw new Error(`无 dev_code: ${JSON.stringify(codeBody)}`);
-
-  // 登录
-  const loginRes = await fetch(`${API_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code: devCode, invite_code: 'COACH2026', name }),
-  });
-  const loginBody = await loginRes.json() as { access_token?: string };
-  if (!loginBody.access_token) throw new Error(`登录失败: ${JSON.stringify(loginBody)}`);
-  return loginBody.access_token;
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    const res = await fetch(`${API_URL}/api/auth/dev-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name }),
+    });
+    const body = await res.json() as { access_token?: string; statusCode?: number; message?: string };
+    if (body.access_token) return body.access_token;
+    if (res.status === 429 && attempt < 6) {
+      await new Promise((r) => setTimeout(r, 13000)); // 等待节流窗口刷新
+      continue;
+    }
+    throw new Error(`dev-login 失败 (${body.statusCode ?? res.status}): ${body.message}`);
+  }
+  throw new Error('dev-login 失败:重试耗尽');
 }
 
 async function setLocalStorageToken(page: Page, token: string) {
   await page.goto(BASE_URL);
-  await page.evaluate((t: string) => localStorage.setItem('coach_token', t), token);
+  // web app 读取的 localStorage key 是 'token'(src/lib/api.ts:25)
+  await page.evaluate((t: string) => localStorage.setItem('token', t), token);
 }
 
 // ── 测试 ─────────────────────────────────────────────────────────────────────
 
 test.describe('/me 页 credit 验收', () => {
-  const testEmail = `pw-me-${Date.now()}@coach.dev`;
+  // 固定邮箱 + beforeAll 一次性登录:dev-login throttle 是 10/min/IP,
+  // 每个 test 都新登录会在全量套件里累积触发 429。复用同一 50 点用户即可覆盖这些 UI 剧本。
+  let token = '';
 
   test.beforeAll(async () => {
-    // 注册用户(仅 API 调用,不需要 browser)
-    await registerAndGetToken(testEmail, 'PW测试用户');
+    token = await registerAndGetToken(`pw-me-fixed@coach.dev`, 'PW测试用户');
   });
 
   test('6a. /me 页渲染真实余额(50点)、邮箱、价目文案', async ({ page }) => {
-    const token = await registerAndGetToken(`pw-me-render-${Date.now()}@coach.dev`, '渲染测试');
     await setLocalStorageToken(page, token);
     await page.goto(`${BASE_URL}/me`);
 
@@ -89,7 +96,6 @@ test.describe('/me 页 credit 验收', () => {
   });
 
   test('6c. 头像上传 >2MB → 前端校验拒绝,弹提示,不发请求', async ({ page }) => {
-    const token = await registerAndGetToken(`pw-me-bigimg-${Date.now()}@coach.dev`, '大图测试');
     await setLocalStorageToken(page, token);
     await page.goto(`${BASE_URL}/me`);
 
@@ -114,7 +120,6 @@ test.describe('/me 页 credit 验收', () => {
   });
 
   test('6d. 非图片文件(txt) → 前端校验拒绝,提示包含格式说明', async ({ page }) => {
-    const token = await registerAndGetToken(`pw-me-badtype-${Date.now()}@coach.dev`, '格式测试');
     await setLocalStorageToken(page, token);
     await page.goto(`${BASE_URL}/me`);
     await page.waitForTimeout(1500);
@@ -134,22 +139,16 @@ test.describe('/me 页 credit 验收', () => {
 });
 
 test.describe('Credit 402 全局拦截(剧本 4 前端)', () => {
+  let token = '';
+
+  test.beforeAll(async () => {
+    token = await registerAndGetToken('pw-zero-fixed@coach.dev', '零余额测试');
+  });
+
   test('余额不足时调用 AI 端点 → 页面出现"点数不足"提示,非白屏', async ({ page }) => {
-    // 注册 → 直接通过 API 将余额置 0 → 触发 AI 调用 → 观察前端提示
-    const email = `pw-zero-${Date.now()}@coach.dev`;
-    const token = await registerAndGetToken(email, '零余额测试');
-
-    // 获取用户信息拿 id
-    const meRes = await fetch(`${API_URL}/api/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const me = await meRes.json() as { id?: string };
-    if (!me.id) throw new Error(`获取 /me 失败: ${JSON.stringify(me)}`);
-
-    // 通过 admin 账号(需要 ADMIN_EMAILS 配置)或直接 DB 置 0
-    // 此处直接用 API 调用:如无 admin 路径,跳过前端侧 402 弹框测试
-    // 注:此测试仅在 ADMIN_EMAILS=credit-admin@coach.dev 配置下完整运行
-
+    // salary 页加载验证(非白屏 / 非错误页)。
+    // 注:将余额真正置 0 需消耗 50 次 AI 调用,不在前端 UI 验收范围;
+    // API 层 402 + "点数不足"文案由 credit.e2e-spec.ts 覆盖。
     await setLocalStorageToken(page, token);
     await page.goto(`${BASE_URL}/salary`);
 

@@ -21,16 +21,26 @@ const API_URL = 'http://localhost:3002';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-/** 用全局 fetch 获取 dev-login token（与 credit-full-flow.spec.ts 保持一致）*/
+/**
+ * 用全局 fetch 获取 dev-login token（与 credit-full-flow.spec.ts 保持一致）。
+ * 带 429 退避重试:dev-login 5/min/IP 节流,全量套件并跑时会撞 429。
+ */
 async function devLogin(email: string): Promise<string> {
-  const res = await fetch(`${API_URL}/api/auth/dev-login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, name: 'SearchConfirm Test' }),
-  });
-  const body = await res.json() as { access_token?: string; statusCode?: number; message?: string };
-  if (!body.access_token) throw new Error(`devLogin 失败 (${body.statusCode}): ${body.message}`);
-  return body.access_token;
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    const res = await fetch(`${API_URL}/api/auth/dev-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name: 'SearchConfirm Test' }),
+    });
+    const body = await res.json() as { access_token?: string; statusCode?: number; message?: string };
+    if (body.access_token) return body.access_token;
+    if (res.status === 429 && attempt < 6) {
+      await new Promise((r) => setTimeout(r, 13000));
+      continue;
+    }
+    throw new Error(`devLogin 失败 (${body.statusCode ?? res.status}): ${body.message}`);
+  }
+  throw new Error('devLogin 失败:重试耗尽');
 }
 
 /**
