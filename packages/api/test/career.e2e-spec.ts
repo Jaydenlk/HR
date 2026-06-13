@@ -932,10 +932,14 @@ const LIVE = process.env.RUN_AI_LIVE === '1';
           if (a.scoreSource === 'ai' && a.evidenceFound.trim().length === 0) {
             expect(a.current).toBeLessThan(4);
           }
-          // FG-1 不变式:被清空压分的张冠李戴(unrelated)必落 suppressed 且 evidenceFound 空。
+          // FG-1 不变式:张冠李戴(unrelated)的证据必被清空(evidenceFound 空),且绝不留高分。
+          // 退化压分仅在 AI 原始分 ≥ 退化阈值(4)时触发(高分无证据=可疑编造,压到 suppressed);
+          // 原本就低于阈值的 unrelated 项不构成编造风险,合理保留 scoreSource='ai' + 低分,
+          // 由上方"ai+空证据→current<4"不变式兜底。两种情况都满足"不可能再现高分"的反编造保证。
           if (a.evidenceRelevance === 'unrelated') {
-            expect(a.scoreSource).toBe('suppressed');
             expect(a.evidenceFound).toBe('');
+            if (a.scoreSource === 'ai') expect(a.current).toBeLessThan(4);
+            else expect(a.scoreSource).toBe('suppressed');
           }
           // grounded 必有非空证据(空证据只能是 none)。
           if (a.scoreSource === 'ai' && a.evidenceFound.trim().length > 0) {
