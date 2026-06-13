@@ -1,26 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 
 // 移动端访问拦截(全站):视口宽度 < 768px 判为移动端,渲染全屏覆盖层挡住一切。
 // 产品决定:移动端体验未达标就不放行,因此不提供"继续访问"逃生门。
 // SSR 安全:isMobile 初始为 null(未判定),首次 render 返回 null,
 // 挂载后在 useEffect 里读 window.innerWidth 才判定,避免服务端/客户端 hydration 不一致。
-//
-// 豁免路径(移动端响应式已就绪,不拦截):
-//   /landing — 营销落地页,校招生大量从手机点链接进来
-//   /terms   — 静态条款页
 
 // 视口宽度阈值(px):小于该值判为移动端
 const MOBILE_MAX_WIDTH = 768;
 
-// 移动端豁免路径前缀列表(精确匹配或以之开头均豁免)
-const MOBILE_EXEMPT_PATHS = ['/landing', '/terms'];
-
 export function MobileGate() {
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
-  const pathname = usePathname();
 
   useEffect(() => {
     function check() {
@@ -33,11 +24,6 @@ export function MobileGate() {
 
   // 服务端渲染与未判定阶段(null)、桌面端(false)均不输出任何 DOM
   if (!isMobile) return null;
-
-  // 豁免路径:移动端响应式已就绪,直接放行(pathname 可能为 null,安全处理)
-  if (pathname && MOBILE_EXEMPT_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
-    return null;
-  }
 
   return (
     <div
