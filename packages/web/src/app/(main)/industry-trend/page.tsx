@@ -347,7 +347,13 @@ function TagList({ items, label }: { items: string[]; label: string }) {
   );
 }
 
-function EvidenceList({ items }: { items: IndustryTrendResult['evidence_used'] }) {
+function EvidenceList({
+  items,
+  disclaimer,
+}: {
+  items: IndustryTrendResult['evidence_used'];
+  disclaimer?: string;
+}) {
   if (!items.length) return null;
   return (
     <div style={cardStyle}>
@@ -356,12 +362,24 @@ function EvidenceList({ items }: { items: IndustryTrendResult['evidence_used'] }
           display: 'flex',
           alignItems: 'center',
           gap: '7px',
-          marginBottom: '12px',
+          marginBottom: '8px',
         }}
       >
         <LinkIcon size={15} color="var(--color-ink-3)" />
-        <span style={labelStyle}>数据来源（{items.length} 条）</span>
+        <span style={labelStyle}>信息来源（{items.length} 条）</span>
       </div>
+      {disclaimer && (
+        <div
+          style={{
+            fontSize: '11.5px',
+            color: 'var(--color-ink-4)',
+            marginBottom: '10px',
+            lineHeight: '1.5',
+          }}
+        >
+          {disclaimer}
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {items.map((ev, i) => (
           <div
@@ -370,12 +388,39 @@ function EvidenceList({ items }: { items: IndustryTrendResult['evidence_used'] }
               padding: '10px 12px',
               background: 'var(--color-surface-2)',
               borderRadius: '10px',
+              borderLeft: ev.verified
+                ? '3px solid var(--color-success)'
+                : '3px solid var(--color-line)',
             }}
           >
-            <div style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 500 }}>
-              {ev.source}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '3px',
+              }}
+            >
+              <div style={{ fontSize: '13px', color: 'var(--color-ink)', fontWeight: 500, flex: 1 }}>
+                {ev.source}
+              </div>
+              {ev.verified === true && (
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    padding: '1px 7px',
+                    borderRadius: '999px',
+                    background: 'var(--color-success-soft, #d1fae5)',
+                    color: 'var(--color-success)',
+                    flexShrink: 0,
+                  }}
+                >
+                  可信域名
+                </span>
+              )}
             </div>
-            <div style={{ marginTop: '4px', fontSize: '11.5px' }}>
+            <div style={{ fontSize: '11.5px' }}>
               {ev.url ? (
                 <a
                   href={ev.url}
@@ -430,6 +475,7 @@ export default function IndustryTrendPage() {
         timeframe: timeframe.trim() || undefined,
       });
       setResult(data);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
     } catch (err) {
       setError(err instanceof Error ? err.message : '分析失败，请稍后重试');
     } finally {
@@ -790,8 +836,8 @@ export default function IndustryTrendPage() {
                 </div>
               )}
 
-              {/* Data sources — verifiable evidence (#21) */}
-              <EvidenceList items={result.evidence_used} />
+              {/* Data sources — verifiable evidence (#21) + bocha real-time search */}
+              <EvidenceList items={result.evidence_used} disclaimer={result.evidence_source_disclaimer} />
 
               {/* Expandable details */}
               <button

@@ -298,6 +298,7 @@ function NewDiagnosisPageInner() {
         resume_id: selectedResumeId,
         jd_text: jdText.trim(),
       });
+      window.dispatchEvent(new Event('coach:credit-refresh'));
       if (activeHandoffId && activeConvId) {
         setShowReturn(true);
       }

@@ -335,6 +335,7 @@ export default function TodayPage() {
     setGenerateError(null);
     try {
       await api.post('/tasks/generate', {});
+      window.dispatchEvent(new Event('coach:credit-refresh'));
       await fetchTasks();
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : '生成失败，可稍后重试');

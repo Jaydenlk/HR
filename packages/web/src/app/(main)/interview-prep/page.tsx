@@ -339,7 +339,9 @@ function PlaybookTab({ state, patch }: { state: PlaybookState; patch: (p: Partia
       const payload: CompanyPlaybookRequest = { company_name: companyName.trim() };
       if (jobTitle.trim()) payload.job_title = jobTitle.trim();
       if (intel.trim()) payload.interview_intelligence = { notes: intel.trim() };
-      patch({ result: await api.post<CompanyPlaybookResult>('/interview-prep/playbook', payload) });
+      const playbookResult = await api.post<CompanyPlaybookResult>('/interview-prep/playbook', payload);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
+      patch({ result: playbookResult });
     } catch (err) {
       patch({ error: err instanceof Error ? err.message : '生成失败，请稍后重试' });
     } finally {
@@ -521,7 +523,9 @@ function StarTab({ state, patch }: { state: StarState; patch: (p: Partial<StarSt
     patch({ error: null, loading: true, result: null });
     try {
       const payload: StarStoriesRequest = { experiences: filled };
-      patch({ result: await api.post<StarStoriesResult>('/interview-prep/star-stories', payload) });
+      const starResult = await api.post<StarStoriesResult>('/interview-prep/star-stories', payload);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
+      patch({ result: starResult });
     } catch (err) {
       patch({ error: err instanceof Error ? err.message : '生成失败，请稍后重试' });
     } finally {
@@ -739,7 +743,9 @@ function TechTab({ state, patch }: { state: TechState; patch: (p: Partial<TechSt
       if (companyName.trim()) payload.company_name = companyName.trim();
       if (weeks.trim()) payload.available_weeks = Math.round(Number(weeks));
       if (intel.trim()) payload.interview_intelligence = { notes: intel.trim() };
-      patch({ result: await api.post<TechCoachResult>('/interview-prep/tech-coach', payload) });
+      const techResult = await api.post<TechCoachResult>('/interview-prep/tech-coach', payload);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
+      patch({ result: techResult });
     } catch (err) {
       patch({ error: err instanceof Error ? err.message : '生成失败，请稍后重试' });
     } finally {
@@ -895,7 +901,9 @@ function CaseTab({ state, patch }: { state: CaseState; patch: (p: Partial<CaseSt
       const payload: CaseCoachRequest = { interview_type: interviewType };
       if (targetCompany.trim()) payload.target_company = targetCompany.trim();
       if (focusArea.trim()) payload.focus_area = focusArea.trim();
-      patch({ result: await api.post<CaseCoachResult>('/interview-prep/case-coach', payload) });
+      const caseResult = await api.post<CaseCoachResult>('/interview-prep/case-coach', payload);
+      window.dispatchEvent(new Event('coach:credit-refresh'));
+      patch({ result: caseResult });
     } catch (err) {
       patch({ error: err instanceof Error ? err.message : '生成失败，请稍后重试' });
     } finally {

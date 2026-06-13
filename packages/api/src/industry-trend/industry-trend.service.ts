@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AiService } from '../ai/ai.service';
 import { AnalyzeIndustryDto } from './dto/analyze-industry.dto';
+import { IndustryBochaService, IndustrySearchItem } from './industry-bocha.service';
 
 // ── Output types ───────────────────────────────────────────────────────────────
 
@@ -102,29 +103,52 @@ function isTrustedHost(host: string): boolean {
 
 @Injectable()
 export class IndustryTrendService {
-  constructor(private readonly ai: AiService) {}
+  constructor(
+    private readonly ai: AiService,
+    private readonly bocha: IndustryBochaService,
+  ) {}
 
   async analyze(dto: AnalyzeIndustryDto): Promise<IndustryTrendResult> {
+    // 先博查联网搜实时数据
+    const searchQuery = this.buildSearchQuery(dto);
+    const searchOutcome = await this.bocha.search(searchQuery, 6);
+
+    const bochaItems: IndustrySearchItem[] = searchOutcome.available ? searchOutcome.items : [];
+    const bochaAvailable = searchOutcome.available && bochaItems.length > 0;
+
     const result = await this.ai.completeStructured<IndustryTrendResult>({
       system: this.buildSystem(),
-      prompt: this.buildPrompt(dto),
+      prompt: this.buildPrompt(dto, bochaItems, bochaAvailable),
       toolName: 'industry_trend_analyze',
       toolDescription: '输出行业趋势分析结果，包含增长/风险信号、招聘前景和推荐入行岗位',
       schema: OUTPUT_SCHEMA,
     });
 
-    return this.applyGuards(result);
+    return this.applyGuards(result, bochaItems, bochaAvailable);
+  }
+
+  /** 拼接博查搜索 query */
+  private buildSearchQuery(dto: AnalyzeIndustryDto): string {
+    const parts = [dto.industry];
+    if (dto.region) parts.push(dto.region);
+    parts.push('校招 招聘趋势 政策 融资');
+    if (dto.timeframe) parts.push(dto.timeframe);
+    return parts.join(' ');
   }
 
   // ── 服务端确定性 guard ──────────────────────────────────────────────────────
 
-  private applyGuards(result: IndustryTrendResult): IndustryTrendResult {
+  private applyGuards(
+    result: IndustryTrendResult,
+    bochaItems: IndustrySearchItem[],
+    bochaAvailable: boolean,
+  ): IndustryTrendResult {
     // #44: market_radar_used 由服务端裁决，不采信模型自报。本服务无真实 radar 接入，强制 false。
     const marketRadarUsed = false;
 
-    // #P1: 对 evidence_used[].url 做格式校验：必须 http(s):// + 合法 host（含至少一个点）。
-    // 格式非法的证据直接从列表中剔除，不参与信号溯源门控，也不展示给调用方。
-    const rawEvidence = result.evidence_used ?? [];
+    // 博查返回的真实 URL 合并到 evidence_used（upsert by url，AI 已包含的不重复添加）。
+    // 这样即使 AI 漏掉某条博查 URL，guard 仍能看到来自联网搜索的真实链接。
+    const rawEvidence = this.mergeSearchItems(result.evidence_used ?? [], bochaItems);
     const formatValidEvidence = rawEvidence.filter(
       (e): e is { source: string; url: string; date?: string } => isValidEvidenceUrl(e.url),
     );
@@ -140,17 +164,23 @@ export class IndustryTrendService {
     const webEvidence = annotatedEvidence;
     const hasWebSources = webEvidence.length > 0;
 
-    // #P1: 诚实声明——无论来源是否在白名单，统一声明服务端未联网核验。
+    // 博查来源数量（服务端真实搜索，URL 已核实）与纯 AI 自产来源分开声明。
+    const bochaCount = bochaItems.filter((item) => isValidEvidenceUrl(item.url)).length;
     const unverifiedCount = annotatedEvidence.filter((e) => !e.verified).length;
-    const evidenceSourceDisclaimer =
-      `所有来源由 AI 提供，服务端未联网核验其真实性。` +
-      (unverifiedCount > 0
-        ? `其中 ${unverifiedCount} 条来源域名不在可信白名单内，已标记为"未核验来源"，请谨慎参考。`
-        : '');
+    const evidenceSourceDisclaimer = bochaAvailable
+      ? `包含 ${bochaCount} 条博查联网实时搜索来源（URL 真实），其余来源由 AI 提供。` +
+        (unverifiedCount > 0
+          ? `其中 ${unverifiedCount} 条来源域名不在可信白名单内，请谨慎参考。`
+          : '')
+      : `所有来源由 AI 提供，服务端未联网核验其真实性。` +
+        (unverifiedCount > 0
+          ? `其中 ${unverifiedCount} 条来源域名不在可信白名单内，已标记为"未核验来源"，请谨慎参考。`
+          : '');
 
     // #P1: 声明字段也要在无 web 来源路径（Guard 1）正常返回。
-    const noSourceDisclaimer =
-      '所有来源由 AI 提供，服务端未联网核验其真实性。无有效来源时已降级输出，请查阅权威报告。';
+    const noSourceDisclaimer = bochaAvailable
+      ? '未获取到实时数据，以下为基于通用认知的判断，可能过时。请查阅权威报告后自行研判。'
+      : '所有来源由 AI 提供，服务端未联网核验其真实性。无有效来源时已降级输出，请查阅权威报告。';
 
     // Guard 1: 无格式有效的 web 来源时，强制降为 insufficient + 清空所有信号数组（防编造）。
     // #P1: 格式非法的 URL 已在上方剔除，不能解锁信号。
@@ -166,7 +196,9 @@ export class IndustryTrendService {
         recommended_entry_roles: [],
         evidence_source_disclaimer: noSourceDisclaimer,
         trend_summary:
-          '本服务无内置实时检索能力，无法获取实时行业数据。以下为框架说明，非结论性判断。' +
+          (bochaAvailable
+            ? '未获取到实时数据，以下为基于通用认知的判断，可能过时。'
+            : '本服务无内置实时检索能力，无法获取实时行业数据。以下为框架说明，非结论性判断。') +
           (result.trend_summary ? ` 原始摘要仅供参考：${result.trend_summary}` : ''),
       };
     }
@@ -348,19 +380,70 @@ export class IndustryTrendService {
 - summary：2-3句话概括分析结论（无数据时说明为何无法给出）`;
   }
 
-  private buildPrompt(dto: AnalyzeIndustryDto): string {
+  private buildPrompt(
+    dto: AnalyzeIndustryDto,
+    searchItems: IndustrySearchItem[],
+    searchAvailable: boolean,
+  ): string {
     const lines = [
       `请分析以下行业的当前趋势：`,
       `- 行业/赛道：${dto.industry}`,
     ];
     if (dto.region) lines.push(`- 地区：${dto.region}`);
     if (dto.timeframe) lines.push(`- 时间维度：${dto.timeframe}`);
+
+    if (searchAvailable && searchItems.length > 0) {
+      lines.push(
+        '',
+        '## 实时搜索数据（博查联网，服务端获取，来源 URL 真实）',
+        '以下是服务端刚刚通过联网搜索获取的实时信息，请优先基于这些数据分析，',
+        '并在 evidence_used 中引用其 URL（必须与下方 url 字段一致，不得修改）：',
+        '',
+      );
+      searchItems.forEach((item, idx) => {
+        lines.push(
+          `[来源${idx + 1}]`,
+          `标题：${item.title}`,
+          `摘要：${item.snippet || '（无摘要）'}`,
+          `url：${item.url}`,
+          '',
+        );
+      });
+      lines.push(
+        '请将上述来源的 url 原样写入 evidence_used[].url，不得编造新 URL。',
+        '信号的 source 字段应与来源标题或域名对应，以便溯源验证。',
+      );
+    } else {
+      lines.push(
+        '',
+        '【注意】本次未能获取实时联网数据（可能原因：联网服务不可用或无结果）。',
+        '请诚实降级：confidence 设为 insufficient，信号数组全部置空，',
+        '并在 trend_summary 说明"未获取到实时数据，以下为基于通用认知的判断，可能过时"。',
+      );
+    }
+
     lines.push(
       '',
       '请严格按照系统提示的约束规则输出分析结果。',
-      '若无实时来源，请诚实降级，不得给出训练数据中的历史印象作为当前结论。',
     );
     return lines.join('\n');
+  }
+
+  /** 将博查搜索结果合并进 evidence_used，已存在相同 url 的不重复添加 */
+  private mergeSearchItems(
+    existing: Array<{ source: string; url?: string; date?: string; verified?: boolean }>,
+    bochaItems: IndustrySearchItem[],
+  ): Array<{ source: string; url?: string; date?: string; verified?: boolean }> {
+    const existingUrls = new Set(existing.map((e) => e.url).filter(Boolean));
+    const newEntries = bochaItems
+      .filter((item) => isValidEvidenceUrl(item.url) && !existingUrls.has(item.url))
+      .map((item) => ({
+        source: item.title,
+        url: item.url,
+        // 博查返回的是实时搜索结果，date 未知，留空
+        date: undefined,
+      }));
+    return [...existing, ...newEntries];
   }
 }
 

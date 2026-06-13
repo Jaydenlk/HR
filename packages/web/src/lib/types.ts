@@ -1189,7 +1189,7 @@ export interface IndustryTrendResult {
   skill_version: string;
   summary: string;
   confidence: IndustryTrendConfidence;
-  evidence_used: Array<{ source: string; url?: string; date?: string }>;
+  evidence_used: Array<{ source: string; url?: string; date?: string; verified?: boolean }>;
   recommendations: string[];
   risks: string[];
   next_actions: string[];
@@ -1201,6 +1201,8 @@ export interface IndustryTrendResult {
   hiring_outlook: IndustryHiringOutlook;
   recommended_entry_roles: IndustryEntryRole[];
   market_radar_used: boolean;
+  // 来源声明：说明是否含博查联网实时搜索来源
+  evidence_source_disclaimer?: string;
 }
 
 // ─── Application Strategy ─────────────────────────────────────────────────────
