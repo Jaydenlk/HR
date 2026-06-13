@@ -2,7 +2,17 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
+import { IndustryBochaService } from '../src/industry-trend/industry-bocha.service';
 import { loginUser, request } from './test-utils';
+
+// 确定性 guard 测试中，Bocha 必须固定返回 unavailable，不依赖真实 BOCHA_API_KEY。
+// 原因：真 BOCHA_API_KEY 存在时，IndustryBochaService 会发起真实联网请求，
+// bochaItems 会注入到 applyGuards()，导致 bochaAvailable=true，Guard 1 不触发，
+// evidence_used 被真实 URL 填充，signal guard 测试的"无来源→清空信号"断言失败。
+// Mock 掉 Bocha 确保 guard 测试在任何环境（带/不带真 key）都确定性通过。
+const mockBochaService = {
+  search: jest.fn().mockResolvedValue({ available: false, reason: 'no_key' }),
+};
 
 // ── Shared mock AI result ──────────────────────────────────────────────────────
 
@@ -86,6 +96,11 @@ describe('IndustryTrend (e2e) — deterministic guard tests', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(AiService)
       .useValue({ complete: jest.fn(), completeStructured })
+      // Mock IndustryBochaService：确保 guard 测试不依赖真实 BOCHA_API_KEY。
+      // 无论 BOCHA_API_KEY 是否配置，Bocha 固定返回 unavailable，
+      // bochaAvailable=false，guard 行为完全由 mock AI 结果决定。
+      .overrideProvider(IndustryBochaService)
+      .useValue(mockBochaService)
       .compile();
 
     app = moduleRef.createNestApplication();

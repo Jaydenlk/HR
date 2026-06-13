@@ -565,6 +565,8 @@ export interface SkillAuditItem {
   scoreSource: SkillScoreSource;
   // 被自评覆盖或退化压分时保留的 AI 原始分(参考);否则 null。
   aiScore: number | null;
+  // 缺口/达标判定专用的保守分(自评覆盖时 = min(自评,AI原分));展示用 current,缺口用 gapScore。
+  gapScore: number;
 }
 
 export interface CareerAnalysis {

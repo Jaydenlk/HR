@@ -109,10 +109,45 @@ function PathCard({ path, chosen }: { path: CareerPath; chosen: boolean }) {
   );
 }
 
+/**
+ * FIX-3:本地把用户自评覆盖到当前 analysis(不调 AI、不扣点),镜像后端 calibrateSkill 的自评分支:
+ *  - current = 自评(展示尊重自评),scoreSource='self';
+ *  - aiScore 保留 AI 原始分(若该技能此前已被压分,真实 AI 原分在 aiScore 里,否则就是当前 current);
+ *  - gapScore = min(自评, AI原分)(保守分,缺口不被自评虚高欺骗),ok = gapScore>=needed。
+ * 只覆盖用户实际给了分的技能;未涉及的技能原样保留。
+ */
+function applySelfAssessment(
+  analysis: CareerAnalysis,
+  scores: Record<string, number>,
+): CareerAnalysis {
+  return {
+    ...analysis,
+    skill_audit: analysis.skill_audit.map((s): SkillAuditItem => {
+      const self = scores[s.name];
+      if (self === undefined) return s;
+      // AI 原始分:已压分的技能其原分在 aiScore;否则当前 current 即 AI 分。
+      const aiRaw = s.aiScore != null ? s.aiScore : s.current;
+      const gapScore = Math.min(self, aiRaw);
+      return {
+        ...s,
+        current: self,
+        scoreSource: 'self',
+        aiScore: aiRaw,
+        gapScore,
+        ok: gapScore >= s.needed,
+      };
+    }),
+  };
+}
+
 /** 分数 tooltip 文案:解释"这分怎么来的"——证据 / 压分 / 自评。 */
 function skillTooltipText(skill: SkillAuditItem): string {
   if (skill.scoreSource === 'self') {
     const ai = skill.aiScore != null ? `（AI 原评 ${skill.aiScore} 分,已按你的自评校准）` : '';
+    // FIX-5 诚实提示:展示尊重自评,但缺口按保守分(min(自评,AI原分))判;两者矛盾时讲清楚。
+    if (!skill.ok && skill.current > skill.gapScore) {
+      return `这是你的自评分 ${skill.current} 分${ai}。不过缺口仍按更保守的 ${skill.gapScore} 分计(取自评与 AI 评分的较低值),距目标 ${skill.needed} 分还有差距,建议继续补强、用项目坐实。`;
+    }
     return `这是你的自评分 ${skill.current} 分${ai}。`;
   }
   if (skill.scoreSource === 'suppressed') {
@@ -129,7 +164,8 @@ function skillTooltipText(skill: SkillAuditItem): string {
 function SkillRow({ skill }: { skill: SkillAuditItem }) {
   const isOk = skill.ok;
   // bigGap bug 修:量程 0-10,差距阈值 >3 才算大缺口(原 >30 永远触发不到,危险色失效)。
-  const bigGap = !isOk && skill.needed - skill.current > 3;
+  // FIX-5:缺口危险色按保守分 gapScore 判(自评虚高不能让缺口凭空消失),与后端 ok 同源。
+  const bigGap = !isOk && skill.needed - skill.gapScore > 3;
   const barColor = isOk
     ? 'var(--color-success)'
     : bigGap
@@ -318,7 +354,8 @@ function SelfAssessmentModal({
 }: {
   skills: SkillAuditItem[];
   onClose: () => void;
-  onSaved: () => void;
+  // FIX-3:保存后把自评分回传给页面做本地覆盖(不重新 analyze、不扣点)。
+  onSaved: (scores: Record<string, number>) => void;
 }) {
   const [scores, setScores] = useState<Record<string, number>>(() =>
     Object.fromEntries(skills.map((s) => [s.name, s.current])),
@@ -329,12 +366,19 @@ function SelfAssessmentModal({
   async function submit() {
     setSaving(true);
     setError(null);
+    // FIX-4:技能名固定取自当前结果(s.name),用户只打分不自由输入,
+    // 避免 AI 换措辞导致后端 selfMap 匹配不上而静默失效。
+    const submitted = Object.fromEntries(
+      skills.map((s) => [s.name, scores[s.name] ?? s.current]),
+    );
     try {
+      // 持久化自评:供下次正式 analyze 时后端覆盖(后端 selfMap 逻辑保留)。
       await api.post<{ written: number }>(
         '/career/self-assessment',
-        skills.map((s) => ({ skill_name: s.name, self_score: scores[s.name] ?? s.current })),
+        skills.map((s) => ({ skill_name: s.name, self_score: submitted[s.name] })),
       );
-      onSaved();
+      // FIX-3:本地即时覆盖,不再触发 load()(那会再扣 1 点)。
+      onSaved(submitted);
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存失败');
       setSaving(false);
@@ -363,13 +407,13 @@ function SelfAssessmentModal({
               opacity: saving ? 0.7 : 1,
             }}
           >
-            {saving ? '保存中…' : '保存并按自评重新评估'}
+            {saving ? '保存中…' : '保存并按自评校准（免费 · 不扣点）'}
           </button>
         </div>
       }
     >
       <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
-        觉得 AI 的分不准？拖动滑块写下你对自己的真实评估。保存后职业地图会用你的自评分覆盖 AI 评分（AI 分仍保留作参考）。
+        觉得 AI 的分不准？拖动滑块写下你对自己的真实评估。保存后当前页面立刻按你的自评校准分数（AI 分仍保留作参考），免费、不重新扣点；缺口仍按自评与 AI 评分的较低值计算，避免虚高让缺口消失。
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {skills.map((s) => (
@@ -896,9 +940,10 @@ export default function CareerPage() {
         <SelfAssessmentModal
           skills={analysis.skill_audit}
           onClose={() => setShowSelfAssess(false)}
-          onSaved={() => {
+          onSaved={(scores) => {
             setShowSelfAssess(false);
-            void load();
+            // FIX-3:纯前端本地用自评覆盖当前已显示分数,不重新 analyze、不扣点。
+            setAnalysis((prev) => (prev ? applySelfAssessment(prev, scores) : prev));
           }}
         />
       )}

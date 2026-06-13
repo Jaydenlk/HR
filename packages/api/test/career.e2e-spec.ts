@@ -47,11 +47,13 @@ interface ResSkill {
   aiScore: number | null;
 }
 
-/* A realistic, ≥30-char Chinese resume so the service does NOT short-circuit. */
+/* A realistic, ≥30-char Chinese resume so the service does NOT short-circuit.
+ * 含真实可回指的证据片段(供 FIX-2 假证据校验:测试里的 evidenceFound 必须能在此正文里找到)。 */
 const VALID_RESUME_TEXT =
   '张伟，计算机科学与技术专业本科应届生。' +
-  '熟悉 Java 与 Spring Boot，参与过校园二手交易平台后端开发，负责订单与支付模块；' +
-  '掌握 MySQL 索引优化与 Redis 缓存，曾用 Redis 将接口平均响应从 320ms 降到 90ms。' +
+  '熟悉 Java 与 Spring Boot 后端开发，参与过校园二手交易平台后端开发，负责订单与支付模块；' +
+  '掌握 MySQL 索引优化与 Redis 缓存优化，曾用 Redis 将接口平均响应从 320ms 降到 90ms。' +
+  '日常用 Copilot 提效开发，落地过一个微服务实践的拆分方案；' +
   '获 ACM 校赛二等奖，担任技术社团负责人，组织 5 场技术分享。';
 
 /* ================================================================== */
@@ -82,6 +84,26 @@ describe('Career prompt — 防编造铁律 + AI 能力专项', () => {
     expect(system).toContain('AI 能力专项');
     expect(system).toMatch(/category='ai'|category=ai/);
     expect(system).toContain('现在都用 AI'); // 反例:不许因此泛给分
+  });
+
+  // FIX-1①:防编造补强——把诊断侧三条铁律补到 career,做到名副其实。
+  it('system prompt 含可疑量化指标铁律(无来源数字不采信)', () => {
+    expect(CAREER_EVIDENCE_IRON_LAW).toContain('可疑量化指标铁律');
+    expect(system).toMatch(/无来源量化数字不采信|无基数\/无口径/);
+  });
+
+  it('system prompt 含相邻领域不得间接推断给分', () => {
+    expect(CAREER_EVIDENCE_IRON_LAW).toContain('相邻领域不得间接推断');
+    expect(system).toMatch(/学科背景/);
+  });
+
+  it('system prompt 含评分过程不外泄(不写进用户可见文字)', () => {
+    expect(CAREER_EVIDENCE_IRON_LAW).toContain('评分过程不外泄');
+    expect(system).toMatch(/压分|内部计算|分数比例/);
+  });
+
+  it('system prompt 禁止只照抄技能名当证据', () => {
+    expect(CAREER_EVIDENCE_IRON_LAW).toMatch(/严禁只照抄技能名/);
   });
 });
 
@@ -254,6 +276,125 @@ describe('Career (e2e) — deterministic AI mock asserts fixed behavior', () => 
       expect(java.current).toBe(8);
       expect(java.evidenceFound).toBe('Spring Boot 订单与支付模块');
       expect(java.ok).toBe(true);
+    });
+  });
+
+  // ─── FIX-2:假证据校验(evidenceFound 必须能在简历里真实回指) ──────────────
+  describe('FIX-2 假证据漏洞:照抄技能名 / 简历没有的文字 当证据 → 视为无证据并压分', () => {
+    it('AutoCAD 式:evidenceFound 只照抄技能名 → 判无证据,高分被压(suppressed)', async () => {
+      // E2E 样本C 的确定性复现:AutoCAD 非空 evidenceFound 但只是技能名本身,简历无真实项目。
+      nextAiResult = {
+        paths: [{ title: '机械设计师', fit_pct: 70, description: 'd', skills: ['AutoCAD'], alumni_count: null }],
+        skill_audit: [{ name: 'AutoCAD', current: 7, needed: 6, evidenceFound: 'AutoCAD（熟练）', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const cad = res.body.skill_audit[0] as ResSkill & { gapScore: number };
+      expect(cad.name).toBe('AutoCAD');
+      expect(cad.scoreSource).toBe('suppressed'); // 假证据 → 按无证据压分
+      expect(cad.current).toBe(2);
+      expect(cad.aiScore).toBe(7);
+      expect(cad.evidenceFound).toBe(''); // 假证据被清空
+    });
+
+    it('简历里根本没有的措辞当证据 → 判无证据,高分被压', async () => {
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 70, description: 'd', skills: ['Kafka'], alumni_count: null }],
+        // Kafka 简历完全没提,evidenceFound 是编造的措辞。
+        skill_audit: [{ name: 'Kafka', current: 8, needed: 6, evidenceFound: '搭建了千万级消息中间件集群', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const kafka = res.body.skill_audit[0] as ResSkill;
+      expect(kafka.scoreSource).toBe('suppressed');
+      expect(kafka.current).toBe(2);
+      expect(kafka.aiScore).toBe(8);
+      expect(kafka.evidenceFound).toBe('');
+    });
+
+    it('真实回指简历原文的证据 → 不压分,evidenceFound 透传', async () => {
+      // 证据是简历正文里真实出现的片段(含技能名 + 实质项目描述)。
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 82, description: 'd', skills: ['Java'], alumni_count: null }],
+        skill_audit: [{ name: 'Java', current: 8, needed: 6, evidenceFound: '订单与支付模块', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const java = res.body.skill_audit[0] as ResSkill;
+      expect(java.scoreSource).toBe('ai');
+      expect(java.current).toBe(8);
+      expect(java.evidenceFound).toBe('订单与支付模块');
+    });
+  });
+
+  // ─── FIX-5:自评覆盖时缺口用保守分 min(自评,AI原分) ──────────────────────────
+  describe('FIX-5 缺口用保守分:展示尊重自评,缺口不被自评虚高欺骗', () => {
+    beforeAll(async () => {
+      // 给本块准备自评:AutoCAD 自评虚高 9 分(简历无 AutoCAD 真本事)。
+      await request(app.getHttpServer())
+        .post('/api/career/self-assessment')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{ skill_name: 'AutoCAD', self_score: 9 }]);
+    });
+
+    it('自评 9(虚高)但 AI 原分低 → 展示 current=9,但 gapScore=min(9,AI原分),ok 按保守分判', async () => {
+      // AI 给 AutoCAD 7 分但只照抄技能名(会被压分→AI原分按 calibrate 取 clamp 后的 7)。
+      // 自评 9 覆盖展示;gapScore = min(9, 7) = 7;needed=8 → 7<8 → ok=false(缺口没被自评抹掉)。
+      nextAiResult = {
+        paths: [{ title: '机械设计师', fit_pct: 70, description: 'd', skills: ['AutoCAD'], alumni_count: null }],
+        skill_audit: [{ name: 'AutoCAD', current: 7, needed: 8, evidenceFound: 'AutoCAD', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const cad = res.body.skill_audit[0] as ResSkill & { gapScore: number };
+      expect(cad.scoreSource).toBe('self');
+      expect(cad.current).toBe(9); // 展示尊重自评
+      expect(cad.aiScore).toBe(7); // AI 原始分(未压分)留参考
+      expect(cad.gapScore).toBe(7); // min(自评9, AI原分7)
+      expect(cad.ok).toBe(false); // 保守分 7 < needed 8 → 缺口仍在(没被自评虚高抹掉)
+    });
+
+    it('自评低于 AI 原分时 gapScore=自评(取较低值),与展示一致', async () => {
+      await request(app.getHttpServer())
+        .post('/api/career/self-assessment')
+        .set('Authorization', `Bearer ${token}`)
+        .send([{ skill_name: 'MySQL', self_score: 4 }]);
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 75, description: 'd', skills: ['MySQL'], alumni_count: null }],
+        skill_audit: [{ name: 'MySQL', current: 7, needed: 6, evidenceFound: '索引优化', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const my = res.body.skill_audit[0] as ResSkill & { gapScore: number };
+      expect(my.scoreSource).toBe('self');
+      expect(my.current).toBe(4);
+      expect(my.gapScore).toBe(4); // min(4,7)
+      expect(my.ok).toBe(false); // 4 < 6
+    });
+
+    it('非自评来源 gapScore 与 current 同值', async () => {
+      nextAiResult = {
+        paths: [{ title: '后端工程师', fit_pct: 80, description: 'd', skills: ['Redis'], alumni_count: null }],
+        skill_audit: [{ name: 'Redis', current: 7, needed: 6, evidenceFound: 'Redis 缓存优化', category: 'general' }],
+      };
+      const res = await request(app.getHttpServer())
+        .get('/api/career/analysis')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      const r = res.body.skill_audit[0] as ResSkill & { gapScore: number };
+      expect(r.scoreSource).toBe('ai');
+      expect(r.gapScore).toBe(r.current);
+      expect(r.gapScore).toBe(7);
     });
   });
 
