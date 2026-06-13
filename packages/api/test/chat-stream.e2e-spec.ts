@@ -38,13 +38,14 @@ import { Interview } from '../src/interviews/entities/interview.entity';
 import { MockSession } from '../src/mock/entities/mock-session.entity';
 import { CoverLetter } from '../src/cover-letters/entities/cover-letter.entity';
 import { CreditTransaction } from '../src/credit/entities/credit-transaction.entity';
+import { CareerAnalysisRecord } from '../src/career/entities/career-analysis.entity';
 
 const ALL_ENTITIES = [
   User, Resume, ResumeVersion, Diagnosis, Application, ApplicationEvent, DailyTask,
   Opportunity, OpportunityEvaluation, OpportunityEvidence, OpportunityAction,
   FeedSource, Company, Department, RoleCategory, CoverageMetric, DigestRun, FeedItem,
   SalaryEntry, Conversation, Message, Interview, MockSession, CoverLetter,
-  CreditTransaction, CoachHandoff,
+  CreditTransaction, CoachHandoff, CareerAnalysisRecord,
 ];
 
 // Async generator helper: yields a fixed sequence of text chunks (a "stream").
@@ -99,6 +100,7 @@ describe('Chat SSE stream + accounting + on-demand context', () => {
         TypeOrmModule.forFeature([
           User, Conversation, Message, Diagnosis, Opportunity, OpportunityEvaluation,
           Resume, CoverLetter, CreditTransaction, CoachHandoff,
+          Interview, MockSession, Application, ApplicationEvent, CareerAnalysisRecord,
         ]),
         IntelligenceModule,
       ],

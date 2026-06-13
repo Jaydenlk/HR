@@ -104,6 +104,18 @@ describe('F5 gatherSelectorCatalog 查询次数', () => {
     const ai = {
       completeStructured: jest.fn(),
     };
+    // 第3批新增 5 类已落库模块仓库:空用户全返回空数组,保持空目录短路语义。
+    const emptyRepo = () => ({
+      findOne: jest.fn().mockResolvedValue(null),
+      find: jest.fn().mockResolvedValue([]),
+    });
+    const interviewRepo = emptyRepo();
+    const mockSessionRepo = emptyRepo();
+    const applicationRepo = emptyRepo();
+    const applicationEventRepo = emptyRepo();
+    const opportunityRepo = emptyRepo();
+    const opportunityEvalRepo = emptyRepo();
+    const careerRepo = emptyRepo();
 
     // 直接实例化:绕过 NestJS DI(仅测试纯逻辑)
     const svc = new CoachContextService(
@@ -112,6 +124,13 @@ describe('F5 gatherSelectorCatalog 查询次数', () => {
       resumeRepo as never,
       diagnosisRepo as never,
       coverLetterRepo as never,
+      interviewRepo as never,
+      mockSessionRepo as never,
+      applicationRepo as never,
+      applicationEventRepo as never,
+      opportunityRepo as never,
+      opportunityEvalRepo as never,
+      careerRepo as never,
     );
     return { svc, diagnosisRepo, coverLetterRepo };
   }

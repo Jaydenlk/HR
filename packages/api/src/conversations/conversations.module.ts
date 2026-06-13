@@ -7,6 +7,11 @@ import { Opportunity } from '../opportunity/entities/opportunity.entity';
 import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
 import { Resume } from '../resumes/entities/resume.entity';
 import { CoverLetter } from '../cover-letters/entities/cover-letter.entity';
+import { Interview } from '../interviews/entities/interview.entity';
+import { MockSession } from '../mock/entities/mock-session.entity';
+import { Application } from '../applications/entities/application.entity';
+import { ApplicationEvent } from '../applications/entities/application-event.entity';
+import { CareerAnalysisRecord } from '../career/entities/career-analysis.entity';
 import { ConversationsController } from './conversations.controller';
 import { ConversationsService } from './conversations.service';
 import { ChatService } from './chat.service';
@@ -21,7 +26,8 @@ import { CoachHandoffsModule } from '../coach-handoffs/coach-handoffs.module';
   imports: [
     TypeOrmModule.forFeature([
       Conversation, Message, Diagnosis, Opportunity, OpportunityEvaluation,
-      Resume, CoverLetter,
+      Resume, CoverLetter, Interview, MockSession, Application,
+      ApplicationEvent, CareerAnalysisRecord,
     ]),
     AiModule,
     IntelligenceModule,

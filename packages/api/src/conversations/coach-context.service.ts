@@ -6,13 +6,43 @@ import { AiService } from '../ai/ai.service';
 import { Resume } from '../resumes/entities/resume.entity';
 import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { CoverLetter } from '../cover-letters/entities/cover-letter.entity';
+import { Interview } from '../interviews/entities/interview.entity';
+import type {
+  ScoreItem,
+  QuestionItem,
+} from '../interviews/entities/interview.entity';
+import { MockSession } from '../mock/entities/mock-session.entity';
+import { Application } from '../applications/entities/application.entity';
+import { ApplicationEvent } from '../applications/entities/application-event.entity';
+import { Opportunity } from '../opportunity/entities/opportunity.entity';
+import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
+import { CareerAnalysisRecord } from '../career/entities/career-analysis.entity';
+import type { CareerPath, SkillAuditItem } from '../career/career.service';
 import type { RewriteSuggestion } from '../common/types';
 
-// 选择器产物种类:可按需加载全文的旧产物类型。
-type LoadKind = 'diagnosis' | 'cover_letter';
+// 选择器产物种类:可按需加载全文的已落库产物类型。
+type LoadKind =
+  | 'diagnosis'
+  | 'cover_letter'
+  | 'interview'
+  | 'mock_session'
+  | 'application'
+  | 'opportunity'
+  | 'career';
+const LOAD_KINDS: readonly LoadKind[] = [
+  'diagnosis',
+  'cover_letter',
+  'interview',
+  'mock_session',
+  'application',
+  'opportunity',
+  'career',
+];
 interface SelectorResult {
   need: { kind: LoadKind; id: string }[];
 }
+// 各类按需加载全文的 id 白名单(目录里真实存在且属当前用户的 id)。
+type CatalogIds = Record<LoadKind, string[]>;
 
 @Injectable()
 export class CoachContextService {
@@ -29,10 +59,28 @@ export class CoachContextService {
     private readonly diagnosisRepo: Repository<Diagnosis>,
     @InjectRepository(CoverLetter)
     private readonly coverLetterRepo: Repository<CoverLetter>,
+    @InjectRepository(Interview)
+    private readonly interviewRepo: Repository<Interview>,
+    @InjectRepository(MockSession)
+    private readonly mockSessionRepo: Repository<MockSession>,
+    @InjectRepository(Application)
+    private readonly applicationRepo: Repository<Application>,
+    @InjectRepository(ApplicationEvent)
+    private readonly applicationEventRepo: Repository<ApplicationEvent>,
+    @InjectRepository(Opportunity)
+    private readonly opportunityRepo: Repository<Opportunity>,
+    @InjectRepository(OpportunityEvaluation)
+    private readonly opportunityEvalRepo: Repository<OpportunityEvaluation>,
+    @InjectRepository(CareerAnalysisRecord)
+    private readonly careerRepo: Repository<CareerAnalysisRecord>,
   ) {}
 
   // 简历全文截断上限:防止超长简历撑爆上下文窗口。
   private static readonly RESUME_MAX_CHARS = 6000;
+  // 单份模块全文截断上限(面试转录/模拟答案/JD 等长文本字段):对齐简历做法,2C2G token 友好。
+  private static readonly FULL_MAX_CHARS = 6000;
+  // 新增模块的目录条目每类上限:够选择器据此判断该加载哪几份即可,不必铺满,控目录长度。
+  private static readonly CATALOG_TAKE = 5;
 
   // 截断简历原文到上限,超出时追加可读提示。独立函数便于单测。
   static truncateResumeText(raw: string): string {
@@ -40,6 +88,15 @@ export class CoachContextService {
     return (
       raw.slice(0, CoachContextService.RESUME_MAX_CHARS) +
       '\n……(简历过长,以上为前 6000 字,完整内容可在简历页查看)'
+    );
+  }
+
+  // 截断任意长文本字段到全文上限,超出时追加可读提示。独立 static 便于单测。
+  static truncateText(raw: string): string {
+    if (raw.length <= CoachContextService.FULL_MAX_CHARS) return raw;
+    return (
+      raw.slice(0, CoachContextService.FULL_MAX_CHARS) +
+      '\n……(内容过长,以上为前 6000 字,完整内容可在对应模块页查看)'
     );
   }
 
@@ -83,7 +140,7 @@ export class CoachContextService {
     // 一次查询同时取 ids + 选择器描述文案,两处复用无重复 DB 往返。
     const catalog = await this.gatherSelectorCatalog(userId);
     const { ids: catalogIds } = catalog;
-    if (catalogIds.diagnosis.length === 0 && catalogIds.cover_letter.length === 0) {
+    if (LOAD_KINDS.every((k) => catalogIds[k].length === 0)) {
       return '';
     }
 
@@ -100,28 +157,47 @@ export class CoachContextService {
 
     const need = (selection.need ?? [])
       // 只信任目录里真实存在且属于该用户的 id,挡住选择器幻觉/越权。
-      .filter((n) =>
-        n.kind === 'diagnosis'
-          ? catalogIds.diagnosis.includes(n.id)
-          : n.kind === 'cover_letter'
-            ? catalogIds.cover_letter.includes(n.id)
-            : false,
+      .filter(
+        (n) =>
+          LOAD_KINDS.includes(n.kind) && catalogIds[n.kind]?.includes(n.id),
       )
       .slice(0, CoachContextService.MAX_LOAD);
 
     if (need.length === 0) return '';
 
     const loaded = await Promise.all(
-      need.map((n) =>
-        n.kind === 'diagnosis'
-          ? this.loadDiagnosisFull(userId, n.id)
-          : this.loadCoverLetterFull(userId, n.id),
-      ),
+      need.map((n) => this.loadFull(userId, n.kind, n.id)),
     );
     const blocks = loaded.filter((b): b is string => b !== null);
     if (blocks.length === 0) return '';
 
     return `## 用户本轮引用的旧产物全文（按需加载）\n${blocks.join('\n\n')}`;
+  }
+
+  // 按种类分发到对应 loadXxxFull;非法种类返回 null(上层已做白名单过滤,此处兜底)。
+  private loadFull(
+    userId: string,
+    kind: LoadKind,
+    id: string,
+  ): Promise<string | null> {
+    switch (kind) {
+      case 'diagnosis':
+        return this.loadDiagnosisFull(userId, id);
+      case 'cover_letter':
+        return this.loadCoverLetterFull(userId, id);
+      case 'interview':
+        return this.loadInterviewFull(userId, id);
+      case 'mock_session':
+        return this.loadMockSessionFull(userId, id);
+      case 'application':
+        return this.loadApplicationFull(userId, id);
+      case 'opportunity':
+        return this.loadOpportunityFull(userId, id);
+      case 'career':
+        return this.loadCareerFull(userId, id);
+      default:
+        return Promise.resolve(null);
+    }
   }
 
   // ── 选择器 ───────────────────────────────────────────────────────────────
@@ -140,7 +216,7 @@ export class CoachContextService {
             type: 'object',
             required: ['kind', 'id'],
             properties: {
-              kind: { type: 'string', enum: ['diagnosis', 'cover_letter'] },
+              kind: { type: 'string', enum: LOAD_KINDS },
               id: { type: 'string' },
             },
           },
@@ -193,9 +269,19 @@ export class CoachContextService {
     return lines.join('\n');
   }
 
-  // 产物目录:让模型知道站内有哪些可深挖的旧产物(诊断/求职信),每条 type/标题/日期/id。
+  // 产物目录:让模型知道站内有哪些可深挖的已落库产物(诊断/求职信/面试复盘/模拟面试/投递/机会评估/职业地图),
+  // 每条 type/标题/日期/id。诊断与求职信沿用 take 10(B2 原口径不动),新增 5 类各取 CATALOG_TAKE 份控目录长度。
   private async gatherCatalog(userId: string): Promise<string | null> {
-    const [diagnoses, coverLetters] = await Promise.all([
+    const take = CoachContextService.CATALOG_TAKE;
+    const [
+      diagnoses,
+      coverLetters,
+      interviews,
+      mockSessions,
+      applications,
+      opportunities,
+      careers,
+    ] = await Promise.all([
       this.diagnosisRepo.find({
         where: { user_id: userId },
         order: { created_at: 'DESC' },
@@ -206,9 +292,44 @@ export class CoachContextService {
         order: { created_at: 'DESC' },
         take: 10,
       }),
+      this.interviewRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+      }),
+      this.mockSessionRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+      }),
+      this.applicationRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+      }),
+      this.opportunityRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+      }),
+      this.careerRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+      }),
     ]);
 
-    if (diagnoses.length === 0 && coverLetters.length === 0) return null;
+    if (
+      diagnoses.length === 0 &&
+      coverLetters.length === 0 &&
+      interviews.length === 0 &&
+      mockSessions.length === 0 &&
+      applications.length === 0 &&
+      opportunities.length === 0 &&
+      careers.length === 0
+    ) {
+      return null;
+    }
 
     const lines = ['## 产物目录（可按需引用其全文，用 id 指明）'];
     for (const d of diagnoses) {
@@ -221,15 +342,50 @@ export class CoachContextService {
         `- [求职信] ${c.company || '未知公司'} / ${c.role || '未知岗位'}　${c.created_at.toISOString().slice(0, 10)}　id=${c.id}`,
       );
     }
+    for (const i of interviews) {
+      lines.push(
+        `- [面试复盘] ${i.company || '未知公司'} / ${i.role || '未知岗位'} ${i.round}　评级${i.overall_grade || '无'}　${i.created_at.toISOString().slice(0, 10)}　id=${i.id}`,
+      );
+    }
+    for (const m of mockSessions) {
+      lines.push(
+        `- [模拟面试] ${m.company || '未知公司'} / ${m.role || '未知岗位'}　评级${m.evaluation?.overall_grade || '无'}　${m.created_at.toISOString().slice(0, 10)}　id=${m.id}`,
+      );
+    }
+    for (const a of applications) {
+      lines.push(
+        `- [投递] ${a.company} / ${a.role}　阶段${a.stage}　${a.created_at.toISOString().slice(0, 10)}　id=${a.id}`,
+      );
+    }
+    for (const o of opportunities) {
+      lines.push(
+        `- [机会评估] ${o.company || '未知公司'} / ${o.role || '未知岗位'}　状态${o.status}　${o.created_at.toISOString().slice(0, 10)}　id=${o.id}`,
+      );
+    }
+    for (const r of careers) {
+      const top = r.result_json?.paths?.[0]?.title || '职业地图';
+      lines.push(
+        `- [职业地图] ${top}（${r.result_json?.paths?.length ?? 0}条路径）　${r.created_at.toISOString().slice(0, 10)}　id=${r.id}`,
+      );
+    }
     return lines.join('\n');
   }
 
   // 一次查询同时取 id + 标题字段,供 ids 验权过滤和选择器文案两处复用,减少每条消息约 6 次目录查询。
   private async gatherSelectorCatalog(userId: string): Promise<{
-    ids: { diagnosis: string[]; cover_letter: string[] };
+    ids: CatalogIds;
     text: string;
   }> {
-    const [diagnoses, coverLetters] = await Promise.all([
+    const take = CoachContextService.CATALOG_TAKE;
+    const [
+      diagnoses,
+      coverLetters,
+      interviews,
+      mockSessions,
+      applications,
+      opportunities,
+      careers,
+    ] = await Promise.all([
       this.diagnosisRepo.find({
         where: { user_id: userId },
         order: { created_at: 'DESC' },
@@ -242,10 +398,52 @@ export class CoachContextService {
         take: 10,
         select: { id: true, company: true, role: true },
       }),
+      this.interviewRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+        select: {
+          id: true,
+          company: true,
+          role: true,
+          round: true,
+          overall_grade: true,
+        },
+      }),
+      this.mockSessionRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+        select: { id: true, company: true, role: true },
+      }),
+      this.applicationRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+        select: { id: true, company: true, role: true, stage: true },
+      }),
+      this.opportunityRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+        select: { id: true, company: true, role: true, status: true },
+      }),
+      this.careerRepo.find({
+        where: { user_id: userId },
+        order: { created_at: 'DESC' },
+        take,
+        // result_json 是长 JSON,目录文案不需要其内容,只取 id/created_at 控查询体积。
+        select: { id: true, created_at: true },
+      }),
     ]);
-    const ids = {
+    const ids: CatalogIds = {
       diagnosis: diagnoses.map((d) => d.id),
       cover_letter: coverLetters.map((c) => c.id),
+      interview: interviews.map((i) => i.id),
+      mock_session: mockSessions.map((m) => m.id),
+      application: applications.map((a) => a.id),
+      opportunity: opportunities.map((o) => o.id),
+      career: careers.map((r) => r.id),
     };
     const lines: string[] = [];
     for (const d of diagnoses) {
@@ -256,6 +454,31 @@ export class CoachContextService {
     for (const c of coverLetters) {
       lines.push(
         `kind=cover_letter id=${c.id} ${c.company || ''}/${c.role || ''}`.trim(),
+      );
+    }
+    for (const i of interviews) {
+      lines.push(
+        `kind=interview id=${i.id} 面试复盘 ${i.company || ''}/${i.role || ''} ${i.round} 评级${i.overall_grade || ''}`.trim(),
+      );
+    }
+    for (const m of mockSessions) {
+      lines.push(
+        `kind=mock_session id=${m.id} 模拟面试 ${m.company || ''}/${m.role || ''}`.trim(),
+      );
+    }
+    for (const a of applications) {
+      lines.push(
+        `kind=application id=${a.id} 投递 ${a.company}/${a.role} 阶段${a.stage}`.trim(),
+      );
+    }
+    for (const o of opportunities) {
+      lines.push(
+        `kind=opportunity id=${o.id} 机会评估 ${o.company || ''}/${o.role || ''} 状态${o.status}`.trim(),
+      );
+    }
+    for (const r of careers) {
+      lines.push(
+        `kind=career id=${r.id} 职业地图 ${r.created_at.toISOString().slice(0, 10)}`.trim(),
       );
     }
     return { ids, text: lines.join('\n') };
@@ -294,5 +517,179 @@ export class CoachContextService {
       `公司：${c.company || '未知'}　岗位：${c.role || '未知'}　语气：${c.tone}`,
       c.content,
     ].join('\n');
+  }
+
+  // 真实面试复盘全文:评级/逐题教练点评/知识缺口/转录/下轮预测。
+  private async loadInterviewFull(
+    userId: string,
+    id: string,
+  ): Promise<string | null> {
+    const i = await this.interviewRepo.findOne({
+      where: { id, user_id: userId },
+    });
+    if (!i) return null;
+    const lines = [
+      `### 面试复盘全文 id=${id}`,
+      `公司：${i.company || '未知'}　岗位：${i.role || '未知'}　轮次：${i.round}　评级：${i.overall_grade || '无'}`,
+    ];
+    if (i.overall_note) lines.push(`总评：${i.overall_note}`);
+    const scores = (i.scores || [])
+      .map((s: ScoreItem) => `${s.name} ${s.score}`)
+      .join('、');
+    if (scores) lines.push(`维度评分：${scores}`);
+    const questions = (i.questions || [])
+      .map(
+        (q: QuestionItem) =>
+          `- [${q.tone}] ${q.question}\n  点评：${q.coach_assessment}` +
+          (q.knowledge_gaps?.length
+            ? `\n  知识缺口：${q.knowledge_gaps.join('、')}`
+            : ''),
+      )
+      .join('\n');
+    if (questions) lines.push(`逐题复盘：\n${questions}`);
+    if (i.prediction?.summary) {
+      lines.push(`下轮预测：${i.prediction.summary}`);
+    }
+    if (i.transcript) {
+      lines.push(`转录:\n${CoachContextService.truncateText(i.transcript)}`);
+    }
+    return lines.join('\n');
+  }
+
+  // 模拟面试全文:总评(分数/评级/优劣势/小结)+ 逐题问答与反馈。
+  private async loadMockSessionFull(
+    userId: string,
+    id: string,
+  ): Promise<string | null> {
+    const m = await this.mockSessionRepo.findOne({
+      where: { id, user_id: userId },
+    });
+    if (!m) return null;
+    const lines = [
+      `### 模拟面试全文 id=${id}`,
+      `公司：${m.company || '未知'}　岗位：${m.role || '未知'}　状态：${m.status}`,
+    ];
+    const e = m.evaluation;
+    if (e) {
+      lines.push(
+        `总评：${e.overall_score}分 ${e.overall_grade}　优势：${(e.strengths || []).join('、') || '无'}　弱项：${(e.weaknesses || []).join('、') || '无'}`,
+      );
+      if (e.summary) lines.push(`小结：${e.summary}`);
+    }
+    const questions = m.questions || [];
+    const answers = m.answers || [];
+    const qa = questions
+      .map((q) => {
+        const a = answers.find((x) => x.n === q.n);
+        return (
+          `- Q${q.n}（${q.topic}）：${q.question}` +
+          (a
+            ? `\n  答（${a.score}分）：${a.answer}\n  反馈：${a.feedback}`
+            : '\n  （未作答）')
+        );
+      })
+      .join('\n');
+    if (qa) lines.push(`逐题问答:\n${CoachContextService.truncateText(qa)}`);
+    return lines.join('\n');
+  }
+
+  // 投递管道全文:阶段/公司岗位/备注 + 阶段流转事件时间线。
+  private async loadApplicationFull(
+    userId: string,
+    id: string,
+  ): Promise<string | null> {
+    const a = await this.applicationRepo.findOne({
+      where: { id, user_id: userId },
+    });
+    if (!a) return null;
+    const events = await this.applicationEventRepo.find({
+      where: { application_id: id },
+      order: { created_at: 'ASC' },
+    });
+    const lines = [
+      `### 投递全文 id=${id}`,
+      `公司：${a.company}　岗位：${a.role}　当前阶段：${a.stage}` +
+        (a.location ? `　地点：${a.location}` : '') +
+        (a.deadline ? `　截止：${a.deadline}` : ''),
+    ];
+    if (a.salary_range) lines.push(`薪资范围：${a.salary_range}`);
+    if (a.notes) lines.push(`备注：${a.notes}`);
+    const timeline = events
+      .map(
+        (ev) =>
+          `- ${ev.created_at.toISOString().slice(0, 10)} ${ev.from_stage ? `${ev.from_stage}→` : ''}${ev.to_stage}` +
+          (ev.note ? `（${ev.note}）` : ''),
+      )
+      .join('\n');
+    if (timeline) lines.push(`阶段时间线:\n${timeline}`);
+    return lines.join('\n');
+  }
+
+  // 机会评估全文:职位信息 + 最新一次评估的各维度分/建议/风险/优势/差距/下一步。
+  private async loadOpportunityFull(
+    userId: string,
+    id: string,
+  ): Promise<string | null> {
+    const o = await this.opportunityRepo.findOne({
+      where: { id, user_id: userId },
+    });
+    if (!o) return null;
+    const ev = await this.opportunityEvalRepo.findOne({
+      where: { opportunity_id: id },
+      order: { created_at: 'DESC' },
+    });
+    const lines = [
+      `### 机会评估全文 id=${id}`,
+      `公司：${o.company || '未知'}　岗位：${o.role || '未知'}　状态：${o.status}` +
+        (o.location ? `　地点：${o.location}` : ''),
+    ];
+    if (ev) {
+      lines.push(
+        `匹配度：${Math.round(ev.match_score * 100)}%　投递价值：${Math.round(ev.value_score * 100)}%　可信度：${Math.round(ev.credibility_score * 100)}%　综合：${Math.round(ev.overall_score * 100)}%`,
+        `建议：${ev.recommendation}（置信度 ${ev.confidence}）`,
+      );
+      if (ev.strengths?.length) lines.push(`优势：${ev.strengths.join('、')}`);
+      if (ev.gaps?.length) lines.push(`差距：${ev.gaps.join('、')}`);
+      if (ev.risk_flags?.length) lines.push(`风险：${ev.risk_flags.join('、')}`);
+      if (ev.next_actions?.length)
+        lines.push(`下一步：${ev.next_actions.join('、')}`);
+    } else {
+      lines.push('（评估未完成）');
+    }
+    return lines.join('\n');
+  }
+
+  // 职业地图历史全文:各发展路径(标题/匹配度/描述/技能)+ 能力盘点(当前/所需/证据)。
+  private async loadCareerFull(
+    userId: string,
+    id: string,
+  ): Promise<string | null> {
+    const r = await this.careerRepo.findOne({
+      where: { id, user_id: userId },
+    });
+    if (!r) return null;
+    const result = r.result_json;
+    const lines = [
+      `### 职业地图全文 id=${id}　生成于 ${r.created_at.toISOString().slice(0, 10)}`,
+    ];
+    const paths = (result?.paths || [])
+      .map(
+        (p: CareerPath) =>
+          `- ${p.title}（匹配度 ${p.fit_pct}%）：${p.description}` +
+          (p.skills?.length ? `\n  关键技能：${p.skills.join('、')}` : ''),
+      )
+      .join('\n');
+    if (paths) lines.push(`发展路径:\n${paths}`);
+    const skills = (result?.skill_audit || [])
+      .map(
+        (s: SkillAuditItem) =>
+          `- ${s.name}：当前 ${s.current}/所需 ${s.needed}${s.ok ? '（达标）' : '（缺口）'}` +
+          (s.evidenceFound ? `　证据：${s.evidenceFound}` : '　证据：无'),
+      )
+      .join('\n');
+    if (skills) {
+      lines.push(`能力盘点:\n${CoachContextService.truncateText(skills)}`);
+    }
+    return lines.join('\n');
   }
 }
