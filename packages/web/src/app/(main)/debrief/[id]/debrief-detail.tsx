@@ -3,11 +3,14 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import type { Interview } from '@/lib/types';
+import type { Interview, LabeledSegment, TranscribeStatusResponse } from '@/lib/types';
 import { ScoreRadar } from '@/components/interview/score-radar';
 import { QuestionCard } from '@/components/interview/question-card';
 import { PredictionCard } from '@/components/interview/prediction-card';
-import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw } from 'lucide-react';
+import { AudioUploader } from '@/components/interview/audio-uploader';
+import { TranscriptProgress } from '@/components/interview/transcript-progress';
+import { SpeakerLabelSection } from '@/components/interview/speaker-label-section';
+import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic } from 'lucide-react';
 
 function gradeColors(grade: string | null): { bg: string; text: string } {
   if (!grade) return { bg: 'var(--color-ink-4)', text: '#fff' };
@@ -51,6 +54,12 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
   const [notFound, setNotFound] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
 
+  // 录音转写态:taskId 为当前活动任务(轮询中);segments 为待确认标注。
+  const [showUploader, setShowUploader] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [transcribeStatus, setTranscribeStatus] = useState<TranscribeStatusResponse | null>(null);
+  const [segments, setSegments] = useState<LabeledSegment[] | null>(null);
+
   useEffect(() => {
     api
       .get<Interview>(`/interviews/${id}`)
@@ -70,6 +79,22 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
       });
   }, [id]);
 
+  // 恢复进行中的转写任务:进入页面时若已有未完成/待确认任务,接续轮询(避免刷新后丢进度)。
+  useEffect(() => {
+    api
+      .get<TranscribeStatusResponse>(`/interviews/${id}/transcribe/status`)
+      .then((data) => {
+        if (data.status === 'completed') return; // 已完成:走 interview.scores 渲染,不再轮询。
+        setTaskId(data.taskId);
+        setTranscribeStatus(data);
+        if (data.status === 'awaiting_confirm' && data.segmentsJson) {
+          setSegments(data.segmentsJson);
+        }
+      })
+      // 无转写任务(404)或网络异常:静默,落入普通"手动分析/上传录音"入口。
+      .catch(() => {});
+  }, [id]);
+
   async function handleAnalyze() {
     setAnalyzing(true);
     try {
@@ -79,6 +104,35 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
       alert(err instanceof Error ? err.message : '分析失败，请重试');
     } finally {
       setAnalyzing(false);
+    }
+  }
+
+  // 上传被后端接受(202):记录 taskId 启动轮询;清空旧标注。
+  function handleTranscribeStarted(newTaskId: string) {
+    setShowUploader(false);
+    setTaskId(newTaskId);
+    setTranscribeStatus(null);
+    setSegments(null);
+  }
+
+  // 每次轮询拿到状态:更新进度;awaiting_confirm 时填充待确认标注。
+  function handleStatusUpdate(resp: TranscribeStatusResponse) {
+    setTranscribeStatus(resp);
+    if (resp.status === 'awaiting_confirm' && resp.segmentsJson) {
+      setSegments(resp.segmentsJson);
+    }
+  }
+
+  // 确认并生成分析成功后:停轮询、清转写态、重拉 interview(此刻 scores 已非空)。
+  async function handleConfirmed() {
+    setTaskId(null);
+    setSegments(null);
+    setTranscribeStatus(null);
+    try {
+      const updated = await api.get<Interview>(`/interviews/${id}`);
+      setInterview(updated);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '刷新失败，请手动刷新页面');
     }
   }
 
@@ -312,8 +366,31 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
         </div>
       )}
 
-      {/* No analysis state */}
-      {!hasAnalysis && (
+      {/* Transcribe progress (active task, not yet awaiting confirm) */}
+      {!hasAnalysis && taskId && transcribeStatus?.status !== 'awaiting_confirm' && (
+        <div style={{ marginBottom: '20px' }}>
+          <TranscriptProgress
+            interviewId={id}
+            taskId={taskId}
+            onStatusUpdate={handleStatusUpdate}
+          />
+        </div>
+      )}
+
+      {/* Speaker label confirm section (awaiting_confirm with segments) */}
+      {!hasAnalysis && taskId && transcribeStatus?.status === 'awaiting_confirm' && segments && (
+        <div style={{ marginBottom: '20px' }}>
+          <SpeakerLabelSection
+            interviewId={id}
+            taskId={taskId}
+            segments={segments}
+            onConfirmed={handleConfirmed}
+          />
+        </div>
+      )}
+
+      {/* No analysis state — show entry actions only when no active transcribe task */}
+      {!hasAnalysis && !taskId && (
         <div
           className="lg"
           style={{
@@ -331,7 +408,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
               marginBottom: '8px',
             }}
           >
-            提交面试记录后，AI 将自动生成复盘分析
+            上传面试录音自动转写，或直接生成复盘分析
           </div>
           <div
             style={{
@@ -340,36 +417,66 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
               marginBottom: '20px',
             }}
           >
-            包含能力维度评分、逐题点评、以及下一轮预测
+            上传录音将转写并标注「面试官 / 用户」，确认后生成能力评分、逐题点评与下一轮预测
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <button
-              onClick={handleAnalyze}
-              disabled={analyzing}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '7px',
-                padding: '10px 22px',
-                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 'var(--radius-default)',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                cursor: analyzing ? 'not-allowed' : 'pointer',
-                opacity: analyzing ? 0.7 : 1,
-                letterSpacing: '-0.005em',
-                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
-              }}
-            >
-              <RefreshCw size={14} />
-              {analyzing ? '分析中…' : '手动分析'}
-            </button>
-            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                onClick={() => setShowUploader(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '10px 22px',
+                  background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 'var(--radius-default)',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  letterSpacing: '-0.005em',
+                  boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                }}
+              >
+                <Mic size={14} />
+                上传录音转写
+              </button>
+              <button
+                onClick={handleAnalyze}
+                disabled={analyzing}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  padding: '10px 22px',
+                  background: 'transparent',
+                  color: 'var(--color-ink-2)',
+                  border: '1.5px solid var(--color-line)',
+                  borderRadius: 'var(--radius-default)',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: analyzing ? 'not-allowed' : 'pointer',
+                  opacity: analyzing ? 0.7 : 1,
+                  letterSpacing: '-0.005em',
+                }}
+              >
+                <RefreshCw size={14} />
+                {analyzing ? '分析中…' : '直接分析文字记录'}
+              </button>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>各消耗 1 点</span>
           </div>
         </div>
       )}
+
+      {/* Audio uploader modal */}
+      <AudioUploader
+        interviewId={id}
+        open={showUploader}
+        onClose={() => setShowUploader(false)}
+        onStarted={handleTranscribeStarted}
+      />
 
       {/* Score bars */}
       {iv.scores && iv.scores.length > 0 && (

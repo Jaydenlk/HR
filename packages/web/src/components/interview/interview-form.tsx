@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, FileText, Mic } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Application } from '@/lib/types';
 
@@ -64,6 +64,8 @@ export function InterviewForm({ onSubmit, onClose, loading = false }: InterviewF
     application_id: '',
   });
   const [applications, setApplications] = useState<Application[]>([]);
+  // 录入方式 tab:text=粘贴文字记录(当场分析);audio=录音转写(需先建面试再到复盘页上传)。
+  const [inputTab, setInputTab] = useState<'text' | 'audio'>('text');
 
   useEffect(() => {
     api
@@ -248,21 +250,85 @@ export function InterviewForm({ onSubmit, onClose, loading = false }: InterviewF
             />
           </div>
 
-          {/* Transcript */}
+          {/* Transcript with text / audio tabs */}
           <div>
-            <label style={labelStyle}>面试记录 / 转写文字（选填）</label>
-            <textarea
-              name="transcript"
-              value={form.transcript}
-              onChange={handleChange}
-              placeholder="粘贴面试录音转写，或手动记录关键问题和回答…"
-              rows={6}
-              style={{
-                ...fieldStyle,
-                resize: 'vertical',
-                lineHeight: 1.6,
-              }}
-            />
+            <label style={labelStyle}>面试记录（选填）</label>
+            {/* Tab strip */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setInputTab('text')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: 'var(--radius-default)',
+                  border: `1.5px solid ${inputTab === 'text' ? 'var(--color-brand)' : 'var(--color-line-2)'}`,
+                  background: inputTab === 'text' ? 'var(--color-brand-soft)' : 'transparent',
+                  color: inputTab === 'text' ? 'var(--color-brand-ink)' : 'var(--color-ink-2)',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.12s',
+                }}
+              >
+                <FileText size={13} />
+                粘贴文字
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputTab('audio')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  borderRadius: 'var(--radius-default)',
+                  border: `1.5px solid ${inputTab === 'audio' ? 'var(--color-brand)' : 'var(--color-line-2)'}`,
+                  background: inputTab === 'audio' ? 'var(--color-brand-soft)' : 'transparent',
+                  color: inputTab === 'audio' ? 'var(--color-brand-ink)' : 'var(--color-ink-2)',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.12s',
+                }}
+              >
+                <Mic size={13} />
+                上传录音
+              </button>
+            </div>
+
+            {inputTab === 'text' ? (
+              <textarea
+                name="transcript"
+                value={form.transcript}
+                onChange={handleChange}
+                placeholder="粘贴面试录音转写，或手动记录关键问题和回答…"
+                rows={6}
+                style={{
+                  ...fieldStyle,
+                  resize: 'vertical',
+                  lineHeight: 1.6,
+                }}
+              />
+            ) : (
+              // 录音转写需面试 id(转写端点为 /interviews/:id/transcribe),故引导先建再到复盘页上传。
+              <div
+                style={{
+                  padding: '18px 16px',
+                  borderRadius: 'var(--radius-default)',
+                  border: '1px dashed var(--color-line-2)',
+                  background: 'rgba(47,143,255,.04)',
+                  fontSize: '12.5px',
+                  color: 'var(--color-ink-3)',
+                  lineHeight: 1.7,
+                }}
+              >
+                先保存这条面试记录，进入复盘详情页后点击「上传录音转写」上传音频，
+                系统会自动转写并标注「面试官 / 用户」，确认后生成复盘分析。
+              </div>
+            )}
           </div>
 
           {/* Actions */}

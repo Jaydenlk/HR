@@ -1,4 +1,19 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
@@ -7,6 +22,26 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { InterviewsService } from './interviews.service';
 import { CreateInterviewDto } from './dto/create-interview.dto';
 import { UpdateInterviewDto } from './dto/update-interview.dto';
+import { TranscribeInterviewDto } from '../speech/dto/transcribe-interview.dto';
+import { ConfirmLabelsDto } from '../speech/dto/confirm-labels.dto';
+
+// 上传音频上限:与 speech.config 同口径(AUDIO_MAX_SIZE_MB,缺省 25)。FileInterceptor 的 limits
+// 在装饰阶段求值(静态),故此处直接读 env;超限由 multer 拦截返回 413,不进 service。
+const AUDIO_MAX_BYTES =
+  Math.max(1, Number(process.env.AUDIO_MAX_SIZE_MB) || 25) * 1024 * 1024;
+
+// 仅接受音频:fileFilter 在 multer 层拒非 audio/* 类型(后端为真正 guard,不依赖前端 accept)。
+function audioFileFilter(
+  _req: unknown,
+  file: { mimetype: string },
+  cb: (error: Error | null, acceptFile: boolean) => void,
+): void {
+  if (file.mimetype.startsWith('audio/')) {
+    cb(null, true);
+  } else {
+    cb(new BadRequestException('仅支持上传音频文件（MP3 / WAV / M4A / OGG / AAC 等）'), false);
+  }
+}
 
 @Controller('interviews')
 @UseGuards(JwtAuthGuard)
@@ -52,6 +87,53 @@ export class InterviewsController {
   @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   analyze(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.interviews.analyze(id, user.id);
+  }
+
+  // ── 录音转写(StepFun ASR + LLM 角色打标)──────────────────────────────────────
+  // 上传音频 → 同步转写+打标 → 落 awaiting_confirm。同步编排:失败抛错 → 拦截器成功路径不触发 →
+  // 失败不计费(规格 §9 步骤 8)。consent 必须 'true'(@IsIn 硬校验,缺/非 true → 400 不进流程)。
+  // 计费:成功扣 1(CreditGuard 预检余额 ≥1,CreditInterceptor 成功后扣)。
+  @Post(':id/transcribe')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(CreditGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: AUDIO_MAX_BYTES },
+      fileFilter: audioFileFilter,
+    }),
+    AiUsageInterceptor,
+    CreditInterceptor,
+  )
+  transcribe(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+    // DTO 校验 consent='true'(multipart 非文件字段);file 由 multer 注入。
+    @Body() _dto: TranscribeInterviewDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传音频文件');
+    }
+    return this.interviews.transcribe(id, user.id, file.buffer, file.mimetype);
+  }
+
+  // 轮询任务状态 + 标注结果。只读不计费,仅 JwtAuthGuard。
+  @Get(':id/transcribe/status')
+  transcribeStatus(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.interviews.getTranscribeStatus(id, user.id);
+  }
+
+  // 提交纠正后的角色标注 → 触发 analyze。成功扣 1(同 analyze 计费语义)。
+  @Patch(':id/transcribe/:taskId/confirm')
+  @UseGuards(CreditGuard)
+  @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
+  confirmTranscribe(
+    @Param('id') id: string,
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: ConfirmLabelsDto,
+  ) {
+    return this.interviews.confirmTranscribe(id, taskId, user.id, dto.segments);
   }
 
   @Delete(':id')

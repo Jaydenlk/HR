@@ -324,6 +324,39 @@ export interface Interview {
   questions: InterviewQuestion[] | null;
   prediction: InterviewPrediction | null;
   created_at: string;
+  // 最近一次录音转写任务的状态(无任务则缺省);前端据此决定是否展示转写进度/标注区。
+  transcript_status?: TranscribeStatus;
+}
+
+// ─── 录音转写(StepFun ASR + LLM 角色打标)──────────────────────────────────────
+// 与后端 transcribe-task.entity.ts 的 TranscribeStatus / LabeledSegment 权威形状一致。
+export type TranscribeStatus =
+  | 'submitted'
+  | 'transcribing'
+  | 'labeling'
+  | 'awaiting_confirm'
+  | 'analyzing'
+  | 'completed'
+  | 'failed';
+
+export type SpeakerRole = 'interviewer' | 'candidate';
+
+// 带角色标的转写句段;idx 为 0-based 序号,confirm 端点按 idx 覆盖 speaker(只改 speaker 不改 text)。
+export interface LabeledSegment {
+  idx: number;
+  text: string;
+  startMs: number;
+  endMs: number;
+  speaker: SpeakerRole;
+}
+
+// GET /interviews/:id/transcribe/status 响应。
+export interface TranscribeStatusResponse {
+  taskId: string;
+  status: TranscribeStatus;
+  errorMessage?: string | null;
+  // awaiting_confirm 及之后非空;之前为 null。
+  segmentsJson?: LabeledSegment[] | null;
 }
 
 export interface MockQuestion {

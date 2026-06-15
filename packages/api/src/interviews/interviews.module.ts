@@ -7,9 +7,20 @@ import { DebriefService } from './debrief.service';
 import { AiModule } from '../ai/ai.module';
 import { QuotaModule } from '../quota/quota.module';
 import { CreditModule } from '../credit/credit.module';
+import { SpeechModule } from '../speech/speech.module';
+import { InterviewTranscribeTask } from '../speech/entities/transcribe-task.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Interview]), AiModule, QuotaModule, CreditModule],
+  // forFeature 再次注册转写任务实体:同一实体在本模块作用域内拿到仓库,供 InterviewsService 注入
+  // (SpeechModule 已在自身作用域注册同一实体,二者各自获得仓库,实体本身经 autoLoadEntities 单次建表)。
+  // import SpeechModule:消费其 export 的 SpeechService(ASR 转写)+ LabelService(角色打标)。
+  imports: [
+    TypeOrmModule.forFeature([Interview, InterviewTranscribeTask]),
+    AiModule,
+    QuotaModule,
+    CreditModule,
+    SpeechModule,
+  ],
   controllers: [InterviewsController],
   providers: [InterviewsService, DebriefService],
   exports: [InterviewsService],
