@@ -1,17 +1,55 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Interview } from './entities/interview.entity';
 import { CreateInterviewDto } from './dto/create-interview.dto';
 import { UpdateInterviewDto } from './dto/update-interview.dto';
 import { DebriefService } from './debrief.service';
+import { SpeechService } from '../speech/speech.service';
+import { LabelService } from '../speech/label.service';
+import {
+  InterviewTranscribeTask,
+  LabeledSegment,
+  TranscribeStatus,
+} from '../speech/entities/transcribe-task.entity';
+import { LabelCorrectionDto } from '../speech/dto/confirm-labels.dto';
+
+/** POST /interviews/:id/transcribe 的 202 响应:仅回 taskId,前端据此轮询 status。 */
+export interface TranscribeStartedResponse {
+  taskId: string;
+}
+
+/** GET /interviews/:id/transcribe/status 的响应:任务态 + 标注结果(awaiting_confirm 起非空)。 */
+export interface TranscribeStatusResponse {
+  taskId: string;
+  status: TranscribeStatus;
+  errorMessage: string | null;
+  segmentsJson: LabeledSegment[] | null;
+}
+
+// 前端展示用角色前缀,组装喂给 DebriefService.analyze 的带角色 transcript。
+const SPEAKER_PREFIX: Record<LabeledSegment['speaker'], string> = {
+  interviewer: '面试官',
+  candidate: '用户',
+};
 
 @Injectable()
 export class InterviewsService {
+  private readonly logger = new Logger(InterviewsService.name);
+
   constructor(
     @InjectRepository(Interview)
     private readonly repo: Repository<Interview>,
+    @InjectRepository(InterviewTranscribeTask)
+    private readonly taskRepo: Repository<InterviewTranscribeTask>,
     private readonly debrief: DebriefService,
+    private readonly speech: SpeechService,
+    private readonly label: LabelService,
   ) {}
 
   async create(userId: string, dto: CreateInterviewDto): Promise<Interview> {
@@ -104,5 +142,225 @@ export class InterviewsService {
   async remove(id: string, userId: string): Promise<void> {
     const interview = await this.findOne(id, userId);
     await this.repo.remove(interview);
+  }
+
+  /**
+   * 上传音频 → 转写 → 角色打标,落 task.segments_json 并停在 awaiting_confirm 等用户确认。
+   *
+   * 同步编排(不 fire-and-forget):转写/打标失败时本方法直接抛错 → 控制器响应非 2xx →
+   * AiUsageInterceptor / CreditInterceptor 的成功路径不触发 → 失败不计费(规格 §9 步骤 8)。
+   * 成功时返回 taskId,此刻 status 已是 awaiting_confirm,前端轮询立即拿到可纠正列表。
+   *
+   * 防编造红线:
+   *  - SpeechService/LabelService 内部对上游失败/空结果均显式抛错,本方法不吞错、不兜底空。
+   *  - 任一阶段异常 → 标 task.status=failed + 记 failed_at_stage,再上抛(前端轮询见 failed)。
+   * 隐私铁律:audio Buffer 仅在本方法栈内存活,转写结束即出作用域 GC;interview.audio_url 全程 null。
+   */
+  async transcribe(
+    id: string,
+    userId: string,
+    audio: Buffer,
+    mimeType: string,
+  ): Promise<TranscribeStartedResponse> {
+    // 所有权校验:非本人面试 → 404(不泄露存在性)。
+    const interview = await this.findOne(id, userId);
+
+    const task = await this.taskRepo.save(
+      this.taskRepo.create({
+        interview_id: interview.id,
+        user_id: userId,
+        status: 'submitted',
+      }),
+    );
+
+    try {
+      // 1) 转写:岗位/技术热词传入纠正同音黑话(全栈→全站)。
+      await this.setTaskStatus(task, 'transcribing');
+      const hotwords = this.buildHotwords(interview);
+      const segments = await this.speech.transcribeFile(audio, mimeType, hotwords);
+
+      // 2) 角色打标:LLM 判 interviewer|candidate,失败/漂移在 LabelService 内抛错。
+      await this.setTaskStatus(task, 'labeling');
+      const labeled = await this.label.label(segments);
+
+      // 3) 补 idx(LabelService 输出无 idx,落库/前端/confirm 均按数组下标定位)→ 落 segments_json。
+      const withIdx: LabeledSegment[] = labeled.map((seg, idx) => ({
+        idx,
+        text: seg.text,
+        startMs: seg.startMs,
+        endMs: seg.endMs,
+        speaker: seg.speaker,
+      }));
+      task.segments_json = withIdx;
+      task.status = 'awaiting_confirm';
+      await this.taskRepo.save(task);
+
+      return { taskId: task.id };
+    } catch (err) {
+      // 记失败态后上抛:控制器返回非 2xx,失败不计费;前端轮询看到 failed。
+      await this.markTaskFailed(task, err);
+      throw err;
+    }
+  }
+
+  /**
+   * 轮询任务状态。返回最新一条该面试的转写任务(按创建时间倒序),非本人面试 → 404。
+   * segmentsJson 仅在 awaiting_confirm 及之后非空(供前端渲染可纠正列表)。
+   */
+  async getTranscribeStatus(
+    id: string,
+    userId: string,
+  ): Promise<TranscribeStatusResponse> {
+    // 先校验面试所有权(404 不泄露存在性)。
+    await this.findOne(id, userId);
+
+    const task = await this.taskRepo.findOne({
+      where: { interview_id: id, user_id: userId },
+      order: { created_at: 'DESC' },
+    });
+    if (!task) throw new NotFoundException();
+
+    return {
+      taskId: task.id,
+      status: task.status,
+      errorMessage: task.error_message,
+      segmentsJson: task.segments_json,
+    };
+  }
+
+  /**
+   * 用户确认/纠正角色后触发分析:按 idx 覆盖 speaker(只改 speaker 不改 text,防篡改)→
+   * 组装带角色前缀的 transcript → DebriefService.analyze(签名零改动)→ 写回 Interview → completed。
+   *
+   * 同步编排:analyze 失败(过短 400 / AI 故障 503)直接上抛 → 失败不计费;任务标 failed。
+   * 非本人面试/任务不匹配 → 404;idx 越界/缺/多 → 400(防篡改与防编造双重校验)。
+   * 不造假态:成功 completed 前 Interview.scores 保持原值(此前为 null)。
+   */
+  async confirmTranscribe(
+    id: string,
+    taskId: string,
+    userId: string,
+    corrections: LabelCorrectionDto[],
+  ): Promise<Interview> {
+    const interview = await this.findOne(id, userId);
+
+    const task = await this.taskRepo.findOne({
+      where: { id: taskId, interview_id: id, user_id: userId },
+    });
+    if (!task) throw new NotFoundException();
+
+    const stored = task.segments_json;
+    if (!stored || stored.length === 0) {
+      throw new BadRequestException('该转写任务尚无可确认的标注内容');
+    }
+    if (task.status !== 'awaiting_confirm') {
+      throw new BadRequestException('该转写任务当前状态不可确认');
+    }
+
+    // 按 idx 覆盖 speaker:校验一一对应,越界/缺/多 → 400(防篡改:客户端不得改 text、不得伪造 idx)。
+    const merged = this.applyCorrections(stored, corrections);
+
+    try {
+      task.segments_json = merged;
+      await this.setTaskStatus(task, 'analyzing');
+
+      // 组装带角色前缀的转写正文喂现有 analyze(text 以服务端 segments_json 为准)。
+      const transcript = merged
+        .map((seg) => `[${SPEAKER_PREFIX[seg.speaker]}] ${seg.text}`)
+        .join('\n');
+
+      const result = await this.debrief.analyze(
+        transcript,
+        interview.company ?? undefined,
+        interview.role ?? undefined,
+        interview.round,
+      );
+
+      // analyze 成功才写回 Interview:scores 此刻才非空,之前保持 null(不造假态)。
+      interview.transcript = transcript;
+      Object.assign(interview, result);
+      await this.repo.save(interview);
+
+      task.status = 'completed';
+      await this.taskRepo.save(task);
+
+      return this.findOne(id, userId);
+    } catch (err) {
+      await this.markTaskFailed(task, err);
+      throw err;
+    }
+  }
+
+  /** 把纠正项按 idx 覆盖到存储段的 speaker;严格校验一一对应(防篡改 + 防编造)。 */
+  private applyCorrections(
+    stored: LabeledSegment[],
+    corrections: LabelCorrectionDto[],
+  ): LabeledSegment[] {
+    if (corrections.length !== stored.length) {
+      throw new BadRequestException(
+        `提交的标注数量(${corrections.length})与转写段落数量(${stored.length})不一致`,
+      );
+    }
+
+    const byIdx = new Map<number, LabelCorrectionDto['speaker']>();
+    for (const c of corrections) {
+      if (c.idx < 0 || c.idx >= stored.length) {
+        throw new BadRequestException(
+          `标注下标越界 idx=${c.idx}(有效范围 0..${stored.length - 1})`,
+        );
+      }
+      if (byIdx.has(c.idx)) {
+        throw new BadRequestException(`标注下标重复 idx=${c.idx}`);
+      }
+      byIdx.set(c.idx, c.speaker);
+    }
+
+    return stored.map((seg) => {
+      const speaker = byIdx.get(seg.idx);
+      if (speaker === undefined) {
+        throw new BadRequestException(`缺少下标 idx=${seg.idx} 的标注`);
+      }
+      // 只覆盖 speaker,text/startMs/endMs/idx 一律以服务端存储为准(防篡改)。
+      return { ...seg, speaker };
+    });
+  }
+
+  /** 由面试公司/岗位/轮次构造热词,纠正同音技术黑话;去空去重。 */
+  private buildHotwords(interview: Interview): string[] {
+    const raw = [interview.company, interview.role, interview.round];
+    const seen = new Set<string>();
+    const hotwords: string[] = [];
+    for (const item of raw) {
+      const v = item?.trim();
+      if (v && !seen.has(v)) {
+        seen.add(v);
+        hotwords.push(v);
+      }
+    }
+    return hotwords;
+  }
+
+  private async setTaskStatus(
+    task: InterviewTranscribeTask,
+    status: TranscribeStatus,
+  ): Promise<void> {
+    task.status = status;
+    await this.taskRepo.save(task);
+  }
+
+  /** 标记任务失败:记当前阶段 + 错误信息(不含敏感堆栈),供前端轮询展示。 */
+  private async markTaskFailed(
+    task: InterviewTranscribeTask,
+    err: unknown,
+  ): Promise<void> {
+    task.failed_at_stage = task.status;
+    task.status = 'failed';
+    task.error_message = err instanceof Error ? err.message : String(err);
+    try {
+      await this.taskRepo.save(task);
+    } catch (saveErr) {
+      // 标失败态本身落库失败:仅记日志,不掩盖原始错误(原始错误仍会被调用方上抛)。
+      this.logger.error(`标记转写任务失败态时落库出错: ${String(saveErr)}`);
+    }
   }
 }
