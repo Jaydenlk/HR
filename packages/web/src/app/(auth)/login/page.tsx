@@ -216,14 +216,23 @@ export default function LoginPage() {
   return (
     <div
       style={{
+        position: 'relative',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--color-bg)',
         padding: '24px',
       }}
     >
+      {/* (auth) 不在 (main) 外壳下,自带一层克制极光(对齐 globals.css .atmos/.au 用法);
+          fixed inset:0 z-index:0 铺底,内容包 position:relative z-index:1 浮其上。 */}
+      <div className="atmos" aria-hidden="true">
+        <span className="au a1" />
+        <span className="au a2" />
+        <span className="au a3" />
+        <span className="grid" />
+        <span className="grain" />
+      </div>
       {/* (auth) 无共享布局,toast 出口在页面内挂载(与 (main) 布局同参数) */}
       <Toaster position="top-center" richColors closeButton />
       {/* 条款行抖动提示动画:仅本页使用,作用域限页面内 */}
@@ -237,16 +246,19 @@ export default function LoginPage() {
         }
         .terms-shake { animation: terms-shake 0.4s ease; }
       `}</style>
-      <div style={{ width: '100%', maxWidth: '400px' }}>
-        {/* Card */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          width: '100%',
+          maxWidth: '400px',
+        }}
+      >
+        {/* Card — 单层液态玻璃(.lg) */}
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '28px',
             padding: '44px 40px 36px',
-            boxShadow:
-              '0 1px 3px rgba(0,0,0,0.06), 0 12px 48px rgba(0,0,0,0.07)',
-            border: '1px solid var(--color-line)',
           }}
         >
           {/* Logo */}
@@ -262,19 +274,22 @@ export default function LoginPage() {
               style={{
                 width: '44px',
                 height: '44px',
-                background: 'var(--color-ink)',
+                background:
+                  'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
+                boxShadow:
+                  '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               {/* Coach "C" glyph */}
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                 <path
                   d="M18 7.5C16.8 5.1 14.1 3.5 11 3.5C7.1 3.5 4 6.6 4 10.5C4 14.4 7.1 17.5 11 17.5C14.1 17.5 16.8 15.9 18 13.5"
-                  stroke="white"
+                  stroke="#fff"
                   strokeWidth="2.2"
                   strokeLinecap="round"
                 />
@@ -283,6 +298,7 @@ export default function LoginPage() {
             <div>
               <div
                 style={{
+                  fontFamily: 'var(--serif)',
                   fontSize: '18px',
                   fontWeight: 700,
                   color: 'var(--color-ink)',
@@ -308,6 +324,7 @@ export default function LoginPage() {
           {/* Heading */}
           <h1
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '22px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -434,24 +451,24 @@ export default function LoginPage() {
                   borderRadius: '12px',
                   background: sending
                     ? 'var(--color-ink-3)'
-                    : 'var(--color-brand)',
+                    : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                   color: '#fff',
                   fontSize: '15px',
                   fontWeight: 600,
                   border: 'none',
                   cursor: sending ? 'not-allowed' : 'pointer',
-                  transition: 'background 0.15s, transform 0.1s',
+                  transition: 'filter 0.15s, transform 0.1s',
                   letterSpacing: '-0.1px',
                   width: '100%',
+                  boxShadow: sending
+                    ? 'none'
+                    : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                 }}
                 onMouseEnter={(e) => {
-                  if (!sending)
-                    e.currentTarget.style.background =
-                      'var(--color-brand-hover)';
+                  if (!sending) e.currentTarget.style.filter = 'brightness(1.06)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!sending)
-                    e.currentTarget.style.background = 'var(--color-brand)';
+                  if (!sending) e.currentTarget.style.filter = 'none';
                 }}
                 onMouseDown={(e) => {
                   if (!sending)
@@ -476,8 +493,8 @@ export default function LoginPage() {
               {devCode && (
                 <div
                   style={{
-                    background: 'var(--color-warn-soft, rgba(255,159,10,0.12))',
-                    color: 'var(--color-warn, #b25e00)',
+                    background: 'var(--color-warn-soft)',
+                    color: 'var(--color-warn)',
                     borderRadius: '10px',
                     padding: '10px 12px',
                     fontSize: '12.5px',
@@ -544,8 +561,8 @@ export default function LoginPage() {
                 <>
                   <div
                     style={{
-                      background: 'var(--color-brand-soft, rgba(10,132,255,0.08))',
-                      color: 'var(--color-ink-3)',
+                      background: 'var(--color-brand-soft)',
+                      color: 'var(--color-brand-ink)',
                       borderRadius: '10px',
                       padding: '10px 12px',
                       fontSize: '12.5px',
@@ -614,24 +631,25 @@ export default function LoginPage() {
                   borderRadius: '12px',
                   background: loggingIn
                     ? 'var(--color-ink-3)'
-                    : 'var(--color-brand)',
+                    : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                   color: '#fff',
                   fontSize: '15px',
                   fontWeight: 600,
                   border: 'none',
                   cursor: loggingIn ? 'not-allowed' : 'pointer',
-                  transition: 'background 0.15s, transform 0.1s',
+                  transition: 'filter 0.15s, transform 0.1s',
                   letterSpacing: '-0.1px',
                   width: '100%',
+                  boxShadow: loggingIn
+                    ? 'none'
+                    : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                 }}
                 onMouseEnter={(e) => {
                   if (!loggingIn)
-                    e.currentTarget.style.background =
-                      'var(--color-brand-hover)';
+                    e.currentTarget.style.filter = 'brightness(1.06)';
                 }}
                 onMouseLeave={(e) => {
-                  if (!loggingIn)
-                    e.currentTarget.style.background = 'var(--color-brand)';
+                  if (!loggingIn) e.currentTarget.style.filter = 'none';
                 }}
                 onMouseDown={(e) => {
                   if (!loggingIn)
@@ -715,11 +733,11 @@ export default function LoginPage() {
                       borderRadius: '10px',
                       background: devLoading
                         ? 'var(--color-ink-3)'
-                        : 'var(--color-surface-3)',
+                        : 'rgba(47,143,255,.05)',
                       color: 'var(--color-ink)',
                       fontSize: '13.5px',
                       fontWeight: 600,
-                      border: '1px solid var(--color-line)',
+                      border: '1px solid var(--hair)',
                       cursor: devLoading ? 'not-allowed' : 'pointer',
                       width: '100%',
                     }}

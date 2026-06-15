@@ -86,7 +86,7 @@ const EDGE = 8;
 const primaryBtnStyle: React.CSSProperties = {
   padding: '11px 18px',
   minHeight: '44px',
-  background: 'var(--color-ink)',
+  background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
   color: '#fff',
   border: 'none',
   borderRadius: '10px',
@@ -95,6 +95,7 @@ const primaryBtnStyle: React.CSSProperties = {
   fontFamily: 'inherit',
   letterSpacing: '-0.003em',
   cursor: 'pointer',
+  boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
 };
 
 // 桌面气泡里的紧凑主按钮(空间有限,不强求 44pt)
@@ -294,6 +295,7 @@ export default function OnboardingTour() {
       role="dialog"
       aria-modal="true"
       aria-label="新手导览"
+      data-tour-spotlight
       style={{
         position: 'fixed',
         inset: 0,
@@ -306,8 +308,13 @@ export default function OnboardingTour() {
         animation: 'tour-fade-in 0.25s ease',
       }}
     >
-      {/* 动画 keyframes:组件自包含,不进全局样式 */}
+      {/* 动画 keyframes + 遮罩配色:组件自包含,不进全局样式。
+          --tour-scrim 对齐共享 .modal-scrim 的克制色值(暗罩不发灰发脏),
+          但本组件是全屏聚光层(含侧栏),故不用 .modal-scrim/.modal-overlay。
+          通过 CSS 变量让暗/亮主题各自取干净值,inline style 引用即可。 */}
       <style>{`
+        [data-tour-spotlight] { --tour-scrim: rgba(5, 6, 12, 0.38); }
+        html[data-theme="light"] [data-tour-spotlight] { --tour-scrim: rgba(17, 19, 28, 0.2); }
         @keyframes tour-fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes tour-pop-in {
           from { opacity: 0; transform: translateY(10px) scale(0.97); }
@@ -326,7 +333,7 @@ export default function OnboardingTour() {
             height: `${hole.height}px`,
             borderRadius: '12px',
             border: '2px solid var(--color-brand)',
-            boxShadow: '0 0 0 9999px rgba(29, 29, 31, 0.55)',
+            boxShadow: '0 0 0 9999px var(--tour-scrim)',
             transition:
               'top 0.32s ease, left 0.32s ease, width 0.32s ease, height 0.32s ease',
             pointerEvents: 'none',
@@ -337,7 +344,7 @@ export default function OnboardingTour() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(29, 29, 31, 0.55)',
+            background: 'var(--tour-scrim)',
             pointerEvents: 'none',
           }}
         />
@@ -346,20 +353,18 @@ export default function OnboardingTour() {
       {isChecklist ? (
         /* 末尾:启动清单卡(居中) */
         <div
+          className="lg"
           style={{
             position: 'relative',
             width: '420px',
             maxWidth: '100%',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
-            borderRadius: 'var(--radius-lg)',
             padding: '28px',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.18)',
             animation: 'tour-pop-in 0.3s ease',
           }}
         >
           <div
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '19px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -403,21 +408,19 @@ export default function OnboardingTour() {
       ) : useSpotlight ? (
         /* 桌面聚光态:说明气泡跟随聚光灯,位置带 transition 平滑移动 */
         <div
+          className="lg"
           style={{
             position: 'fixed',
             top: `${bubbleTop}px`,
             left: `${bubbleLeft}px`,
             width: `${BUBBLE_W}px`,
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
             borderRadius: 'var(--radius-default)',
             padding: '16px',
-            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.16)',
             transition: 'top 0.32s ease, left 0.32s ease',
             animation: 'tour-pop-in 0.3s ease',
           }}
         >
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-ink)' }}>
+          <div style={{ fontFamily: 'var(--serif)', fontSize: '14px', fontWeight: 600, color: 'var(--color-ink)' }}>
             {step?.title}
           </div>
           <div
@@ -456,21 +459,19 @@ export default function OnboardingTour() {
       ) : (
         /* 居中说明卡:welcome / 点数步 / 移动端各步 / 锚点缺失降级 */
         <div
+          className="lg"
           style={{
             position: 'relative',
             width: '380px',
             maxWidth: '100%',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
-            borderRadius: 'var(--radius-lg)',
             padding: '28px',
             textAlign: 'center',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.18)',
             animation: 'tour-pop-in 0.3s ease',
           }}
         >
           <div
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '19px',
               fontWeight: 700,
               color: 'var(--color-ink)',

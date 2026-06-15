@@ -213,13 +213,11 @@ function SubmitDialog({
       }}
     >
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '18px',
           padding: '28px 28px 24px',
           width: '100%',
           maxWidth: '480px',
-          boxShadow: '0 24px 56px rgba(0,0,0,0.16)',
           maxHeight: '90vh',
           overflowY: 'auto',
         }}
@@ -235,6 +233,7 @@ function SubmitDialog({
           <h2
             style={{
               margin: 0,
+              fontFamily: 'var(--serif)',
               fontSize: '18px',
               fontWeight: 700,
               letterSpacing: '-0.01em',
@@ -391,12 +390,17 @@ function SubmitDialog({
                 padding: '10px 22px',
                 borderRadius: '10px',
                 border: 'none',
-                background: submitting ? 'var(--color-surface-3)' : 'var(--color-brand)',
+                background: submitting
+                  ? 'rgba(47,143,255,.05)'
+                  : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: submitting ? 'var(--color-ink-3)' : '#fff',
                 fontSize: '13.5px',
                 fontWeight: 700,
                 cursor: submitting ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
+                boxShadow: submitting
+                  ? undefined
+                  : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               {submitting ? (
@@ -450,10 +454,8 @@ function MarketBenchmark({
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '18px',
         padding: '22px 24px',
       }}
     >
@@ -472,6 +474,7 @@ function MarketBenchmark({
           <h3
             style={{
               margin: 0,
+              fontFamily: 'var(--serif)',
               fontSize: '15px',
               fontWeight: 700,
               letterSpacing: '-0.008em',
@@ -492,14 +495,19 @@ function MarketBenchmark({
               style={{
                 padding: '5px 12px',
                 borderRadius: '20px',
-                border: selectedRole === r ? 'none' : '1px solid var(--color-line)',
-                background: selectedRole === r ? 'var(--color-brand)' : 'transparent',
+                border: selectedRole === r ? 'none' : '1px solid var(--hair)',
+                background: selectedRole === r
+                  ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))'
+                  : 'transparent',
                 color: selectedRole === r ? '#fff' : 'var(--color-ink-3)',
                 fontSize: '12px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'all 0.15s',
+                boxShadow: selectedRole === r
+                  ? '0 8px 22px -12px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)'
+                  : undefined,
               }}
             >
               {r.replace('工程师', '').replace('经理', 'PM')}
@@ -513,9 +521,9 @@ function MarketBenchmark({
         <div
           style={{
             padding: '28px 20px',
-            background: 'var(--color-surface-2)',
+            background: 'rgba(47,143,255,.05)',
             borderRadius: '12px',
-            border: '1px dashed var(--color-line)',
+            border: '1px dashed var(--hair)',
             textAlign: 'center',
             color: 'var(--color-ink-3)',
             fontSize: '13px',
@@ -544,7 +552,8 @@ function MarketBenchmark({
               key={m.label}
               style={{
                 padding: '14px 14px 12px',
-                background: 'var(--color-surface-2)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 borderRadius: '12px',
                 borderTop: `3px solid ${m.color}`,
               }}
@@ -605,7 +614,8 @@ function MarketBenchmark({
           style={{
             position: 'relative',
             height: '8px',
-            background: 'var(--color-surface-2)',
+            background: 'rgba(47,143,255,.05)',
+            border: '1px solid var(--hair)',
             borderRadius: '4px',
             overflow: 'visible',
           }}
@@ -695,9 +705,9 @@ function MarketBenchmark({
           style={{
             marginTop: '14px',
             padding: '9px 14px',
-            background: 'rgba(16,185,129,0.08)',
+            background: 'var(--color-success-soft)',
             borderRadius: '8px',
-            border: '1px solid rgba(16,185,129,0.2)',
+            border: '1px solid var(--hair)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -708,11 +718,11 @@ function MarketBenchmark({
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              background: 'var(--color-success, #10b981)',
+              background: 'var(--color-success)',
               flexShrink: 0,
             }}
           />
-          <span style={{ fontSize: '12.5px', color: 'var(--color-success, #10b981)', fontWeight: 600 }}>
+          <span style={{ fontSize: '12.5px', color: 'var(--color-success)', fontWeight: 600 }}>
             你的定位 · {userPosition} 区间
           </span>
           <span style={{ fontSize: '12px', color: 'var(--color-ink-3)', marginLeft: 'auto' }}>
@@ -775,8 +785,8 @@ function MarketTable({
     textTransform: 'uppercase',
     color: sortKey === col ? 'var(--color-brand)' : 'var(--color-ink-3)',
     fontWeight: 700,
-    background: 'var(--color-surface-2)',
-    borderBottom: '1px solid var(--color-line)',
+    background: 'rgba(47,143,255,.05)',
+    borderBottom: '1px solid var(--hair)',
     whiteSpace: 'nowrap',
     cursor: 'pointer',
     userSelect: 'none',
@@ -790,17 +800,15 @@ function MarketTable({
     textTransform: 'uppercase',
     color: 'var(--color-ink-3)',
     fontWeight: 700,
-    background: 'var(--color-surface-2)',
-    borderBottom: '1px solid var(--color-line)',
+    background: 'rgba(47,143,255,.05)',
+    borderBottom: '1px solid var(--hair)',
     whiteSpace: 'nowrap',
   };
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '18px',
         overflow: 'hidden',
       }}
     >
@@ -820,6 +828,7 @@ function MarketTable({
           <h3
             style={{
               margin: 0,
+              fontFamily: 'var(--serif)',
               fontSize: '15px',
               fontWeight: 700,
               letterSpacing: '-0.008em',
@@ -847,13 +856,18 @@ function MarketTable({
               style={{
                 padding: '4px 10px',
                 borderRadius: '16px',
-                border: roleFilter === '' ? 'none' : '1px solid var(--color-line)',
-                background: roleFilter === '' ? 'var(--color-brand)' : 'transparent',
+                border: roleFilter === '' ? 'none' : '1px solid var(--hair)',
+                background: roleFilter === ''
+                  ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))'
+                  : 'transparent',
                 color: roleFilter === '' ? '#fff' : 'var(--color-ink-3)',
                 fontSize: '11.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
+                boxShadow: roleFilter === ''
+                  ? '0 8px 22px -12px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)'
+                  : undefined,
               }}
             >
               全部
@@ -865,13 +879,18 @@ function MarketTable({
                 style={{
                   padding: '4px 10px',
                   borderRadius: '16px',
-                  border: roleFilter === r ? 'none' : '1px solid var(--color-line)',
-                  background: roleFilter === r ? 'var(--color-brand)' : 'transparent',
+                  border: roleFilter === r ? 'none' : '1px solid var(--hair)',
+                  background: roleFilter === r
+                    ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))'
+                    : 'transparent',
                   color: roleFilter === r ? '#fff' : 'var(--color-ink-3)',
                   fontSize: '11.5px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
+                  boxShadow: roleFilter === r
+                    ? '0 8px 22px -12px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)'
+                    : undefined,
                 }}
               >
                 {r.replace('工程师', '').replace('经理', 'PM')}
@@ -907,13 +926,14 @@ function MarketTable({
               padding: '9px 18px',
               borderRadius: '10px',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '13px',
               fontWeight: 600,
               cursor: 'pointer',
               fontFamily: 'inherit',
               marginTop: '4px',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             <Plus size={14} />
@@ -1039,10 +1059,8 @@ function UserOffersTable({ entries }: { entries: SalaryEntry[] }) {
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '18px',
         overflow: 'hidden',
       }}
     >
@@ -1058,6 +1076,7 @@ function UserOffersTable({ entries }: { entries: SalaryEntry[] }) {
         <h3
           style={{
             margin: 0,
+            fontFamily: 'var(--serif)',
             fontSize: '15px',
             fontWeight: 700,
             letterSpacing: '-0.008em',
@@ -1098,8 +1117,8 @@ function UserOffersTable({ entries }: { entries: SalaryEntry[] }) {
                       textTransform: 'uppercase',
                       color: 'var(--color-ink-3)',
                       fontWeight: 700,
-                      background: 'var(--color-surface-2)',
-                      borderBottom: '1px solid var(--color-line)',
+                      background: 'rgba(47,143,255,.05)',
+                      borderBottom: '1px solid var(--hair)',
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -1245,10 +1264,8 @@ function AiAnalysisSection() {
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '18px',
         overflow: 'hidden',
       }}
     >
@@ -1266,6 +1283,7 @@ function AiAnalysisSection() {
         <h3
           style={{
             margin: 0,
+            fontFamily: 'var(--serif)',
             fontSize: '15px',
             fontWeight: 700,
             letterSpacing: '-0.008em',
@@ -1332,12 +1350,17 @@ function AiAnalysisSection() {
                 padding: '9px 20px',
                 borderRadius: '10px',
                 border: 'none',
-                background: state.kind === 'loading' ? 'var(--color-surface-3)' : 'var(--color-brand)',
+                background: state.kind === 'loading'
+                  ? 'rgba(47,143,255,.05)'
+                  : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: state.kind === 'loading' ? 'var(--color-ink-3)' : '#fff',
                 fontSize: '13.5px',
                 fontWeight: 700,
                 cursor: state.kind === 'loading' ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
+                boxShadow: state.kind === 'loading'
+                  ? undefined
+                  : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               {state.kind === 'loading' ? (
@@ -1382,8 +1405,8 @@ function AiAnalysisSection() {
               marginTop: '16px',
               padding: '16px',
               borderRadius: '12px',
-              background: 'var(--color-surface-2)',
-              border: '1px solid var(--color-line)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
             }}
           >
             <div
@@ -1447,9 +1470,9 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
       <div
         style={{
           padding: '14px 16px',
-          background: 'var(--color-surface-2)',
+          background: 'rgba(47,143,255,.05)',
           borderRadius: '12px',
-          border: '1px solid var(--color-line)',
+          border: '1px solid var(--hair)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -1461,16 +1484,16 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
               borderRadius: '20px',
               background:
                 data.confidence === 'high'
-                  ? 'rgba(16,185,129,0.1)'
+                  ? 'var(--color-success-soft)'
                   : data.confidence === 'medium'
-                    ? 'rgba(99,102,241,0.1)'
-                    : 'rgba(245,158,11,0.1)',
+                    ? 'var(--color-brand-soft)'
+                    : 'var(--color-warn-soft)',
               color:
                 data.confidence === 'high'
-                  ? 'var(--color-success, #10b981)'
+                  ? 'var(--color-success)'
                   : data.confidence === 'medium'
                     ? 'var(--color-brand)'
-                    : 'var(--color-warn, #f59e0b)',
+                    : 'var(--color-warn)',
               letterSpacing: '0.02em',
             }}
           >
@@ -1494,9 +1517,9 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
         <div
           style={{
             padding: '16px',
-            background: 'var(--color-surface)',
+            background: 'rgba(47,143,255,.05)',
             borderRadius: '12px',
-            border: '1px solid var(--color-line)',
+            border: '1px solid var(--hair)',
           }}
         >
           <div
@@ -1533,7 +1556,8 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
                 key={item.label}
                 style={{
                   padding: '12px',
-                  background: 'var(--color-surface-2)',
+                  background: 'rgba(47,143,255,.05)',
+                  border: '1px solid var(--hair)',
                   borderRadius: '10px',
                   borderTop: `3px solid ${item.color}`,
                   textAlign: 'center',
@@ -1579,9 +1603,9 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
         <div
           style={{
             padding: '14px 16px',
-            background: 'var(--color-surface)',
+            background: 'rgba(47,143,255,.05)',
             borderRadius: '12px',
-            border: '1px solid var(--color-line)',
+            border: '1px solid var(--hair)',
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -1631,9 +1655,9 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
         <div
           style={{
             padding: '14px 16px',
-            background: 'var(--color-surface)',
+            background: 'rgba(47,143,255,.05)',
             borderRadius: '12px',
-            border: '1px solid var(--color-line)',
+            border: '1px solid var(--hair)',
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -1674,9 +1698,9 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
         <div
           style={{
             padding: '14px 16px',
-            background: 'var(--color-surface)',
+            background: 'rgba(47,143,255,.05)',
             borderRadius: '12px',
-            border: '1px solid var(--color-line)',
+            border: '1px solid var(--hair)',
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -1737,9 +1761,9 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
         <div
           style={{
             padding: '14px 16px',
-            background: 'var(--color-surface)',
+            background: 'rgba(47,143,255,.05)',
             borderRadius: '12px',
-            border: '1px solid var(--color-line)',
+            border: '1px solid var(--hair)',
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -1754,7 +1778,8 @@ function AnalysisResultPanel({ data }: { data: SalaryAnalysisResult }) {
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    background: 'var(--color-surface-3)',
+                    background: 'rgba(47,143,255,.05)',
+                    border: '1px solid var(--hair)',
                     color: 'var(--color-ink-3)',
                     fontSize: '11px',
                     fontWeight: 700,
@@ -1815,7 +1840,7 @@ function FitMatrixCard({ item }: { item: FitMatrixItem }) {
     <div
       style={{
         padding: '16px',
-        background: 'var(--color-surface-2)',
+        background: 'rgba(47,143,255,.05)',
         borderRadius: '14px',
         border: `2px solid ${color}33`,
       }}
@@ -1859,7 +1884,8 @@ function FitMatrixCard({ item }: { item: FitMatrixItem }) {
             <div
               style={{
                 height: '4px',
-                background: 'var(--color-surface-3)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 borderRadius: '2px',
                 overflow: 'hidden',
               }}
@@ -1898,17 +1924,17 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
     fontSize: '11.5px',
     fontWeight: 700,
     color: data.confidence === 'high'
-      ? 'var(--color-success, #10b981)'
+      ? 'var(--color-success)'
       : data.confidence === 'medium'
         ? 'var(--color-brand)'
-        : 'var(--color-warn, #f59e0b)',
+        : 'var(--color-warn)',
     padding: '2px 8px',
     borderRadius: '20px',
     background: data.confidence === 'high'
-      ? 'rgba(16,185,129,0.1)'
+      ? 'var(--color-success-soft)'
       : data.confidence === 'medium'
-        ? 'rgba(99,102,241,0.1)'
-        : 'rgba(245,158,11,0.1)',
+        ? 'var(--color-brand-soft)'
+        : 'var(--color-warn-soft)',
     letterSpacing: '0.02em',
   };
 
@@ -1920,9 +1946,9 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
       <div
         style={{
           padding: '14px 16px',
-          background: 'var(--color-surface-2)',
+          background: 'rgba(47,143,255,.05)',
           borderRadius: '12px',
-          border: '1px solid var(--color-line)',
+          border: '1px solid var(--hair)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -1974,9 +2000,9 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
         <div
           style={{
             padding: '14px 16px',
-            background: 'var(--color-surface)',
+            background: 'rgba(47,143,255,.05)',
             borderRadius: '12px',
-            border: '1px solid var(--color-line)',
+            border: '1px solid var(--hair)',
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -2008,9 +2034,9 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
         <div
           style={{
             padding: '14px 16px',
-            background: 'var(--color-surface)',
+            background: 'rgba(47,143,255,.05)',
             borderRadius: '12px',
-            border: '1px solid var(--color-line)',
+            border: '1px solid var(--hair)',
           }}
         >
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '10px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
@@ -2023,7 +2049,7 @@ function CityFitResultPanel({ data }: { data: CityIndustryFitResult }) {
                 {h.key_companies.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
                     {h.key_companies.map((c, j) => (
-                      <span key={j} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: 'var(--color-surface-2)', border: '1px solid var(--color-line)', color: 'var(--color-ink-2)', fontWeight: 600 }}>
+                      <span key={j} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '12px', background: 'rgba(47,143,255,.05)', border: '1px solid var(--hair)', color: 'var(--color-ink-2)', fontWeight: 600 }}>
                         {c}
                       </span>
                     ))}
@@ -2148,10 +2174,8 @@ function CityIndustryFitSection() {
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '18px',
         overflow: 'hidden',
       }}
     >
@@ -2169,6 +2193,7 @@ function CityIndustryFitSection() {
         <h3
           style={{
             margin: 0,
+            fontFamily: 'var(--serif)',
             fontSize: '15px',
             fontWeight: 700,
             letterSpacing: '-0.008em',
@@ -2255,12 +2280,17 @@ function CityIndustryFitSection() {
                 padding: '9px 20px',
                 borderRadius: '10px',
                 border: 'none',
-                background: state.kind === 'loading' ? 'var(--color-surface-3)' : 'var(--color-brand)',
+                background: state.kind === 'loading'
+                  ? 'rgba(47,143,255,.05)'
+                  : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: state.kind === 'loading' ? 'var(--color-ink-3)' : '#fff',
                 fontSize: '13.5px',
                 fontWeight: 700,
                 cursor: state.kind === 'loading' ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
+                boxShadow: state.kind === 'loading'
+                  ? undefined
+                  : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               {state.kind === 'loading' ? (
@@ -2305,8 +2335,8 @@ function CityIndustryFitSection() {
               marginTop: '16px',
               padding: '16px',
               borderRadius: '12px',
-              background: 'var(--color-surface-2)',
-              border: '1px solid var(--color-line)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
             }}
           >
             <div
@@ -2431,6 +2461,7 @@ export default function SalaryPage() {
           <div>
             <h1
               style={{
+                fontFamily: 'var(--serif)',
                 fontSize: '24px',
                 fontWeight: 700,
                 color: 'var(--color-ink)',
@@ -2453,11 +2484,12 @@ export default function SalaryPage() {
               padding: '10px 18px',
               borderRadius: '10px',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '13.5px',
               fontWeight: 600,
               cursor: 'pointer',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             <Plus size={16} />
@@ -2528,10 +2560,8 @@ export default function SalaryPage() {
             {/* Overall stats pill — only when there's data (按公司×岗位聚合行渲染) */}
             {statsRows.length > 0 && (
               <div
+                className="lg"
                 style={{
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-line)',
-                  borderRadius: '14px',
                   padding: '14px 20px',
                   display: 'flex',
                   alignItems: 'center',
@@ -2581,9 +2611,9 @@ export default function SalaryPage() {
                   justifyContent: 'center',
                   padding: '36px 32px',
                   textAlign: 'center',
-                  background: 'var(--color-surface)',
+                  background: 'transparent',
                   borderRadius: '16px',
-                  border: '1.5px dashed var(--color-line-2)',
+                  border: '1.5px dashed var(--hair-2)',
                   gap: '10px',
                 }}
               >
@@ -2592,7 +2622,8 @@ export default function SalaryPage() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '12px',
-                    background: 'var(--color-surface-2)',
+                    background: 'rgba(47,143,255,.05)',
+                    border: '1px solid var(--hair)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2623,12 +2654,13 @@ export default function SalaryPage() {
                     padding: '10px 22px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: 'var(--color-brand)',
+                    background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                     color: '#fff',
                     fontSize: '13.5px',
                     fontWeight: 600,
                     cursor: 'pointer',
                     marginTop: '4px',
+                    boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                   }}
                 >
                   <Plus size={15} />

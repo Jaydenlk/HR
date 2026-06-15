@@ -8,16 +8,15 @@ interface StatTile {
   key: string;
   label: string;
   color: string;
-  bg: string;
 }
 
 const TILES: StatTile[] = [
-  { key: 'wishlist',  label: '想投',  color: 'var(--color-ink-3)',  bg: 'var(--color-surface-2)' },
-  { key: 'applied',   label: '已投递', color: 'var(--color-brand)',  bg: 'var(--color-brand-soft)' },
-  { key: 'interview', label: '面试中', color: 'var(--color-warn)',   bg: 'var(--color-warn-soft)' },
-  { key: 'final',     label: '终面',  color: '#a855f7',             bg: '#f3e8ff' },
-  { key: 'offer',     label: 'Offer', color: 'var(--color-success)', bg: 'var(--color-success-soft)' },
-  { key: 'rejected',  label: '已拒',  color: 'var(--color-danger)', bg: 'var(--color-danger-soft)' },
+  { key: 'wishlist',  label: '想投',  color: 'var(--color-ink-3)' },
+  { key: 'applied',   label: '已投递', color: 'var(--color-brand)' },
+  { key: 'interview', label: '面试中', color: 'var(--color-warn)' },
+  { key: 'final',     label: '终面',  color: 'var(--au-violet)' },
+  { key: 'offer',     label: 'Offer', color: 'var(--color-success)' },
+  { key: 'rejected',  label: '已拒',  color: 'var(--color-danger)' },
 ];
 
 export function TrackerStats({ stats }: TrackerStatsProps) {
@@ -35,10 +34,8 @@ export function TrackerStats({ stats }: TrackerStatsProps) {
         return (
           <div
             key={tile.key}
+            className="lg"
             style={{
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
-              borderRadius: '14px',
               padding: '16px 18px',
               display: 'flex',
               flexDirection: 'column',

@@ -73,6 +73,7 @@ export function ApplicationTimeline({ applicationId }: ApplicationTimelineProps)
   }, [applicationId]);
 
   const titleStyle: React.CSSProperties = {
+    fontFamily: 'var(--serif)',
     fontSize: '12px',
     fontWeight: 700,
     color: 'var(--color-ink-2)',

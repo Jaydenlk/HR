@@ -37,7 +37,7 @@ const TIER_LABELS: Record<ApplicationCompanyTier['tier'], string> = {
 const TIER_COLORS: Record<ApplicationCompanyTier['tier'], string> = {
   stretch: 'var(--color-warn)',
   target: 'var(--color-brand)',
-  safety: 'var(--color-success, #16a34a)',
+  safety: 'var(--color-success)',
 };
 
 const CONFIDENCE_LABELS: Record<ApplicationStrategyResult['confidence'], string> = {
@@ -100,13 +100,10 @@ function StrategyPanel() {
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '14px',
         marginBottom: '20px',
         flexShrink: 0,
-        overflow: 'hidden',
       }}
     >
       {/* Collapsible header */}
@@ -128,6 +125,7 @@ function StrategyPanel() {
           <Target size={16} color="var(--color-brand)" />
           <span
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '14px',
               fontWeight: 600,
               color: 'var(--color-ink)',
@@ -142,7 +140,8 @@ function StrategyPanel() {
               color: 'var(--color-ink-4)',
               fontWeight: 500,
               padding: '2px 8px',
-              background: 'var(--color-surface-2)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               borderRadius: '5px',
             }}
           >
@@ -291,15 +290,16 @@ function StrategyPanel() {
                       alignItems: 'center',
                       gap: '7px',
                       padding: '9px 18px',
-                      borderRadius: '9px',
+                      borderRadius: 'var(--radius-default)',
                       border: 'none',
-                      background: 'var(--color-brand)',
+                      background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                       color: '#fff',
                       fontSize: '13px',
                       fontWeight: 600,
                       cursor: 'pointer',
                       opacity: form.user_profile.trim() ? 1 : 0.5,
-                      transition: 'background 0.12s',
+                      boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                      transition: 'opacity 0.12s',
                     }}
                   >
                     <Target size={14} />
@@ -536,10 +536,10 @@ function StrategyPanel() {
                       fontSize: '11px',
                       fontWeight: 700,
                       color: 'var(--color-ink-2)',
-                      background: 'var(--color-surface)',
-                      border: '1px solid var(--color-line)',
+                      background: 'rgba(47,143,255,.05)',
+                      border: '1px solid var(--hair)',
                       padding: '2px 9px',
-                      borderRadius: '99px',
+                      borderRadius: 'var(--radius-pill)',
                     }}
                   >
                     置信度：{CONFIDENCE_LABELS[result.confidence]}
@@ -602,8 +602,9 @@ function StrategyPanel() {
                           gridTemplateColumns: '100px 1fr',
                           gap: '12px',
                           padding: '10px 14px',
-                          background: 'var(--color-surface-2)',
-                          borderRadius: '9px',
+                          background: 'rgba(47,143,255,.05)',
+                          border: '1px solid var(--hair)',
+                          borderRadius: 'var(--radius-default)',
                           alignItems: 'start',
                         }}
                       >
@@ -635,8 +636,8 @@ function StrategyPanel() {
                                   style={{
                                     fontSize: '10px',
                                     padding: '2px 7px',
-                                    background: 'var(--color-surface)',
-                                    border: '1px solid var(--color-line)',
+                                    background: 'rgba(47,143,255,.05)',
+                                    border: '1px solid var(--hair)',
                                     borderRadius: '4px',
                                     color: 'var(--color-ink-3)',
                                     fontWeight: 500,
@@ -667,8 +668,9 @@ function StrategyPanel() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '8px 14px',
-                          background: 'var(--color-surface-2)',
-                          borderRadius: '8px',
+                          background: 'rgba(47,143,255,.05)',
+                          border: '1px solid var(--hair)',
+                          borderRadius: 'var(--radius-default)',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -710,7 +712,7 @@ function StrategyPanel() {
                         style={{
                           padding: '12px 14px',
                           background: 'var(--color-danger-soft)',
-                          borderRadius: '9px',
+                          borderRadius: 'var(--radius-default)',
                         }}
                       >
                         <p
@@ -740,8 +742,8 @@ function StrategyPanel() {
                       <div
                         style={{
                           padding: '12px 14px',
-                          background: 'var(--color-success-soft, #f0fdf4)',
-                          borderRadius: '9px',
+                          background: 'var(--color-success-soft)',
+                          borderRadius: 'var(--radius-default)',
                         }}
                       >
                         <p
@@ -749,7 +751,7 @@ function StrategyPanel() {
                             margin: '0 0 6px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            color: 'var(--color-success, #16a34a)',
+                            color: 'var(--color-success)',
                             letterSpacing: '0.03em',
                           }}
                         >
@@ -781,8 +783,9 @@ function StrategyPanel() {
                         key={i}
                         style={{
                           padding: '8px 12px',
-                          background: 'var(--color-surface-2)',
-                          borderRadius: '8px',
+                          background: 'rgba(47,143,255,.05)',
+                          border: '1px solid var(--hair)',
+                          borderRadius: 'var(--radius-default)',
                           fontSize: '12.5px',
                           color: 'var(--color-ink-2)',
                           lineHeight: 1.5,
@@ -820,8 +823,9 @@ function StrategyPanel() {
                           alignItems: 'flex-start',
                           gap: '8px',
                           padding: '8px 12px',
-                          background: 'var(--color-surface-2)',
-                          borderRadius: '8px',
+                          background: 'rgba(47,143,255,.05)',
+                          border: '1px solid var(--hair)',
+                          borderRadius: 'var(--radius-default)',
                         }}
                       >
                         <span
@@ -888,7 +892,7 @@ function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string })
       }}
     >
       {icon}
-      <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.02em' }}>{label}</span>
+      <span style={{ fontFamily: 'var(--serif)', fontSize: '12px', fontWeight: 700, letterSpacing: '0.02em' }}>{label}</span>
     </div>
   );
 }
@@ -898,8 +902,9 @@ function TierCard({ tier }: { tier: ApplicationCompanyTier }) {
     <div
       style={{
         padding: '11px 14px',
-        background: 'var(--color-surface-2)',
-        borderRadius: '10px',
+        background: 'rgba(47,143,255,.05)',
+        border: '1px solid var(--hair)',
+        borderRadius: 'var(--radius-default)',
         borderLeft: `3px solid ${TIER_COLORS[tier.tier]}`,
       }}
     >
@@ -936,8 +941,8 @@ function TierCard({ tier }: { tier: ApplicationCompanyTier }) {
               style={{
                 fontSize: '10.5px',
                 padding: '2px 8px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-line)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 borderRadius: '5px',
                 color: 'var(--color-ink-2)',
                 fontWeight: 500,
@@ -1099,6 +1104,7 @@ export default function ApplicationsPage() {
           <div>
             <h1
               style={{
+                fontFamily: 'var(--serif)',
                 fontSize: '24px',
                 fontWeight: 700,
                 color: 'var(--color-ink)',
@@ -1119,21 +1125,22 @@ export default function ApplicationsPage() {
               alignItems: 'center',
               gap: '7px',
               padding: '10px 18px',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-default)',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '13.5px',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'background 0.12s',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+              transition: 'opacity 0.12s',
               letterSpacing: '-0.01em',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--color-brand-hover)';
+              e.currentTarget.style.opacity = '0.92';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--color-brand)';
+              e.currentTarget.style.opacity = '1';
             }}
           >
             <Plus size={16} />
@@ -1241,6 +1248,7 @@ export default function ApplicationsPage() {
         ) : applications.length === 0 ? (
           /* Empty state */
           <div
+            className="lg"
             style={{
               flex: 1,
               display: 'flex',
@@ -1249,17 +1257,15 @@ export default function ApplicationsPage() {
               justifyContent: 'center',
               padding: '64px 32px',
               textAlign: 'center',
-              background: 'var(--color-surface)',
-              borderRadius: '16px',
-              border: '1.5px dashed var(--color-line-2)',
             }}
           >
             <div
               style={{
                 width: '56px',
                 height: '56px',
-                borderRadius: '14px',
-                background: 'var(--color-surface-2)',
+                borderRadius: 'var(--radius-default)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1270,6 +1276,7 @@ export default function ApplicationsPage() {
             </div>
             <p
               style={{
+                fontFamily: 'var(--serif)',
                 fontSize: '16px',
                 fontWeight: 600,
                 color: 'var(--color-ink-2)',
@@ -1295,13 +1302,14 @@ export default function ApplicationsPage() {
                 alignItems: 'center',
                 gap: '7px',
                 padding: '10px 22px',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius-default)',
                 border: 'none',
-                background: 'var(--color-brand)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: '#fff',
                 fontSize: '13.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               <Plus size={15} />

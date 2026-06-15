@@ -33,9 +33,9 @@ const ROUND_OPTIONS = [
 const fieldStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
-  background: 'var(--color-surface-2)',
-  border: '1px solid var(--color-line)',
-  borderRadius: '10px',
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-line-2)',
+  borderRadius: 'var(--radius-default)',
   fontSize: '13.5px',
   color: 'var(--color-ink)',
   outline: 'none',
@@ -84,33 +84,21 @@ export function InterviewForm({ onSubmit, onClose, loading = false }: InterviewF
   }
 
   return (
-    /* Backdrop */
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.4)',
-        zIndex: 500,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    /* Overlay: 作业区内居中,不压侧栏 */
+    <div className="modal-overlay">
+      {/* Scrim: 点击空白处关闭 */}
+      <div className="modal-scrim" onClick={onClose} />
       {/* Dialog */}
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '20px',
-          border: '1px solid var(--color-line)',
+          position: 'relative',
+          zIndex: 1,
+          borderRadius: 'var(--radius-lg)',
           width: '100%',
           maxWidth: '560px',
           maxHeight: '90vh',
           overflowY: 'auto',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
         }}
       >
         {/* Header */}
@@ -120,12 +108,13 @@ export function InterviewForm({ onSubmit, onClose, loading = false }: InterviewF
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '22px 24px 16px',
-            borderBottom: '1px solid var(--color-line)',
+            borderBottom: '1px solid var(--hair)',
           }}
         >
           <div>
             <div
               style={{
+                fontFamily: 'var(--serif)',
                 fontSize: '17px',
                 fontWeight: 700,
                 color: 'var(--color-ink)',
@@ -284,8 +273,8 @@ export function InterviewForm({ onSubmit, onClose, loading = false }: InterviewF
               style={{
                 padding: '10px 18px',
                 background: 'transparent',
-                border: '1px solid var(--color-line)',
-                borderRadius: '10px',
+                border: '1px solid var(--hair-2)',
+                borderRadius: 'var(--radius-default)',
                 fontSize: '13.5px',
                 fontWeight: 600,
                 color: 'var(--color-ink-2)',
@@ -299,15 +288,16 @@ export function InterviewForm({ onSubmit, onClose, loading = false }: InterviewF
               disabled={loading}
               style={{
                 padding: '10px 22px',
-                background: 'var(--color-ink)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 border: 'none',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius-default)',
                 fontSize: '13.5px',
                 fontWeight: 600,
                 color: '#fff',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.7 : 1,
                 letterSpacing: '-0.005em',
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               {loading ? '提交中…' : '保存并分析'}

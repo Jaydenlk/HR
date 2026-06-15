@@ -57,10 +57,11 @@ function PhaseCard({ phase, index }: { phase: RoadmapItem['phases'][number]; ind
   return (
     <div
       style={{
-        border: '1px solid var(--color-line)',
+        border: '1px solid var(--hair)',
         borderRadius: '10px',
         overflow: 'hidden',
         marginBottom: '8px',
+        background: 'rgba(47,143,255,.05)',
       }}
     >
       <button
@@ -71,7 +72,7 @@ function PhaseCard({ phase, index }: { phase: RoadmapItem['phases'][number]; ind
           alignItems: 'center',
           gap: '10px',
           padding: '12px 16px',
-          background: open ? 'var(--color-surface-2)' : 'var(--color-surface)',
+          background: open ? 'rgba(47,143,255,.05)' : 'transparent',
           border: 'none',
           cursor: 'pointer',
           textAlign: 'left',
@@ -114,7 +115,7 @@ function PhaseCard({ phase, index }: { phase: RoadmapItem['phases'][number]; ind
       </button>
 
       {open && (
-        <div style={{ padding: '12px 16px 14px', background: 'var(--color-surface)' }}>
+        <div style={{ padding: '12px 16px 14px' }}>
           <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', margin: '0 0 10px' }}>
             {phase.goal}
           </p>
@@ -136,7 +137,8 @@ function PhaseCard({ phase, index }: { phase: RoadmapItem['phases'][number]; ind
 
           <div
             style={{
-              background: 'var(--color-surface-2)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               borderRadius: '8px',
               padding: '10px 12px',
               marginBottom: phase.output_artifact ? '8px' : '0',
@@ -171,10 +173,8 @@ function PhaseCard({ phase, index }: { phase: RoadmapItem['phases'][number]; ind
 function RoadmapSection({ item }: { item: RoadmapItem }) {
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '12px',
         padding: '16px',
         marginBottom: '16px',
       }}
@@ -182,7 +182,7 @@ function RoadmapSection({ item }: { item: RoadmapItem }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Layers size={15} color="var(--color-brand)" />
-          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)' }}>
+          <h3 style={{ margin: 0, fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)' }}>
             {item.skill_name}
           </h3>
         </div>
@@ -205,10 +205,9 @@ function RoadmapSection({ item }: { item: RoadmapItem }) {
 function ResourceCard({ resource }: { resource: RoadmapResource }) {
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '10px',
+        borderRadius: 'var(--radius-default)',
         padding: '12px 14px',
       }}
     >
@@ -220,7 +219,7 @@ function ResourceCard({ resource }: { resource: RoadmapResource }) {
             background: 'var(--color-brand-soft)',
             color: 'var(--color-brand)',
             padding: '2px 8px',
-            borderRadius: '999px',
+            borderRadius: 'var(--radius-pill)',
           }}
         >
           {RESOURCE_TYPE_LABEL[resource.resource_type] ?? resource.resource_type}
@@ -230,9 +229,10 @@ function ResourceCard({ resource }: { resource: RoadmapResource }) {
             style={{
               fontSize: '11px',
               color: 'var(--color-ink-3)',
-              background: 'var(--color-surface-2)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               padding: '2px 7px',
-              borderRadius: '999px',
+              borderRadius: 'var(--radius-pill)',
             }}
           >
             {LEVEL_LABEL[resource.for_level] ?? resource.for_level}
@@ -343,7 +343,7 @@ export default function LearningRoadmapPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
           <Route size={20} color="var(--color-brand)" />
           <div>
-            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.3px' }}>
+            <h1 style={{ margin: 0, fontFamily: 'var(--serif)', fontSize: '20px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.3px' }}>
               学习路线
             </h1>
             <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--color-ink-3)' }}>
@@ -462,14 +462,15 @@ export default function LearningRoadmapPage() {
               style={{
                 width: '100%',
                 padding: '12px',
-                background: 'var(--color-ink)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: '#fff',
                 border: 'none',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius-default)',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 letterSpacing: '-0.005em',
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               生成学习路线
@@ -512,8 +513,8 @@ export default function LearningRoadmapPage() {
         <div
           style={{
             background: 'var(--color-warn-soft)',
-            border: '1px solid var(--color-warn)',
-            borderRadius: '12px',
+            border: '1px solid color-mix(in srgb, var(--color-warn) 30%, transparent)',
+            borderRadius: 'var(--radius-default)',
             padding: '20px',
             marginBottom: '20px',
           }}
@@ -521,10 +522,10 @@ export default function LearningRoadmapPage() {
           <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
             <AlertCircle size={18} color="var(--color-warn)" style={{ flexShrink: 0, marginTop: '1px' }} />
             <div>
-              <h3 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: 700, color: 'var(--color-warn-ink, #92400e)' }}>
+              <h3 style={{ margin: '0 0 6px', fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 700, color: 'var(--color-warn)' }}>
                 信息不足，无法生成完整路线
               </h3>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-warn-ink, #78350f)' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-ink-2)' }}>
                 {result.summary}
               </p>
             </div>
@@ -565,13 +566,14 @@ export default function LearningRoadmapPage() {
           onClick={handleReset}
           style={{
             padding: '10px 20px',
-            background: 'var(--color-ink)',
+            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
             color: '#fff',
             border: 'none',
-            borderRadius: '10px',
+            borderRadius: 'var(--radius-default)',
             fontSize: '13.5px',
             fontWeight: 600,
             cursor: 'pointer',
+            boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
           }}
         >
           重新填写
@@ -596,17 +598,17 @@ export default function LearningRoadmapPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Route size={18} color="var(--color-brand)" />
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.3px' }}>
+            <h1 style={{ margin: 0, fontFamily: 'var(--serif)', fontSize: '18px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.3px' }}>
               学习路线图
             </h1>
           </div>
           <button
             onClick={handleReset}
+            className="lg-sm"
             style={{
               padding: '6px 14px',
-              border: '1px solid var(--color-line)',
               borderRadius: '8px',
-              background: 'var(--color-surface)',
+              background: 'var(--glass-bg)',
               fontSize: '12.5px',
               color: 'var(--color-ink-2)',
               cursor: 'pointer',
@@ -619,10 +621,8 @@ export default function LearningRoadmapPage() {
 
         {/* Summary card */}
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
-            borderRadius: '12px',
             padding: '16px',
             marginBottom: '20px',
           }}
@@ -652,9 +652,9 @@ export default function LearningRoadmapPage() {
         {result.backlog && result.backlog.length > 0 && (
           <div
             style={{
-              background: 'var(--color-surface-2)',
-              border: '1px solid var(--color-line)',
-              borderRadius: '10px',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
+              borderRadius: 'var(--radius-default)',
               padding: '12px 14px',
               marginBottom: '16px',
               fontSize: '13px',
@@ -669,10 +669,9 @@ export default function LearningRoadmapPage() {
         {/* Recommendations */}
         {(result.recommendations ?? []).length > 0 && (
           <div
+            className="lg"
             style={{
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-default)',
               padding: '12px 14px',
               marginBottom: '12px',
             }}
@@ -695,18 +694,18 @@ export default function LearningRoadmapPage() {
           <div
             style={{
               background: 'var(--color-warn-soft)',
-              border: '1px solid var(--color-warn)',
-              borderRadius: '10px',
+              border: '1px solid color-mix(in srgb, var(--color-warn) 30%, transparent)',
+              borderRadius: 'var(--radius-default)',
               padding: '12px 14px',
               marginBottom: '12px',
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-warn-ink, #92400e)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-warn)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               注意风险
             </div>
             <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
               {(result.risks ?? []).map((risk, i) => (
-                <li key={i} style={{ fontSize: '13px', color: 'var(--color-warn-ink, #78350f)', marginBottom: '3px' }}>
+                <li key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '3px' }}>
                   {risk}
                 </li>
               ))}
@@ -719,18 +718,18 @@ export default function LearningRoadmapPage() {
           <div
             style={{
               background: 'var(--color-warn-soft)',
-              border: '1px solid var(--color-warn)',
-              borderRadius: '10px',
+              border: '1px solid color-mix(in srgb, var(--color-warn) 30%, transparent)',
+              borderRadius: 'var(--radius-default)',
               padding: '12px 14px',
               marginBottom: '12px',
             }}
           >
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-warn-ink, #92400e)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-warn)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               无法判断
             </div>
             <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
               {(result.cannot_determine ?? []).map((item, i) => (
-                <li key={i} style={{ fontSize: '13px', color: 'var(--color-warn-ink, #78350f)', marginBottom: '3px' }}>
+                <li key={i} style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '3px' }}>
                   {item}
                 </li>
               ))}
@@ -741,10 +740,9 @@ export default function LearningRoadmapPage() {
         {/* Follow-up questions */}
         {(result.follow_up_questions ?? []).length > 0 && (
           <div
+            className="lg"
             style={{
-              background: 'var(--color-surface-2)',
-              border: '1px solid var(--color-line)',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-default)',
               padding: '12px 14px',
               marginBottom: '12px',
             }}
@@ -765,10 +763,9 @@ export default function LearningRoadmapPage() {
         {/* Evidence used */}
         {(result.evidence_used ?? []).length > 0 && (
           <div
+            className="lg"
             style={{
-              background: 'var(--color-surface-2)',
-              border: '1px solid var(--color-line)',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-default)',
               padding: '12px 14px',
               marginBottom: '12px',
             }}
@@ -799,13 +796,16 @@ export default function LearningRoadmapPage() {
               onClick={() => setActiveTab(tab)}
               style={{
                 padding: '7px 16px',
-                border: '1px solid var(--color-line)',
+                border: activeTab === tab ? 'none' : '1px solid var(--hair)',
                 borderRadius: '8px',
-                background: activeTab === tab ? 'var(--color-ink)' : 'var(--color-surface)',
+                background: activeTab === tab
+                  ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))'
+                  : 'rgba(47,143,255,.05)',
                 color: activeTab === tab ? '#fff' : 'var(--color-ink-2)',
                 fontSize: '13px',
                 fontWeight: activeTab === tab ? 600 : 500,
                 cursor: 'pointer',
+                boxShadow: activeTab === tab ? '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)' : 'none',
               }}
             >
               {tab === 'roadmap' ? '学习路线' : '资源清单'}
@@ -822,15 +822,13 @@ export default function LearningRoadmapPage() {
 
             {(result.next_actions ?? []).length > 0 && (
               <div
+                className="lg"
                 style={{
-                  background: 'var(--color-surface)',
-                  border: '1px solid var(--color-line)',
-                  borderRadius: '12px',
                   padding: '16px',
                   marginTop: '8px',
                 }}
               >
-                <h3 style={{ margin: '0 0 10px', fontSize: '14px', fontWeight: 600, color: 'var(--color-ink)' }}>
+                <h3 style={{ margin: '0 0 10px', fontFamily: 'var(--serif)', fontSize: '14px', fontWeight: 600, color: 'var(--color-ink)' }}>
                   立即行动
                 </h3>
                 <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
@@ -853,6 +851,7 @@ export default function LearningRoadmapPage() {
                 <h3
                   style={{
                     margin: '0 0 10px',
+                    fontFamily: 'var(--serif)',
                     fontSize: '14px',
                     fontWeight: 700,
                     color: 'var(--color-ink)',

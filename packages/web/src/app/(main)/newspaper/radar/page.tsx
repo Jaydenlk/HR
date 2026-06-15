@@ -962,6 +962,7 @@ const RADAR_CSS = `
 
 .radar-header h1 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 28px;
   line-height: 1.15;
   font-weight: 800;
@@ -1029,7 +1030,7 @@ const RADAR_CSS = `
   padding: 0 12px;
   background: var(--color-surface);
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: var(--radius-default);
   flex: 1;
   min-width: 160px;
 }
@@ -1051,10 +1052,10 @@ const RADAR_CSS = `
 }
 
 .tabs button {
-  border: 1px solid var(--color-line);
-  background: var(--color-surface);
+  border: 1px solid var(--hair);
+  background: rgba(47, 143, 255, 0.05);
   color: var(--color-ink-3);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 7px 12px;
   font-size: 12.5px;
   font-weight: 700;
@@ -1063,22 +1064,27 @@ const RADAR_CSS = `
 }
 
 .tabs button.active {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-deep));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 /* Stats bar */
 .stats-bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
   margin-bottom: 16px;
   padding: 12px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  border-radius: 22px;
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
 }
 
 .stats-total {
@@ -1097,10 +1103,10 @@ const RADAR_CSS = `
 .stat-pill {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--color-line);
-  background: var(--color-surface-2);
+  border: 1px solid var(--hair);
+  background: rgba(47, 143, 255, 0.05);
   color: var(--color-ink-2);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -1115,7 +1121,7 @@ const RADAR_CSS = `
 }
 
 .stat-pill.role-pill {
-  background: var(--color-surface-3);
+  background: rgba(47, 143, 255, 0.05);
 }
 
 .stat-pill.role-pill.active {
@@ -1129,7 +1135,7 @@ const RADAR_CSS = `
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-default);
   padding: 11px 13px;
   font-size: 13px;
   line-height: 1.55;
@@ -1151,15 +1157,20 @@ const RADAR_CSS = `
 }
 
 .empty-state {
-  border: 1px dashed var(--color-line-2);
-  border-radius: 8px;
-  background: var(--color-surface);
+  position: relative;
+  border-radius: 22px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
   padding: 42px 20px;
   gap: 8px;
 }
 
 .empty-state h2 {
   margin: 4px 0 0;
+  font-family: var(--serif);
   color: var(--color-ink);
   font-size: 18px;
 }
@@ -1187,19 +1198,23 @@ const RADAR_CSS = `
 }
 
 .radar-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  border-radius: 22px;
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
   padding: 16px;
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 
 .radar-card:hover {
   border-color: var(--color-brand);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 1px var(--color-brand);
 }
 
 .card-top {
@@ -1214,7 +1229,7 @@ const RADAR_CSS = `
 .confidence-badge {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
@@ -1228,8 +1243,8 @@ const RADAR_CSS = `
 
 .source-badge {
   color: var(--color-ink-2);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-line);
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
 }
 
 .confidence-badge {
@@ -1237,18 +1252,18 @@ const RADAR_CSS = `
 }
 
 .confidence-high {
-  color: #175f2b;
+  color: var(--color-success);
   background: var(--color-success-soft);
 }
 
 .confidence-medium {
-  color: #b35900;
-  background: rgba(255, 149, 0, 0.12);
+  color: var(--color-warn);
+  background: var(--color-warn-soft);
 }
 
 .confidence-low {
   color: var(--color-ink-4);
-  background: var(--color-surface-3);
+  background: rgba(47, 143, 255, 0.05);
 }
 
 .card-company-role {
@@ -1262,15 +1277,17 @@ const RADAR_CSS = `
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 600;
   color: var(--color-ink-2);
-  background: var(--color-surface-2);
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
 }
 
 .radar-card h2 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 15px;
   line-height: 1.4;
   font-weight: 700;
@@ -1296,7 +1313,7 @@ const RADAR_CSS = `
   justify-content: space-between;
   gap: 8px;
   margin-top: auto;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--hair);
   padding-top: 10px;
 }
 
@@ -1330,15 +1347,18 @@ const RADAR_CSS = `
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border-radius: 8px;
-  border: 1px solid var(--color-line);
+  border-radius: var(--radius-default);
+  border: 1px solid var(--glass-bd);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   min-height: 36px;
   padding: 0 20px;
   color: var(--color-ink-2);
-  background: var(--color-surface);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: inset 0 1px 0 var(--glass-rim);
   font-family: inherit;
 }
 
@@ -1393,7 +1413,8 @@ const RADAR_CSS = `
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
-  background: var(--color-surface-3);
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
 }
 
 .source-seg { min-width: 3px; }
@@ -1456,10 +1477,11 @@ const RADAR_CSS = `
   font-size: 11px;
   font-weight: 700;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   margin-left: auto;
   color: var(--color-ink-3);
-  background: var(--color-surface-3);
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
 }
 
 .source-pref-badge.xhs { color: #ff2442; background: rgba(255,36,66,0.08); }
@@ -1486,8 +1508,9 @@ const RADAR_CSS = `
 .keyword-tag {
   font-size: 11px;
   padding: 3px 7px;
-  border-radius: 4px;
-  background: var(--color-surface-2);
+  border-radius: 6px;
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
   color: var(--color-ink-2);
 }
 
@@ -1525,6 +1548,7 @@ const RADAR_CSS = `
 
 .trend-header h2 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 20px;
   font-weight: 800;
 }
@@ -1535,9 +1559,13 @@ const RADAR_CSS = `
 }
 
 .trend-stat-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  position: relative;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  border-radius: 22px;
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
   padding: 20px;
 }
 
@@ -1564,14 +1592,19 @@ const RADAR_CSS = `
 }
 
 .trend-new-section {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  position: relative;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  border-radius: 22px;
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
   padding: 16px;
 }
 
 .trend-new-section h3 {
   margin: 0 0 10px;
+  font-family: var(--serif);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1590,7 +1623,7 @@ const RADAR_CSS = `
   color: var(--color-ink);
   text-decoration: none;
   padding: 8px 0;
-  border-bottom: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--hair);
 }
 
 .hot-post-item:last-child { border-bottom: none; }
@@ -1614,18 +1647,19 @@ const RADAR_CSS = `
   font-size: 11px;
   font-weight: 700;
   padding: 3px 7px;
-  border-radius: 4px;
-  background: var(--color-surface-3);
+  border-radius: 6px;
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
   color: var(--color-ink-3);
 }
 
 .date-uncertain-label {
   display: inline-block;
   font-size: 10.5px;
-  color: #b35900;
-  background: rgba(255, 149, 0, 0.1);
+  color: var(--color-warn);
+  background: var(--color-warn-soft);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-weight: 600;
   white-space: nowrap;
 }

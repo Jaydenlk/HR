@@ -24,9 +24,9 @@ function ChatListLoading() {
             key={i}
             style={{
               height: '72px',
-              borderRadius: '14px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
+              borderRadius: 'var(--radius-default)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               opacity: 0.6,
             }}
           />
@@ -135,6 +135,7 @@ function ChatListInner() {
         <div>
           <h1
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '22px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -167,7 +168,7 @@ function ChatListInner() {
             alignItems: 'center',
             gap: '7px',
             padding: '9px 16px',
-            background: 'var(--color-ink)',
+            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
             color: '#fff',
             border: 'none',
             borderRadius: '10px',
@@ -176,6 +177,7 @@ function ChatListInner() {
             cursor: creating ? 'not-allowed' : 'pointer',
             opacity: creating ? 0.7 : 1,
             letterSpacing: '-0.003em',
+            boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             transition: 'opacity 0.12s',
           }}
         >
@@ -210,9 +212,9 @@ function ChatListInner() {
               key={i}
               style={{
                 height: '72px',
-                borderRadius: '14px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-line)',
+                borderRadius: 'var(--radius-default)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 opacity: 0.6,
               }}
             />
@@ -232,12 +234,10 @@ function ChatListInner() {
       {/* Empty state */}
       {!loading && conversations.length === 0 && !error && (
         <div
+          className="lg"
           style={{
             textAlign: 'center',
             padding: '80px 40px',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
-            borderRadius: '16px',
           }}
         >
           <div
@@ -256,6 +256,7 @@ function ChatListInner() {
           </div>
           <h2
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '17px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -284,7 +285,7 @@ function ChatListInner() {
               alignItems: 'center',
               gap: '7px',
               padding: '11px 20px',
-              background: '#0a84ff',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               border: 'none',
               borderRadius: '10px',
@@ -293,6 +294,7 @@ function ChatListInner() {
               cursor: creating ? 'not-allowed' : 'pointer',
               opacity: creating ? 0.7 : 1,
               letterSpacing: '-0.003em',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             <Plus size={15} />

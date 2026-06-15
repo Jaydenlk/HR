@@ -40,38 +40,35 @@ function formatDate(d: Date): string {
 
 type TaskTypeKey = 'practice' | 'apply' | 'review' | 'learn' | 'resume';
 
+// 类目色:用 --color-* 语义/品牌 token,暗/亮两套自动切换。背景由前景色 color-mix
+// 派生出克制的同色调浅底(在暗底为低亮半透明、在亮底为淡彩),不写死 hex 浅底块。
 const TASK_TYPE_META: Record<
   TaskTypeKey,
-  { label: string; color: string; bg: string; icon: React.ReactNode }
+  { label: string; color: string; icon: React.ReactNode }
 > = {
   practice: {
     label: '练习',
-    color: '#1570ef',
-    bg: '#eff8ff',
+    color: 'var(--color-brand)',
     icon: <Zap size={11} />,
   },
   apply: {
     label: '投递',
-    color: '#027a48',
-    bg: '#ecfdf3',
+    color: 'var(--color-success)',
     icon: <Briefcase size={11} />,
   },
   review: {
     label: '复盘',
-    color: '#b54708',
-    bg: '#fffaeb',
+    color: 'var(--color-warn)',
     icon: <Brain size={11} />,
   },
   learn: {
     label: '学习',
-    color: '#5925dc',
-    bg: '#f4f3ff',
+    color: 'var(--color-brand-hover)',
     icon: <BookOpen size={11} />,
   },
   resume: {
     label: '简历',
-    color: '#c11574',
-    bg: '#fdf4ff',
+    color: 'var(--color-danger)',
     icon: <FileText size={11} />,
   },
 };
@@ -81,7 +78,6 @@ function getTypeMeta(type: string) {
     TASK_TYPE_META[type as TaskTypeKey] ?? {
       label: type,
       color: 'var(--color-ink-3)',
-      bg: 'var(--color-surface-3)',
       icon: <Clock size={11} />,
     }
   );
@@ -98,11 +94,11 @@ function TypeBadge({ type }: { type: string }) {
         alignItems: 'center',
         gap: '4px',
         padding: '2px 8px',
-        borderRadius: '999px',
+        borderRadius: 'var(--radius-pill)',
         fontSize: '11px',
         fontWeight: 600,
         color: meta.color,
-        background: meta.bg,
+        background: `color-mix(in srgb, ${meta.color} 14%, transparent)`,
         letterSpacing: '-0.003em',
         flexShrink: 0,
       }}
@@ -130,9 +126,9 @@ function TaskCard({ task, onToggle, toggling }: TaskCardProps) {
         gap: '14px',
         alignItems: 'flex-start',
         padding: '16px 18px',
-        background: done ? 'var(--color-surface-2)' : 'var(--color-surface)',
-        border: `1px solid ${done ? 'transparent' : 'var(--color-line)'}`,
-        borderRadius: '14px',
+        background: done ? 'transparent' : 'rgba(47,143,255,.05)',
+        border: `1px solid ${done ? 'transparent' : 'var(--hair)'}`,
+        borderRadius: 'var(--radius-default)',
         transition: 'background 0.15s, border-color 0.15s',
       }}
     >
@@ -239,7 +235,7 @@ function ProgressRing({
           cy="50"
           r={R}
           fill="none"
-          stroke="rgba(255,255,255,0.15)"
+          stroke="rgba(255,255,255,0.18)"
           strokeWidth="6"
         />
         <circle
@@ -247,7 +243,7 @@ function ProgressRing({
           cy="50"
           r={R}
           fill="none"
-          stroke="var(--color-brand)"
+          stroke="#fff"
           strokeWidth="6"
           strokeLinecap="round"
           strokeDasharray={C}
@@ -279,7 +275,7 @@ function ProgressRing({
         <span
           style={{
             fontSize: '10px',
-            color: 'rgba(255,255,255,0.6)',
+            color: 'rgba(255,255,255,0.7)',
             fontWeight: 600,
             letterSpacing: '0.04em',
             textTransform: 'uppercase',
@@ -387,11 +383,14 @@ export default function TodayPage() {
       <StarterChecklist />
 
       {/* ── Hero header card ─────────────────────────────────────────── */}
+      {/* 品牌渐变玻璃 hero:不再用 var(--color-ink) 实底+白字(暗色下会撞色)。
+          渐变在两套主题下都够深,白字始终可读;极光由外壳 atmos 透出。 */}
       <div
         style={{
-          background: 'var(--color-ink)',
+          background:
+            'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
           color: '#fff',
-          borderRadius: '24px',
+          borderRadius: 'var(--radius-xl)',
           padding: '28px 30px',
           position: 'relative',
           overflow: 'hidden',
@@ -399,15 +398,17 @@ export default function TodayPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '24px',
+          boxShadow:
+            '0 18px 44px -20px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.28)',
         }}
       >
-        {/* blue gradient glow */}
+        {/* highlight glow */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             background:
-              'radial-gradient(700px 360px at 80% -10%, rgba(10,132,255,0.28), transparent 60%)',
+              'radial-gradient(700px 360px at 80% -10%, rgba(255,255,255,0.22), transparent 60%)',
             pointerEvents: 'none',
           }}
         />
@@ -418,14 +419,14 @@ export default function TodayPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              marginBottom: '6px',
+              marginBottom: '8px',
             }}
           >
-            <CalendarDays size={16} style={{ color: 'rgba(255,255,255,0.6)' }} />
+            <CalendarDays size={16} style={{ color: 'rgba(255,255,255,0.7)' }} />
             <span
               style={{
                 fontSize: '13px',
-                color: 'rgba(255,255,255,0.6)',
+                color: 'rgba(255,255,255,0.7)',
                 fontWeight: 500,
               }}
             >
@@ -435,10 +436,11 @@ export default function TodayPage() {
           <h1
             style={{
               margin: 0,
-              fontSize: '26px',
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.1,
+              fontFamily: 'var(--serif)',
+              fontSize: '28px',
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.12,
               color: '#fff',
             }}
           >
@@ -447,9 +449,9 @@ export default function TodayPage() {
           {tasks.length > 0 && (
             <p
               style={{
-                margin: '8px 0 0',
+                margin: '10px 0 0',
                 fontSize: '13px',
-                color: 'rgba(255,255,255,0.65)',
+                color: 'rgba(255,255,255,0.78)',
                 fontWeight: 500,
               }}
             >
@@ -478,10 +480,11 @@ export default function TodayPage() {
         <div>
           <span
             style={{
-              fontSize: '17px',
+              fontFamily: 'var(--serif)',
+              fontSize: '18px',
               fontWeight: 700,
               color: 'var(--color-ink)',
-              letterSpacing: '-0.015em',
+              letterSpacing: '-0.01em',
             }}
           >
             今日任务
@@ -502,6 +505,7 @@ export default function TodayPage() {
         <button
           onClick={handleGenerate}
           disabled={generating || loading}
+          className="lg-sm"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -510,16 +514,15 @@ export default function TodayPage() {
             fontSize: '13px',
             fontWeight: 600,
             color: 'var(--color-ink)',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
-            borderRadius: '10px',
+            background: 'var(--glass-bg)',
+            borderRadius: 'var(--radius-default)',
             cursor: generating || loading ? 'not-allowed' : 'pointer',
             opacity: generating || loading ? 0.6 : 1,
             transition: 'opacity 0.1s',
           }}
         >
           {generating ? (
-            <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+            <Loader2 size={14} className="spin" />
           ) : (
             <RefreshCw size={14} />
           )}
@@ -532,11 +535,11 @@ export default function TodayPage() {
         <div
           style={{
             padding: '12px 16px',
-            background: '#fff5f5',
-            border: '1px solid #fecaca',
-            borderRadius: '12px',
+            background: 'var(--color-danger-soft)',
+            border: '1px solid var(--color-danger)',
+            borderRadius: 'var(--radius-default)',
             fontSize: '13px',
-            color: '#dc2626',
+            color: 'var(--color-danger)',
             fontWeight: 500,
           }}
         >
@@ -547,11 +550,11 @@ export default function TodayPage() {
         <div
           style={{
             padding: '12px 16px',
-            background: '#fff5f5',
-            border: '1px solid #fecaca',
-            borderRadius: '12px',
+            background: 'var(--color-danger-soft)',
+            border: '1px solid var(--color-danger)',
+            borderRadius: 'var(--radius-default)',
             fontSize: '13px',
-            color: '#dc2626',
+            color: 'var(--color-danger)',
             fontWeight: 500,
           }}
         >
@@ -567,9 +570,9 @@ export default function TodayPage() {
               key={i}
               style={{
                 height: '80px',
-                borderRadius: '14px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-line)',
+                borderRadius: 'var(--radius-default)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 opacity: 0.5 + i * 0.07,
               }}
             />
@@ -578,8 +581,17 @@ export default function TodayPage() {
       )}
 
       {/* ── Task list ────────────────────────────────────────────────── */}
+      {/* 单层玻璃面板包住列表(克制:不嵌套玻璃),内部行用 .tint 微染+发丝边,透出极光且可读。 */}
       {!loading && tasks.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div
+          className="lg"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            padding: '12px',
+          }}
+        >
           {tasks.map((task) => (
             <TaskCard
               key={task.id}
@@ -594,22 +606,22 @@ export default function TodayPage() {
             <div
               style={{
                 padding: '16px 20px',
-                background: '#ecfdf3',
-                border: '1px solid #a7f3d0',
-                borderRadius: '14px',
+                background: 'var(--color-success-soft)',
+                border: '1px solid var(--color-success)',
+                borderRadius: 'var(--radius-default)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
                 fontSize: '14px',
-                color: '#065f46',
+                color: 'var(--color-success)',
                 fontWeight: 600,
                 letterSpacing: '-0.003em',
               }}
             >
               <span style={{ fontSize: '20px' }}>🌿</span>
-              <span>
+              <span style={{ color: 'var(--color-ink)' }}>
                 全部完成！今天做得很好。
-                <span style={{ color: '#059669', fontWeight: 700 }}>
+                <span style={{ color: 'var(--color-success)', fontWeight: 700 }}>
                   {' '}
                   去过别的生活吧。
                 </span>
@@ -622,6 +634,7 @@ export default function TodayPage() {
       {/* ── Empty state ───────────────────────────────────────────────── */}
       {!loading && tasks.length === 0 && (
         <div
+          className="lg"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -636,13 +649,13 @@ export default function TodayPage() {
             style={{
               width: '64px',
               height: '64px',
-              borderRadius: '20px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
+              borderRadius: 'var(--radius-lg)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--color-ink-3)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
             }}
           >
             <CalendarDays size={28} />
@@ -650,7 +663,8 @@ export default function TodayPage() {
           <div>
             <div
               style={{
-                fontSize: '16px',
+                fontFamily: 'var(--serif)',
+                fontSize: '17px',
                 fontWeight: 700,
                 color: 'var(--color-ink)',
                 letterSpacing: '-0.01em',
@@ -683,16 +697,19 @@ export default function TodayPage() {
                 fontSize: '14px',
                 fontWeight: 600,
                 color: '#fff',
-                background: 'var(--color-ink)',
+                background:
+                  'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 border: 'none',
-                borderRadius: '12px',
+                borderRadius: 'var(--radius-default)',
                 cursor: generating ? 'not-allowed' : 'pointer',
                 opacity: generating ? 0.7 : 1,
+                boxShadow:
+                  '0 8px 22px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.35)',
                 transition: 'opacity 0.1s',
               }}
             >
               {generating ? (
-                <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                <Loader2 size={15} className="spin" />
               ) : (
                 <Zap size={15} />
               )}
@@ -702,9 +719,6 @@ export default function TodayPage() {
           </div>
         </div>
       )}
-
-      {/* spin keyframe */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

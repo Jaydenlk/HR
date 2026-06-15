@@ -12,13 +12,14 @@ export function PredictionCard({ prediction: p }: PredictionCardProps) {
   return (
     <div
       style={{
-        background: 'var(--color-ink)',
+        background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
         color: '#fff',
-        borderRadius: '22px',
+        borderRadius: 'var(--radius-xl)',
         padding: '24px',
         position: 'relative',
         overflow: 'hidden',
         flexShrink: 0,
+        boxShadow: '0 18px 44px -20px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.28)',
       }}
     >
       {/* Gradient overlay */}
@@ -26,7 +27,7 @@ export function PredictionCard({ prediction: p }: PredictionCardProps) {
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(500px 280px at 100% -20%, rgba(10,132,255,0.32), transparent 60%)',
+          background: 'radial-gradient(500px 280px at 100% -20%, rgba(255,255,255,0.18), transparent 60%)',
           pointerEvents: 'none',
         }}
       />
@@ -64,7 +65,7 @@ export function PredictionCard({ prediction: p }: PredictionCardProps) {
           }}
         >
           下一轮很可能问到{' '}
-          <span style={{ color: 'var(--color-brand)' }}>——</span>
+          <span style={{ color: 'rgba(255,255,255,0.55)' }}>——</span>
         </h3>
 
         {/* Summary */}
@@ -117,8 +118,8 @@ export function PredictionCard({ prediction: p }: PredictionCardProps) {
                       fontSize: '11px',
                       fontWeight: 700,
                       padding: '3px 9px',
-                      borderRadius: '6px',
-                      background: isHigh ? 'var(--color-brand)' : 'rgba(255,255,255,0.1)',
+                      borderRadius: 'var(--radius-sm)',
+                      background: isHigh ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
                       color: '#fff',
                       flexShrink: 0,
                     }}

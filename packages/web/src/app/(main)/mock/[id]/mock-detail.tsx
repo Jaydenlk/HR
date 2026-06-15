@@ -18,8 +18,8 @@ function LoadingState() {
             style={{
               height: `${h}px`,
               borderRadius: '14px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               opacity: 0.7,
             }}
           />
@@ -116,8 +116,8 @@ export function MockDetail({ params }: MockDetailProps) {
           style={{
             padding: '40px',
             textAlign: 'center',
-            background: isNotFound ? 'var(--color-surface)' : 'var(--color-danger-soft)',
-            border: isNotFound ? '1px solid var(--color-line)' : 'none',
+            background: isNotFound ? 'rgba(47,143,255,.05)' : 'var(--color-danger-soft)',
+            border: isNotFound ? '1px solid var(--hair)' : 'none',
             borderRadius: '14px',
             color: isNotFound ? 'var(--color-ink-3)' : 'var(--color-danger)',
             fontSize: '14px',
@@ -155,10 +155,8 @@ export function MockDetail({ params }: MockDetailProps) {
 
       {/* Session header */}
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '14px',
-          border: '1px solid var(--color-line)',
           padding: '20px 24px',
           marginBottom: '24px',
           display: 'flex',
@@ -206,7 +204,7 @@ export function MockDetail({ params }: MockDetailProps) {
                 fontWeight: 600,
                 padding: '2px 8px',
                 borderRadius: '6px',
-                background: isCompleted ? 'var(--color-success-soft, #f0fdf4)' : 'var(--color-brand-soft)',
+                background: isCompleted ? 'var(--color-success-soft)' : 'var(--color-brand-soft)',
                 color: isCompleted ? 'var(--color-success)' : 'var(--color-brand)',
               }}
             >

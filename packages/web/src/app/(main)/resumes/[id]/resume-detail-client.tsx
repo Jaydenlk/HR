@@ -61,8 +61,8 @@ function LoadingState() {
             style={{
               height: `${h}px`,
               borderRadius: '12px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               opacity: 0.7,
               animation: 'pulse 1.5s ease-in-out infinite',
             }}
@@ -264,10 +264,8 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
 
         {/* Resume header card */}
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '16px',
-            border: '1px solid var(--color-line)',
             padding: '24px 28px',
             marginBottom: '20px',
           }}
@@ -304,7 +302,7 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                     <button
                       onClick={() => void handleSaveTitle()}
                       disabled={savingTitle}
-                      style={{ display: 'inline-flex', alignItems: 'center', padding: '6px', borderRadius: '7px', border: 'none', background: 'var(--color-brand)', color: '#fff', cursor: savingTitle ? 'not-allowed' : 'pointer', flexShrink: 0 }}
+                      style={{ display: 'inline-flex', alignItems: 'center', padding: '6px', borderRadius: '7px', border: 'none', background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))', color: '#fff', cursor: savingTitle ? 'not-allowed' : 'pointer', opacity: savingTitle ? 0.6 : 1, flexShrink: 0 }}
                     >
                       <Check size={14} />
                     </button>
@@ -319,8 +317,9 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <h1
                       style={{
-                        fontSize: '22px',
-                        fontWeight: 700,
+                        fontFamily: 'var(--serif)',
+                        fontSize: '24px',
+                        fontWeight: 600,
                         color: 'var(--color-ink)',
                         letterSpacing: '-0.4px',
                         margin: 0,
@@ -359,7 +358,8 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                       fontWeight: 600,
                       padding: '3px 8px',
                       borderRadius: '5px',
-                      background: 'var(--color-surface-3)',
+                      background: 'rgba(47,143,255,.05)',
+                      border: '1px solid var(--hair)',
                       color: 'var(--color-ink-3)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.04em',
@@ -496,7 +496,8 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
           style={{
             display: 'flex',
             gap: '2px',
-            background: 'var(--color-surface-2)',
+            background: 'rgba(47,143,255,.05)',
+            border: '1px solid var(--hair)',
             borderRadius: '12px',
             padding: '4px',
             marginBottom: '20px',
@@ -527,7 +528,9 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                     : isDisabled
                       ? 'var(--color-ink-4)'
                       : 'var(--color-ink-3)',
-                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                  boxShadow: isActive
+                    ? 'inset 0 0 0 1px var(--color-line), inset 0 1px 0 var(--glass-rim)'
+                    : 'none',
                   transition: 'all 0.12s',
                   opacity: isDisabled ? 0.5 : 1,
                 }}
@@ -540,7 +543,8 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                       fontSize: '10px',
                       fontWeight: 700,
                       fontFamily: 'var(--font-mono)',
-                      background: 'var(--color-surface-3)',
+                      background: 'rgba(47,143,255,.05)',
+                      border: '1px solid var(--hair)',
                       color: 'var(--color-ink-3)',
                       padding: '1px 6px',
                       borderRadius: '4px',
@@ -555,7 +559,8 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                       fontSize: '10px',
                       fontWeight: 700,
                       fontFamily: 'var(--font-mono)',
-                      background: 'var(--color-surface-3)',
+                      background: 'rgba(47,143,255,.05)',
+                      border: '1px solid var(--hair)',
                       color: 'var(--color-ink-3)',
                       padding: '1px 6px',
                       borderRadius: '4px',
@@ -571,10 +576,8 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
 
         {/* Tab content */}
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
             padding: '28px',
           }}
         >
@@ -594,10 +597,10 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                   fontSize: '13px',
                   lineHeight: 1.75,
                   color: 'var(--color-ink-2)',
-                  background: 'var(--color-surface-2)',
+                  background: 'rgba(47,143,255,.05)',
                   borderRadius: '10px',
                   padding: '20px',
-                  border: '1px solid var(--color-line)',
+                  border: '1px solid var(--hair)',
                   overflowY: 'auto',
                   maxHeight: '560px',
                   whiteSpace: 'pre-wrap',
@@ -632,9 +635,9 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                   style={{
                     padding: '32px 24px',
                     textAlign: 'center',
-                    background: 'var(--color-surface-2)',
+                    background: 'rgba(47,143,255,.05)',
                     borderRadius: '10px',
-                    border: '1px dashed var(--color-line-2)',
+                    border: '1px dashed var(--hair-2)',
                   }}
                 >
                   <Stethoscope size={28} color="var(--color-ink-4)" style={{ margin: '0 auto 12px' }} />
@@ -649,11 +652,12 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                       gap: '6px',
                       padding: '8px 16px',
                       borderRadius: '8px',
-                      background: 'var(--color-brand)',
+                      background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                       color: '#fff',
                       fontSize: '13px',
                       fontWeight: 600,
                       textDecoration: 'none',
+                      boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                     }}
                   >
                     新建诊断
@@ -676,17 +680,19 @@ export function ResumeDetailClient({ params }: { params: Promise<{ id: string }>
                           alignItems: 'center',
                           gap: '12px',
                           padding: '14px 16px',
-                          background: 'var(--color-surface-2)',
+                          background: 'rgba(47,143,255,.05)',
                           borderRadius: '10px',
-                          border: '1px solid var(--color-line)',
+                          border: '1px solid var(--hair)',
                           textDecoration: 'none',
-                          transition: 'box-shadow 0.12s',
+                          transition: 'border-color 0.12s, background 0.12s',
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+                          e.currentTarget.style.borderColor = 'var(--color-brand)';
+                          e.currentTarget.style.background = 'rgba(47,143,255,.08)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.boxShadow = 'none';
+                          e.currentTarget.style.borderColor = 'var(--hair)';
+                          e.currentTarget.style.background = 'rgba(47,143,255,.05)';
                         }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>

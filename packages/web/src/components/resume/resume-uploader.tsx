@@ -82,45 +82,24 @@ export function ResumeUploader({ open, onClose, onSuccess }: ResumeUploaderProps
   if (!open) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-      }}
-    >
+    <div className="modal-overlay">
       {/* Backdrop */}
-      <div
-        onClick={handleClose}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(0,0,0,0.25)',
-          backdropFilter: 'blur(2px)',
-        }}
-      />
+      <div className="modal-scrim" onClick={handleClose} />
 
       {/* Dialog */}
       <div
+        className="lg"
         style={{
           position: 'relative',
           zIndex: 1,
           width: '100%',
           maxWidth: '520px',
-          background: 'var(--color-surface)',
-          borderRadius: '20px',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.14)',
-          border: '1px solid var(--color-line)',
           padding: '28px',
         }}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: 'var(--serif)', fontSize: '19px', fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-0.02em' }}>
             添加简历
           </div>
           <button
@@ -145,7 +124,8 @@ export function ResumeUploader({ open, onClose, onSuccess }: ResumeUploaderProps
           style={{
             display: 'flex',
             gap: '4px',
-            background: 'var(--color-surface-2)',
+            background: 'rgba(47,143,255,.05)',
+            border: '1px solid var(--hair)',
             borderRadius: '10px',
             padding: '3px',
             marginBottom: '20px',
@@ -165,7 +145,7 @@ export function ResumeUploader({ open, onClose, onSuccess }: ResumeUploaderProps
                 fontWeight: 600,
                 background: tab === t ? 'var(--color-surface)' : 'transparent',
                 color: tab === t ? 'var(--color-ink)' : 'var(--color-ink-3)',
-                boxShadow: tab === t ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                boxShadow: tab === t ? 'inset 0 0 0 1px var(--color-line), inset 0 1px 0 var(--glass-rim)' : 'none',
                 transition: 'all 0.12s',
               }}
             >
@@ -264,7 +244,7 @@ export function ResumeUploader({ open, onClose, onSuccess }: ResumeUploaderProps
                   padding: '28px 20px',
                   borderRadius: '10px',
                   border: `2px dashed ${file ? 'var(--color-brand)' : 'var(--color-line-2)'}`,
-                  background: file ? 'var(--color-brand-soft)' : 'var(--color-surface-2)',
+                  background: file ? 'var(--color-brand-soft)' : 'rgba(47,143,255,.05)',
                   cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
@@ -355,12 +335,14 @@ export function ResumeUploader({ open, onClose, onSuccess }: ResumeUploaderProps
                 padding: '9px 22px',
                 borderRadius: '9px',
                 border: 'none',
-                background: loading ? 'var(--color-ink-3)' : 'var(--color-brand)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: '#fff',
                 fontSize: '13.5px',
                 fontWeight: 600,
                 cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background 0.12s',
+                opacity: loading ? 0.6 : 1,
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                transition: 'opacity 0.12s',
               }}
             >
               {loading ? '上传中…' : '确认上传'}

@@ -13,7 +13,7 @@ function gradeColors(grade: string | null): { bg: string; text: string } {
   if (!grade) return { bg: 'var(--color-ink-4)', text: '#fff' };
   const g = grade.toUpperCase();
   if (g.startsWith('A')) return { bg: 'var(--color-success)', text: '#fff' };
-  if (g.startsWith('B')) return { bg: 'var(--color-ink)', text: '#fff' };
+  if (g.startsWith('B')) return { bg: 'var(--color-brand)', text: '#fff' };
   if (g.startsWith('C')) return { bg: 'var(--color-warn)', text: '#fff' };
   return { bg: 'var(--color-danger)', text: '#fff' };
 }
@@ -27,9 +27,9 @@ function LoadingState() {
             key={i}
             style={{
               height: `${h}px`,
-              borderRadius: '14px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
+              borderRadius: 'var(--radius-default)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               opacity: 0.7,
             }}
           />
@@ -110,9 +110,9 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
           style={{
             padding: '40px',
             textAlign: 'center',
-            background: isNotFound ? 'var(--color-surface)' : 'var(--color-danger-soft)',
-            border: isNotFound ? '1px solid var(--color-line)' : 'none',
-            borderRadius: '14px',
+            background: isNotFound ? 'rgba(47,143,255,.05)' : 'var(--color-danger-soft)',
+            border: isNotFound ? '1px solid var(--hair)' : 'none',
+            borderRadius: 'var(--radius-default)',
             color: isNotFound ? 'var(--color-ink-3)' : 'var(--color-danger)',
             fontSize: '14px',
           }}
@@ -161,10 +161,9 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
 
       {/* Header card */}
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-line)',
+          borderRadius: 'var(--radius-default)',
           padding: '24px 28px',
           marginBottom: '20px',
           display: 'flex',
@@ -208,6 +207,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '24px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -230,11 +230,11 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
             <span
               style={{
                 padding: '3px 10px',
-                borderRadius: '999px',
+                borderRadius: 'var(--radius-pill)',
                 fontSize: '12px',
                 fontWeight: 600,
-                background: 'var(--color-ink)',
-                color: '#fff',
+                background: 'var(--color-brand-soft)',
+                color: 'var(--color-brand-ink)',
               }}
             >
               {iv.round}
@@ -315,10 +315,9 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
       {/* No analysis state */}
       {!hasAnalysis && (
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
+            borderRadius: 'var(--radius-default)',
             padding: '40px',
             textAlign: 'center',
             marginBottom: '20px',
@@ -352,15 +351,16 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
                 alignItems: 'center',
                 gap: '7px',
                 padding: '10px 22px',
-                background: 'var(--color-brand)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: '#fff',
                 border: 'none',
-                borderRadius: '12px',
+                borderRadius: 'var(--radius-default)',
                 fontSize: '13.5px',
                 fontWeight: 600,
                 cursor: analyzing ? 'not-allowed' : 'pointer',
                 opacity: analyzing ? 0.7 : 1,
                 letterSpacing: '-0.005em',
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               <RefreshCw size={14} />
@@ -374,10 +374,9 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
       {/* Score bars */}
       {iv.scores && iv.scores.length > 0 && (
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
+            borderRadius: 'var(--radius-default)',
             padding: '22px 24px',
             marginBottom: '20px',
           }}
@@ -390,7 +389,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
               marginBottom: '16px',
             }}
           >
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
               能力分布 · {iv.scores.length} 个维度
             </div>
             <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
@@ -412,7 +411,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
               marginBottom: '14px',
             }}
           >
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
               逐题复盘 · {iv.questions.length} 道
             </div>
             <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', fontWeight: 500 }}>

@@ -51,10 +51,14 @@ const labelStyle: React.CSSProperties = {
   marginBottom: '5px',
 };
 
+// 数据卡:单层液态玻璃(对齐 .lg 观感)。透出外壳极光,暗/亮自动适配。
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-line)',
-  borderRadius: '14px',
+  background: 'var(--glass-bg)',
+  WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+  backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+  border: '1px solid var(--glass-bd)',
+  borderRadius: '22px',
+  boxShadow: 'var(--glass-sh), inset 0 1px 0 var(--glass-rim)',
   padding: '18px 20px',
 };
 
@@ -91,14 +95,17 @@ const PRIMARY_BTN = (loading: boolean): React.CSSProperties => ({
   alignItems: 'center',
   gap: '7px',
   padding: '10px 24px',
-  borderRadius: '10px',
+  borderRadius: 'var(--radius-default)',
   border: 'none',
-  background: loading ? 'var(--color-surface-3)' : 'var(--color-brand)',
+  background: loading
+    ? 'var(--color-surface-3)'
+    : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
   color: loading ? 'var(--color-ink-3)' : '#fff',
   fontSize: '13.5px',
   fontWeight: 700,
   cursor: loading ? 'not-allowed' : 'pointer',
   fontFamily: 'inherit',
+  boxShadow: loading ? 'none' : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
 });
 
 // ── Shared envelope renderers ───────────────────────────────────────────────────
@@ -123,7 +130,7 @@ function SummaryCard({ env }: { env: Envelope }) {
           color: confidenceColor(env.confidence),
           background: `color-mix(in srgb, ${confidenceColor(env.confidence)} 10%, transparent)`,
           padding: '2px 9px',
-          borderRadius: '99px',
+          borderRadius: 'var(--radius-pill)',
         }}
       >
         置信度：{confidenceLabel(env.confidence)}
@@ -156,8 +163,8 @@ function CannotDetermineCard({ env }: { env: Envelope }) {
   return (
     <div
       style={{
-        background: 'rgba(245,158,11,0.07)',
-        border: '1px solid rgba(245,158,11,0.25)',
+        background: 'var(--color-warn-soft)',
+        border: '1px solid color-mix(in srgb, var(--color-warn) 30%, transparent)',
         borderRadius: '12px',
         padding: '14px 16px',
       }}
@@ -174,7 +181,7 @@ function CannotDetermineCard({ env }: { env: Envelope }) {
         </div>
       ))}
       {followUpQuestions.length > 0 && (
-        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(245,158,11,0.15)' }}>
+        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid color-mix(in srgb, var(--color-warn) 18%, transparent)' }}>
           <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--color-ink-3)', marginBottom: '6px' }}>追问建议</div>
           {followUpQuestions.map((q, i) => (
             <div key={i} style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
@@ -191,7 +198,7 @@ function CannotDetermineCard({ env }: { env: Envelope }) {
 function InsufficientPanel({ env }: { env: Envelope }) {
   const followUpQuestions = env.follow_up_questions ?? [];
   return (
-    <div style={{ padding: '16px 18px', background: 'var(--color-surface-2)', borderRadius: '12px', border: '1px solid var(--color-line)' }}>
+    <div style={cardStyle}>
       <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '8px' }}>
         信息不足，无法生成完整结果
       </div>
@@ -277,9 +284,12 @@ function TabShell({
             alignItems: 'center',
             padding: '32px',
             textAlign: 'center',
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1.5px dashed var(--color-line-2)',
+            background: 'var(--glass-bg)',
+            WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+            backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+            borderRadius: '22px',
+            border: '1.5px dashed var(--hair-2)',
+            boxShadow: 'inset 0 1px 0 var(--glass-rim)',
             gap: '8px',
             color: 'var(--color-ink-4)',
           }}
@@ -366,7 +376,7 @@ function PlaybookTab({ state, patch }: { state: PlaybookState; patch: (p: Partia
             </div>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '8px 0' }}>
               {(result.company_profile.culture_keywords ?? []).map((k, i) => (
-                <span key={i} style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--color-brand)', background: 'var(--color-surface-2)', padding: '3px 9px', borderRadius: '99px' }}>
+                <span key={i} style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--color-brand)', background: 'rgba(47,143,255,.05)', border: '1px solid var(--hair)', padding: '3px 9px', borderRadius: 'var(--radius-pill)' }}>
                   {k}
                 </span>
               ))}
@@ -545,13 +555,13 @@ function StarTab({ state, patch }: { state: StarState; patch: (p: Partial<StarSt
             <div key={i} style={cardStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)' }}>{s.title}</div>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: pl.color, background: `color-mix(in srgb, ${pl.color} 10%, transparent)`, padding: '2px 9px', borderRadius: '99px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: pl.color, background: `color-mix(in srgb, ${pl.color} 10%, transparent)`, padding: '2px 9px', borderRadius: 'var(--radius-pill)' }}>
                   {pl.text}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
                 {(s.competency ?? []).map((c, ci) => (
-                  <span key={ci} style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-ink-2)', background: 'var(--color-surface-2)', padding: '2px 8px', borderRadius: '99px' }}>
+                  <span key={ci} style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-ink-2)', background: 'rgba(47,143,255,.05)', border: '1px solid var(--hair)', padding: '2px 8px', borderRadius: 'var(--radius-pill)' }}>
                     {c}
                   </span>
                 ))}
@@ -764,7 +774,7 @@ function TechTab({ state, patch }: { state: TechState; patch: (p: Partial<TechSt
             {sectionTitle('备考计划（按优先级）')}
             {(result.preparation_plan ?? []).map((p, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '10.5px', fontWeight: 700, color: priorityColor(p.priority), background: `${priorityColor(p.priority)}18`, padding: '2px 8px', borderRadius: '99px', flexShrink: 0 }}>
+                <span style={{ fontSize: '10.5px', fontWeight: 700, color: priorityColor(p.priority), background: `color-mix(in srgb, ${priorityColor(p.priority)} 14%, transparent)`, padding: '2px 8px', borderRadius: 'var(--radius-pill)', flexShrink: 0 }}>
                   {PRIORITY_LABEL[p.priority] ?? p.priority}
                 </span>
                 <span style={{ fontSize: '13.5px', color: 'var(--color-ink)', fontWeight: 600 }}>{p.area}</span>
@@ -1054,7 +1064,7 @@ export default function InterviewPrepPage() {
         }}
       >
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.4px', marginBottom: '4px' }}>
+          <h1 style={{ fontFamily: 'var(--serif)', fontSize: '24px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.4px', marginBottom: '4px' }}>
             面试备战
           </h1>
           <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', margin: 0 }}>

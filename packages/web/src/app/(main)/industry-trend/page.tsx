@@ -82,10 +82,14 @@ const FALLBACK_COLOR = 'var(--color-ink-4)';
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
+// 数据卡:单层液态玻璃(对齐 .lg 观感)。透出外壳极光,暗/亮自动适配。
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-line)',
-  borderRadius: '18px',
+  background: 'var(--glass-bg)',
+  WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+  backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+  border: '1px solid var(--glass-bd)',
+  borderRadius: '22px',
+  boxShadow: 'var(--glass-sh), inset 0 1px 0 var(--glass-rim)',
   padding: '20px 22px',
 };
 
@@ -120,14 +124,17 @@ const btnPrimaryStyle = (loading: boolean): React.CSSProperties => ({
   justifyContent: 'center',
   gap: '8px',
   padding: '12px 0',
-  borderRadius: '10px',
+  borderRadius: 'var(--radius-default)',
   border: 'none',
-  background: loading ? 'var(--color-surface-3)' : 'var(--color-brand)',
+  background: loading
+    ? 'var(--color-surface-3)'
+    : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
   color: loading ? 'var(--color-ink-3)' : '#fff',
   fontSize: '14px',
   fontWeight: 700,
   cursor: loading ? 'not-allowed' : 'pointer',
   letterSpacing: '-0.01em',
+  boxShadow: loading ? 'none' : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
   transition: 'background 0.12s',
 });
 
@@ -209,7 +216,8 @@ function GrowthSignalCard({
     <div
       style={{
         padding: '12px 14px',
-        background: 'var(--color-surface-2)',
+        background: 'rgba(47,143,255,.05)',
+        border: '1px solid var(--hair)',
         borderRadius: '10px',
         borderLeft: '3px solid var(--color-success)',
         marginBottom: '8px',
@@ -224,10 +232,11 @@ function GrowthSignalCard({
             fontSize: '11px',
             fontWeight: 700,
             padding: '2px 8px',
-            borderRadius: '999px',
+            borderRadius: 'var(--radius-pill)',
             background: signal.strength
-              ? 'var(--color-success-soft, #d1fae5)'
-              : 'var(--color-surface-3)',
+              ? 'var(--color-success-soft)'
+              : 'rgba(47,143,255,.05)',
+            border: signal.strength ? 'none' : '1px solid var(--hair)',
             color: signal.strength ? 'var(--color-success)' : 'var(--color-ink-4)',
             flexShrink: 0,
           }}
@@ -252,7 +261,8 @@ function RiskSignalCard({
     <div
       style={{
         padding: '12px 14px',
-        background: 'var(--color-surface-2)',
+        background: 'rgba(47,143,255,.05)',
+        border: '1px solid var(--hair)',
         borderRadius: '10px',
         borderLeft: '3px solid var(--color-warn)',
         marginBottom: '8px',
@@ -267,10 +277,11 @@ function RiskSignalCard({
             fontSize: '11px',
             fontWeight: 700,
             padding: '2px 8px',
-            borderRadius: '999px',
+            borderRadius: 'var(--radius-pill)',
             background: signal.severity
-              ? 'var(--color-warn-soft, #fef3c7)'
-              : 'var(--color-surface-3)',
+              ? 'var(--color-warn-soft)'
+              : 'rgba(47,143,255,.05)',
+            border: signal.severity ? 'none' : '1px solid var(--hair)',
             color: signal.severity ? 'var(--color-warn)' : 'var(--color-ink-4)',
             flexShrink: 0,
           }}
@@ -288,7 +299,8 @@ function EntryRoleCard({ role }: { role: IndustryEntryRole }) {
     <div
       style={{
         padding: '12px 14px',
-        background: 'var(--color-surface-2)',
+        background: 'rgba(47,143,255,.05)',
+        border: '1px solid var(--hair)',
         borderRadius: '10px',
         marginBottom: '8px',
         display: 'flex',
@@ -310,8 +322,9 @@ function EntryRoleCard({ role }: { role: IndustryEntryRole }) {
           fontSize: '11px',
           fontWeight: 700,
           padding: '2px 8px',
-          borderRadius: '999px',
-          background: role.demand_level ? 'var(--color-brand-soft)' : 'var(--color-surface-3)',
+          borderRadius: 'var(--radius-pill)',
+          background: role.demand_level ? 'var(--color-brand-soft)' : 'rgba(47,143,255,.05)',
+          border: role.demand_level ? 'none' : '1px solid var(--hair)',
           color: role.demand_level ? 'var(--color-brand-ink)' : 'var(--color-ink-4)',
           flexShrink: 0,
         }}
@@ -335,7 +348,8 @@ function TagList({ items, label }: { items: string[]; label: string }) {
               fontSize: '13px',
               color: 'var(--color-ink-2)',
               padding: '5px 10px',
-              background: 'var(--color-surface-2)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               borderRadius: '7px',
             }}
           >
@@ -386,7 +400,8 @@ function EvidenceList({
             key={i}
             style={{
               padding: '10px 12px',
-              background: 'var(--color-surface-2)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               borderRadius: '10px',
               borderLeft: ev.verified
                 ? '3px solid var(--color-success)'
@@ -410,8 +425,8 @@ function EvidenceList({
                     fontSize: '10.5px',
                     fontWeight: 700,
                     padding: '1px 7px',
-                    borderRadius: '999px',
-                    background: 'var(--color-success-soft, #d1fae5)',
+                    borderRadius: 'var(--radius-pill)',
+                    background: 'var(--color-success-soft)',
                     color: 'var(--color-success)',
                     flexShrink: 0,
                   }}
@@ -498,6 +513,7 @@ export default function IndustryTrendPage() {
       <div style={{ flexShrink: 0, marginBottom: '24px' }}>
         <h1
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '24px',
             fontWeight: 700,
             color: 'var(--color-ink)',
@@ -608,9 +624,12 @@ export default function IndustryTrendPage() {
                 gap: '8px',
                 color: 'var(--color-ink-3)',
                 fontSize: '14px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-line)',
-                borderRadius: '18px',
+                background: 'var(--glass-bg)',
+                WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                border: '1px solid var(--glass-bd)',
+                boxShadow: 'var(--glass-sh), inset 0 1px 0 var(--glass-rim)',
+                borderRadius: '22px',
               }}
             >
               <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
@@ -666,13 +685,7 @@ export default function IndustryTrendPage() {
 
               {/* Cannot-determine: honest degradation, render in any branch (#64) */}
               {result.cannot_determine.length > 0 && (
-                <div
-                  style={{
-                    ...cardStyle,
-                    borderColor: 'var(--color-line-2)',
-                    background: 'var(--color-surface-2)',
-                  }}
-                >
+                <div style={cardStyle}>
                   <div
                     style={{
                       display: 'flex',
@@ -842,14 +855,14 @@ export default function IndustryTrendPage() {
               {/* Expandable details */}
               <button
                 onClick={() => setShowDetails((v) => !v)}
+                className="lg-sm"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
                   padding: '8px 14px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--color-line)',
-                  background: 'var(--color-surface)',
+                  borderRadius: 'var(--radius-default)',
+                  background: 'var(--glass-bg)',
                   color: 'var(--color-ink-2)',
                   fontSize: '13px',
                   fontWeight: 600,
@@ -885,9 +898,12 @@ export default function IndustryTrendPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '12px',
-                background: 'var(--color-surface)',
-                border: '1.5px dashed var(--color-line-2)',
-                borderRadius: '18px',
+                background: 'var(--glass-bg)',
+                WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                border: '1.5px dashed var(--hair-2)',
+                boxShadow: 'inset 0 1px 0 var(--glass-rim)',
+                borderRadius: '22px',
                 padding: '48px 32px',
                 textAlign: 'center',
               }}
@@ -896,8 +912,9 @@ export default function IndustryTrendPage() {
                 style={{
                   width: '52px',
                   height: '52px',
-                  borderRadius: '14px',
-                  background: 'var(--color-surface-2)',
+                  borderRadius: 'var(--radius-default)',
+                  background: 'rgba(47,143,255,.05)',
+                  border: '1px solid var(--hair)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

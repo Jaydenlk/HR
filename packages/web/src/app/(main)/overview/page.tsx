@@ -47,10 +47,8 @@ function SectionCard({
 }) {
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '22px',
         padding: '22px 26px',
         display: 'flex',
         flexDirection: 'column',
@@ -67,6 +65,7 @@ function SectionCard({
         <h3
           style={{
             margin: 0,
+            fontFamily: 'var(--serif)',
             fontSize: '16px',
             fontWeight: 700,
             letterSpacing: '-0.012em',
@@ -106,8 +105,8 @@ function Skeleton({ h = 120 }: { h?: number }) {
       style={{
         height: `${h}px`,
         borderRadius: '22px',
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
+        background: 'rgba(47,143,255,.05)',
+        border: '1px solid var(--hair)',
         opacity: 0.6,
       }}
     />
@@ -180,6 +179,7 @@ export default function OverviewPage() {
         <h1
           style={{
             margin: 0,
+            fontFamily: 'var(--serif)',
             fontSize: '28px',
             fontWeight: 800,
             letterSpacing: '-0.025em',
@@ -205,11 +205,11 @@ export default function OverviewPage() {
         <div
           style={{
             padding: '12px 16px',
-            background: '#fff5f5',
-            border: '1px solid #fecaca',
+            background: 'var(--color-danger-soft)',
+            border: '1px solid var(--color-danger)',
             borderRadius: '12px',
             fontSize: '13px',
-            color: '#dc2626',
+            color: 'var(--color-danger)',
             fontWeight: 500,
           }}
         >
@@ -261,8 +261,8 @@ export default function OverviewPage() {
               width: '72px',
               height: '72px',
               borderRadius: '22px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -274,6 +274,7 @@ export default function OverviewPage() {
           <div>
             <div
               style={{
+                fontFamily: 'var(--serif)',
                 fontSize: '18px',
                 fontWeight: 700,
                 color: 'var(--color-ink)',
@@ -305,9 +306,12 @@ export default function OverviewPage() {
                 fontSize: '13.5px',
                 fontWeight: 600,
                 color: '#fff',
-                background: 'var(--color-ink)',
+                background:
+                  'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 borderRadius: '12px',
                 textDecoration: 'none',
+                boxShadow:
+                  '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               <FileText size={15} />
@@ -315,6 +319,7 @@ export default function OverviewPage() {
             </Link>
             <Link
               href="/applications"
+              className="lg-sm"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -323,8 +328,7 @@ export default function OverviewPage() {
                 fontSize: '13.5px',
                 fontWeight: 600,
                 color: 'var(--color-ink)',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-line)',
+                background: 'var(--glass-bg)',
                 borderRadius: '12px',
                 textDecoration: 'none',
               }}
@@ -401,7 +405,8 @@ export default function OverviewPage() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '8px 12px',
-                        background: 'var(--color-surface-2)',
+                        background: 'rgba(47,143,255,.05)',
+                        border: '1px solid var(--hair)',
                         borderRadius: '10px',
                         fontSize: '13px',
                       }}
@@ -481,7 +486,8 @@ export default function OverviewPage() {
                 <div
                   style={{
                     padding: '10px 14px',
-                    background: 'var(--color-surface-2)',
+                    background: 'rgba(47,143,255,.05)',
+                    border: '1px solid var(--hair)',
                     borderRadius: '10px',
                     fontSize: '13px',
                     fontWeight: 500,

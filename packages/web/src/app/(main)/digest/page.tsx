@@ -326,17 +326,17 @@ export default function DigestPage() {
       </section>
 
       <section className="status-grid" aria-label="来源状态">
-        <div className="status-card">
+        <div className="lg status-card">
           <span>来源配置</span>
           <strong>{sourceSummary.active}/{sourceSummary.total}</strong>
           <small>{sourceSummary.needsConfig > 0 ? `${sourceSummary.needsConfig} 个待配置` : '全部可用'}</small>
         </div>
-        <div className="status-card">
+        <div className="lg status-card">
           <span>最近导入</span>
           <strong>{latestRun ? RUN_STATUS_LABELS[latestRun.status] : '未运行'}</strong>
           <small>{latestRun ? formatDate(latestRun.created_at) : '点击导入来源开始采集'}</small>
         </div>
-        <div className="status-card">
+        <div className="lg status-card">
           <span>当前结果</span>
           <strong>{items.length}</strong>
           <small>按筛选条件返回的真实记录</small>
@@ -412,7 +412,7 @@ export default function DigestPage() {
 
       {showForm && (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <form className="digest-form" onSubmit={(event) => void handleSubmit(event)}>
+          <form className="lg digest-form" onSubmit={(event) => void handleSubmit(event)}>
             <div className="form-title-row">
               <div>
                 <h2>写一篇面经</h2>
@@ -594,7 +594,7 @@ function EmptyDigestState({
 
 function DigestCard({ item }: { item: FeedItem }) {
   return (
-    <article className="digest-card">
+    <article className="lg digest-card">
       <div className="card-top">
         <span className={`category-pill ${item.category}`}>{CATEGORY_LABELS[item.category]}</span>
         <span className={`source-badge ${item.source_kind}`}>{SOURCE_KIND_LABELS[item.source_kind]}</span>
@@ -651,6 +651,7 @@ const DIGEST_CSS = `
 
 .digest-header h1 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 28px;
   line-height: 1.15;
   font-weight: 800;
@@ -694,21 +695,23 @@ button {
 
 .primary-button {
   padding: 0 14px;
-  background: var(--color-brand);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-deep));
+  color: #fff;
+  box-shadow: 0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4);
 }
 
 .secondary-button {
   padding: 0 12px;
   color: var(--color-ink-2);
-  background: var(--color-surface);
-  border-color: var(--color-line);
+  background: rgba(47,143,255,.05);
+  border-color: var(--hair);
 }
 
 .icon-button {
   width: 34px;
   color: var(--color-ink-3);
-  background: var(--color-surface-2);
+  background: rgba(47,143,255,.05);
+  border-color: var(--hair);
 }
 
 .primary-button:disabled,
@@ -724,10 +727,8 @@ button {
   margin-bottom: 14px;
 }
 
+/* 外层玻璃由 .lg 提供(JSX 上加 className="lg status-card");此处仅留内边距。 */
 .status-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
   padding: 14px 16px;
 }
 
@@ -758,9 +759,9 @@ button {
   align-items: center;
   gap: 8px;
   color: var(--color-ink-3);
-  background: var(--color-surface);
-  border: 1px dashed var(--color-line-2);
-  border-radius: 8px;
+  background: transparent;
+  border: 1px dashed var(--hair-2);
+  border-radius: var(--radius-default);
   padding: 14px 16px;
 }
 
@@ -768,9 +769,9 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-default);
   padding: 12px;
 }
 
@@ -811,8 +812,8 @@ button {
 
 .run-notice {
   color: var(--color-ink-2);
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
 }
 
 .run-notice.failed {
@@ -871,21 +872,23 @@ button {
 
 .segmented button,
 .tabs button {
-  border: 1px solid var(--color-line);
-  background: var(--color-surface);
+  border: 1px solid var(--hair);
+  background: rgba(47,143,255,.05);
   color: var(--color-ink-3);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 7px 12px;
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
 }
 
+/* 选中态:品牌渐变(暗色不再 ink 实底+白字撞色)。 */
 .segmented button.active,
 .tabs button.active {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-deep));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4);
 }
 
 .loading-state,
@@ -900,14 +903,15 @@ button {
 }
 
 .empty-state {
-  border: 1px dashed var(--color-line-2);
-  border-radius: 8px;
-  background: var(--color-surface);
+  border: 1px dashed var(--hair-2);
+  border-radius: var(--radius-default);
+  background: transparent;
   padding: 42px 20px;
 }
 
 .empty-state h2 {
   margin: 12px 0 6px;
+  font-family: var(--serif);
   color: var(--color-ink);
   font-size: 18px;
 }
@@ -924,14 +928,12 @@ button {
   gap: 14px;
 }
 
+/* 外层玻璃由 .lg 提供(JSX 上加 className="lg digest-card");此处仅留布局/内边距。 */
 .digest-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-height: 260px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
   padding: 16px;
 }
 
@@ -964,17 +966,18 @@ button {
 .source-badge {
   padding: 5px 8px;
   color: var(--color-ink-2);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-line);
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
 }
 
 .source-badge.ugc {
-  color: #175f2b;
+  color: var(--color-success);
   background: var(--color-success-soft);
 }
 
 .digest-card h2 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 16px;
   line-height: 1.4;
 }
@@ -989,7 +992,8 @@ button {
 .card-meta span {
   padding: 5px 8px;
   color: var(--color-ink-2);
-  background: var(--color-surface-2);
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
 }
 
 .card-footer {
@@ -1035,6 +1039,7 @@ button {
   background: rgba(0, 0, 0, 0.42);
 }
 
+/* 外层玻璃由 .lg 提供(JSX 上加 className="lg digest-form");此处仅留尺寸/布局。 */
 .digest-form {
   width: min(620px, 100%);
   max-height: calc(100vh - 40px);
@@ -1042,10 +1047,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: var(--color-bg);
-  border-radius: 8px;
   padding: 22px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
 }
 
 .form-title-row {
@@ -1057,6 +1059,7 @@ button {
 
 .form-title-row h2 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 18px;
 }
 

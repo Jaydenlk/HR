@@ -57,10 +57,8 @@ const STRENGTH_LABELS: Record<string, string> = {
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
+// 外层数据卡:配合 className="lg" 单层玻璃,仅留内边距(圆角/底色/描边/阴影由 .lg 提供)。
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-line)',
-  borderRadius: '18px',
   padding: '20px 22px',
 };
 
@@ -97,8 +95,13 @@ const btnPrimaryStyle = (loading: boolean): React.CSSProperties => ({
   padding: '12px 0',
   borderRadius: '10px',
   border: 'none',
-  background: loading ? 'var(--color-surface-3)' : 'var(--color-brand)',
+  background: loading
+    ? 'var(--color-surface-3)'
+    : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
   color: loading ? 'var(--color-ink-3)' : '#fff',
+  boxShadow: loading
+    ? 'none'
+    : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
   fontSize: '14px',
   fontWeight: 700,
   cursor: loading ? 'not-allowed' : 'pointer',
@@ -121,7 +124,8 @@ function SegmentedPicker<T extends string>({
     <div
       style={{
         display: 'flex',
-        background: 'var(--color-surface-2)',
+        background: 'rgba(47,143,255,.05)',
+        border: '1px solid var(--hair)',
         borderRadius: '10px',
         padding: '3px',
       }}
@@ -136,11 +140,11 @@ function SegmentedPicker<T extends string>({
             fontSize: '12.5px',
             fontWeight: 600,
             borderRadius: '8px',
-            border: 'none',
+            border: value === o.value ? '1px solid var(--hair-2)' : '1px solid transparent',
             cursor: 'pointer',
             background: value === o.value ? 'var(--color-surface)' : 'transparent',
             color: value === o.value ? 'var(--color-ink)' : 'var(--color-ink-3)',
-            boxShadow: value === o.value ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+            boxShadow: value === o.value ? 'var(--glass-sh)' : 'none',
             fontFamily: 'inherit',
             transition: 'all 0.12s',
           }}
@@ -161,7 +165,7 @@ function ConfidenceBadge({ confidence }: { confidence: string }) {
         alignItems: 'center',
         gap: '4px',
         padding: '3px 10px',
-        borderRadius: '999px',
+        borderRadius: 'var(--radius-pill)',
         fontSize: '11.5px',
         fontWeight: 700,
         background: `${color}22`,
@@ -186,7 +190,8 @@ function TagList({ items, label }: { items: string[]; label: string }) {
               fontSize: '13px',
               color: 'var(--color-ink-2)',
               padding: '5px 10px',
-              background: 'var(--color-surface-2)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               borderRadius: '7px',
             }}
           >
@@ -264,7 +269,7 @@ function MessageTab() {
     >
       {/* Left: form */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
-        <div style={cardStyle}>
+        <div className="lg" style={cardStyle}>
           <div style={{ marginBottom: '14px' }}>
             <label style={labelStyle}>目标公司</label>
             <input
@@ -367,6 +372,7 @@ function MessageTab() {
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {loading ? (
           <div
+            className="lg"
             style={{
               flex: 1,
               display: 'flex',
@@ -375,9 +381,6 @@ function MessageTab() {
               gap: '8px',
               color: 'var(--color-ink-3)',
               fontSize: '14px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
-              borderRadius: '18px',
             }}
           >
             <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
@@ -386,7 +389,7 @@ function MessageTab() {
         ) : result ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
             {/* Confidence + summary */}
-            <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+            <div className="lg" style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--color-ink-2)', marginBottom: '4px' }}>
                   {result.summary}
@@ -398,6 +401,7 @@ function MessageTab() {
             {/* Insufficient state — 区分两类：真信息不足 vs AI 生成失败 */}
             {result.confidence === 'insufficient' || !result.message_draft ? (
               <div
+                className="lg"
                 style={{
                   ...cardStyle,
                   textAlign: 'center',
@@ -435,7 +439,7 @@ function MessageTab() {
             ) : (
               <>
                 {/* Message draft */}
-                <div style={cardStyle}>
+                <div className="lg" style={cardStyle}>
                   <div
                     style={{
                       display: 'flex',
@@ -447,14 +451,13 @@ function MessageTab() {
                     <span style={{ ...labelStyle, marginBottom: 0 }}>消息草稿</span>
                     <button
                       onClick={handleCopy}
+                      className="lg-sm"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '5px',
                         padding: '6px 12px',
                         borderRadius: '8px',
-                        border: '1px solid var(--color-line)',
-                        background: 'var(--color-surface)',
                         color: copied ? 'var(--color-success)' : 'var(--color-ink)',
                         fontSize: '12.5px',
                         fontWeight: 600,
@@ -467,7 +470,8 @@ function MessageTab() {
                   </div>
                   <div
                     style={{
-                      background: 'var(--color-surface-2)',
+                      background: 'rgba(47,143,255,.05)',
+                      border: '1px solid var(--hair)',
                       borderRadius: '12px',
                       padding: '16px 18px',
                       fontSize: '14px',
@@ -482,7 +486,7 @@ function MessageTab() {
 
                 {/* Follow-up timing */}
                 {result.follow_up_timing && (
-                  <div style={cardStyle}>
+                  <div className="lg" style={cardStyle}>
                     <div style={labelStyle}>发送时机</div>
                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' as const }}>
                       <div>
@@ -513,14 +517,13 @@ function MessageTab() {
                 {/* Expandable details */}
                 <button
                   onClick={() => setShowDetails((v) => !v)}
+                  className="lg-sm"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
                     padding: '8px 14px',
                     borderRadius: '10px',
-                    border: '1px solid var(--color-line)',
-                    background: 'var(--color-surface)',
                     color: 'var(--color-ink-2)',
                     fontSize: '13px',
                     fontWeight: 600,
@@ -534,7 +537,7 @@ function MessageTab() {
                 </button>
 
                 {showDetails && (
-                  <div style={cardStyle}>
+                  <div className="lg" style={cardStyle}>
                     <TagList items={result.key_points ?? []} label="消息要点" />
                     <TagList items={result.what_not_to_say ?? []} label="避免表达" />
                     <TagList items={result.recommendations ?? []} label="额外建议" />
@@ -554,9 +557,9 @@ function MessageTab() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '12px',
-              background: 'var(--color-surface)',
+              background: 'transparent',
               border: '1.5px dashed var(--color-line-2)',
-              borderRadius: '18px',
+              borderRadius: '22px',
               padding: '48px 32px',
               textAlign: 'center',
             }}
@@ -566,7 +569,8 @@ function MessageTab() {
                 width: '52px',
                 height: '52px',
                 borderRadius: '14px',
-                background: 'var(--color-surface-2)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -600,7 +604,8 @@ function ReferralPathCard({ path }: { path: ReferralPath }) {
     <div
       style={{
         padding: '14px 16px',
-        background: 'var(--color-surface-2)',
+        background: 'rgba(47,143,255,.05)',
+        border: '1px solid var(--hair)',
         borderRadius: '12px',
         marginBottom: '8px',
       }}
@@ -612,7 +617,7 @@ function ReferralPathCard({ path }: { path: ReferralPath }) {
               fontSize: '11px',
               fontWeight: 700,
               padding: '2px 8px',
-              borderRadius: '999px',
+              borderRadius: 'var(--radius-pill)',
               background: `${pathTypeColor(path.path_type)}22`,
               color: pathTypeColor(path.path_type),
               marginRight: '6px',
@@ -700,7 +705,7 @@ function ReferralTab() {
     >
       {/* Left: form */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
-        <div style={cardStyle}>
+        <div className="lg" style={cardStyle}>
           <div style={{ marginBottom: '14px' }}>
             <label style={labelStyle}>目标公司（可多个，逗号分隔）</label>
             <input
@@ -781,6 +786,7 @@ function ReferralTab() {
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {loading ? (
           <div
+            className="lg"
             style={{
               flex: 1,
               display: 'flex',
@@ -789,9 +795,6 @@ function ReferralTab() {
               gap: '8px',
               color: 'var(--color-ink-3)',
               fontSize: '14px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
-              borderRadius: '18px',
             }}
           >
             <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
@@ -800,14 +803,14 @@ function ReferralTab() {
         ) : result ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
             {/* Header */}
-            <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+            <div className="lg" style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
               <div style={{ fontSize: '13px', color: 'var(--color-ink-2)' }}>{result.summary}</div>
               <ConfidenceBadge confidence={result.confidence} />
             </div>
 
             {/* Referral paths */}
             {(result.referral_paths ?? []).length > 0 ? (
-              <div style={cardStyle}>
+              <div className="lg" style={cardStyle}>
                 <div style={labelStyle}>可执行内推路径（{(result.referral_paths ?? []).length} 条）</div>
                 {(result.referral_paths ?? []).map((path, i) => (
                   <ReferralPathCard key={i} path={path} />
@@ -815,6 +818,7 @@ function ReferralTab() {
               </div>
             ) : (
               <div
+                className="lg"
                 style={{
                   ...cardStyle,
                   textAlign: 'center',
@@ -829,20 +833,21 @@ function ReferralTab() {
 
             {/* Cold outreach */}
             {(result.cold_outreach_targets ?? []).length > 0 && (
-              <div style={cardStyle}>
+              <div className="lg" style={cardStyle}>
                 <div style={labelStyle}>冷接触建议</div>
                 {(result.cold_outreach_targets ?? []).map((t, i) => (
                   <div
                     key={i}
                     style={{
                       padding: '12px 14px',
-                      background: 'var(--color-surface-2)',
+                      background: 'rgba(47,143,255,.05)',
+                      border: '1px solid var(--hair)',
                       borderRadius: '10px',
                       marginBottom: '8px',
                     }}
                   >
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-ink-3)', background: 'var(--color-surface-3)', padding: '2px 7px', borderRadius: '5px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-ink-3)', background: 'rgba(47,143,255,.08)', border: '1px solid var(--hair)', padding: '2px 7px', borderRadius: '5px' }}>
                         {t.platform}
                       </span>
                       <span style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>{t.target_company}</span>
@@ -858,7 +863,7 @@ function ReferralTab() {
 
             {/* Network gaps */}
             {(result.network_gaps ?? []).length > 0 && (
-              <div style={cardStyle}>
+              <div className="lg" style={cardStyle}>
                 <div style={labelStyle}>人脉缺口</div>
                 {(result.network_gaps ?? []).map((gap, i) => (
                   <div key={i} style={{ marginBottom: '10px' }}>
@@ -879,7 +884,7 @@ function ReferralTab() {
 
             {/* Recommendations */}
             {((result.recommendations ?? []).length > 0 || (result.risks ?? []).length > 0) && (
-              <div style={cardStyle}>
+              <div className="lg" style={cardStyle}>
                 <TagList items={result.recommendations ?? []} label="策略建议" />
                 <TagList items={result.risks ?? []} label="注意风险" />
               </div>
@@ -895,9 +900,9 @@ function ReferralTab() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '12px',
-              background: 'var(--color-surface)',
+              background: 'transparent',
               border: '1.5px dashed var(--color-line-2)',
-              borderRadius: '18px',
+              borderRadius: '22px',
               padding: '48px 32px',
               textAlign: 'center',
             }}
@@ -907,7 +912,8 @@ function ReferralTab() {
                 width: '52px',
                 height: '52px',
                 borderRadius: '14px',
-                background: 'var(--color-surface-2)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -948,7 +954,8 @@ export function ReferralPanel() {
           display: 'flex',
           gap: '4px',
           padding: '4px',
-          background: 'var(--color-surface-2)',
+          background: 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
           borderRadius: '12px',
           marginBottom: '20px',
           flexShrink: 0,
@@ -965,13 +972,13 @@ export function ReferralPanel() {
             style={{
               padding: '8px 20px',
               borderRadius: '9px',
-              border: 'none',
+              border: activeTab === tab.key ? '1px solid var(--hair-2)' : '1px solid transparent',
               cursor: 'pointer',
               fontSize: '13.5px',
               fontWeight: activeTab === tab.key ? 700 : 500,
               background: activeTab === tab.key ? 'var(--color-surface)' : 'transparent',
               color: activeTab === tab.key ? 'var(--color-ink)' : 'var(--color-ink-3)',
-              boxShadow: activeTab === tab.key ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              boxShadow: activeTab === tab.key ? 'var(--glass-sh)' : 'none',
               fontFamily: 'inherit',
               transition: 'all 0.12s',
             }}

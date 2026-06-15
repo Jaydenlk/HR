@@ -14,7 +14,7 @@ const STAGES = [
   { id: 'wishlist',  label: '想投',   dotColor: 'var(--color-ink-4)' },
   { id: 'applied',   label: '已投递', dotColor: 'var(--color-brand)' },
   { id: 'interview', label: '面试中', dotColor: 'var(--color-warn)' },
-  { id: 'final',     label: '终面',   dotColor: '#a855f7' },
+  { id: 'final',     label: '终面',   dotColor: 'var(--au-violet)' },
   { id: 'offer',     label: 'Offer',  dotColor: 'var(--color-success)' },
   { id: 'rejected',  label: '已拒',   dotColor: 'var(--color-danger)' },
 ];

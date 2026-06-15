@@ -76,7 +76,7 @@ export default function NewOpportunityPage() {
         </p>
       </div>
 
-      <form className="opp-form" onSubmit={(e) => void handleSubmit(e)}>
+      <form className="opp-form lg" onSubmit={(e) => void handleSubmit(e)}>
         <label className="field-label">
           职位描述（JD）*
           <textarea
@@ -194,9 +194,11 @@ const NEW_OPP_CSS = `
 
 .page-header h1 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.2;
+  letter-spacing: -0.3px;
 }
 
 .subtitle {
@@ -212,6 +214,7 @@ const NEW_OPP_CSS = `
   flex-direction: column;
   gap: 18px;
   max-width: 760px;
+  padding: 28px;
 }
 
 .field-label {
@@ -295,26 +298,36 @@ const NEW_OPP_CSS = `
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border-radius: 8px;
+  border-radius: var(--radius-default);
   border: 1px solid transparent;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   min-height: 38px;
   font-family: inherit;
+  transition: opacity 0.12s;
 }
 
 .primary-button {
   padding: 0 20px;
-  background: var(--color-brand);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-deep));
+  color: #fff;
+  box-shadow: 0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4);
+}
+
+.primary-button:hover {
+  opacity: 0.92;
 }
 
 .secondary-button {
   padding: 0 14px;
   color: var(--color-ink-2);
-  background: var(--color-surface);
-  border-color: var(--color-line);
+  background: rgba(47,143,255,.05);
+  border-color: var(--hair);
+}
+
+.secondary-button:hover {
+  border-color: var(--color-brand);
 }
 
 .primary-button:disabled,

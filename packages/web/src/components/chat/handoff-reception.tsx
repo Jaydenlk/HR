@@ -134,23 +134,14 @@ export function HandoffConfirmDialog({
   const summary = payloadSummary(target, payload);
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(0,0,0,0.4)',
-        zIndex: 500,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '24px',
-      }}
-    >
+    <div className="modal-overlay">
+      <div className="modal-scrim" />
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '20px',
-          border: '1px solid var(--color-line)',
+          position: 'relative', zIndex: 1,
           padding: '28px 32px',
           width: '100%', maxWidth: '440px',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.15)',
         }}
       >
         <div
@@ -167,6 +158,7 @@ export function HandoffConfirmDialog({
         </div>
         <h2
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '18px', fontWeight: 700,
             color: 'var(--color-ink)', letterSpacing: '-0.02em',
             marginBottom: '6px',
@@ -188,7 +180,9 @@ export function HandoffConfirmDialog({
             style={{
               flex: 1, padding: '11px 0',
               borderRadius: '11px', border: 'none',
-              background: 'var(--color-brand)', color: '#fff',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+              color: '#fff',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               fontSize: '14px', fontWeight: 600, cursor: 'pointer',
               transition: 'opacity 0.12s',
             }}
@@ -201,8 +195,8 @@ export function HandoffConfirmDialog({
             onClick={onDismiss}
             style={{
               flex: 1, padding: '11px 0',
-              borderRadius: '11px', border: '1.5px solid var(--color-line)',
-              background: 'transparent', color: 'var(--color-ink-3)',
+              borderRadius: '11px', border: '1px solid var(--hair)',
+              background: 'rgba(47,143,255,.05)', color: 'var(--color-ink-3)',
               fontSize: '14px', fontWeight: 500, cursor: 'pointer',
             }}
           >
@@ -247,15 +241,13 @@ export function ReturnToCoachBanner({
 
   return (
     <div
+      className="lg"
       style={{
         position: 'fixed', bottom: '24px', left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 400,
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
         borderRadius: '14px',
         padding: '14px 20px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
         display: 'flex', alignItems: 'center', gap: '14px',
         minWidth: '300px', maxWidth: '480px',
       }}
@@ -267,7 +259,9 @@ export function ReturnToCoachBanner({
         onClick={() => void handleReturn()}
         style={{
           padding: '6px 16px', borderRadius: '8px', border: 'none',
-          background: 'var(--color-brand)', color: '#fff',
+          background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+          color: '#fff',
+          boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
           fontSize: '13px', fontWeight: 600, cursor: 'pointer',
         }}
       >
@@ -277,7 +271,7 @@ export function ReturnToCoachBanner({
         onClick={() => void handleClose()}
         style={{
           padding: '6px 12px', borderRadius: '8px',
-          border: '1px solid var(--color-line)', background: 'transparent',
+          border: '1px solid var(--hair)', background: 'rgba(47,143,255,.05)',
           color: 'var(--color-ink-3)', fontSize: '13px', cursor: 'pointer',
         }}
       >

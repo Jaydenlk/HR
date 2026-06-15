@@ -112,10 +112,14 @@ const TONE_LABELS: Record<string, string> = {
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
+// 数据卡:单层液态玻璃(对齐 .lg 观感)。透出外壳极光,暗/亮自动适配。
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-line)',
-  borderRadius: '18px',
+  background: 'var(--glass-bg)',
+  WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+  backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+  border: '1px solid var(--glass-bd)',
+  borderRadius: '22px',
+  boxShadow: 'var(--glass-sh), inset 0 1px 0 var(--glass-rim)',
   padding: '20px 22px',
 };
 
@@ -150,14 +154,17 @@ const btnPrimaryStyle = (loading: boolean): React.CSSProperties => ({
   justifyContent: 'center',
   gap: '8px',
   padding: '12px 0',
-  borderRadius: '10px',
+  borderRadius: 'var(--radius-default)',
   border: 'none',
-  background: loading ? 'var(--color-surface-3)' : 'var(--color-brand)',
+  background: loading
+    ? 'var(--color-surface-3)'
+    : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
   color: loading ? 'var(--color-ink-3)' : '#fff',
   fontSize: '14px',
   fontWeight: 700,
   cursor: loading ? 'not-allowed' : 'pointer',
   letterSpacing: '-0.01em',
+  boxShadow: loading ? 'none' : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
   transition: 'background 0.12s',
 });
 
@@ -196,7 +203,8 @@ function TagList({ items, label }: { items: string[]; label: string }) {
               fontSize: '13px',
               color: 'var(--color-ink-2)',
               padding: '5px 10px',
-              background: 'var(--color-surface-2)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               borderRadius: '7px',
             }}
           >
@@ -289,6 +297,7 @@ export default function FollowUpPage() {
       <div style={{ flexShrink: 0, marginBottom: '24px' }}>
         <h1
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '24px',
             fontWeight: 700,
             color: 'var(--color-ink)',
@@ -319,13 +328,13 @@ export default function FollowUpPage() {
             onClick={() => handleScenarioChange(key)}
             style={{
               padding: '8px 16px',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-default)',
               border: '1px solid',
-              borderColor: scenario === key ? 'var(--color-brand)' : 'var(--color-line)',
+              borderColor: scenario === key ? 'var(--color-brand)' : 'var(--hair)',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: scenario === key ? 700 : 500,
-              background: scenario === key ? 'var(--color-brand-soft)' : 'var(--color-surface)',
+              background: scenario === key ? 'var(--color-brand-soft)' : 'rgba(47,143,255,.05)',
               color: scenario === key ? 'var(--color-brand-ink)' : 'var(--color-ink-2)',
               fontFamily: 'inherit',
               transition: 'all 0.12s',
@@ -358,7 +367,8 @@ export default function FollowUpPage() {
                 gap: '8px',
                 padding: '8px 12px',
                 borderRadius: '8px',
-                background: 'var(--color-surface-2)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 marginBottom: '16px',
               }}
             >
@@ -451,9 +461,12 @@ export default function FollowUpPage() {
                 gap: '8px',
                 color: 'var(--color-ink-3)',
                 fontSize: '14px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-line)',
-                borderRadius: '18px',
+                background: 'var(--glass-bg)',
+                WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                border: '1px solid var(--glass-bd)',
+                boxShadow: 'var(--glass-sh), inset 0 1px 0 var(--glass-rim)',
+                borderRadius: '22px',
               }}
             >
               <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
@@ -527,14 +540,14 @@ export default function FollowUpPage() {
                         )}
                         <button
                           onClick={handleCopy}
+                          className="lg-sm"
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '5px',
                             padding: '6px 12px',
                             borderRadius: '8px',
-                            border: '1px solid var(--color-line)',
-                            background: 'var(--color-surface)',
+                            background: 'var(--glass-bg)',
                             color: copied ? 'var(--color-success)' : 'var(--color-ink)',
                             fontSize: '12.5px',
                             fontWeight: 600,
@@ -548,7 +561,8 @@ export default function FollowUpPage() {
                     </div>
                     <div
                       style={{
-                        background: 'var(--color-surface-2)',
+                        background: 'rgba(47,143,255,.05)',
+                        border: '1px solid var(--hair)',
                         borderRadius: '12px',
                         padding: '16px 18px',
                         fontSize: '14px',
@@ -621,14 +635,14 @@ export default function FollowUpPage() {
                   {/* Expandable details */}
                   <button
                     onClick={() => setShowDetails((v) => !v)}
+                    className="lg-sm"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
                       padding: '8px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--color-line)',
-                      background: 'var(--color-surface)',
+                      borderRadius: 'var(--radius-default)',
+                      background: 'var(--glass-bg)',
                       color: 'var(--color-ink-2)',
                       fontSize: '13px',
                       fontWeight: 600,
@@ -663,9 +677,12 @@ export default function FollowUpPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '12px',
-                background: 'var(--color-surface)',
-                border: '1.5px dashed var(--color-line-2)',
-                borderRadius: '18px',
+                background: 'var(--glass-bg)',
+                WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                border: '1.5px dashed var(--hair-2)',
+                boxShadow: 'inset 0 1px 0 var(--glass-rim)',
+                borderRadius: '22px',
                 padding: '48px 32px',
                 textAlign: 'center',
               }}
@@ -674,8 +691,9 @@ export default function FollowUpPage() {
                 style={{
                   width: '52px',
                   height: '52px',
-                  borderRadius: '14px',
-                  background: 'var(--color-surface-2)',
+                  borderRadius: 'var(--radius-default)',
+                  background: 'rgba(47,143,255,.05)',
+                  border: '1px solid var(--hair)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

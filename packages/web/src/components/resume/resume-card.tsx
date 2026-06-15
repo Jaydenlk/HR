@@ -18,27 +18,27 @@ export function ResumeCard({ resume, onClick }: ResumeCardProps) {
   return (
     <button
       onClick={onClick}
+      className="lg"
       style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
         padding: '20px',
-        background: 'var(--color-surface)',
-        borderRadius: '14px',
-        border: '1px solid var(--color-line)',
         textDecoration: 'none',
         textAlign: 'left',
         cursor: 'pointer',
         width: '100%',
-        transition: 'box-shadow 0.12s, border-color 0.12s',
+        transition: 'transform 0.14s ease, box-shadow 0.14s ease',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
-        e.currentTarget.style.borderColor = 'var(--color-line-2)';
+        e.currentTarget.style.willChange = 'transform';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = 'var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 1px var(--color-brand-soft)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.borderColor = 'var(--color-line)';
+        e.currentTarget.style.willChange = 'auto';
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.boxShadow = '';
       }}
     >
       {/* Icon row */}
@@ -81,7 +81,8 @@ export function ResumeCard({ resume, onClick }: ResumeCardProps) {
                 fontWeight: 600,
                 padding: '2px 8px',
                 borderRadius: '6px',
-                background: 'var(--color-surface-3)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 color: 'var(--color-ink-3)',
                 letterSpacing: '0.01em',
                 textTransform: 'uppercase',

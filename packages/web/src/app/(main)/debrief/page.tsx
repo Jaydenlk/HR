@@ -22,10 +22,9 @@ function StatTile({
 }) {
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '16px',
+        borderRadius: 'var(--radius-default)',
         padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
@@ -67,9 +66,9 @@ function CaptureBanner({ onNew }: { onNew: () => void }) {
         justifyContent: 'space-between',
         gap: '16px',
         padding: '14px 20px',
-        background: 'var(--color-surface)',
-        border: '1.5px dashed var(--color-line-2)',
-        borderRadius: '14px',
+        background: 'rgba(47,143,255,.05)',
+        border: '1.5px dashed var(--hair-2)',
+        borderRadius: 'var(--radius-default)',
         marginBottom: '20px',
       }}
     >
@@ -104,15 +103,16 @@ function CaptureBanner({ onNew }: { onNew: () => void }) {
           alignItems: 'center',
           gap: '6px',
           padding: '9px 16px',
-          background: 'var(--color-brand)',
+          background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
           color: '#fff',
           border: 'none',
-          borderRadius: '10px',
+          borderRadius: 'var(--radius-default)',
           fontSize: '13px',
           fontWeight: 600,
           cursor: 'pointer',
           letterSpacing: '-0.005em',
           flexShrink: 0,
+          boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
         }}
       >
         <Plus size={14} />
@@ -139,9 +139,9 @@ function EmptyState({ onNew }: { onNew: () => void }) {
         style={{
           width: '64px',
           height: '64px',
-          borderRadius: '20px',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-line)',
+          borderRadius: 'var(--radius-lg)',
+          background: 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -152,6 +152,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       <div>
         <div
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '16px',
             fontWeight: 700,
             color: 'var(--color-ink)',
@@ -172,14 +173,15 @@ function EmptyState({ onNew }: { onNew: () => void }) {
           alignItems: 'center',
           gap: '7px',
           padding: '11px 22px',
-          background: 'var(--color-ink)',
+          background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
           color: '#fff',
           border: 'none',
-          borderRadius: '12px',
+          borderRadius: 'var(--radius-default)',
           fontSize: '14px',
           fontWeight: 600,
           cursor: 'pointer',
           letterSpacing: '-0.005em',
+          boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
         }}
       >
         <Plus size={16} />
@@ -292,6 +294,7 @@ export default function DebriefListPage() {
         <div>
           <h1
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '26px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -320,15 +323,16 @@ export default function DebriefListPage() {
             alignItems: 'center',
             gap: '7px',
             padding: '10px 18px',
-            background: 'var(--color-ink)',
+            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
             color: '#fff',
             border: 'none',
-            borderRadius: '12px',
+            borderRadius: 'var(--radius-default)',
             fontSize: '13.5px',
             fontWeight: 600,
             cursor: 'pointer',
             letterSpacing: '-0.005em',
             flexShrink: 0,
+            boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
           }}
         >
           <Plus size={15} />
@@ -370,9 +374,9 @@ export default function DebriefListPage() {
               key={i}
               style={{
                 height: '100px',
-                borderRadius: '16px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-line)',
+                borderRadius: 'var(--radius-default)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 opacity: 0.6,
               }}
             />
@@ -413,10 +417,10 @@ export default function DebriefListPage() {
                 onClick={() => setFilter(key)}
                 style={{
                   padding: '6px 14px',
-                  borderRadius: '999px',
+                  borderRadius: 'var(--radius-pill)',
                   border: '1px solid',
-                  borderColor: filter === key ? 'var(--color-brand)' : 'var(--color-line)',
-                  background: filter === key ? 'var(--color-brand-soft)' : 'var(--color-surface)',
+                  borderColor: filter === key ? 'var(--color-brand)' : 'var(--hair)',
+                  background: filter === key ? 'var(--color-brand-soft)' : 'rgba(47,143,255,.05)',
                   color: filter === key ? 'var(--color-brand-ink)' : 'var(--color-ink-2)',
                   fontSize: '12.5px',
                   fontWeight: filter === key ? 700 : 500,
@@ -437,14 +441,13 @@ export default function DebriefListPage() {
 
           {filtered.length === 0 ? (
             <div
+              className="lg"
               style={{
                 padding: '40px 24px',
                 textAlign: 'center',
                 color: 'var(--color-ink-4)',
                 fontSize: '13.5px',
-                background: 'var(--color-surface)',
-                borderRadius: '14px',
-                border: '1px solid var(--color-line)',
+                borderRadius: 'var(--radius-default)',
               }}
             >
               该筛选条件下暂无记录

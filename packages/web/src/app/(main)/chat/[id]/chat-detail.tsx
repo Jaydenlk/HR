@@ -18,8 +18,8 @@ function TypingIndicator() {
           width: '32px',
           height: '32px',
           borderRadius: '50%',
-          background: 'var(--color-surface-3)',
-          border: '1px solid var(--color-line)',
+          background: 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
@@ -35,8 +35,8 @@ function TypingIndicator() {
         style={{
           padding: '14px 18px',
           borderRadius: '18px 18px 18px 6px',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-line)',
+          background: 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
           display: 'flex',
           gap: '5px',
           alignItems: 'center',
@@ -108,9 +108,9 @@ function LoadingState() {
               height: '48px',
               width: `${w}px`,
               maxWidth: '80%',
-              borderRadius: '14px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
+              borderRadius: 'var(--radius-default)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               alignSelf: i % 2 === 0 ? 'flex-end' : 'flex-start',
               opacity: 0.7,
             }}
@@ -338,11 +338,14 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
         <div
           style={{
             padding: '16px 24px',
-            borderBottom: '1px solid var(--color-line)',
+            borderBottom: '1px solid var(--glass-bd)',
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            background: 'var(--color-surface)',
+            background: 'var(--glass-bg)',
+            WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
+            backdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
+            boxShadow: 'inset 0 1px 0 var(--glass-rim)',
           }}
         >
           <Link
@@ -416,11 +419,14 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
       <div
         style={{
           padding: '14px 24px',
-          borderBottom: '1px solid var(--color-line)',
+          borderBottom: '1px solid var(--glass-bd)',
           display: 'flex',
           alignItems: 'center',
           gap: '14px',
-          background: 'var(--color-surface)',
+          background: 'var(--glass-bg)',
+          WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
+          backdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
+          boxShadow: 'inset 0 1px 0 var(--glass-rim)',
           flexShrink: 0,
         }}
       >
@@ -450,6 +456,7 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
         />
         <h1
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '15px',
             fontWeight: 600,
             color: 'var(--color-ink)',
@@ -539,9 +546,9 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
               style={{
                 alignSelf: 'flex-start',
                 padding: '10px 16px',
-                borderRadius: '14px',
-                background: 'var(--color-surface-2)',
-                border: '1px solid var(--color-line)',
+                borderRadius: 'var(--radius-default)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 color: 'var(--color-ink-2)',
                 fontSize: '13px',
                 fontWeight: 500,

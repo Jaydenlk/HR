@@ -21,8 +21,8 @@ function LoadingSkeleton() {
           style={{
             height: '80px',
             borderRadius: '14px',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
+            background: 'rgba(47,143,255,.05)',
+            border: '1px solid var(--hair)',
             opacity: 0.7,
             animation: 'pulse 1.5s ease-in-out infinite',
           }}
@@ -208,28 +208,18 @@ function MockPageInner() {
           0%, 100% { opacity: 0.7; }
           50% { opacity: 0.4; }
         }
-        .mock-overlay {
-          position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-          z-index: 400; display: flex; align-items: center; justify-content: center;
-          padding: 24px;
-        }
         .mock-dialog {
-          background: var(--color-surface);
-          border-radius: 20px;
-          border: 1px solid var(--color-line);
+          position: relative; z-index: 1;
           padding: 32px;
           width: 100%; max-width: 500px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.18);
         }
       `}</style>
 
       {/* New session dialog */}
       {dialogOpen && (
-        <div
-          className="mock-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) setDialogOpen(false); }}
-        >
-          <div className="mock-dialog">
+        <div className="modal-overlay">
+          <div className="modal-scrim" onClick={() => setDialogOpen(false)} />
+          <div className="mock-dialog lg">
             <div
               style={{
                 display: 'flex',
@@ -240,8 +230,9 @@ function MockPageInner() {
             >
               <h2
                 style={{
-                  fontSize: '18px',
-                  fontWeight: 700,
+                  fontFamily: 'var(--serif)',
+                  fontSize: '20px',
+                  fontWeight: 600,
                   color: 'var(--color-ink)',
                   letterSpacing: '-0.02em',
                   margin: 0,
@@ -298,7 +289,7 @@ function MockPageInner() {
                     borderRadius: '10px',
                     fontSize: '14px',
                     color: 'var(--color-ink)',
-                    background: 'var(--color-bg)',
+                    background: 'var(--color-surface)',
                     outline: 'none',
                     fontFamily: 'inherit',
                     boxSizing: 'border-box',
@@ -318,9 +309,9 @@ function MockPageInner() {
                   <div style={{
                     marginTop: '8px',
                     padding: '12px 14px',
-                    background: 'var(--color-surface-2)',
+                    background: 'rgba(47,143,255,.05)',
                     borderRadius: '10px',
-                    border: '1px solid var(--color-line)',
+                    border: '1px solid var(--hair)',
                     fontSize: '13px',
                     color: 'var(--color-ink-2)',
                     lineHeight: 1.6,
@@ -350,12 +341,13 @@ function MockPageInner() {
                         style={{
                           padding: '4px 14px',
                           borderRadius: '7px',
-                          border: '1.5px solid var(--color-brand)',
-                          background: 'var(--color-brand)',
+                          border: '1px solid var(--color-brand-deep)',
+                          background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                           color: '#fff',
                           fontSize: '12px',
                           fontWeight: 600,
                           cursor: 'pointer',
+                          boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                         }}
                       >
                         是，就是这家
@@ -428,7 +420,7 @@ function MockPageInner() {
                     borderRadius: '10px',
                     fontSize: '14px',
                     color: 'var(--color-ink)',
-                    background: 'var(--color-bg)',
+                    background: 'var(--color-surface)',
                     outline: 'none',
                     fontFamily: 'inherit',
                     boxSizing: 'border-box',
@@ -464,7 +456,7 @@ function MockPageInner() {
                     borderRadius: '10px',
                     fontSize: '13.5px',
                     color: 'var(--color-ink)',
-                    background: 'var(--color-bg)',
+                    background: 'var(--color-surface)',
                     outline: 'none',
                     fontFamily: 'inherit',
                     resize: 'vertical',
@@ -501,7 +493,7 @@ function MockPageInner() {
                     justifyContent: 'center',
                     gap: '8px',
                     padding: '12px 24px',
-                    background: 'var(--color-brand)',
+                    background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '12px',
@@ -509,6 +501,7 @@ function MockPageInner() {
                     fontWeight: 600,
                     cursor: creating || !form.role.trim() ? 'not-allowed' : 'pointer',
                     opacity: creating || !form.role.trim() ? 0.7 : 1,
+                    boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                     transition: 'opacity 0.12s',
                   }}
                 >
@@ -543,11 +536,12 @@ function MockPageInner() {
           <div>
             <h1
               style={{
-                fontSize: '24px',
-                fontWeight: 700,
+                fontFamily: 'var(--serif)',
+                fontSize: '28px',
+                fontWeight: 600,
                 color: 'var(--color-ink)',
                 letterSpacing: '-0.4px',
-                marginBottom: '4px',
+                marginBottom: '5px',
               }}
             >
               模拟面试
@@ -563,17 +557,18 @@ function MockPageInner() {
               alignItems: 'center',
               gap: '7px',
               padding: '10px 18px',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-default)',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '13.5px',
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'opacity 0.12s',
               letterSpacing: '-0.01em',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92'; }}
             onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
           >
             <Play size={16} />
@@ -600,33 +595,32 @@ function MockPageInner() {
           </div>
         ) : sessions.length === 0 ? (
           <div
+            className="lg"
             style={{
               padding: '64px 32px',
               textAlign: 'center',
-              background: 'var(--color-surface)',
-              borderRadius: '16px',
-              border: '1.5px dashed var(--color-line-2)',
             }}
           >
             <div
               style={{
                 width: '56px',
                 height: '56px',
-                borderRadius: '14px',
-                background: 'var(--color-surface-2)',
+                borderRadius: 'var(--radius-default)',
+                background: 'var(--color-brand-soft)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px',
               }}
             >
-              <Play size={26} color="var(--color-ink-4)" />
+              <Play size={26} color="var(--color-brand)" />
             </div>
             <p
               style={{
-                fontSize: '16px',
+                fontFamily: 'var(--serif)',
+                fontSize: '19px',
                 fontWeight: 600,
-                color: 'var(--color-ink-2)',
+                color: 'var(--color-ink)',
                 marginBottom: '8px',
                 letterSpacing: '-0.01em',
               }}
@@ -649,14 +643,18 @@ function MockPageInner() {
                 alignItems: 'center',
                 gap: '7px',
                 padding: '10px 22px',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius-default)',
                 border: 'none',
-                background: 'var(--color-brand)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: '#fff',
                 fontSize: '13.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                transition: 'opacity 0.12s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
             >
               <Play size={15} />
               开始第一次模拟

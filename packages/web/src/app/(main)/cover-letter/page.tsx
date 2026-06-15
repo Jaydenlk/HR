@@ -177,10 +177,8 @@ function CoverLetterTab() {
       });
   }
 
+  // 外层数据卡:单层玻璃(.lg)+ 仅留内边距,圆角/底色/描边/阴影由 .lg 提供。
   const cardStyle: React.CSSProperties = {
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-line)',
-    borderRadius: '18px',
     padding: '20px 22px',
   };
 
@@ -249,14 +247,13 @@ function CoverLetterTab() {
             <button
               onClick={handleRegenerate}
               disabled={generating}
+              className="lg-sm"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '9px 16px',
                 borderRadius: '10px',
-                border: '1px solid var(--color-line)',
-                background: 'var(--color-surface)',
                 color: 'var(--color-ink)',
                 fontSize: '13.5px',
                 fontWeight: 600,
@@ -269,14 +266,13 @@ function CoverLetterTab() {
             </button>
             <button
               onClick={handleCopy}
+              className="lg-sm"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '9px 16px',
                 borderRadius: '10px',
-                border: '1px solid var(--color-line)',
-                background: 'var(--color-surface)',
                 color: copied ? 'var(--color-success)' : 'var(--color-ink)',
                 fontSize: '13.5px',
                 fontWeight: 600,
@@ -312,7 +308,7 @@ function CoverLetterTab() {
             overflowY: 'auto',
           }}
         >
-          <div style={cardStyle}>
+          <div className="lg" style={cardStyle}>
             <div style={{ marginBottom: '14px' }}>
               <label style={labelStyle}>目标公司</label>
               <input
@@ -338,7 +334,8 @@ function CoverLetterTab() {
                 style={{
                   display: 'flex',
                   gap: '0',
-                  background: 'var(--color-surface-2)',
+                  background: 'rgba(47,143,255,.05)',
+                  border: '1px solid var(--hair)',
                   borderRadius: '10px',
                   padding: '3px',
                 }}
@@ -353,11 +350,11 @@ function CoverLetterTab() {
                       fontSize: '12.5px',
                       fontWeight: 600,
                       borderRadius: '8px',
-                      border: 'none',
+                      border: tone === t.value ? '1px solid var(--hair-2)' : '1px solid transparent',
                       cursor: 'pointer',
                       background: tone === t.value ? 'var(--color-surface)' : 'transparent',
                       color: tone === t.value ? 'var(--color-ink)' : 'var(--color-ink-3)',
-                      boxShadow: tone === t.value ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                      boxShadow: tone === t.value ? 'var(--glass-sh)' : 'none',
                       fontFamily: 'inherit',
                       transition: 'all 0.12s',
                     }}
@@ -374,7 +371,8 @@ function CoverLetterTab() {
                 style={{
                   display: 'flex',
                   gap: '0',
-                  background: 'var(--color-surface-2)',
+                  background: 'rgba(47,143,255,.05)',
+                  border: '1px solid var(--hair)',
                   borderRadius: '10px',
                   padding: '3px',
                 }}
@@ -389,11 +387,11 @@ function CoverLetterTab() {
                       fontSize: '12.5px',
                       fontWeight: 600,
                       borderRadius: '8px',
-                      border: 'none',
+                      border: lengthWords === l.value ? '1px solid var(--hair-2)' : '1px solid transparent',
                       cursor: 'pointer',
                       background: lengthWords === l.value ? 'var(--color-surface)' : 'transparent',
                       color: lengthWords === l.value ? 'var(--color-ink)' : 'var(--color-ink-3)',
-                      boxShadow: lengthWords === l.value ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                      boxShadow: lengthWords === l.value ? 'var(--glass-sh)' : 'none',
                       fontFamily: 'inherit',
                       transition: 'all 0.12s',
                     }}
@@ -460,8 +458,13 @@ function CoverLetterTab() {
                 padding: '12px 0',
                 borderRadius: '10px',
                 border: 'none',
-                background: generating ? 'var(--color-surface-3)' : 'var(--color-brand)',
+                background: generating
+                  ? 'var(--color-surface-3)'
+                  : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: generating ? 'var(--color-ink-3)' : '#fff',
+                boxShadow: generating
+                  ? 'none'
+                  : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                 fontSize: '14px',
                 fontWeight: 700,
                 cursor: generating ? 'not-allowed' : 'pointer',
@@ -488,7 +491,7 @@ function CoverLetterTab() {
 
           {/* History */}
           {letters.length > 0 && (
-            <div style={cardStyle}>
+            <div className="lg" style={cardStyle}>
               <div
                 style={{
                   fontSize: '12px',
@@ -515,11 +518,11 @@ function CoverLetterTab() {
                       background:
                         currentLetter?.id === letter.id
                           ? 'var(--color-brand-soft)'
-                          : 'var(--color-surface-2)',
+                          : 'rgba(47,143,255,.05)',
                       border:
                         currentLetter?.id === letter.id
-                          ? '1px solid rgba(10,132,255,0.24)'
-                          : '1px solid transparent',
+                          ? '1px solid var(--color-brand)'
+                          : '1px solid var(--hair)',
                       borderRadius: '10px',
                       cursor: 'pointer',
                       textAlign: 'left',
@@ -596,19 +599,16 @@ function CoverLetterTab() {
             </div>
           ) : currentLetter ? (
             <div
+              className="lg"
               style={{
                 flex: 1,
                 overflowY: 'auto',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-line)',
-                borderRadius: '18px',
                 padding: '32px 38px',
                 fontSize: '14px',
                 lineHeight: '1.75',
                 color: 'var(--color-ink)',
                 fontWeight: 500,
                 whiteSpace: 'pre-wrap' as const,
-                position: 'relative' as const,
               }}
             >
               {generating && (
@@ -616,11 +616,14 @@ function CoverLetterTab() {
                   style={{
                     position: 'absolute' as const,
                     inset: 0,
-                    background: 'rgba(255,255,255,0.8)',
+                    zIndex: 2,
+                    background: 'var(--glass-bg)',
+                    backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+                    WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: '18px',
+                    borderRadius: '22px',
                     gap: '8px',
                     color: 'var(--color-ink-3)',
                     fontSize: '14px',
@@ -641,9 +644,9 @@ function CoverLetterTab() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '12px',
-                background: 'var(--color-surface)',
+                background: 'transparent',
                 border: '1.5px dashed var(--color-line-2)',
-                borderRadius: '18px',
+                borderRadius: '22px',
                 padding: '48px 32px',
                 textAlign: 'center',
               }}
@@ -653,7 +656,8 @@ function CoverLetterTab() {
                   width: '52px',
                   height: '52px',
                   borderRadius: '14px',
-                  background: 'var(--color-surface-2)',
+                  background: 'rgba(47,143,255,.05)',
+                  border: '1px solid var(--hair)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -709,6 +713,7 @@ export default function CoverLetterPage() {
       >
         <h1
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '24px',
             fontWeight: 700,
             color: 'var(--color-ink)',
@@ -729,7 +734,8 @@ export default function CoverLetterPage() {
           display: 'flex',
           gap: '4px',
           padding: '4px',
-          background: 'var(--color-surface-2)',
+          background: 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
           borderRadius: '12px',
           marginBottom: '20px',
           flexShrink: 0,
@@ -741,13 +747,13 @@ export default function CoverLetterPage() {
           style={{
             padding: '8px 20px',
             borderRadius: '9px',
-            border: 'none',
+            border: activeTab === 'cover-letter' ? '1px solid var(--hair-2)' : '1px solid transparent',
             cursor: 'pointer',
             fontSize: '13.5px',
             fontWeight: activeTab === 'cover-letter' ? 700 : 500,
             background: activeTab === 'cover-letter' ? 'var(--color-surface)' : 'transparent',
             color: activeTab === 'cover-letter' ? 'var(--color-ink)' : 'var(--color-ink-3)',
-            boxShadow: activeTab === 'cover-letter' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            boxShadow: activeTab === 'cover-letter' ? 'var(--glass-sh)' : 'none',
             fontFamily: 'inherit',
             transition: 'all 0.12s',
           }}
@@ -759,13 +765,13 @@ export default function CoverLetterPage() {
           style={{
             padding: '8px 20px',
             borderRadius: '9px',
-            border: 'none',
+            border: activeTab === 'referral' ? '1px solid var(--hair-2)' : '1px solid transparent',
             cursor: 'pointer',
             fontSize: '13.5px',
             fontWeight: activeTab === 'referral' ? 700 : 500,
             background: activeTab === 'referral' ? 'var(--color-surface)' : 'transparent',
             color: activeTab === 'referral' ? 'var(--color-ink)' : 'var(--color-ink-3)',
-            boxShadow: activeTab === 'referral' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            boxShadow: activeTab === 'referral' ? 'var(--glass-sh)' : 'none',
             fontFamily: 'inherit',
             transition: 'all 0.12s',
             display: 'inline-flex',
@@ -779,8 +785,11 @@ export default function CoverLetterPage() {
               fontSize: '10px',
               fontWeight: 700,
               padding: '1px 6px',
-              borderRadius: '999px',
-              background: activeTab === 'referral' ? 'var(--color-brand)' : 'var(--color-surface-3)',
+              borderRadius: 'var(--radius-pill)',
+              background: activeTab === 'referral'
+                ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))'
+                : 'rgba(47,143,255,.05)',
+              border: activeTab === 'referral' ? 'none' : '1px solid var(--hair)',
               color: activeTab === 'referral' ? '#fff' : 'var(--color-ink-3)',
               letterSpacing: '0.02em',
               lineHeight: '1.6',

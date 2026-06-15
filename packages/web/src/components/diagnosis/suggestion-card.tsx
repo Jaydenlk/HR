@@ -61,10 +61,8 @@ export function SuggestionCard({ suggestion, resumeId, index }: SuggestionCardPr
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '14px',
         overflow: 'hidden',
       }}
     >
@@ -75,7 +73,7 @@ export function SuggestionCard({ suggestion, resumeId, index }: SuggestionCardPr
           alignItems: 'center',
           gap: '8px',
           padding: '14px 16px 12px',
-          borderBottom: '1px solid var(--color-line)',
+          borderBottom: '1px solid var(--hair)',
         }}
       >
         <span
@@ -96,7 +94,8 @@ export function SuggestionCard({ suggestion, resumeId, index }: SuggestionCardPr
             fontSize: '11px',
             fontWeight: 600,
             color: 'var(--color-ink-3)',
-            background: 'var(--color-surface-2)',
+            background: 'rgba(47,143,255,.05)',
+            border: '1px solid var(--hair)',
             padding: '2px 8px',
             borderRadius: '6px',
           }}
@@ -129,7 +128,7 @@ export function SuggestionCard({ suggestion, resumeId, index }: SuggestionCardPr
           style={{
             padding: '14px 16px',
             background: 'var(--color-danger-soft)',
-            borderRight: '1px solid var(--color-line)',
+            borderRight: '1px solid var(--hair)',
           }}
         >
           <div
@@ -194,7 +193,7 @@ export function SuggestionCard({ suggestion, resumeId, index }: SuggestionCardPr
       <div
         style={{
           padding: '12px 16px',
-          borderTop: '1px solid var(--color-line)',
+          borderTop: '1px solid var(--hair)',
           display: 'flex',
           alignItems: 'flex-start',
           gap: '12px',
@@ -227,8 +226,8 @@ export function SuggestionCard({ suggestion, resumeId, index }: SuggestionCardPr
               gap: '5px',
               padding: '6px 12px',
               borderRadius: '8px',
-              border: '1px solid var(--color-line-2)',
-              background: 'var(--color-surface)',
+              border: '1px solid var(--hair)',
+              background: 'rgba(47,143,255,.05)',
               color: copied ? 'var(--color-success)' : 'var(--color-ink-2)',
               fontSize: '12.5px',
               fontWeight: 600,
@@ -253,13 +252,14 @@ export function SuggestionCard({ suggestion, resumeId, index }: SuggestionCardPr
               border: 'none',
               background: adopted
                 ? 'var(--color-success-soft)'
-                : 'var(--color-ink)',
+                : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: adopted ? 'var(--color-success)' : '#fff',
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: adopting || adopted ? 'default' : 'pointer',
               opacity: adopting ? 0.7 : 1,
               transition: 'background 0.15s, color 0.15s',
+              boxShadow: adopted ? 'none' : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             <ThumbsUp size={13} />

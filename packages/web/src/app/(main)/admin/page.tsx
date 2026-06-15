@@ -11,11 +11,9 @@ import type {
 import { Loader2, Shield, Users, Ticket, BarChart2, X, Coins } from 'lucide-react';
 
 // ─── 共享样式 ─────────────────────────────────────────────────────────────────
+// 卡/面板外层统一用 className="lg"(单层玻璃),内部背景/边由 .lg 提供;cardStyle 仅留内边距。
 
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-line)',
-  borderRadius: '18px',
   padding: '20px 22px',
 };
 
@@ -23,6 +21,7 @@ const sectionTitleStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '8px',
+  fontFamily: 'var(--serif)',
   fontSize: '15px',
   fontWeight: 700,
   color: 'var(--color-ink)',
@@ -86,23 +85,31 @@ function loginRegion(u: AdminUserRow): string {
 }
 
 function smallBtn(variant: 'primary' | 'danger' | 'neutral'): React.CSSProperties {
+  // primary:品牌渐变主操作钮(第二色标用 --color-brand-deep,带蓝光柔阴影+内高光)。
+  // danger:语义危险色。neutral:微染玻璃感按钮(发丝边,暗色不再黑卡)。
   const bg =
     variant === 'primary'
-      ? 'var(--color-brand)'
+      ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))'
       : variant === 'danger'
         ? 'var(--color-danger)'
-        : 'var(--color-surface-3)';
+        : 'rgba(47,143,255,.05)';
   const color = variant === 'neutral' ? 'var(--color-ink)' : '#fff';
   return {
     padding: '6px 12px',
-    borderRadius: '8px',
-    border: variant === 'neutral' ? '1px solid var(--color-line)' : 'none',
+    borderRadius: 'var(--radius-default)',
+    border: variant === 'neutral' ? '1px solid var(--hair)' : 'none',
     background: bg,
     color,
     fontSize: '12.5px',
     fontWeight: 600,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
+    ...(variant === 'primary'
+      ? {
+          boxShadow:
+            '0 8px 22px -12px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+        }
+      : {}),
   };
 }
 
@@ -278,6 +285,7 @@ export default function AdminPage() {
     <div style={{ maxWidth: '980px', margin: '0 auto', padding: '32px 28px 60px' }}>
       <h1
         style={{
+          fontFamily: 'var(--serif)',
           fontSize: '24px',
           fontWeight: 800,
           color: 'var(--color-ink)',
@@ -319,7 +327,7 @@ export default function AdminPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* ── 用量卡片 ── */}
           {usage && (
-            <div style={cardStyle}>
+            <div className="lg" style={cardStyle}>
               <div style={sectionTitleStyle}>
                 <BarChart2 size={17} /> 用量监控
               </div>
@@ -393,7 +401,7 @@ export default function AdminPage() {
           )}
 
           {/* ── 用户表 ── */}
-          <div style={cardStyle}>
+          <div className="lg" style={cardStyle}>
             <div style={sectionTitleStyle}>
               <Users size={17} /> 用户管理（{users.length}）
             </div>
@@ -541,7 +549,7 @@ export default function AdminPage() {
           </div>
 
           {/* ── 邀请码表 ── */}
-          <div style={cardStyle}>
+          <div className="lg" style={cardStyle}>
             <div style={sectionTitleStyle}>
               <Ticket size={17} /> 邀请码（{invites.length}）
             </div>
@@ -639,14 +647,11 @@ export default function AdminPage() {
           }}
         >
           <div
+            className="lg"
             style={{
-              background: 'var(--color-surface)',
-              borderRadius: '20px',
-              border: '1px solid var(--color-line)',
               padding: '28px 28px 24px',
               width: '100%',
               maxWidth: '420px',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
             }}
           >
             {/* 标题行 */}
@@ -660,6 +665,7 @@ export default function AdminPage() {
             >
               <h3
                 style={{
+                  fontFamily: 'var(--serif)',
                   fontSize: '17px',
                   fontWeight: 700,
                   color: 'var(--color-ink)',

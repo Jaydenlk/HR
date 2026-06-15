@@ -15,9 +15,9 @@ interface MockStageProps {
 }
 
 function difficultyColor(difficulty: string): { bg: string; color: string } {
-  if (difficulty === 'easy') return { bg: 'var(--color-success-soft, #f0fdf4)', color: 'var(--color-success)' };
+  if (difficulty === 'easy') return { bg: 'var(--color-success-soft)', color: 'var(--color-success)' };
   if (difficulty === 'hard') return { bg: 'var(--color-danger-soft)', color: 'var(--color-danger)' };
-  return { bg: 'var(--color-surface-3)', color: 'var(--color-ink-3)' };
+  return { bg: 'rgba(47,143,255,.05)', color: 'var(--color-ink-3)' };
 }
 
 function difficultyLabel(difficulty: string): string {
@@ -59,8 +59,9 @@ export function MockStage({
       <div style={{ textAlign: 'center', padding: '60px 32px' }}>
         <div
           style={{
-            fontSize: '18px',
-            fontWeight: 700,
+            fontFamily: 'var(--serif)',
+            fontSize: '20px',
+            fontWeight: 600,
             color: 'var(--color-ink)',
             marginBottom: '8px',
           }}
@@ -84,7 +85,7 @@ export function MockStage({
             alignItems: 'center',
             gap: '8px',
             padding: '12px 28px',
-            background: 'var(--color-brand)',
+            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
             color: '#fff',
             border: 'none',
             borderRadius: '12px',
@@ -92,6 +93,7 @@ export function MockStage({
             fontWeight: 600,
             cursor: completing ? 'not-allowed' : 'pointer',
             opacity: completing ? 0.7 : 1,
+            boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
           }}
         >
           <StopCircle size={16} />
@@ -126,7 +128,7 @@ export function MockStage({
           style={{
             height: '4px',
             borderRadius: '999px',
-            background: 'var(--color-surface-3)',
+            background: 'var(--hair-2)',
             overflow: 'hidden',
           }}
         >
@@ -146,7 +148,7 @@ export function MockStage({
       {lastAnswer && (
         <div
           style={{
-            background: lastAnswer.score >= 60 ? 'var(--color-success-soft, #f0fdf4)' : lastAnswer.score >= 40 ? 'var(--color-warn-soft, #fffbeb)' : 'var(--color-danger-soft)',
+            background: lastAnswer.score >= 60 ? 'var(--color-success-soft)' : lastAnswer.score >= 40 ? 'var(--color-warn-soft)' : 'var(--color-danger-soft)',
             border: `1px solid ${lastAnswer.score >= 60 ? 'var(--color-success)' : lastAnswer.score >= 40 ? 'var(--color-warn)' : 'var(--color-danger)'}`,
             borderRadius: '12px',
             padding: '16px 18px',
@@ -182,10 +184,8 @@ export function MockStage({
 
       {/* Question card */}
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-line)',
           padding: '32px',
         }}
       >
@@ -197,8 +197,9 @@ export function MockStage({
               fontWeight: 600,
               padding: '3px 10px',
               borderRadius: '999px',
-              background: 'var(--color-ink)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             {currentQuestion.type}
@@ -209,7 +210,8 @@ export function MockStage({
               fontWeight: 600,
               padding: '3px 10px',
               borderRadius: '999px',
-              background: 'var(--color-surface-3)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               color: 'var(--color-ink-3)',
             }}
           >
@@ -287,10 +289,8 @@ export function MockStage({
 
       {/* Answer area */}
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-line)',
           padding: '20px',
         }}
       >
@@ -319,7 +319,7 @@ export function MockStage({
             borderRadius: '10px',
             fontSize: '14px',
             color: 'var(--color-ink)',
-            background: 'var(--color-bg)',
+            background: 'var(--color-surface)',
             resize: 'vertical',
             fontFamily: 'inherit',
             lineHeight: 1.6,
@@ -377,7 +377,7 @@ export function MockStage({
                 alignItems: 'center',
                 gap: '7px',
                 padding: '9px 20px',
-                background: 'var(--color-brand)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '10px',
@@ -385,6 +385,7 @@ export function MockStage({
                 fontWeight: 600,
                 cursor: submitting || !answer.trim() ? 'not-allowed' : 'pointer',
                 opacity: submitting || !answer.trim() ? 0.6 : 1,
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                 transition: 'opacity 0.12s',
               }}
             >

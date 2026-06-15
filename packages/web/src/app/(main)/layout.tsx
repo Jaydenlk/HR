@@ -1,11 +1,12 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import OnboardingTour from '@/components/onboarding/onboarding-tour';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { api } from '@/lib/api';
 import type { User, Conversation, Interview, Application, MeProfile } from '@/lib/types';
 import {
@@ -19,7 +20,7 @@ import {
   Briefcase,
   MessageSquare,
   Send,
-  Map,
+  Map as MapIcon,
   Target,
   GraduationCap,
   Menu,
@@ -87,7 +88,7 @@ function buildToolNav(applicationCount: number): ToolNav {
     ],
     more: [
       { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
-      { id: 'career', label: '职业地图', href: '/career', icon: <Map size={16} /> },
+      { id: 'career', label: '职业地图', href: '/career', icon: <MapIcon size={16} /> },
       { id: 'learning-roadmap', label: '学习路线', href: '/learning-roadmap', icon: <Route size={16} /> },
       { id: 'follow-up', label: '跟进消息', href: '/follow-up', icon: <Mail size={16} /> },
       { id: 'salary', label: '薪资雷达', href: '/salary', icon: <BarChart2 size={16} /> },
@@ -218,14 +219,73 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     return pathname?.startsWith(item.href) ?? false;
   }
 
+  // 导航数据 hoist 到渲染作用域,供 JSX 与下方滑动指示器测量共享(buildXxxNav 是纯函数,廉价)。
+  const mainNav = buildMainNav(interviewCount);
+  const toolNav = buildToolNav(applicationCount);
+
+  // ── 浮动磨砂滑动指示器 ────────────────────────────────────────────────
+  // 每组(主导航 / 工具导航)一个共享指示器。容器 position:relative,指示器 position:absolute。
+  // useLayoutEffect 量当前激活项的 offsetTop/offsetHeight,写到指示器 transform/height;CSS transition
+  // 让磨砂块平滑滑动/伸缩到新选中项。无激活项则隐藏(data-active=false)。
+  const mainNavRef = useRef<HTMLDivElement>(null);
+  const toolNavRef = useRef<HTMLDivElement>(null);
+  const mainIndicatorRef = useRef<HTMLDivElement>(null);
+  const toolIndicatorRef = useRef<HTMLDivElement>(null);
+  const mainItemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+  const toolItemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+
+  useLayoutEffect(() => {
+    function place(
+      indicator: HTMLDivElement | null,
+      items: Map<string, HTMLAnchorElement>,
+      activeId: string | null,
+    ) {
+      if (!indicator) return;
+      const el = activeId ? items.get(activeId) : undefined;
+      if (!el) {
+        indicator.dataset.active = 'false';
+        return;
+      }
+      indicator.style.transform = `translateY(${el.offsetTop}px)`;
+      indicator.style.height = `${el.offsetHeight}px`;
+      indicator.dataset.active = 'true';
+    }
+    function update() {
+      const mainActive = mainNav.find((i) => isActive(i))?.id ?? null;
+      // 工具组「更多」折叠时,落在 more 里的激活项不可见——此时该组不显示指示器。
+      const visibleTools = [...toolNav.core, ...(showMore ? toolNav.more : [])];
+      const toolActive = visibleTools.find((i) => isActive(i))?.id ?? null;
+      place(mainIndicatorRef.current, mainItemRefs.current, mainActive);
+      place(toolIndicatorRef.current, toolItemRefs.current, toolActive);
+    }
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+    // pathname 变(切页)、showMore 变(折叠/展开重排)、badge 数变(项高度可能微调)时重算。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, showMore, interviewCount, applicationCount]);
+
   return (
     <div
       style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : '248px 1fr',
+        gridTemplateRows: 'minmax(0, 1fr)',
         height: '100vh',
       }}
     >
+      {/* ── 极光背景(全量复刻):挂在布局根、position:fixed inset:0 z-index:0,侧栏与主区之下。
+          fixed 让极光不随内容滚动(根因2),折叠以下仍有流动极光;玻璃(.lg/侧栏)透出极光即得液态质感。
+          极光自主流动(光斑自带慢 drift,不靠鼠标);.grid 发丝网格 + .grain 极淡噪点 = 微纹理。
+          (main) 根 grid 与 html/body 无 transform/filter,fixed 锚定视口正确。 */}
+      <div className="atmos" aria-hidden="true">
+        <span className="au a1" />
+        <span className="au a2" />
+        <span className="au a3" />
+        <span className="grid" />
+        <span className="grain" />
+      </div>
+
       {/* ── Mobile top bar ───────────────────────────────────────────── */}
       {isMobile && (
         <div
@@ -287,16 +347,27 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
+      {/* 玻璃外壳:背景/描边走主题感知的玻璃 token(暗=Night Atelier 玻璃,亮=精修玻璃)。
+          backdrop-filter 模糊让主区极光透过侧栏映出,克制饱和。结构/逻辑分毫不动。 */}
       <aside
         style={{
-          background: 'var(--color-surface-2)',
-          borderRight: '1px solid var(--color-line)',
+          background: 'var(--glass-bg)',
+          WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
+          backdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
+          borderRight: '1px solid var(--glass-bd)',
+          boxShadow: 'inset -1px 0 0 var(--glass-rim)',
           display: 'flex',
           flexDirection: 'column',
           padding: '18px 14px',
           gap: '2px',
-          overflowY: 'auto',
+          /* aside 自身不滚:固定高度的纵向 flex 列。顶部账户区 + 底部版本/退出 flexShrink:0 固定,
+             仅中间 nav/工具/最近对话区(下方 .sidebar-scroll)overflowY:auto 滚动——矮窗口下底部不被顶掉。 */
           overflowX: 'hidden',
+          minHeight: 0,
+          /* relative + zIndex 让侧栏画在固定极光之上(桌面静态定位时 zIndex 才生效);
+             移动端下方 spread 覆盖为 position:fixed。 */
+          position: 'relative',
+          zIndex: 2,
           ...(isMobile
             ? {
                 position: 'fixed',
@@ -311,20 +382,31 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             : {}),
         }}
       >
-        {/* User row — 点击头像/姓名进入 /me */}
-        <Link
-          href="/me"
+        {/* 账户区:左=头像+名字+点数(点击进 /me),右=明暗切换钮(右对齐、纵向偏下,不与名字打架)。
+            切换钮是独立 <button>,不能嵌进 <Link>(交互元素嵌套+点击会误触跳转),故与 Link 平铺为兄弟。
+            flexShrink:0 让账户区固定在顶部,不被下方可滚动区挤掉。 */}
+        <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            alignItems: 'stretch',
+            gap: '8px',
             padding: '2px 6px 16px',
             marginBottom: '6px',
             borderBottom: '1px solid var(--color-line)',
-            textDecoration: 'none',
+            flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <Link
+            href="/me"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              textDecoration: 'none',
+            }}
+          >
             {/* Avatar */}
             {user?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -359,14 +441,13 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 {initial}
               </div>
             )}
-            <div style={{ minWidth: 0 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div
                 style={{
                   fontSize: '14px',
                   fontWeight: 600,
                   color: 'var(--color-ink)',
                   letterSpacing: '-0.005em',
-                  maxWidth: '130px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -391,10 +472,33 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 </span>
               )}
             </div>
-          </div>
-        </Link>
+          </Link>
+          {/* 明暗切换钮:账户区右侧、纵向偏下(alignSelf:flex-end),避开顶部名字,两主题下均为玻璃圆钮。 */}
+          <ThemeToggle style={{ alignSelf: 'flex-end' }} />
+        </div>
+
+        {/* ── 可滚动中段 ────────────────────────────────────────────────
+            CTA + 主导航 + 工具 + 管理后台 + 最近对话 放进独立滚动区:flex:1 吃掉剩余高度,
+            内容超高时只此区滚动(overflowY:auto),顶部账户区与底部版本/退出始终可见、不被撑没。
+            overflowX:hidden + minHeight:0 防止 flex 子项最小内容高度撑破容器。 */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            /* 滚动条让位:负 margin + 等额 padding,使滚动条贴最右、内容不被挤窄。 */
+            margin: '0 -14px',
+            padding: '0 14px',
+          }}
+        >
 
         {/* CTA — "问 Coach" */}
+        {/* 主操作钮:用品牌蓝渐变(两套主题都可读,替代原 --color-ink 实色——暗色下 ink 变浅
+            会与白字撞色)。Night Atelier 的 .btn-primary 同款渐变 + 蓝光阴影。 */}
         <Link
           href="/chat"
           data-tour="chat"
@@ -403,7 +507,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '10px 14px',
-            background: 'var(--color-ink)',
+            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
             color: '#fff',
             borderRadius: '12px',
             fontSize: '13.5px',
@@ -411,7 +515,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             margin: '8px 0 16px',
             letterSpacing: '-0.005em',
             textDecoration: 'none',
-            transition: 'opacity 0.12s',
+            boxShadow: '0 8px 22px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.35)',
+            transition: 'opacity 0.12s, transform 0.12s',
           }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -420,85 +525,26 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           </span>
         </Link>
 
-        {/* Main nav */}
-        {buildMainNav(interviewCount).map((item) => {
-          const active = isActive(item);
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              data-tour={item.tourId}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '11px',
-                padding: '8px 12px',
-                borderRadius: '10px',
-                fontSize: '13.5px',
-                color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
-                fontWeight: active ? 600 : 500,
-                background: active ? 'var(--color-surface)' : 'transparent',
-                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
-                textDecoration: 'none',
-                letterSpacing: '-0.003em',
-                transition: 'background 0.1s, color 0.1s',
-              }}
-            >
-              <span
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '18px',
-                  justifyContent: 'center',
-                  color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
-                  flexShrink: 0,
-                }}
-              >
-                {item.icon}
-              </span>
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.dot && (
-                <span
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: 'var(--color-brand)',
-                    flexShrink: 0,
-                  }}
-                />
-              )}
-              {item.badge && (
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '10px',
-                    color: 'var(--color-ink-3)',
-                    background: 'var(--color-surface-3)',
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                    fontWeight: 600,
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-
-        {/* Tools — 做减法:核心常驻 + 更多默认折叠,默认只露核心 */}
-        {(() => {
-          const { core, more } = buildToolNav(applicationCount);
-          const renderTool = (item: NavItem) => {
+        {/* Main nav — relative 容器承载浮动磨砂滑动指示器(单块磨砂在组内平滑滑动到激活项) */}
+        <div
+          ref={mainNavRef}
+          style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '2px' }}
+        >
+          <div ref={mainIndicatorRef} className="nav-indicator" data-active="false" aria-hidden="true" />
+          {mainNav.map((item) => {
             const active = isActive(item);
             return (
               <Link
                 key={item.id}
                 href={item.href}
                 data-tour={item.tourId}
+                ref={(el) => {
+                  if (el) mainItemRefs.current.set(item.id, el);
+                  else mainItemRefs.current.delete(item.id);
+                }}
                 style={{
+                  position: 'relative',
+                  zIndex: 1,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '11px',
@@ -507,11 +553,86 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                   fontSize: '13.5px',
                   color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
                   fontWeight: active ? 600 : 500,
-                  background: active ? 'var(--color-surface)' : 'transparent',
-                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
+                  background: 'transparent',
                   textDecoration: 'none',
                   letterSpacing: '-0.003em',
-                  transition: 'background 0.1s, color 0.1s',
+                  transition: 'color 0.1s',
+                }}
+              >
+                <span
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '18px',
+                    justifyContent: 'center',
+                    color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
+                    flexShrink: 0,
+                  }}
+                >
+                  {item.icon}
+                </span>
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.dot && (
+                  <span
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: 'var(--color-brand)',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+                {item.badge && (
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '10px',
+                      color: 'var(--color-ink-3)',
+                      background: 'var(--color-surface-3)',
+                      padding: '2px 7px',
+                      borderRadius: '999px',
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Tools — 做减法:核心常驻 + 更多默认折叠,默认只露核心 */}
+        {(() => {
+          const { core, more } = toolNav;
+          const renderTool = (item: NavItem) => {
+            const active = isActive(item);
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                data-tour={item.tourId}
+                ref={(el) => {
+                  if (el) toolItemRefs.current.set(item.id, el);
+                  else toolItemRefs.current.delete(item.id);
+                }}
+                style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '11px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  fontSize: '13.5px',
+                  color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
+                  fontWeight: active ? 600 : 500,
+                  background: 'transparent',
+                  textDecoration: 'none',
+                  letterSpacing: '-0.003em',
+                  transition: 'color 0.1s',
                 }}
               >
                 <span
@@ -560,57 +681,66 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               >
                 工具
               </div>
-              {core.map(renderTool)}
-              <button
-                onClick={() => setShowMore((v) => !v)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '11px',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  fontSize: '13.5px',
-                  color: 'var(--color-ink-3)',
-                  fontWeight: 500,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontFamily: 'inherit',
-                  letterSpacing: '-0.003em',
-                }}
+              {/* relative 容器承载本组浮动磨砂滑动指示器(更多折叠/展开时 useLayoutEffect 重算落位) */}
+              <div
+                ref={toolNavRef}
+                style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '2px' }}
               >
-                <span
+                <div ref={toolIndicatorRef} className="nav-indicator" data-active="false" aria-hidden="true" />
+                {core.map(renderTool)}
+                <button
+                  onClick={() => setShowMore((v) => !v)}
                   style={{
+                    position: 'relative',
+                    zIndex: 1,
                     display: 'flex',
                     alignItems: 'center',
-                    width: '18px',
-                    justifyContent: 'center',
+                    gap: '11px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    fontSize: '13.5px',
                     color: 'var(--color-ink-3)',
-                    flexShrink: 0,
+                    fontWeight: 500,
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                    letterSpacing: '-0.003em',
                   }}
                 >
-                  {showMore ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </span>
-                <span style={{ flex: 1 }}>{showMore ? '收起' : '更多功能'}</span>
-                {!showMore && (
                   <span
                     style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '18px',
+                      justifyContent: 'center',
                       color: 'var(--color-ink-3)',
-                      background: 'var(--color-surface-3)',
-                      padding: '2px 7px',
-                      borderRadius: '999px',
-                      fontWeight: 600,
                       flexShrink: 0,
                     }}
                   >
-                    {more.length}
+                    {showMore ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </span>
-                )}
-              </button>
-              {showMore && more.map(renderTool)}
+                  <span style={{ flex: 1 }}>{showMore ? '收起' : '更多功能'}</span>
+                  {!showMore && (
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '10px',
+                        color: 'var(--color-ink-3)',
+                        background: 'var(--color-surface-3)',
+                        padding: '2px 7px',
+                        borderRadius: '999px',
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {more.length}
+                    </span>
+                  )}
+                </button>
+                {showMore && more.map(renderTool)}
+              </div>
             </>
           );
         })()}
@@ -742,18 +872,20 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           </>
         )}
 
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
+        </div>
+        {/* ── 可滚动中段结束 ──────────────────────────────────────────── */}
 
-        {/* Footer */}
+        {/* Footer — flexShrink:0 固定在底,版本号与退出登录同行不换行 */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: '8px',
             padding: '12px 10px 4px',
             borderTop: '1px solid var(--color-line)',
             marginTop: '8px',
+            flexShrink: 0,
           }}
         >
           <span
@@ -761,6 +893,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               fontSize: '12px',
               color: 'var(--color-ink-3)',
               fontWeight: 500,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             Coach 公测版
@@ -783,6 +918,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               fontFamily: 'inherit',
               cursor: 'pointer',
               letterSpacing: '-0.003em',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
               transition: 'background 0.12s, color 0.12s',
             }}
             onMouseEnter={(e) => {
@@ -801,15 +938,19 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* ── Main content area ─────────────────────────────────────────── */}
+      {/* 主区透明:固定极光层(布局根 .atmos)从其下方透出。position:relative + zIndex:1 让主区
+          画在固定极光之上;玻璃卡(.lg)透出流动极光即得液态玻璃质感。背景不再铺实色 --color-bg,
+          以免遮住固定极光(底色由 .atmos 自身的径向渐变提供)。 */}
       <main
         style={{
+          position: 'relative',
+          zIndex: 1,
           overflowY: 'auto',
           minHeight: 0,
-          background: 'var(--color-bg)',
           ...(isMobile ? { paddingTop: '52px' } : {}),
         }}
       >
-        {children}
+        <div style={{ position: 'relative', zIndex: 1, minHeight: '100%' }}>{children}</div>
       </main>
 
       {/* 新手导览:首次使用引导。桌面聚光灯 / 移动端居中卡降级,由组件内部按 isMobile 决定形态(完成标记在 localStorage) */}

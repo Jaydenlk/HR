@@ -35,23 +35,19 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
   return (
     <a
       href={`/chat/${conversation.id}`}
+      className="lg"
       style={{
         display: 'block',
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '14px',
         padding: '16px 18px',
         textDecoration: 'none',
         cursor: 'pointer',
-        transition: 'background 0.12s, box-shadow 0.12s',
+        transition: 'transform 0.12s, box-shadow 0.12s',
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = 'var(--color-surface-2)';
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = 'var(--color-surface)';
-        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>

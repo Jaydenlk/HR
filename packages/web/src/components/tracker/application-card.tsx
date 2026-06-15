@@ -47,19 +47,19 @@ export function ApplicationCard({ application, onStageChange, onEdit }: Applicat
         }
       }}
       style={{
-        background: urgent ? 'var(--color-warn-soft)' : 'var(--color-surface)',
-        border: `1px solid ${urgent ? 'color-mix(in srgb, var(--color-warn) 30%, transparent)' : 'var(--color-line)'}`,
-        borderRadius: '11px',
+        background: urgent ? 'var(--color-warn-soft)' : 'rgba(47,143,255,.05)',
+        border: `1px solid ${urgent ? 'color-mix(in srgb, var(--color-warn) 30%, transparent)' : 'var(--hair)'}`,
+        borderRadius: 'var(--radius-default)',
         padding: '11px 13px',
         cursor: 'pointer',
         transition: 'border-color 0.12s, transform 0.12s',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = urgent ? 'color-mix(in srgb, var(--color-warn) 50%, transparent)' : 'var(--color-line-2)';
+        e.currentTarget.style.borderColor = urgent ? 'color-mix(in srgb, var(--color-warn) 50%, transparent)' : 'var(--hair-2)';
         e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = urgent ? 'color-mix(in srgb, var(--color-warn) 30%, transparent)' : 'var(--color-line)';
+        e.currentTarget.style.borderColor = urgent ? 'color-mix(in srgb, var(--color-warn) 30%, transparent)' : 'var(--hair)';
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
@@ -155,7 +155,7 @@ export function ApplicationCard({ application, onStageChange, onEdit }: Applicat
             padding: '4px 6px',
             borderRadius: '6px',
             border: '1px solid var(--color-line)',
-            background: 'var(--color-surface-2)',
+            background: 'var(--color-surface)',
             color: 'var(--color-ink-2)',
             fontSize: '11px',
             fontWeight: 600,

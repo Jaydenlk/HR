@@ -8,7 +8,7 @@ function gradeColor(grade: string | null): { bg: string; text: string } {
   if (!grade) return { bg: 'var(--color-ink-4)', text: '#fff' };
   const g = grade.toUpperCase();
   if (g.startsWith('A')) return { bg: 'var(--color-success)', text: '#fff' };
-  if (g.startsWith('B')) return { bg: 'var(--color-ink)', text: '#fff' };
+  if (g.startsWith('B')) return { bg: 'var(--color-brand)', text: '#fff' };
   if (g.startsWith('C')) return { bg: 'var(--color-warn)', text: '#fff' };
   return { bg: 'var(--color-danger)', text: '#fff' };
 }
@@ -31,26 +31,25 @@ export function InterviewCard({ interview: iv }: InterviewCardProps) {
   return (
     <Link
       href={`/debrief/${iv.id}`}
+      className="lg"
       style={{
         display: 'grid',
         gridTemplateColumns: '54px 1fr auto',
         gap: '14px',
         alignItems: 'center',
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '16px',
+        borderRadius: 'var(--radius-default)',
         padding: '16px 18px',
         textDecoration: 'none',
         transition: 'border-color 0.12s, box-shadow 0.12s, transform 0.12s',
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = 'var(--color-brand)';
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
+        e.currentTarget.style.boxShadow = 'var(--glass-sh)';
         e.currentTarget.style.transform = 'translateY(-1px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--color-line)';
-        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.borderColor = 'var(--glass-bd)';
+        e.currentTarget.style.boxShadow = 'var(--glass-sh)';
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >

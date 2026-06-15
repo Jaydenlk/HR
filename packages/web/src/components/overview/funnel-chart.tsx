@@ -21,7 +21,7 @@ export function FunnelChart({ funnel }: FunnelChartProps) {
   const entries = STAGE_ORDER.map((key) => ({
     key,
     label: STAGE_META[key]?.label ?? key,
-    color: STAGE_META[key]?.color ?? '#a1a1aa',
+    color: STAGE_META[key]?.color ?? 'var(--color-ink-4)',
     count: funnel[key] ?? 0,
   }));
 
@@ -58,7 +58,9 @@ export function FunnelChart({ funnel }: FunnelChartProps) {
             <div
               style={{
                 height: '26px',
-                background: 'var(--color-surface-2)',
+                // 轨道:微染 + 发丝边(暗色不成黑块),彩色填充条透出极光底。
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 borderRadius: '8px',
                 overflow: 'hidden',
                 position: 'relative',

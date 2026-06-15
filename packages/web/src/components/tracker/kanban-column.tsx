@@ -23,15 +23,13 @@ export function KanbanColumn({
 }: KanbanColumnProps) {
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface-2)',
-        borderRadius: '16px',
         padding: '12px',
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
         minHeight: 0,
-        overflow: 'hidden',
       }}
     >
       {/* Column header */}
@@ -72,9 +70,10 @@ export function KanbanColumn({
             fontSize: '11px',
             color: 'var(--color-ink-3)',
             fontWeight: 700,
-            background: 'var(--color-surface)',
+            background: 'rgba(47,143,255,.05)',
+            border: '1px solid var(--hair)',
             padding: '2px 8px',
-            borderRadius: '999px',
+            borderRadius: 'var(--radius-pill)',
           }}
         >
           {applications.length}
@@ -113,7 +112,7 @@ export function KanbanColumn({
           fontSize: '11.5px',
           fontWeight: 600,
           padding: '9px 0',
-          borderRadius: '11px',
+          borderRadius: 'var(--radius-default)',
           cursor: 'pointer',
           transition: 'border-color 0.12s, color 0.12s',
           width: '100%',

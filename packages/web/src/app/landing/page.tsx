@@ -18,7 +18,9 @@
 import type { Metadata } from 'next';
 import { newsreader, jetbrainsMono } from './fonts';
 import { LANDING_CSS } from './_styles';
+import { MOBILE_CSS } from './_mobile_styles';
 import LandingClient from './_client';
+import LandingMobile from './_mobile';
 
 export const metadata: Metadata = {
   title: 'Coach · 给 2026 秋招生的 AI 求职教练',
@@ -28,6 +30,11 @@ export const metadata: Metadata = {
 
 // 防闪烁:首帧前从 localStorage / 系统偏好定主题,设 html data-theme。
 const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem('coach_theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme='dark';}})();`;
+
+// 响应式桥接:纯 CSS 媒体查询 show/hide,断点与全站 mobile-gate(MOBILE_MAX_WIDTH=768)对齐。
+// <768 显示移动版、隐藏桌面;≥768 反之。display:none 那一侧不绘制、不跑动画 —— 无 hydration
+// mismatch、无切换闪动。两套 DOM 并列存在,但任一视口只有一套可见。
+const RESPONSIVE_CSS = `@media (max-width:767px){.lg-root{display:none}}@media (min-width:768px){.lg-mroot{display:none}}`;
 
 export default function LandingPage() {
   return (
@@ -40,11 +47,18 @@ export default function LandingPage() {
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
-      {/* 页面级 CSS(含 CJK @import):tokens + hero + story + tail,仅挂在本路由 */}
+      {/* 页面级 CSS(含 CJK @import):桌面 tokens + hero + story + tail,仅挂在本路由 */}
       <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />
+      {/* 移动版 CSS:每条规则带 .lg-mroot 作用域,与桌面 .lg-root 互不污染 */}
+      <style dangerouslySetInnerHTML={{ __html: MOBILE_CSS }} />
+      {/* 响应式桥接:按视口宽度二选一显示 */}
+      <style dangerouslySetInnerHTML={{ __html: RESPONSIVE_CSS }} />
 
       <div className={`lg-root ${newsreader.variable} ${jetbrainsMono.variable}`}>
         <LandingClient />
+      </div>
+      <div className={`lg-mroot ${jetbrainsMono.variable}`}>
+        <LandingMobile />
       </div>
     </>
   );

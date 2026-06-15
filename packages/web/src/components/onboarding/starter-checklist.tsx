@@ -149,10 +149,8 @@ export default function StarterChecklist() {
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: 'var(--radius-lg)',
         padding: '18px 20px',
       }}
     >
@@ -168,6 +166,7 @@ export default function StarterChecklist() {
       >
         <span
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '15px',
             fontWeight: 700,
             color: 'var(--color-ink)',
@@ -211,7 +210,8 @@ export default function StarterChecklist() {
         style={{
           height: '5px',
           borderRadius: 'var(--radius-pill)',
-          background: 'var(--color-surface-3)',
+          background: 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
           overflow: 'hidden',
           marginBottom: '14px',
         }}

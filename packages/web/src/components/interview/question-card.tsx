@@ -9,20 +9,28 @@ interface QuestionCardProps {
 }
 
 function toneBg(tone: 'good' | 'warn' | 'bad'): { bg: string; border: string } {
-  if (tone === 'warn') return { bg: '#fffbf2', border: '#f5dca8' };
-  if (tone === 'bad') return { bg: '#fff5f3', border: '#f5beb8' };
-  return { bg: 'var(--color-surface)', border: 'var(--color-line)' };
+  if (tone === 'warn')
+    return {
+      bg: 'color-mix(in srgb, var(--color-warn) 8%, transparent)',
+      border: 'color-mix(in srgb, var(--color-warn) 32%, transparent)',
+    };
+  if (tone === 'bad')
+    return {
+      bg: 'color-mix(in srgb, var(--color-danger) 8%, transparent)',
+      border: 'color-mix(in srgb, var(--color-danger) 32%, transparent)',
+    };
+  return { bg: 'rgba(47,143,255,.05)', border: 'var(--hair)' };
 }
 
 function numBg(tone: 'good' | 'warn' | 'bad'): string {
   if (tone === 'warn') return 'var(--color-warn)';
   if (tone === 'bad') return 'var(--color-danger)';
-  return 'var(--color-ink)';
+  return 'var(--color-brand)';
 }
 
 function aiCellStyle(tone: 'good' | 'warn' | 'bad'): { bg: string; color: string; lblColor: string } {
-  if (tone === 'warn') return { bg: 'var(--color-warn-soft)', color: '#5c3700', lblColor: '#a86200' };
-  if (tone === 'bad') return { bg: 'var(--color-danger-soft)', color: '#831a13', lblColor: '#bf2418' };
+  if (tone === 'warn') return { bg: 'var(--color-warn-soft)', color: 'var(--color-ink-2)', lblColor: 'var(--color-warn)' };
+  if (tone === 'bad') return { bg: 'var(--color-danger-soft)', color: 'var(--color-ink-2)', lblColor: 'var(--color-danger)' };
   return { bg: 'var(--color-brand-soft)', color: 'var(--color-ink-2)', lblColor: 'var(--color-brand-ink)' };
 }
 
@@ -34,7 +42,7 @@ function statusLabel(tone: 'good' | 'warn' | 'bad'): string {
 
 function statusColor(tone: 'good' | 'warn' | 'bad'): string {
   if (tone === 'good') return 'var(--color-success)';
-  if (tone === 'warn') return '#a86200';
+  if (tone === 'warn') return 'var(--color-warn)';
   return 'var(--color-danger)';
 }
 
@@ -50,7 +58,7 @@ export function QuestionCard({ question: q, index }: QuestionCardProps) {
       style={{
         background: bg,
         border: `1px solid ${border}`,
-        borderRadius: '18px',
+        borderRadius: 'var(--radius-lg)',
         padding: '18px 20px',
       }}
     >
@@ -68,7 +76,7 @@ export function QuestionCard({ question: q, index }: QuestionCardProps) {
           style={{
             width: '32px',
             height: '32px',
-            borderRadius: '10px',
+            borderRadius: 'var(--radius-default)',
             background: numColor,
             color: '#fff',
             display: 'flex',
@@ -103,7 +111,7 @@ export function QuestionCard({ question: q, index }: QuestionCardProps) {
       <div
         style={{
           padding: '12px 14px',
-          borderRadius: '12px',
+          borderRadius: 'var(--radius-default)',
           background: ai.bg,
           fontSize: '13px',
           lineHeight: 1.55,
@@ -138,17 +146,17 @@ export function QuestionCard({ question: q, index }: QuestionCardProps) {
             gap: '8px',
             marginTop: '10px',
             background: 'var(--color-success-soft)',
-            borderRadius: '12px',
+            borderRadius: 'var(--radius-default)',
             padding: '11px 14px',
             fontSize: '13px',
-            color: '#1e5a2a',
+            color: 'var(--color-ink-2)',
             lineHeight: 1.55,
             fontWeight: 500,
           }}
         >
-          <Sparkles size={14} color="#1e7a3a" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <Sparkles size={14} color="var(--color-success)" style={{ flexShrink: 0, marginTop: '2px' }} />
           <span>
-            <strong style={{ color: '#0e4a18', fontWeight: 700 }}>更好的答法 —— </strong>
+            <strong style={{ color: 'var(--color-success)', fontWeight: 700 }}>更好的答法 —— </strong>
             {q.better_answer}
           </span>
         </div>
@@ -188,7 +196,7 @@ export function QuestionCard({ question: q, index }: QuestionCardProps) {
           alignItems: 'center',
           paddingTop: '10px',
           marginTop: '10px',
-          borderTop: '1px dashed rgba(0,0,0,0.08)',
+          borderTop: '1px dashed var(--hair)',
         }}
       >
         <span

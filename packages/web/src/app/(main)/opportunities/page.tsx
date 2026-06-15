@@ -143,7 +143,7 @@ export default function OpportunitiesPage() {
           正在加载...
         </div>
       ) : filtered.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state lg">
           <Target size={26} />
           {opportunities.length === 0 ? (
             <>
@@ -176,7 +176,7 @@ function OpportunityCard({ opportunity: opp }: { opportunity: Opportunity }) {
   const evaluation = opp.evaluations?.[0] ?? null;
 
   return (
-    <Link href={`/opportunities/${opp.id}`} className="opp-card" aria-label={`${opp.company ?? '未知公司'} · ${opp.role ?? '未知岗位'}`}>
+    <Link href={`/opportunities/${opp.id}`} className="opp-card lg" aria-label={`${opp.company ?? '未知公司'} · ${opp.role ?? '未知岗位'}`}>
       <div className="card-top-row">
         <div className="card-title-group">
           <h2>{opp.company ?? '未知公司'}</h2>
@@ -270,9 +270,11 @@ const OPP_CSS = `
 
 .opp-header h1 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 28px;
   line-height: 1.15;
-  font-weight: 800;
+  font-weight: 600;
+  letter-spacing: -0.4px;
 }
 
 .subtitle {
@@ -295,17 +297,23 @@ const OPP_CSS = `
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border-radius: 8px;
+  border-radius: var(--radius-default);
   border: 1px solid transparent;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   min-height: 36px;
   padding: 0 14px;
-  background: var(--color-brand);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-deep));
+  color: #fff;
   text-decoration: none;
   font-family: inherit;
+  box-shadow: 0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4);
+  transition: opacity 0.12s;
+}
+
+.primary-button:hover {
+  opacity: 0.92;
 }
 
 .primary-button:disabled {
@@ -321,21 +329,22 @@ const OPP_CSS = `
 }
 
 .tabs button {
-  border: 1px solid var(--color-line);
-  background: var(--color-surface);
+  border: 1px solid var(--hair);
+  background: rgba(47,143,255,.05);
   color: var(--color-ink-3);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 7px 14px;
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
 }
 
 .tabs button.active {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-  color: white;
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand);
+  color: var(--color-brand-ink);
 }
 
 .error-banner {
@@ -363,17 +372,16 @@ const OPP_CSS = `
 }
 
 .empty-state {
-  border: 1px dashed var(--color-line-2);
-  border-radius: 8px;
-  background: var(--color-surface);
   padding: 42px 20px;
   gap: 8px;
 }
 
 .empty-state h2 {
   margin: 4px 0 0;
+  font-family: var(--serif);
   color: var(--color-ink);
   font-size: 18px;
+  font-weight: 600;
 }
 
 .empty-state p {
@@ -401,18 +409,15 @@ const OPP_CSS = `
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
   padding: 16px 18px;
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition: border-color 0.12s, transform 0.12s;
 }
 
 .opp-card:hover {
   border-color: var(--color-brand);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transform: translateY(-1px);
 }
 
 .card-top-row {
@@ -445,8 +450,9 @@ const OPP_CSS = `
   font-size: 12px;
   color: var(--color-ink-3);
   padding: 2px 8px;
-  background: var(--color-surface-2);
-  border-radius: 999px;
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-pill);
 }
 
 .status-badge {
@@ -457,12 +463,12 @@ const OPP_CSS = `
   border-radius: 999px;
 }
 
-.status-draft { background: var(--color-surface-2); color: var(--color-ink-3); }
-.status-evaluating { background: rgba(0, 122, 255, 0.12); color: #0062cc; }
+.status-draft { background: rgba(47,143,255,.05); border: 1px solid var(--hair); color: var(--color-ink-3); }
+.status-evaluating { background: var(--color-brand-soft); color: var(--color-brand-ink); }
 .status-evaluated { background: var(--color-brand-soft); color: var(--color-brand-ink); }
 .status-failed { background: var(--color-danger-soft); color: var(--color-danger); }
-.status-tracked { background: var(--color-success-soft); color: #175f2b; }
-.status-dismissed { background: var(--color-surface-2); color: var(--color-ink-4); }
+.status-tracked { background: var(--color-success-soft); color: var(--color-success); }
+.status-dismissed { background: rgba(47,143,255,.05); border: 1px solid var(--hair); color: var(--color-ink-4); }
 
 .score-bars {
   display: flex;
@@ -519,10 +525,10 @@ const OPP_CSS = `
   border-radius: 999px;
 }
 
-.rec-strongly_recommend { background: var(--color-success-soft); color: #175f2b; }
-.rec-recommend { background: rgba(52, 199, 89, 0.12); color: #2b7c44; }
-.rec-neutral { background: var(--color-surface-2); color: var(--color-ink-2); }
-.rec-cautious { background: rgba(255, 149, 0, 0.12); color: #b35900; }
+.rec-strongly_recommend { background: var(--color-success-soft); color: var(--color-success); }
+.rec-recommend { background: var(--color-success-soft); color: var(--color-success); }
+.rec-neutral { background: rgba(47,143,255,.05); border: 1px solid var(--hair); color: var(--color-ink-2); }
+.rec-cautious { background: var(--color-warn-soft); color: var(--color-warn); }
 .rec-not_recommend { background: var(--color-danger-soft); color: var(--color-danger); }
 
 .overall-score {
@@ -535,7 +541,7 @@ const OPP_CSS = `
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--hair);
   padding-top: 10px;
   font-size: 12px;
   color: var(--color-ink-3);

@@ -28,8 +28,8 @@ function LoadingSkeleton() {
           style={{
             height: '140px',
             borderRadius: '14px',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
+            background: 'rgba(47,143,255,.05)',
+            border: '1px solid var(--hair)',
             animation: 'pulse 1.5s ease-in-out infinite',
             opacity: 0.7,
           }}
@@ -114,18 +114,18 @@ function ResumesPageInner() {
       )}
       {showHandoffHint && (
         <div style={{
-          padding: '10px 24px',
+          padding: '11px 24px',
           background: 'var(--color-brand-soft)',
-          borderBottom: '1px solid var(--color-line)',
+          borderBottom: '1px solid var(--color-brand)',
           fontSize: '13.5px',
-          color: 'var(--color-brand)',
+          color: 'var(--color-brand-ink)',
           fontWeight: 500,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span>Coach 建议:点击下方简历进行改写优化</span>
           <button
             onClick={() => setShowHandoffHint(false)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-brand)', fontSize: '16px', fontWeight: 700 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-brand-ink)', fontSize: '16px', fontWeight: 700, lineHeight: 1 }}
           >×</button>
         </div>
       )}
@@ -162,11 +162,12 @@ function ResumesPageInner() {
           <div>
             <h1
               style={{
-                fontSize: '24px',
-                fontWeight: 700,
+                fontFamily: 'var(--serif)',
+                fontSize: '28px',
+                fontWeight: 600,
                 color: 'var(--color-ink)',
                 letterSpacing: '-0.4px',
-                marginBottom: '4px',
+                marginBottom: '5px',
               }}
             >
               简历馆
@@ -182,21 +183,22 @@ function ResumesPageInner() {
               alignItems: 'center',
               gap: '7px',
               padding: '10px 18px',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-default)',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '13.5px',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'background 0.12s',
+              transition: 'opacity 0.12s, transform 0.12s',
               letterSpacing: '-0.01em',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--color-brand-hover)';
+              e.currentTarget.style.opacity = '0.92';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--color-brand)';
+              e.currentTarget.style.opacity = '1';
             }}
           >
             <Plus size={16} />
@@ -254,32 +256,31 @@ function ResumesPageInner() {
         ) : resumes.length === 0 ? (
           /* Empty state */
           <div
+            className="lg"
             style={{
               padding: '64px 32px',
               textAlign: 'center',
-              background: 'var(--color-surface)',
-              borderRadius: '16px',
-              border: '1.5px dashed var(--color-line-2)',
             }}
           >
             <div
               style={{
                 width: '56px',
                 height: '56px',
-                borderRadius: '14px',
-                background: 'var(--color-surface-2)',
+                borderRadius: 'var(--radius-default)',
+                background: 'var(--color-brand-soft)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px',
               }}
             >
-              <FileText size={26} color="var(--color-ink-4)" />
+              <FileText size={26} color="var(--color-brand)" />
             </div>
             <p
               style={{
-                fontSize: '17px',
-                fontWeight: 700,
+                fontFamily: 'var(--serif)',
+                fontSize: '19px',
+                fontWeight: 600,
                 color: 'var(--color-ink)',
                 marginBottom: '10px',
                 letterSpacing: '-0.01em',
@@ -307,14 +308,18 @@ function ResumesPageInner() {
                 alignItems: 'center',
                 gap: '7px',
                 padding: '12px 24px',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius-default)',
                 border: 'none',
-                background: 'var(--color-brand)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: '#fff',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                transition: 'opacity 0.12s',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
             >
               <Plus size={15} />
               上传简历

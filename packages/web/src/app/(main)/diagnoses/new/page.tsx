@@ -39,7 +39,8 @@ function ProgressDots({ step }: { step: Step }) {
                   ? 'var(--color-success)'
                   : i === idx
                     ? 'var(--color-brand)'
-                    : 'var(--color-surface-3)',
+                    : 'rgba(47,143,255,.05)',
+              border: i <= idx ? 'none' : '1px solid var(--hair)',
               color:
                 i <= idx ? '#fff' : 'var(--color-ink-4)',
               display: 'flex',
@@ -137,8 +138,9 @@ function AnalyzingScreen() {
       <div>
         <h2
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '20px',
-            fontWeight: 700,
+            fontWeight: 600,
             color: 'var(--color-ink)',
             letterSpacing: '-0.3px',
             marginBottom: '8px',
@@ -153,13 +155,11 @@ function AnalyzingScreen() {
 
       {/* Progress steps */}
       <div
+        className="lg"
         style={{
           display: 'flex',
           flexDirection: 'column',
           gap: '10px',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-line)',
-          borderRadius: '14px',
           padding: '20px 28px',
           minWidth: '280px',
         }}
@@ -359,8 +359,9 @@ function NewDiagnosisPageInner() {
 
         <h1
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '26px',
-            fontWeight: 700,
+            fontWeight: 600,
             color: 'var(--color-ink)',
             letterSpacing: '-0.4px',
             marginBottom: '6px',
@@ -419,8 +420,8 @@ function NewDiagnosisPageInner() {
                   style={{
                     padding: '32px 24px',
                     textAlign: 'center',
-                    background: 'var(--color-surface)',
-                    borderRadius: '14px',
+                    background: 'rgba(47,143,255,.05)',
+                    borderRadius: 'var(--radius-default)',
                     border: '1px dashed var(--color-line-2)',
                   }}
                 >
@@ -455,12 +456,13 @@ function NewDiagnosisPageInner() {
                       alignItems: 'center',
                       gap: '6px',
                       padding: '9px 18px',
-                      background: 'var(--color-brand)',
+                      background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                       color: '#fff',
                       borderRadius: '8px',
                       fontSize: '13.5px',
                       fontWeight: 600,
                       textDecoration: 'none',
+                      boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
                     }}
                   >
                     上传简历
@@ -481,8 +483,8 @@ function NewDiagnosisPageInner() {
                           padding: '16px 18px',
                           background: selected
                             ? 'var(--color-brand-soft)'
-                            : 'var(--color-surface)',
-                          border: `2px solid ${selected ? 'var(--color-brand)' : 'var(--color-line)'}`,
+                            : 'rgba(47,143,255,.05)',
+                          border: `2px solid ${selected ? 'var(--color-brand)' : 'var(--hair)'}`,
                           borderRadius: '12px',
                           cursor: 'pointer',
                           textAlign: 'left',
@@ -496,7 +498,8 @@ function NewDiagnosisPageInner() {
                             borderRadius: '10px',
                             background: selected
                               ? 'var(--color-brand)'
-                              : 'var(--color-surface-2)',
+                              : 'rgba(47,143,255,.05)',
+                            border: selected ? 'none' : '1px solid var(--hair)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -584,7 +587,7 @@ function NewDiagnosisPageInner() {
                       alignItems: 'center',
                       gap: '14px',
                       padding: '14px 18px',
-                      background: 'var(--color-surface)',
+                      background: 'rgba(47,143,255,.05)',
                       border: '1.5px dashed var(--color-line-2)',
                       borderRadius: '12px',
                       textDecoration: 'none',
@@ -598,7 +601,8 @@ function NewDiagnosisPageInner() {
                         width: '40px',
                         height: '40px',
                         borderRadius: '10px',
-                        background: 'var(--color-surface-2)',
+                        background: 'rgba(47,143,255,.05)',
+                        border: '1px solid var(--hair)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -626,14 +630,15 @@ function NewDiagnosisPageInner() {
                   alignItems: 'center',
                   gap: '8px',
                   padding: '11px 24px',
-                  background: selectedResumeId ? 'var(--color-ink)' : 'var(--color-surface-3)',
+                  background: selectedResumeId ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))' : 'rgba(47,143,255,.05)',
                   color: selectedResumeId ? '#fff' : 'var(--color-ink-4)',
-                  border: 'none',
+                  border: selectedResumeId ? 'none' : '1px solid var(--hair)',
                   borderRadius: '10px',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: selectedResumeId ? 'pointer' : 'default',
                   transition: 'background 0.15s',
+                  boxShadow: selectedResumeId ? '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)' : 'none',
                 }}
               >
                 下一步：粘贴 JD
@@ -750,14 +755,15 @@ function NewDiagnosisPageInner() {
                   gap: '8px',
                   padding: '11px 24px',
                   background:
-                    jdText.trim().length >= 10 ? 'var(--color-brand)' : 'var(--color-surface-3)',
+                    jdText.trim().length >= 10 ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))' : 'rgba(47,143,255,.05)',
                   color: jdText.trim().length >= 10 ? '#fff' : 'var(--color-ink-4)',
-                  border: 'none',
+                  border: jdText.trim().length >= 10 ? 'none' : '1px solid var(--hair)',
                   borderRadius: '10px',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: jdText.trim().length >= 10 ? 'pointer' : 'default',
                   transition: 'background 0.15s',
+                  boxShadow: jdText.trim().length >= 10 ? '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)' : 'none',
                 }}
               >
                 <Sparkles size={16} />

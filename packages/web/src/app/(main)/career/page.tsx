@@ -20,7 +20,7 @@ function FitBadge({ pct }: { pct: number }) {
         fontFamily: 'var(--font-mono)',
         fontSize: '13px',
         fontWeight: 800,
-        color: isHigh ? 'var(--color-brand)' : '#a86200',
+        color: isHigh ? 'var(--color-brand)' : 'var(--color-warn)',
         background: isHigh ? 'var(--color-brand-soft)' : 'var(--color-warn-soft)',
         padding: '3px 9px',
         borderRadius: '6px',
@@ -34,10 +34,11 @@ function FitBadge({ pct }: { pct: number }) {
 function PathCard({ path, chosen }: { path: CareerPath; chosen: boolean }) {
   return (
     <div
+      className="lg"
       style={{
-        background: chosen ? '#fafcff' : 'var(--color-surface)',
-        border: chosen ? '1.5px solid var(--color-brand)' : '1px solid var(--color-line)',
-        borderRadius: '16px',
+        // chosen 选中态:品牌边 + 玻璃柔阴影强调(不靠实底色,暗色也成立)。
+        border: chosen ? '1.5px solid var(--color-brand)' : undefined,
+        boxShadow: chosen ? 'var(--glass-sh)' : undefined,
         padding: '18px 20px',
         display: 'flex',
         flexDirection: 'column',
@@ -48,6 +49,7 @@ function PathCard({ path, chosen }: { path: CareerPath; chosen: boolean }) {
         <h4
           style={{
             margin: 0,
+            fontFamily: 'var(--serif)',
             fontSize: '15px',
             fontWeight: 700,
             letterSpacing: '-0.005em',
@@ -77,7 +79,8 @@ function PathCard({ path, chosen }: { path: CareerPath; chosen: boolean }) {
               style={{
                 fontSize: '10.5px',
                 padding: '2px 8px',
-                background: 'var(--color-surface-2)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 color: 'var(--color-ink-2)',
                 borderRadius: '5px',
                 fontWeight: 600,
@@ -209,7 +212,8 @@ function SkillRow({ skill }: { skill: SkillAuditItem }) {
       <div
         style={{
           height: '6px',
-          background: 'var(--color-surface-2)',
+          background: 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
           borderRadius: '3px',
           overflow: 'hidden',
           position: 'relative',
@@ -290,24 +294,13 @@ function ModalShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
-        padding: '24px',
-      }}
-    >
+    <div className="modal-overlay">
+      <div className="modal-scrim" onClick={onClose} />
       <div
-        onClick={(e) => e.stopPropagation()}
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '18px',
+          position: 'relative',
+          zIndex: 1,
           width: '100%',
           maxWidth: '520px',
           maxHeight: '82vh',
@@ -325,7 +318,7 @@ function ModalShell({
             borderBottom: '1px solid var(--color-line)',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--color-ink)' }}>
+          <h3 style={{ margin: 0, fontFamily: 'var(--serif)', fontSize: '16px', fontWeight: 700, color: 'var(--color-ink)' }}>
             {title}
           </h3>
           <button
@@ -403,12 +396,13 @@ function SelfAssessmentModal({
               padding: '11px',
               borderRadius: '10px',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '14px',
               fontWeight: 600,
               cursor: saving ? 'default' : 'pointer',
               opacity: saving ? 0.7 : 1,
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             {saving ? '保存中…' : '保存并按自评校准（免费 · 不扣点）'}
@@ -490,8 +484,8 @@ function HistoryModal({
                 textAlign: 'left',
                 padding: '12px 14px',
                 borderRadius: '10px',
-                border: '1px solid var(--color-line)',
-                background: 'var(--color-surface)',
+                border: '1px solid var(--hair)',
+                background: 'rgba(47,143,255,.05)',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
@@ -589,10 +583,8 @@ export default function CareerPage() {
     }
   }
 
+  // 卡外层统一用 className="lg"(单层玻璃);cardStyle 仅留内边距。
   const cardStyle: React.CSSProperties = {
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-line)',
-    borderRadius: '18px',
     padding: '20px 24px',
   };
 
@@ -617,6 +609,7 @@ export default function CareerPage() {
         <div>
           <h1
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '24px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -639,8 +632,8 @@ export default function CareerPage() {
               gap: '6px',
               padding: '10px 14px',
               borderRadius: '10px',
-              border: '1px solid var(--color-line)',
-              background: 'var(--color-surface)',
+              border: '1px solid var(--hair)',
+              background: 'rgba(47,143,255,.05)',
               color: 'var(--color-ink-2)',
               fontSize: '13px',
               fontWeight: 600,
@@ -662,8 +655,8 @@ export default function CareerPage() {
                   gap: '7px',
                   padding: '10px 18px',
                   borderRadius: '10px',
-                  border: '1px solid var(--color-line)',
-                  background: 'var(--color-surface)',
+                  border: '1px solid var(--hair)',
+                  background: 'rgba(47,143,255,.05)',
                   color: 'var(--color-ink)',
                   fontSize: '13.5px',
                   fontWeight: 600,
@@ -686,7 +679,8 @@ export default function CareerPage() {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '10px 16px',
-            background: 'var(--color-surface-2)',
+            background: 'rgba(47,143,255,.05)',
+            border: '1px solid var(--hair)',
             borderRadius: '10px',
             fontSize: '12.5px',
             color: 'var(--color-ink-2)',
@@ -754,9 +748,9 @@ export default function CareerPage() {
             justifyContent: 'center',
             padding: '64px 32px',
             textAlign: 'center',
-            background: 'var(--color-surface)',
+            background: 'transparent',
             borderRadius: '16px',
-            border: '1.5px dashed var(--color-line-2)',
+            border: '1.5px dashed var(--hair-2)',
             gap: '12px',
           }}
         >
@@ -765,7 +759,8 @@ export default function CareerPage() {
               width: '56px',
               height: '56px',
               borderRadius: '14px',
-              background: 'var(--color-surface-2)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -788,11 +783,12 @@ export default function CareerPage() {
               padding: '10px 22px',
               borderRadius: '10px',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '13.5px',
               fontWeight: 600,
               textDecoration: 'none',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             前往简历馆
@@ -809,9 +805,9 @@ export default function CareerPage() {
             justifyContent: 'center',
             padding: '64px 32px',
             textAlign: 'center',
-            background: 'var(--color-surface)',
+            background: 'transparent',
             borderRadius: '16px',
-            border: '1.5px dashed var(--color-line-2)',
+            border: '1.5px dashed var(--hair-2)',
             gap: '12px',
           }}
         >
@@ -845,11 +841,12 @@ export default function CareerPage() {
               padding: '11px 24px',
               borderRadius: '10px',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '14px',
               fontWeight: 600,
               cursor: 'pointer',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             <Sparkles size={16} />
@@ -888,12 +885,10 @@ export default function CareerPage() {
         </div>
       ) : shown ? (
         <>
-          {/* Hero */}
+          {/* Hero(单层玻璃,品牌色数字/强调字由 token 表达) */}
           <div
+            className="lg"
             style={{
-              background: '#eaf2ff',
-              border: '1px solid rgba(10,132,255,0.16)',
-              borderRadius: '22px',
               padding: '22px 26px',
               display: 'grid',
               gridTemplateColumns: '1fr auto',
@@ -905,6 +900,7 @@ export default function CareerPage() {
               <h2
                 style={{
                   margin: '0 0 6px',
+                  fontFamily: 'var(--serif)',
                   fontSize: '22px',
                   fontWeight: 700,
                   letterSpacing: '-0.02em',
@@ -961,9 +957,9 @@ export default function CareerPage() {
 
           {/* Skill audit */}
           {shown.skill_audit.length > 0 && (
-            <div style={cardStyle}>
+            <div className="lg" style={cardStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, letterSpacing: '-0.012em' }}>
+                <h3 style={{ margin: 0, fontFamily: 'var(--serif)', fontSize: '17px', fontWeight: 700, letterSpacing: '-0.012em' }}>
                   能力盘点 · 你 vs 路径要求
                 </h3>
                 {!viewing && (
@@ -1008,7 +1004,7 @@ export default function CareerPage() {
                     background: 'var(--color-warn-soft)',
                     borderRadius: '10px',
                     fontSize: '13px',
-                    color: '#a86200',
+                    color: 'var(--color-warn)',
                     lineHeight: 1.55,
                     fontWeight: 500,
                   }}

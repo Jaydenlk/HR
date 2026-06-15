@@ -536,6 +536,7 @@ const NP_CSS = `
 
 .np-header h1 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 28px;
   line-height: 1.15;
   font-weight: 800;
@@ -563,7 +564,7 @@ const NP_CSS = `
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border-radius: 8px;
+  border-radius: var(--radius-default);
   border: 1px solid transparent;
   font-size: 13px;
   font-weight: 700;
@@ -575,15 +576,19 @@ const NP_CSS = `
 
 .np-primary-btn {
   padding: 0 14px;
-  background: var(--color-brand);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-deep));
+  color: #fff;
+  box-shadow: 0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .np-secondary-btn {
   padding: 0 12px;
   color: var(--color-ink-2);
-  background: var(--color-surface);
-  border-color: var(--color-line);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--glass-bd);
+  box-shadow: inset 0 1px 0 var(--glass-rim);
 }
 
 /* Error */
@@ -591,7 +596,7 @@ const NP_CSS = `
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-default);
   padding: 11px 13px;
   font-size: 13px;
   line-height: 1.55;
@@ -621,6 +626,7 @@ const NP_CSS = `
 
 /* Empty */
 .np-empty {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -628,15 +634,19 @@ const NP_CSS = `
   min-height: 320px;
   text-align: center;
   color: var(--color-ink-3);
-  border: 1px dashed var(--color-line-2);
-  border-radius: 8px;
-  background: var(--color-surface);
+  border-radius: 22px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
   padding: 42px 20px;
   gap: 8px;
 }
 
 .np-empty h2 {
   margin: 4px 0 0;
+  font-family: var(--serif);
   color: var(--color-ink);
   font-size: 18px;
 }
@@ -657,18 +667,23 @@ const NP_CSS = `
 }
 
 .np-hero-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  border-radius: 22px;
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
   padding: 18px;
   min-height: 170px;
 }
 
 .np-hero-card h2 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 16px;
   line-height: 1.45;
   font-weight: 700;
@@ -687,7 +702,7 @@ const NP_CSS = `
   gap: 5px;
   width: fit-content;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11.5px;
   font-weight: 700;
   background: var(--color-brand-soft);
@@ -695,13 +710,13 @@ const NP_CSS = `
 }
 
 .np-badge-hot {
-  background: rgba(255, 149, 0, 0.12);
-  color: #b35900;
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
 }
 
 .np-badge-coach {
-  background: rgba(52, 199, 89, 0.12);
-  color: #175f2b;
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 .np-hero-meta {
@@ -715,8 +730,9 @@ const NP_CSS = `
 
 .np-hero-meta span {
   padding: 3px 8px;
-  background: var(--color-surface-2);
-  border-radius: 999px;
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-pill);
   font-size: 11px;
 }
 
@@ -740,10 +756,10 @@ const NP_CSS = `
 }
 
 .np-tabs button {
-  border: 1px solid var(--color-line);
-  background: var(--color-surface);
+  border: 1px solid var(--hair);
+  background: rgba(47, 143, 255, 0.05);
   color: var(--color-ink-3);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 7px 14px;
   font-size: 12.5px;
   font-weight: 700;
@@ -755,9 +771,10 @@ const NP_CSS = `
 }
 
 .np-tabs button.active {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-deep));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .np-tab-count {
@@ -768,15 +785,19 @@ const NP_CSS = `
 
 /* Trending Tags */
 .np-trending-bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 14px;
   padding: 10px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  border-radius: 22px;
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
 }
 
 .np-trending-label {
@@ -793,7 +814,7 @@ const NP_CSS = `
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 600;
   background: var(--color-brand-soft);
@@ -854,19 +875,23 @@ const NP_CSS = `
 
 /* Feed Item Card */
 .np-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  border-radius: 22px;
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
   padding: 16px;
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 
 .np-card:hover {
   border-color: var(--color-brand);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 1px var(--color-brand);
 }
 
 .np-card-top {
@@ -880,24 +905,24 @@ const NP_CSS = `
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
 }
 
-.cat-interview_exp { background: rgba(0, 122, 255, 0.1); color: #0062cc; }
-.cat-market_insight { background: rgba(255, 149, 0, 0.1); color: #b35900; }
-.cat-job_tips { background: rgba(52, 199, 89, 0.1); color: #175f2b; }
-.cat-hiring_signal { background: rgba(175, 82, 222, 0.1); color: #6b21a8; }
+.cat-interview_exp { background: var(--color-brand-soft); color: var(--color-brand-ink); }
+.cat-market_insight { background: var(--color-warn-soft); color: var(--color-warn); }
+.cat-job_tips { background: var(--color-success-soft); color: var(--color-success); }
+.cat-hiring_signal { background: var(--color-brand-soft); color: var(--color-brand-ink); }
 .cat-editorial { background: var(--color-brand-soft); color: var(--color-brand-ink); }
-.cat-insight { background: rgba(255, 59, 48, 0.1); color: #c0392b; }
+.cat-insight { background: var(--color-danger-soft); color: var(--color-danger); }
 
 .np-source-badge {
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -909,9 +934,10 @@ const NP_CSS = `
   font-size: 11px;
   font-weight: 700;
   color: var(--color-ink-3);
-  background: var(--color-surface-2);
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
   padding: 3px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .np-card-company-row {
@@ -930,13 +956,15 @@ const NP_CSS = `
   font-size: 11px;
   font-weight: 600;
   color: var(--color-ink-3);
-  background: var(--color-surface-2);
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .np-card h2 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 15px;
   line-height: 1.4;
   font-weight: 700;
@@ -958,7 +986,7 @@ const NP_CSS = `
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--hair);
   padding-top: 10px;
   margin-top: auto;
 }
@@ -973,7 +1001,8 @@ const NP_CSS = `
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--color-surface-2);
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1036,8 +1065,9 @@ const NP_CSS = `
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--color-surface-2);
+  border-radius: var(--radius-pill);
+  background: rgba(47, 143, 255, 0.05);
+  border: 1px solid var(--hair);
   color: var(--color-ink-3);
 }
 
@@ -1050,7 +1080,7 @@ const NP_CSS = `
 .np-coach-section {
   margin-top: 12px;
   padding-top: 24px;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--hair);
 }
 
 .np-section-title {
@@ -1058,6 +1088,7 @@ const NP_CSS = `
   align-items: center;
   gap: 8px;
   margin: 0 0 16px;
+  font-family: var(--serif);
   font-size: 18px;
   font-weight: 800;
 }
@@ -1069,17 +1100,22 @@ const NP_CSS = `
 }
 
 .np-coach-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  border-radius: 22px;
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
   padding: 16px;
 }
 
 .np-coach-card h3 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.4;

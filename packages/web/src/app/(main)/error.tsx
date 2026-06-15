@@ -33,7 +33,7 @@ export default function MainError({
         style={{
           width: '56px',
           height: '56px',
-          borderRadius: '16px',
+          borderRadius: 'var(--radius-lg)',
           background: 'var(--color-danger-soft)',
           display: 'flex',
           alignItems: 'center',
@@ -42,7 +42,7 @@ export default function MainError({
       >
         <AlertTriangle size={26} color="var(--color-danger)" />
       </div>
-      <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
+      <h2 style={{ fontFamily: 'var(--serif)', fontSize: '18px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
         这个页面出了点问题
       </h2>
       <p style={{ fontSize: '14px', color: 'var(--color-ink-3)', maxWidth: '420px', lineHeight: 1.6 }}>
@@ -53,25 +53,26 @@ export default function MainError({
           onClick={() => unstable_retry()}
           style={{
             padding: '10px 20px',
-            borderRadius: '10px',
+            borderRadius: 'var(--radius-default)',
             border: 'none',
-            background: 'var(--color-brand)',
+            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
             color: '#fff',
             fontSize: '14px',
             fontWeight: 600,
             cursor: 'pointer',
             fontFamily: 'inherit',
+            boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
           }}
         >
           重试
         </button>
         <a
           href="/overview"
+          className="lg-sm"
           style={{
             padding: '10px 20px',
-            borderRadius: '10px',
-            border: '1px solid var(--color-line)',
-            background: 'var(--color-surface)',
+            borderRadius: 'var(--radius-default)',
+            background: 'var(--glass-bg)',
             color: 'var(--color-ink-2)',
             fontSize: '14px',
             fontWeight: 600,

@@ -71,9 +71,9 @@ export function HandoffCard({
       style={{
         marginTop: '10px',
         padding: '14px 16px',
-        borderRadius: '14px',
-        border: `1.5px solid ${isDismissed ? 'var(--color-line)' : 'var(--color-brand)'}`,
-        background: isDismissed ? 'var(--color-surface-2)' : 'var(--color-brand-soft)',
+        borderRadius: 'var(--radius-default)',
+        border: `1.5px solid ${isDismissed ? 'var(--hair)' : 'var(--color-brand)'}`,
+        background: isDismissed ? 'rgba(47,143,255,.05)' : 'var(--color-brand-soft)',
         opacity: isDismissed ? 0.6 : 1,
         transition: 'opacity 0.15s, border-color 0.15s',
       }}
@@ -112,11 +112,12 @@ export function HandoffCard({
               padding: '7px 16px',
               borderRadius: '9px',
               border: 'none',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               fontSize: '13px',
               fontWeight: 600,
               cursor: 'pointer',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               transition: 'opacity 0.12s',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
@@ -134,7 +135,7 @@ export function HandoffCard({
               gap: '4px',
               padding: '7px 12px',
               borderRadius: '9px',
-              border: '1px solid var(--color-line)',
+              border: '1px solid var(--hair)',
               background: 'transparent',
               color: 'var(--color-ink-3)',
               fontSize: '13px',

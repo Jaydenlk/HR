@@ -72,8 +72,8 @@ export function ScoreRadar({ scores }: ScoreRadarProps) {
             <div
               style={{
                 height: '6px',
-                background: 'var(--color-surface-2)',
-                borderRadius: '999px',
+                background: 'rgba(47,143,255,.10)',
+                borderRadius: 'var(--radius-pill)',
                 overflow: 'hidden',
               }}
             >

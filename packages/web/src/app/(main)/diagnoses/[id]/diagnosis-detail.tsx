@@ -37,9 +37,9 @@ function LoadingState() {
             key={i}
             style={{
               height: `${h}px`,
-              borderRadius: '14px',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-line)',
+              borderRadius: 'var(--radius-default)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
               opacity: 0.7,
             }}
           />
@@ -88,12 +88,12 @@ function DimensionRow({ label, score, max }: { label: string; score: number; max
         style={{
           flex: 1,
           height: '6px',
-          background: 'var(--color-surface-3)',
-          borderRadius: '99px',
+          background: 'var(--hair)',
+          borderRadius: 'var(--radius-pill)',
           overflow: 'hidden',
         }}
       >
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '99px' }} />
+        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--radius-pill)' }} />
       </div>
       <Tooltip
         content={`${label}维度：得分 ${score}/${max}（${pct}%）——AI 对该维度与岗位要求匹配度的评分`}
@@ -128,9 +128,9 @@ function ProfessionDimensionCard({ dim }: { dim: ProfessionStandardDimension }) 
     <div
       style={{
         padding: '18px',
-        background: 'var(--color-surface-2)',
-        borderRadius: '12px',
-        border: '1px solid var(--color-line)',
+        background: 'rgba(47,143,255,.05)',
+        borderRadius: 'var(--radius-default)',
+        border: '1px solid var(--hair)',
       }}
     >
       {/* 维度名 + 分数 + 进度条 */}
@@ -142,12 +142,12 @@ function ProfessionDimensionCard({ dim }: { dim: ProfessionStandardDimension }) 
           style={{
             flex: 1,
             height: '6px',
-            background: 'var(--color-surface-3)',
-            borderRadius: '99px',
+            background: 'var(--hair)',
+            borderRadius: 'var(--radius-pill)',
             overflow: 'hidden',
           }}
         >
-          <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: '99px' }} />
+          <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--radius-pill)' }} />
         </div>
         <Tooltip
           content={`满分 ${dim.max} 分，当前得 ${dim.score} 分（${pct}%）。${dim.why ? '' : '综合简历内容与该维度要求的匹配程度计算。'}`}
@@ -195,7 +195,8 @@ function ProfessionDimensionCard({ dim }: { dim: ProfessionStandardDimension }) 
                 key={i}
                 style={{
                   padding: '3px 8px',
-                  background: 'var(--color-surface-3)',
+                  background: 'rgba(47,143,255,.05)',
+                  border: '1px solid var(--hair)',
                   color: 'var(--color-ink-3)',
                   borderRadius: '6px',
                   fontSize: '12px',
@@ -238,7 +239,7 @@ function ConventionCheckRow({ check }: { check: ConventionCheck }) {
       ? { icon: <Check size={15} />, color: 'var(--color-success)', bg: 'var(--color-success-soft)', label: '符合' }
       : check.status === 'warn'
         ? { icon: <AlertTriangle size={15} />, color: 'var(--color-warn)', bg: 'var(--color-warn-soft)', label: '注意' }
-        : { icon: <X size={15} />, color: 'var(--color-ink-3)', bg: 'var(--color-surface-3)', label: '缺失' };
+        : { icon: <X size={15} />, color: 'var(--color-ink-3)', bg: 'rgba(47,143,255,.05)', label: '缺失' };
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
       <span
@@ -305,10 +306,8 @@ function ProfessionStandardView({
 
       {/* L0 概览:职业镜头 + 总分 */}
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-line)',
           padding: '28px',
           marginBottom: '20px',
           display: 'flex',
@@ -331,8 +330,9 @@ function ProfessionStandardView({
             <GraduationCap size={18} color="var(--color-brand)" />
             <h1
               style={{
+                fontFamily: 'var(--serif)',
                 fontSize: '20px',
-                fontWeight: 700,
+                fontWeight: 600,
                 color: 'var(--color-ink)',
                 letterSpacing: '-0.3px',
                 margin: 0,
@@ -377,7 +377,7 @@ function ProfessionStandardView({
             gap: '6px',
             minHeight: '44px',
             padding: '9px 16px',
-            background: 'var(--color-brand)',
+            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
             color: '#fff',
             border: 'none',
             borderRadius: '10px',
@@ -388,6 +388,7 @@ function ProfessionStandardView({
             letterSpacing: '-0.005em',
             transition: 'opacity 0.12s',
             flexShrink: 0,
+            boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
           }}
         >
           <MessageSquare size={14} />
@@ -398,15 +399,13 @@ function ProfessionStandardView({
       {/* L1 细节:各维度(score/max + why + 证据 + 缺口) */}
       {result.dimensions.length > 0 && (
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
             padding: '24px',
             marginBottom: '20px',
           }}
         >
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 16px' }}>
+          <h2 style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', margin: '0 0 16px' }}>
             各维度评估（{result.dimensions.length}）
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -420,15 +419,13 @@ function ProfessionStandardView({
       {/* 本土核查 */}
       {result.conventionChecks.length > 0 && (
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
             padding: '24px',
             marginBottom: '20px',
           }}
         >
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 16px' }}>
+          <h2 style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', margin: '0 0 16px' }}>
             本土简历核查
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -442,15 +439,13 @@ function ProfessionStandardView({
       {/* 改写示范 */}
       {(diagnosis.suggestions ?? []).length > 0 && (
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
             padding: '24px',
             marginBottom: '20px',
           }}
         >
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 16px' }}>
+          <h2 style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', margin: '0 0 16px' }}>
             改写示范（{(diagnosis.suggestions ?? []).length}）
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -464,14 +459,12 @@ function ProfessionStandardView({
       {/* 面试追问预演 */}
       {result.interviewHooks && result.interviewHooks.length > 0 && (
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
             padding: '24px',
           }}
         >
-          <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 4px' }}>
+          <h2 style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', margin: '0 0 4px' }}>
             面试追问预演（{result.interviewHooks.length}）
           </h2>
           <p style={{ fontSize: '12px', color: 'var(--color-ink-3)', margin: '0 0 16px' }}>
@@ -681,10 +674,8 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
 
       {/* Header */}
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-line)',
           padding: '28px',
           marginBottom: '20px',
           display: 'flex',
@@ -696,8 +687,9 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '20px',
-              fontWeight: 700,
+              fontWeight: 600,
               color: 'var(--color-ink)',
               letterSpacing: '-0.3px',
               marginBottom: '10px',
@@ -731,9 +723,9 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
               alignItems: 'center',
               gap: '6px',
               padding: '9px 16px',
-              background: applyDone ? 'var(--color-success)' : 'var(--color-surface-2)',
+              background: applyDone ? 'var(--color-success)' : 'rgba(47,143,255,.05)',
               color: applyDone ? '#fff' : 'var(--color-ink-2)',
-              border: '1px solid var(--color-line)',
+              border: '1px solid var(--hair)',
               borderRadius: '10px',
               fontSize: '13.5px',
               fontWeight: 600,
@@ -754,7 +746,7 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
               alignItems: 'center',
               gap: '6px',
               padding: '9px 16px',
-              background: 'var(--color-brand)',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
               color: '#fff',
               border: 'none',
               borderRadius: '10px',
@@ -764,6 +756,7 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
               opacity: chatLoading ? 0.7 : 1,
               letterSpacing: '-0.005em',
               transition: 'opacity 0.12s',
+              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
             }}
           >
             <MessageSquare size={14} />
@@ -775,10 +768,8 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
       {/* Dimensions */}
       {dim && (
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
             padding: '24px',
             marginBottom: '20px',
             display: 'flex',
@@ -786,7 +777,7 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
             gap: '14px',
           }}
         >
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '4px' }}>
+          <div style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '4px' }}>
             各维度得分
           </div>
           <DimensionRow label="技能匹配" score={dim.skills.score} max={dim.skills.max} />
@@ -869,14 +860,12 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
       {/* Suggestions */}
       {(diagnosis.suggestions ?? []).length > 0 && (
         <div
+          className="lg"
           style={{
-            background: 'var(--color-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--color-line)',
             padding: '24px',
           }}
         >
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '16px' }}>
+          <div style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', marginBottom: '16px' }}>
             改进建议 ({(diagnosis.suggestions ?? []).length})
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

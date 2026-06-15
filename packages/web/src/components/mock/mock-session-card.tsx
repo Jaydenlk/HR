@@ -12,7 +12,7 @@ function statusConfig(status: string): { label: string; bg: string; color: strin
   if (status === 'completed') {
     return {
       label: '已完成',
-      bg: 'var(--color-success-soft, #f0fdf4)',
+      bg: 'var(--color-success-soft)',
       color: 'var(--color-success)',
       icon: <CheckCircle size={12} />,
     };
@@ -27,7 +27,7 @@ function statusConfig(status: string): { label: string; bg: string; color: strin
   }
   return {
     label: '待开始',
-    bg: 'var(--color-surface-3)',
+    bg: 'rgba(47,143,255,.05)',
     color: 'var(--color-ink-3)',
     icon: <Clock size={12} />,
   };
@@ -51,26 +51,26 @@ export function MockSessionCard({ session, onClick }: MockSessionCardProps) {
   return (
     <button
       onClick={onClick}
+      className="lg"
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
         padding: '18px 20px',
-        background: 'var(--color-surface)',
-        borderRadius: '14px',
-        border: '1px solid var(--color-line)',
         textAlign: 'left',
         cursor: 'pointer',
         width: '100%',
-        transition: 'box-shadow 0.12s, border-color 0.12s',
+        transition: 'transform 0.14s ease, box-shadow 0.14s ease',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
-        e.currentTarget.style.borderColor = 'var(--color-line-2)';
+        e.currentTarget.style.willChange = 'transform';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = 'var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 1px var(--color-brand-soft)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.borderColor = 'var(--color-line)';
+        e.currentTarget.style.willChange = 'auto';
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.boxShadow = '';
       }}
     >
       {/* Score ring (compact) */}
@@ -79,7 +79,7 @@ export function MockSessionCard({ session, onClick }: MockSessionCardProps) {
           width: '52px',
           height: '52px',
           borderRadius: '14px',
-          background: score != null ? (score >= 70 ? 'var(--color-success)' : score >= 50 ? 'var(--color-warn)' : 'var(--color-danger)') : 'var(--color-surface-2)',
+          background: score != null ? (score >= 70 ? 'var(--color-success)' : score >= 50 ? 'var(--color-warn)' : 'var(--color-danger)') : 'rgba(47,143,255,.05)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

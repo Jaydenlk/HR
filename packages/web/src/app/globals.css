@@ -1,3 +1,9 @@
+/* CJK 衬线字体(--serif 标题用):Noto Serif SC,display=swap,墙内 CDN 拿不到时由 --serif
+   回退链(Songti/SimSun/系统衬线)接住,绝不阻塞首屏。用 @import 而非 <link> 是为了规避
+   next 的 no-page-custom-font(只针对 JSX <link> 元素);不自托管全量 CJK(体积过大)。
+   @import 必须置于所有其它规则之前。 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -6,7 +12,7 @@
 
 /* ── Coach design tokens ─────────────────────────────────────────── */
 @theme {
-  /* surfaces */
+  /* surfaces — 默认值,html[data-theme] 在 :root 后覆盖(见下方) */
   --color-bg: #fbfbfd;
   --color-surface: #ffffff;
   --color-surface-2: #f5f5f7;
@@ -25,6 +31,8 @@
   /* brand (one color, use sparingly) */
   --color-brand: #0a84ff;
   --color-brand-hover: #006fdb;
+  /* 品牌渐变第二色标(深蓝):亮色安全深蓝,保证白字 ≥4.5:1。暗色在 [data-theme=dark] 覆盖为 #0a5fd0。 */
+  --color-brand-deep: #006fdb;
   --color-brand-soft: #eaf2ff;
   --color-brand-ink: #003f8a;
 
@@ -48,6 +56,9 @@
      接中文回退栈,确保 CJK 字形不缺失。 */
   --font-sans: var(--font-jakarta), "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* --serif:玻璃 UI 的标题衬线(Night Atelier 风),Noto Serif SC + 系统衬线回退。
+     由 @theme 暴露为 Tailwind 的 font-serif,亦可 var(--serif) 直接用。 */
+  --serif: "Noto Serif SC", Georgia, "Songti SC", "SimSun", serif;
 }
 
 /* shadcn compat mapping */
@@ -93,7 +104,19 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   主题三态机制
+   ──────────────────────────────────────────────────────────────────
+   :root                 = 默认亮色(SSR 首帧、无脚本时的兜底)。
+   html[data-theme=light]= 精修玻璃亮色(克制清晰,与默认亮色基本同色但补齐玻璃 token)。
+   html[data-theme=dark] = Night Atelier 暗色玻璃(对齐 landing/_styles.ts)。
+   data-theme 由 app/layout.tsx 的预水合内联脚本在首帧前写入 documentElement;
+   dark 时脚本同步给 <html> 加 .dark class,令 @custom-variant dark(&:is(.dark *))
+   生效、shadcn 组件走暗色。颜色用 CSS 变量,切换无需重渲染、无闪烁。
+   ════════════════════════════════════════════════════════════════════ */
+
 :root {
+  /* shadcn 亮色(默认) */
   --background: #ffffff;
   --foreground: #1d1d1f;
   --card: #ffffff;
@@ -126,6 +149,183 @@
   --sidebar-accent-foreground: #1d1d1f;
   --sidebar-border: #e5e5e7;
   --sidebar-ring: #0a84ff;
+
+  /* 玻璃 / 极光 token(默认 = 亮色精修版,与 [data-theme=light] 同值,
+     保证脚本未跑时玻璃组件也有正确底色)。 */
+  --glass-bg: linear-gradient(135deg, rgba(255,255,255,.86), rgba(255,255,255,.62) 46%, rgba(255,255,255,.78));
+  --glass-bd: rgba(255,255,255,.9);
+  --glass-spec: rgba(255,255,255,.9);
+  --glass-rim: rgba(255,255,255,1);
+  --glass-sh: 0 24px 64px -26px rgba(20,40,90,.18), 0 2px 10px -4px rgba(20,40,90,.10);
+  --glass-blur: 18px;
+  --hair: rgba(17,19,28,.10);
+  --hair-2: rgba(17,19,28,.16);
+
+  /* 极光底色(atmos 用):亮色版淡蓝白。 */
+  --bg-0: #eef1f8;
+  --bg-1: #f4f6fb;
+  --bg-2: #ffffff;
+  --au-blue: #2f8fff;
+  --au-cyan: #2fd9ff;
+  --au-violet: #7b6bff;
+  --au-blue-glow: rgba(10,111,224,.4);
+
+  /* (main) 布局桌面侧栏宽,与 layout.tsx 的 248px 单一来源。.modal-overlay 据此把
+     弹窗作业区定位在右侧主区(不盖左侧侧栏)。改宽度只需改这一处。 */
+  --sidebar-w: 248px;
+}
+
+/* 亮色:精修玻璃亮色(克制清晰)。与 :root 同源,显式标注便于切换覆盖。 */
+html[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --primary: #1d1d1f;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f7;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f5f5f7;
+  --muted-foreground: #6e6e73;
+  --accent: #eeeef0;
+  --accent-foreground: #1d1d1f;
+  --destructive: #ff3b30;
+  --border: #e5e5e7;
+  --input: #e5e5e7;
+  --ring: #0a84ff;
+
+  --color-bg: #fbfbfd;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f5f7;
+  --color-surface-3: #eeeef0;
+  --color-ink: #1d1d1f;
+  --color-ink-2: #424245;
+  --color-ink-3: #6e6e73;
+  --color-ink-4: #a1a1a6;
+  --color-line: #e5e5e7;
+  --color-line-2: #d2d2d7;
+  --color-brand: #0a84ff;
+  --color-brand-hover: #006fdb;
+  --color-brand-deep: #006fdb;
+  --color-brand-soft: #eaf2ff;
+  --color-brand-ink: #003f8a;
+  --color-success: #34c759;
+  --color-success-soft: #e2f6e6;
+  --color-warn: #ff9500;
+  --color-warn-soft: #fff0d9;
+  --color-danger: #ff3b30;
+  --color-danger-soft: #ffe1de;
+
+  --glass-bg: linear-gradient(135deg, rgba(255,255,255,.86), rgba(255,255,255,.62) 46%, rgba(255,255,255,.78));
+  --glass-bd: rgba(255,255,255,.9);
+  --glass-spec: rgba(255,255,255,.9);
+  --glass-rim: rgba(255,255,255,1);
+  --glass-sh: 0 24px 64px -26px rgba(20,40,90,.18), 0 2px 10px -4px rgba(20,40,90,.10);
+  --glass-blur: 18px;
+  --hair: rgba(17,19,28,.10);
+  --hair-2: rgba(17,19,28,.16);
+
+  --bg-0: #eef1f8;
+  --bg-1: #f4f6fb;
+  --bg-2: #ffffff;
+  --au-blue: #2f8fff;
+  --au-cyan: #2fd9ff;
+  --au-violet: #7b6bff;
+  --au-blue-glow: rgba(10,111,224,.4);
+
+  --sidebar: #f5f5f7;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #1d1d1f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eeeef0;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: #e5e5e7;
+  --sidebar-ring: #0a84ff;
+}
+
+/* 暗色:Night Atelier 玻璃(对齐 landing/_styles.ts 的暗色 token)。 */
+html[data-theme="dark"] {
+  /* Coach surfaces — 暗色深海蓝黑 */
+  --color-bg: #05060c;
+  --color-surface: #0c0f1d;
+  --color-surface-2: #0a0d18;
+  --color-surface-3: #11152a;
+  /* ink — 暗色高对比浅字 */
+  --color-ink: #f2f5fc;
+  --color-ink-2: rgba(242,245,252,.70);
+  --color-ink-3: rgba(242,245,252,.46);
+  --color-ink-4: rgba(242,245,252,.30);
+  /* hairlines — 暗色用浅描边 */
+  --color-line: rgba(255,255,255,.10);
+  --color-line-2: rgba(255,255,255,.16);
+  /* brand — 暗底提亮的蓝 */
+  --color-brand: #2f8fff;
+  --color-brand-hover: #7cb8ff;
+  --color-brand-soft: rgba(47,143,255,.16);
+  --color-brand-ink: #cfe3ff;
+  /* 品牌渐变第二色标(深蓝):落地页 --blue-deep,白字落在 #2f8fff→#0a5fd0 上对比达标。 */
+  --color-brand-deep: #0a5fd0;
+  /* semantic — 暗底版 */
+  --color-success: #34d27b;
+  --color-success-soft: rgba(52,210,123,.16);
+  --color-warn: #f5b53d;
+  --color-warn-soft: rgba(245,181,61,.16);
+  --color-danger: #ff5d6b;
+  --color-danger-soft: rgba(255,93,107,.16);
+
+  /* shadcn 暗色映射 */
+  --background: #05060c;
+  --foreground: #f2f5fc;
+  --card: #0c0f1d;
+  --card-foreground: #f2f5fc;
+  --popover: #0c0f1d;
+  --popover-foreground: #f2f5fc;
+  --primary: #f2f5fc;
+  --primary-foreground: #05060c;
+  --secondary: #11152a;
+  --secondary-foreground: #f2f5fc;
+  --muted: #11152a;
+  --muted-foreground: rgba(242,245,252,.56);
+  --accent: #161b30;
+  --accent-foreground: #f2f5fc;
+  --destructive: #ff5d6b;
+  --border: rgba(255,255,255,.10);
+  --input: rgba(255,255,255,.14);
+  --ring: #2f8fff;
+  --chart-1: #2f8fff;
+  --chart-2: #34d27b;
+  --chart-3: #f5b53d;
+  --chart-4: #ff5d6b;
+  --chart-5: #8b90a0;
+  --sidebar: #0a0d18;
+  --sidebar-foreground: #f2f5fc;
+  --sidebar-primary: #2f8fff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #161b30;
+  --sidebar-accent-foreground: #f2f5fc;
+  --sidebar-border: rgba(255,255,255,.10);
+  --sidebar-ring: #2f8fff;
+
+  /* 玻璃 / 极光 token — Night Atelier 暗色玻璃 */
+  --glass-bg: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.028) 46%, rgba(255,255,255,.06));
+  --glass-bd: rgba(255,255,255,.14);
+  --glass-spec: rgba(255,255,255,.18);
+  --glass-rim: rgba(255,255,255,.30);
+  --glass-sh: 0 24px 70px -24px rgba(0,0,0,.72), 0 2px 12px -4px rgba(0,0,0,.5);
+  /* 暗色玻璃模糊对齐落地页 Night Atelier(28px),亮色保持 18px(克制清晰)。 */
+  --glass-blur: 28px;
+  --hair: rgba(255,255,255,.10);
+  --hair-2: rgba(255,255,255,.16);
+
+  --bg-0: #05060c;
+  --bg-1: #080a14;
+  --bg-2: #0c0f1d;
+  --au-blue: #2f8fff;
+  --au-cyan: #2fd9ff;
+  --au-violet: #7b6bff;
+  --au-blue-glow: rgba(47,143,255,.55);
 }
 
 @layer base {
@@ -141,6 +341,8 @@
     line-height: 1.5;
     letter-spacing: -0.003em;
     -webkit-font-smoothing: antialiased;
+    /* 主题切换时底色/字色平滑过渡(玻璃组件自身另有 transition)。 */
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
@@ -154,4 +356,349 @@
 .spin,
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   可复用玻璃组件(全站通用,非落地页私有)
+   ──────────────────────────────────────────────────────────────────
+   .lg     液态玻璃卡:backdrop-filter 模糊+饱和、玻璃渐变底、内描边 rim、柔阴影。
+           圆角默认 --radius-lg(20px);需要别的圆角直接覆盖 border-radius 即可。
+   .lg-sm  小号玻璃(更轻的模糊,适合小控件/胶囊)。
+   .atmos  极光背景(克制版:比落地页淡、动效更轻、reduced-motion 关闭)。
+   .glass-hairline  发丝分隔线色(随主题)。
+   克制铁律:表单/数据页清晰优先,blur 不过重,极光不过亮。
+   ════════════════════════════════════════════════════════════════════ */
+
+.lg {
+  position: relative;
+  /* 圆角用 22px 字面量,对齐落地页,并绕开 --radius-lg 在 @theme(20px)与 @theme inline
+     (var(--radius)≈14px)间的令牌冲突。 */
+  border-radius: 22px;
+  background: var(--glass-bg);
+  /* saturate 由 180% 收到 160%:大面积玻璃下三色光斑叠加不过饱和,暗底更通透不脏。 */
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-bd);
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), inset 0 -1px 1px rgba(255,255,255,.04);
+  overflow: hidden;
+  isolation: isolate;
+}
+/* 顶部高光(克制:opacity .7,亮色更淡)。用 ::before 不挡内容,内容自身在 z-index:1 之上。 */
+.lg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(130% 90% at 0% 0%, var(--glass-spec), transparent 46%);
+  mix-blend-mode: screen;
+  opacity: .7;
+}
+/* 暗色高光对齐落地页(.9),亮色更淡(.5)。 */
+html[data-theme="dark"] .lg::before { opacity: .9; }
+html[data-theme="light"] .lg::before { opacity: .5; }
+.lg > * { position: relative; z-index: 1; }
+
+/* 小号玻璃:更轻的模糊,用于胶囊/小按钮/小卡片。 */
+.lg-sm {
+  position: relative;
+  border-radius: var(--radius-default);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--glass-bd);
+  box-shadow: inset 0 1px 0 var(--glass-rim);
+}
+
+/* 发丝线工具类(随主题深浅)。 */
+.glass-hairline { border-color: var(--hair); }
+
+/* ── 共享弹窗外壳(全站弹窗统一壳子) ────────────────────────────────────────
+   推荐 DOM(弹窗组件照抄):
+     <div className="modal-overlay">
+       <div className="modal-scrim" onClick={关闭} />           // 点击空白关闭
+       <div className="lg" style={{ position:'relative', zIndex:1, width:'100%', maxWidth:520 }}>
+         …对话框内容…
+       </div>
+     </div>
+   注意点:
+   ① 对话框用现成 .lg(液态玻璃),自带 blur;.modal-scrim 的 blur 故意很轻(2~3px),
+      不与 .lg 的玻璃 blur 叠成重糊。对话框务必显式 position:relative + zIndex:1,盖在 scrim 之上。
+   ② 桌面端 overlay 从左 248px 起(只盖右侧主区,不压侧栏);移动端全屏。
+   ③ z-index 盖页面内容(内容层 zIndex 1~100)但低于移动抽屉(抽屉/抽屉遮罩在 200~220),
+      故移动端弹窗不会盖住抽屉。需要盖全屏(连侧栏)的特例弹窗仍可自带 inset:0 的容器,不用本类。
+   ④ 对话框过高时:在 .lg 上加 maxHeight + overflowY:auto 自行处理滚动(overlay 已 padding 留边)。 */
+.modal-overlay {
+  position: fixed;
+  /* 桌面:作业区定位,左侧让出 248px 侧栏(--sidebar-w),不盖侧栏。 */
+  inset: 0 0 0 var(--sidebar-w);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 给对话框留边(小屏不顶边)。 */
+  padding: 24px;
+}
+@media (max-width: 767px) {
+  /* 移动端:全屏(无固定侧栏)。仍低于抽屉(220),抽屉打开时盖在弹窗之上。 */
+  .modal-overlay { inset: 0; }
+}
+/* 遮罩:克制、干净,不发灰发脏。暗色用低不透明度暗罩 + 极轻 blur(让作业区虚化后退,
+   而非平铺暗灰把整屏压脏);亮色用极淡罩。blur 故意小(2~3px),不与对话框 .lg 的玻璃 blur 叠重糊。 */
+.modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(5,6,12,.32);
+  -webkit-backdrop-filter: blur(2.5px);
+  backdrop-filter: blur(2.5px);
+}
+html[data-theme="light"] .modal-scrim {
+  background: rgba(17,19,28,.16);
+}
+
+/* ── 导航选中:浮动磨砂滑动指示器 ─────────────────────────────────────────
+   单个共享指示器(每组一个),position:absolute 浮在导航项之下(z-index:0,链接 z-index:1)。
+   质感对标「问 Coach」CTA:磨砂玻璃(backdrop blur+饱和)+内高光 rim + 柔阴影。
+   丝滑滑动:JS(useLayoutEffect)量当前激活项 offsetTop/offsetHeight 写到 transform/height,
+   transition 让磨砂块平滑移动/伸缩到新选中项(不是各项各自闪现)。pathname/展开态/resize 变化重算。 */
+.nav-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0;
+  border-radius: 10px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--glass-bd);
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition:
+    transform .36s cubic-bezier(.22,.61,.36,1),
+    height .36s cubic-bezier(.22,.61,.36,1),
+    opacity .24s ease;
+}
+.nav-indicator[data-active="true"] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .nav-indicator { transition: opacity .24s ease; }
+}
+/* 亮色覆盖:磨砂在浅灰侧栏(#f5f5f7)上几乎不可见,换成白色实体浮块+投影强化对比。
+   暗色保持磨砂玻璃不动(上方基础规则不改)。transition/reduced-motion 逻辑继承不重复定义。 */
+html[data-theme="light"] .nav-indicator {
+  background: #ffffff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 1px solid var(--color-line);
+  box-shadow:
+    0 2px 8px -1px rgba(20, 40, 90, .14),
+    0 1px 2px rgba(20, 40, 90, .10);
+}
+
+/* ── 极光背景 .atmos(全量复刻落地页 Night Atelier) ─────────────────────────
+   用法:在 (main) 布局根放一个 <div className="atmos" aria-hidden> 含 .au 光斑 + .grid + .grain,
+   它 position:fixed inset:0 z-index:0,挂在侧栏与主区之下;内容/侧栏须 position:relative z-index:≥1。
+   fixed 让极光不随内容滚动(根因2),折叠以下仍有流动极光。
+   注意:fixed 在祖先有 transform/filter/will-change 时会被困住——(main) 根 grid 与 html/body
+   均无此类属性,故锚定视口正确。光斑完全自流动,不靠鼠标(已删 .cursor 鼠标跟随光)。 */
+/* ── 方案A 暗色极光:缓慢但明显在流动(2026-06-15)─────────────────────────
+   研究 docs/aurora-motion-research-2026-06-15.md 方案A 落地。被否的旧版(16/20/18s
+   两帧匀速钟摆 + blur80)病根:糊成无形雾(无可追踪特征)+ 单调钟摆(被习惯化抹平)+
+   纯位移无瞬态(被滤成背景)+ 不变色(缺极光灵魂)。本版四管齐下让它"盯 2~3 秒就看出在动":
+   ① blur 80→40px:光斑恢复有形柔光,位移有参照才被判为"在动"(根因①⑤)。
+   ② 去同步 + 多维运动:三层周期 13/17/19s 互不通约,每层叠 translate3d + rotate(±)
+      + scale 呼吸(.92↔1.12);rotate 对正圆+居中 radial 本不可见,故每层配偏移
+      transform-origin,把旋转转成"圆画大弧扫屏"(Aceternity 诀窍),旋转才化为可感位移。
+      a1 往右上、a2 往左下对冲 → 光斑互相滑过,产生不可预测的亮重叠热点。
+   ③ 色相流动:每层 filter 链 blur 之后追 hue-rotate(±36deg 内,锁蓝紫青不整圈),
+      周期 ~15s,负 delay 错相位。关键坑:hue 关键帧每帧重写 blur(40px),否则 filter
+      被整体覆盖会丢模糊。
+   ④ 静态颗粒罩:见下方 .grain 升级(fractalNoise .7/3,overlay),破 banding + 胶片质感。
+   合成:只动 transform/opacity/filter(纯 GPU);.atmos 补 isolation:isolate 把混合关在
+   背景层;will-change 不加在被 blur 的 .au 本身(会每帧重糊反更慢)。 */
+.atmos {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(140% 100% at 50% -20%, var(--bg-2), var(--bg-1) 42%, var(--bg-0) 100%);
+}
+.atmos .au {
+  position: absolute;
+  border-radius: 50%;
+  /* blur 80→40:恢复"有形柔光",运动才有可追踪参照。hue 关键帧会重写整条 filter,
+     故 blur 也写进每帧 hue 关键帧(见 atmos-hue*),此处是无 hue 动画时的兜底值。 */
+  filter: blur(40px);
+  opacity: .6;
+  mix-blend-mode: screen;
+  /* 不给被 blur 的 .au 自身 will-change(否则 GPU 每帧重做模糊反更慢,研究 §2.1)。 */
+}
+/* 亮色态:multiply 把饱和蓝/青/紫印在白底上,色相纯净不发灰(灰脏来自低饱和叠加,这里不会)。
+   病根=opacity .4 太淡:13~19s 的缓慢漂移在"几乎看不见的淡斑"上落到感知阈下,肉眼判不出在动
+   (暗色 screen+.6 就够亮、位移可追踪)。这里把亮色 .au 提到 .56——光斑够实、缓慢位移有参照
+   可追踪("盯 2~3 秒看得出在动"),而 multiply 保色相、提了也只是更清亮的蓝,不发灰发脏。 */
+html[data-theme="light"] .atmos .au {
+  opacity: .56;
+  mix-blend-mode: multiply;
+}
+/* a1 = 蓝主光斑:50vw,最亮主导暗底,锚到「右上」当视觉锚点(原在左上,左右反了)。周期 13s。
+   right/top 把基准定在右上;transform-origin 偏到左下角外侧 → rotate 把它甩成右上区内的大弧,
+   配 drift1 的小幅平移(只在右上内部荡,不飞回左)→ 任一时刻右上始终有主光。 */
+.atmos .a1 {
+  width: 50vw; height: 50vw; right: -10vw; top: -16vw;
+  transform-origin: -30% 130%;
+  background: radial-gradient(circle, var(--au-blue), transparent 62%);
+  animation:
+    atmos-drift1 13s cubic-bezier(.37,.04,.32,.96) infinite alternate,
+    atmos-hue1 15s ease-in-out infinite;
+}
+/* a2 = 紫次级:36→30vw、opacity .2→.14,挪到「左中」做淡呼应(原堆右上,与主光对调)。周期 17s。
+   origin 偏左下不变 → 仍往左下对冲;缩小降淡后只作左侧点缀,不与右上主光抢重量。 */
+.atmos .a2 {
+  width: 30vw; height: 30vw; left: -6vw; top: 18vw;
+  transform-origin: -30% 130%;
+  background: radial-gradient(circle, var(--au-violet), transparent 60%);
+  opacity: .14;
+  animation:
+    atmos-drift2 17s cubic-bezier(.37,.04,.32,.96) infinite alternate,
+    atmos-hue2 16s ease-in-out infinite;
+  animation-delay: -5s, -7s;
+}
+/* a3 = 青次级:38→32vw、opacity .16→.12,左下淡冷光,缩小降淡。周期 19s。origin 偏右上不变 →
+   drift3 往右上斜漂,把一缕青色送向中上/右上,给右上蓝主光补冷色锚点(淡,不抢主导)。 */
+.atmos .a3 {
+  width: 32vw; height: 32vw; left: 4vw; bottom: -20vw;
+  transform-origin: 130% -30%;
+  background: radial-gradient(circle, var(--au-cyan), transparent 60%);
+  opacity: .12;
+  animation:
+    atmos-drift3 19s cubic-bezier(.37,.04,.32,.96) infinite alternate,
+    atmos-hue3 14s ease-in-out infinite;
+  animation-delay: -11s, -3s;
+}
+/* drift:translate3d + rotate(±) + scale 呼吸三维叠加。rotate 借偏移 transform-origin
+   转成大弧扫屏(故 ±12~16deg 也很明显);a2 左下、a3 反向,制造互相滑过的亮重叠。
+   a1 主光锚右上:origin 在其左下外侧,正 rotate 把主体往右上抬;平移给小幅(-8vw,8vw)只在
+   右上内部缓荡,左/下分量被这股右上抬力抵掉 → 全程不离右上、不飞回左。 */
+@keyframes atmos-drift1 {
+  0%   { transform: translate3d(0,0,0)        scale(.94) rotate(0deg); }
+  100% { transform: translate3d(-8vw,8vw,0)    scale(1.12) rotate(12deg); }
+}
+@keyframes atmos-drift2 {
+  0%   { transform: translate3d(0,0,0)        scale(1.10) rotate(0deg); }
+  100% { transform: translate3d(-18vw,15vw,0)  scale(.92) rotate(-16deg); }
+}
+@keyframes atmos-drift3 {
+  0%   { transform: translate3d(0,0,0)        scale(1.12) rotate(0deg); }
+  100% { transform: translate3d(16vw,-13vw,0)  scale(.94) rotate(14deg); }
+}
+/* 色相流动:幅度 ±36deg 内锁蓝紫青(绝不整圈)。每帧必须重写 blur(40px),否则 hue 动画期
+   filter 被整体覆盖,模糊丢失(研究核对的最常见 bug)。 */
+@keyframes atmos-hue1 {
+  0%,100% { filter: blur(40px) hue-rotate(-16deg); }
+  50%     { filter: blur(40px) hue-rotate(16deg); }
+}
+@keyframes atmos-hue2 {
+  0%,100% { filter: blur(40px) hue-rotate(14deg); }
+  50%     { filter: blur(40px) hue-rotate(-20deg); }
+}
+@keyframes atmos-hue3 {
+  0%,100% { filter: blur(40px) hue-rotate(-10deg); }
+  50%     { filter: blur(40px) hue-rotate(18deg); }
+}
+/* 亮色态:multiply 下 hue-rotate 会让淡极光发脏,故亮色只跑 drift、不跑 hue(各显式重声明
+   单条 animation 覆盖暗色的"drift+hue"双动画)。位移/缩放/旋转保留,淡色斑在亮底上仍干净。 */
+html[data-theme="light"] .atmos .a1 {
+  animation: atmos-drift1 13s cubic-bezier(.37,.04,.32,.96) infinite alternate;
+}
+html[data-theme="light"] .atmos .a2 {
+  animation: atmos-drift2 17s cubic-bezier(.37,.04,.32,.96) infinite alternate;
+}
+html[data-theme="light"] .atmos .a3 {
+  animation: atmos-drift3 19s cubic-bezier(.37,.04,.32,.96) infinite alternate;
+}
+
+/* 发丝网格(径向 mask 淡出)+ SVG 噪点(overlay 微纹理)——液态玻璃质感细节。 */
+.atmos .grid {
+  position: absolute;
+  inset: 0;
+  opacity: .5;
+  background-image:
+    linear-gradient(var(--hair) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(circle at 50% 30%, #000, transparent 78%);
+  mask-image: radial-gradient(circle at 50% 30%, #000, transparent 78%);
+}
+/* 颗粒罩(静态,不参与动画):方案A 第4步。fractalNoise baseFrequency .7 / numOctaves 3,
+   暗色 opacity .14、overlay。两个回报:① 给 blur 后的纯柔光面补"胶片/活"的质感;
+   ② 干掉大模糊圆在暗底必然出现的 banding(色阶断层)。静态层零每帧成本(不动 baseFrequency)。 */
+.atmos .grain {
+  position: absolute;
+  inset: 0;
+  opacity: .14;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* 亮色:overlay 颗粒在浅底上会显脏,大幅压低(只留极淡防 banding)。 */
+html[data-theme="light"] .atmos .grain { opacity: .05; }
+
+@media (prefers-reduced-motion: reduce) {
+  .atmos .au { animation: none !important; }
+}
+
+/* ── 全站主题化滚动条 ───────────────────────────────────────────────────────
+   问题:侧栏展开"更多功能"后出现浏览器默认白色滚动条,暗色下极刺眼。
+   方案:WebKit 细条(border trick 做留白)+ Firefox scrollbar-color 兜底。
+   · 暗色 thumb: rgba(255,255,255,.16) → hover .28(半透明浅条,不再是白块)
+   · 亮色 thumb: rgba(17,19,28,.18)   → hover .30(细深条,与玻璃风一致)
+   · track 全部 transparent(不加底色,和玻璃背景融合)
+   · border+background-clip:padding-box 技巧:thumb 四周留 3px 透明边,
+     视觉上 thumb 仅 4px 宽,悬浮在 10px 槽里,轻盈克制。 */
+
+/* WebKit:尺寸 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 暗色 WebKit thumb */
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  background-color: rgba(255, 255, 255, .16);
+}
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, .28);
+}
+
+/* 亮色 WebKit thumb */
+html[data-theme="light"] ::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  background-color: rgba(17, 19, 28, .18);
+}
+html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(17, 19, 28, .30);
+}
+
+/* Firefox 兜底(scrollbar-width + scrollbar-color 双属性) */
+* {
+  scrollbar-width: thin;
+}
+html[data-theme="dark"] {
+  scrollbar-color: rgba(255, 255, 255, .16) transparent;
+}
+html[data-theme="light"] {
+  scrollbar-color: rgba(17, 19, 28, .18) transparent;
 }

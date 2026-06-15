@@ -40,8 +40,11 @@ export function ChatInput({ onSend, loading }: ChatInputProps) {
     <div
       style={{
         padding: '16px 32px 22px',
-        background: 'var(--color-bg)',
-        borderTop: '1px solid var(--color-line)',
+        background: 'var(--glass-bg)',
+        WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
+        backdropFilter: 'blur(var(--glass-blur)) saturate(150%)',
+        borderTop: '1px solid var(--glass-bd)',
+        boxShadow: 'inset 0 1px 0 var(--glass-rim)',
       }}
     >
       <div style={{ maxWidth: '840px', margin: '0 auto' }}>
@@ -90,8 +93,15 @@ export function ChatInput({ onSend, loading }: ChatInputProps) {
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              background: loading || !value.trim() ? 'var(--color-surface-3)' : '#0a84ff',
-              border: 'none',
+              background:
+                loading || !value.trim()
+                  ? 'rgba(47,143,255,.05)'
+                  : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+              border: loading || !value.trim() ? '1px solid var(--hair)' : 'none',
+              boxShadow:
+                loading || !value.trim()
+                  ? 'none'
+                  : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               cursor: loading || !value.trim() ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -131,8 +141,8 @@ export function ChatInput({ onSend, loading }: ChatInputProps) {
                 fontSize: '10px',
                 padding: '2px 5px',
                 borderRadius: '5px',
-                border: '1px solid var(--color-line)',
-                background: 'var(--color-surface)',
+                border: '1px solid var(--hair)',
+                background: 'rgba(47,143,255,.05)',
                 color: 'var(--color-ink-3)',
                 marginRight: '4px',
                 fontWeight: 600,
@@ -149,8 +159,8 @@ export function ChatInput({ onSend, loading }: ChatInputProps) {
                 fontSize: '10px',
                 padding: '2px 5px',
                 borderRadius: '5px',
-                border: '1px solid var(--color-line)',
-                background: 'var(--color-surface)',
+                border: '1px solid var(--hair)',
+                background: 'rgba(47,143,255,.05)',
                 color: 'var(--color-ink-3)',
                 marginRight: '4px',
                 fontWeight: 600,

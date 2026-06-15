@@ -62,10 +62,8 @@ function ledgerLabel(item: CreditLedgerItem): string {
 }
 
 // ─── 共享样式 ─────────────────────────────────────────────────────────────────
+// 卡外层统一用 className="lg"(单层玻璃),cardStyle 仅留内边距。
 const cardStyle: React.CSSProperties = {
-  background: 'var(--color-surface)',
-  border: '1px solid var(--color-line)',
-  borderRadius: '18px',
   padding: '20px 22px',
 };
 
@@ -73,6 +71,7 @@ const sectionTitle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '8px',
+  fontFamily: 'var(--serif)',
   fontSize: '15px',
   fontWeight: 700,
   color: 'var(--color-ink)',
@@ -103,7 +102,8 @@ function Skeleton({ width, height }: { width?: string; height?: string }) {
         width: width ?? '100%',
         height: height ?? '16px',
         borderRadius: '8px',
-        background: 'var(--color-surface-3)',
+        background: 'rgba(47,143,255,.05)',
+        border: '1px solid var(--hair)',
         animation: 'pulse-sk 1.5s ease-in-out infinite',
         display: 'inline-block',
       }}
@@ -231,6 +231,7 @@ export default function MePage() {
       <div style={{ maxWidth: '680px', margin: '0 auto', padding: '32px 24px 60px' }}>
         <h1
           style={{
+            fontFamily: 'var(--serif)',
             fontSize: '22px',
             fontWeight: 800,
             color: 'var(--color-ink)',
@@ -245,7 +246,7 @@ export default function MePage() {
         </h1>
 
         {/* ── 头像 + 基本信息 ── */}
-        <div style={{ ...cardStyle, marginBottom: '20px' }}>
+        <div className="lg" style={{ ...cardStyle, marginBottom: '20px' }}>
           <div style={sectionTitle}>
             <User size={16} /> 个人信息
           </div>
@@ -403,12 +404,12 @@ export default function MePage() {
         </div>
 
         {/* ── credit 余额卡片 ── */}
+        {/* 单层玻璃 + 品牌色数字/文字做强调(不再铺 brand-soft 实底,避免与 .lg 玻璃底叠层)。 */}
         <div
+          className="lg"
           style={{
             ...cardStyle,
             marginBottom: '20px',
-            background: 'var(--color-brand-soft)',
-            border: '1px solid var(--color-brand)',
           }}
         >
           <div
@@ -476,7 +477,7 @@ export default function MePage() {
         </div>
 
         {/* ── 流水列表 ── */}
-        <div style={cardStyle}>
+        <div className="lg" style={cardStyle}>
           <div style={sectionTitle}>
             <FileText size={16} /> 使用记录
           </div>

@@ -101,8 +101,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           width: '32px',
           height: '32px',
           borderRadius: '50%',
-          background: isUser ? 'var(--color-brand-soft)' : 'var(--color-surface-3)',
-          border: '1px solid var(--color-line)',
+          background: isUser ? 'var(--color-brand-soft)' : 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
@@ -128,9 +128,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           style={{
             padding: isUser ? '12px 16px' : '13px 18px',
             borderRadius: isUser ? '18px 18px 6px 18px' : '18px 18px 18px 6px',
-            background: isUser ? '#0a84ff' : 'var(--color-surface)',
-            border: isUser ? 'none' : '1px solid var(--color-line)',
+            background: isUser
+              ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))'
+              : 'rgba(47,143,255,.05)',
+            border: isUser ? 'none' : '1px solid var(--hair)',
             color: isUser ? '#fff' : 'var(--color-ink)',
+            boxShadow: isUser
+              ? '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)'
+              : 'none',
             fontSize: '14.5px',
             lineHeight: 1.6,
             fontWeight: 500,
@@ -169,7 +174,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <span
               style={{
                 marginLeft: '6px',
-                background: 'var(--color-surface-2)',
+                background: 'rgba(47,143,255,.05)',
+                border: '1px solid var(--hair)',
                 color: 'var(--color-ink-2)',
                 padding: '1px 7px',
                 borderRadius: '5px',

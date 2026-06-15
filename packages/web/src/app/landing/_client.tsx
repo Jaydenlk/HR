@@ -26,13 +26,13 @@ import Link from 'next/link';
 
 const LOGIN = '/login';
 const ACCENT = '#2f8fff';
-const reduceMotion = () =>
+export const reduceMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion:reduce)').matches;
 
 // ── icons (from lg-icons.jsx) ───────────────────────────────────────────────
 type IcoProps = { d: ReactNode; size?: number; sw?: number; style?: CSSProperties };
-const Ico = ({ d, size = 18, sw = 1.7, style }: IcoProps) => (
+export const Ico = ({ d, size = 18, sw = 1.7, style }: IcoProps) => (
   <svg
     width={size}
     height={size}
@@ -48,7 +48,7 @@ const Ico = ({ d, size = 18, sw = 1.7, style }: IcoProps) => (
   </svg>
 );
 
-const LI = {
+export const LI = {
   arrow: <Ico d={<><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></>} />,
   arrowD: <Ico d={<><path d="M12 5v14" /><path d="M5 12l7 7 7-7" /></>} />,
   chevR: <Ico d={<path d="M9 6l6 6-6 6" />} />,
@@ -75,10 +75,10 @@ const LI = {
   moon: <Ico d={<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />} />,
 } as const;
 
-type IcoKey = keyof typeof LI;
+export type IcoKey = keyof typeof LI;
 
 // Coach mark — abstract round face, AI avatar in scene demos.
-const CoachMark = ({ size = 34, ring }: { size?: number; ring?: string }) => (
+export const CoachMark = ({ size = 34, ring }: { size?: number; ring?: string }) => (
   <div
     style={{
       width: size,
@@ -107,7 +107,7 @@ const CoachMark = ({ size = 34, ring }: { size?: number; ring?: string }) => (
 );
 
 // ResumeDoc — recurring white résumé sheet that threads the whole story.
-const ResumeDoc = ({
+export const ResumeDoc = ({
   w = 112,
   marks = false,
   dim = false,
@@ -159,7 +159,7 @@ const ResumeDoc = ({
 
 // count-up — animates from->to when `run` flips true. All setState happens inside the rAF
 // callback (async), never synchronously in the effect body, per react-hooks/set-state-in-effect.
-function useCountUp(from: number, to: number, run: boolean, dur = 900) {
+export function useCountUp(from: number, to: number, run: boolean, dur = 900) {
   const [val, setVal] = useState(from);
   useEffect(() => {
     let raf = 0;
@@ -206,7 +206,7 @@ function useReveal() {
 
 // Typewriter that runs when `run` is true. setOut only fires inside setTimeout callbacks (async),
 // never synchronously in the effect body, per react-hooks/set-state-in-effect.
-function useTypewriter(text: string, run: boolean, speed = 42) {
+export function useTypewriter(text: string, run: boolean, speed = 42) {
   const [out, setOut] = useState('');
   useEffect(() => {
     let t: ReturnType<typeof setTimeout>;

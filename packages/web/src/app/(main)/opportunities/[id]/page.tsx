@@ -334,7 +334,7 @@ export default function OpportunityDetailPage() {
 
       {/* Evaluating state */}
       {isEvaluating && (
-        <section className="evaluating-section">
+        <section className="evaluating-section lg">
           <Loader2 className="spin" size={28} />
           <h2>正在评估中...</h2>
           <p>AI 正在分析 JD 与你的简历匹配度、投递价值和来源可信度，通常需要 20–60 秒。</p>
@@ -343,7 +343,7 @@ export default function OpportunityDetailPage() {
 
       {/* Failed state */}
       {isFailed && (
-        <section className="failed-section">
+        <section className="failed-section lg">
           <AlertCircle size={24} />
           <h2>评估失败</h2>
           {opp.error_message && <p className="error-message">{opp.error_message}</p>}
@@ -570,7 +570,7 @@ function ScoreCard({ label, value }: { label: string; value: number }) {
         ? 'var(--color-warn)'
         : 'var(--color-danger)';
   return (
-    <div className="score-card">
+    <div className="score-card lg">
       <div
         className="score-ring"
         style={{ '--score-pct': `${pct}`, '--score-color': color } as React.CSSProperties}
@@ -614,7 +614,9 @@ const DETAIL_CSS = `
 
 .error-fullpage h2 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 18px;
+  font-weight: 600;
   color: var(--color-ink);
 }
 
@@ -644,7 +646,7 @@ const DETAIL_CSS = `
   gap: 18px;
   margin-bottom: 22px;
   padding-bottom: 22px;
-  border-bottom: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--hair);
 }
 
 .detail-title-group {
@@ -661,18 +663,20 @@ const DETAIL_CSS = `
 
 .detail-title-row h1 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.2;
+  letter-spacing: -0.3px;
 }
 
 .tracked-badge {
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-success-soft);
-  color: #175f2b;
+  color: var(--color-success);
 }
 
 .detail-meta-row {
@@ -687,8 +691,9 @@ const DETAIL_CSS = `
   font-size: 13px;
   color: var(--color-ink-2);
   padding: 4px 10px;
-  background: var(--color-surface-2);
-  border-radius: 999px;
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-pill);
 }
 
 .source-link {
@@ -717,12 +722,12 @@ const DETAIL_CSS = `
   border-radius: 999px;
 }
 
-.status-draft { background: var(--color-surface-2); color: var(--color-ink-3); }
-.status-evaluating { background: rgba(0, 122, 255, 0.12); color: #0062cc; }
+.status-draft { background: rgba(47,143,255,.05); border: 1px solid var(--hair); color: var(--color-ink-3); }
+.status-evaluating { background: var(--color-brand-soft); color: var(--color-brand-ink); }
 .status-evaluated { background: var(--color-brand-soft); color: var(--color-brand-ink); }
 .status-failed { background: var(--color-danger-soft); color: var(--color-danger); }
-.status-tracked { background: var(--color-success-soft); color: #175f2b; }
-.status-dismissed { background: var(--color-surface-2); color: var(--color-ink-4); }
+.status-tracked { background: var(--color-success-soft); color: var(--color-success); }
+.status-dismissed { background: rgba(47,143,255,.05); border: 1px solid var(--hair); color: var(--color-ink-4); }
 
 .error-banner {
   display: flex;
@@ -746,9 +751,6 @@ const DETAIL_CSS = `
   gap: 12px;
   padding: 48px 24px;
   text-align: center;
-  border: 1px dashed var(--color-line-2);
-  border-radius: 10px;
-  background: var(--color-surface);
   margin-bottom: 24px;
   color: var(--color-ink-3);
 }
@@ -756,7 +758,9 @@ const DETAIL_CSS = `
 .evaluating-section h2,
 .failed-section h2 {
   margin: 0;
+  font-family: var(--serif);
   font-size: 20px;
+  font-weight: 600;
   color: var(--color-ink);
 }
 
@@ -789,9 +793,6 @@ const DETAIL_CSS = `
   align-items: center;
   gap: 10px;
   padding: 20px 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
 }
 
 .score-ring {
@@ -804,7 +805,7 @@ const DETAIL_CSS = `
   justify-content: center;
   background: conic-gradient(
     var(--score-color, var(--color-brand)) calc(var(--score-pct, 0) * 1%),
-    var(--color-line) 0
+    var(--hair-2) 0
   );
 }
 
@@ -844,10 +845,10 @@ const DETAIL_CSS = `
   border-radius: 999px;
 }
 
-.rec-strongly_recommend { background: var(--color-success-soft); color: #175f2b; }
-.rec-recommend { background: rgba(52, 199, 89, 0.12); color: #2b7c44; }
-.rec-neutral { background: var(--color-surface-2); color: var(--color-ink-2); }
-.rec-cautious { background: rgba(255, 149, 0, 0.12); color: #b35900; }
+.rec-strongly_recommend { background: var(--color-success-soft); color: var(--color-success); }
+.rec-recommend { background: var(--color-success-soft); color: var(--color-success); }
+.rec-neutral { background: rgba(47,143,255,.05); border: 1px solid var(--hair); color: var(--color-ink-2); }
+.rec-cautious { background: var(--color-warn-soft); color: var(--color-warn); }
 .rec-not_recommend { background: var(--color-danger-soft); color: var(--color-danger); }
 
 .confidence-label,
@@ -865,8 +866,9 @@ const DETAIL_CSS = `
   align-items: center;
   gap: 8px;
   margin: 0 0 14px;
+  font-family: var(--serif);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-ink);
 }
 
@@ -882,10 +884,10 @@ const DETAIL_CSS = `
 
 .risk-card {
   padding: 14px 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
   border-left: 4px solid;
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--radius-default) var(--radius-default) 0;
 }
 
 .risk-header {
@@ -916,14 +918,14 @@ const DETAIL_CSS = `
 .strength-card {
   padding: 14px 16px;
   background: var(--color-success-soft);
-  border: 1px solid rgba(52, 199, 89, 0.2);
-  border-radius: 8px;
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-default);
 }
 
 .strength-dim {
   font-size: 13px;
   font-weight: 700;
-  color: #175f2b;
+  color: var(--color-success);
   margin-bottom: 4px;
 }
 
@@ -936,9 +938,9 @@ const DETAIL_CSS = `
 
 .gap-card {
   padding: 14px 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-default);
 }
 
 .gap-header {
@@ -972,15 +974,16 @@ const DETAIL_CSS = `
   color: var(--color-ink-2);
   line-height: 1.6;
   padding: 8px 10px;
-  background: var(--color-surface-2);
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
   border-radius: 6px;
 }
 
 .evidence-card {
   padding: 14px 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-default);
 }
 
 .evidence-header {
@@ -1004,15 +1007,15 @@ const DETAIL_CSS = `
   font-size: 11.5px;
   font-weight: 600;
   padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--color-surface-2);
+  border-radius: var(--radius-pill);
+  background: rgba(47,143,255,.05);
   color: var(--color-ink-3);
 }
 
-.conf-high { color: #175f2b; background: var(--color-success-soft); }
-.conf-medium { color: #b35900; background: rgba(255, 149, 0, 0.12); }
+.conf-high { color: var(--color-success); background: var(--color-success-soft); }
+.conf-medium { color: var(--color-warn); background: var(--color-warn-soft); }
 .conf-low { color: var(--color-danger); background: var(--color-danger-soft); }
-.conf-insufficient { color: var(--color-ink-4); background: var(--color-surface-2); }
+.conf-insufficient { color: var(--color-ink-4); background: rgba(47,143,255,.05); }
 
 .evidence-title {
   margin: 0 0 6px;
@@ -1047,9 +1050,9 @@ const DETAIL_CSS = `
 
 .action-card {
   padding: 14px 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  background: rgba(47,143,255,.05);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-default);
 }
 
 .action-status-done {
@@ -1097,7 +1100,7 @@ const DETAIL_CSS = `
   gap: 10px;
   flex-wrap: wrap;
   padding-top: 24px;
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--hair);
   margin-top: 12px;
 }
 
@@ -1107,7 +1110,7 @@ const DETAIL_CSS = `
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border-radius: 8px;
+  border-radius: var(--radius-default);
   border: 1px solid transparent;
   font-size: 13px;
   font-weight: 700;
@@ -1115,19 +1118,29 @@ const DETAIL_CSS = `
   min-height: 38px;
   font-family: inherit;
   text-decoration: none;
+  transition: opacity 0.12s;
 }
 
 .primary-button {
   padding: 0 18px;
-  background: var(--color-brand);
-  color: white;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-deep));
+  color: #fff;
+  box-shadow: 0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4);
+}
+
+.primary-button:hover {
+  opacity: 0.92;
 }
 
 .secondary-button {
   padding: 0 14px;
   color: var(--color-ink-2);
-  background: var(--color-surface);
-  border-color: var(--color-line);
+  background: rgba(47,143,255,.05);
+  border-color: var(--hair);
+}
+
+.secondary-button:hover {
+  border-color: var(--color-brand);
 }
 
 .primary-button:disabled,

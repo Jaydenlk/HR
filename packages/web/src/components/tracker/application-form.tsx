@@ -79,28 +79,20 @@ export function ApplicationForm({ onSubmit, onCancel, initial, defaultStage, foo
   return (
     /* Overlay */
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.4)',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-      }}
+      className="modal-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
     >
+      <div className="modal-scrim" onClick={onCancel} />
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '18px',
+          position: 'relative',
+          zIndex: 1,
           padding: '28px 32px',
           width: '100%',
           maxWidth: '520px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
           maxHeight: '90vh',
           overflowY: 'auto',
         }}
@@ -116,6 +108,7 @@ export function ApplicationForm({ onSubmit, onCancel, initial, defaultStage, foo
         >
           <h2
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '18px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -273,20 +266,21 @@ export function ApplicationForm({ onSubmit, onCancel, initial, defaultStage, foo
               type="submit"
               style={{
                 padding: '10px 24px',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius-default)',
                 border: 'none',
-                background: 'var(--color-brand)',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: '#fff',
                 fontSize: '13.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'background 0.12s',
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                transition: 'opacity 0.12s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--color-brand-hover)';
+                e.currentTarget.style.opacity = '0.92';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--color-brand)';
+                e.currentTarget.style.opacity = '1';
               }}
             >
               {initial?.id ? '保存' : '添加'}

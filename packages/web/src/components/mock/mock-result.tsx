@@ -24,7 +24,7 @@ function ScoreRing({ score, size = 120 }: { score: number; size?: number }) {
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', display: 'block' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--color-surface-3)" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--hair-2)" strokeWidth={strokeWidth} />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -84,10 +84,8 @@ export function MockResult({ session }: MockResultProps) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Score summary */}
       <div
+        className="lg"
         style={{
-          background: 'var(--color-surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--color-line)',
           padding: '28px 32px',
           display: 'flex',
           alignItems: 'center',
@@ -122,7 +120,7 @@ export function MockResult({ session }: MockResultProps) {
                 fontWeight: 600,
                 padding: '3px 10px',
                 borderRadius: '999px',
-                background: 'var(--color-warn-soft, #fffbeb)',
+                background: 'var(--color-warn-soft)',
                 color: 'var(--color-warn)',
                 marginBottom: '8px',
               }}
@@ -141,7 +139,7 @@ export function MockResult({ session }: MockResultProps) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
         <div
           style={{
-            background: 'var(--color-success-soft, #f0fdf4)',
+            background: 'var(--color-success-soft)',
             borderRadius: '14px',
             border: '1px solid var(--color-success)',
             padding: '18px 20px',
@@ -205,8 +203,9 @@ export function MockResult({ session }: MockResultProps) {
         <div>
           <div
             style={{
-              fontSize: '15px',
-              fontWeight: 700,
+              fontFamily: 'var(--serif)',
+              fontSize: '17px',
+              fontWeight: 600,
               color: 'var(--color-ink)',
               letterSpacing: '-0.01em',
               marginBottom: '14px',
@@ -230,10 +229,8 @@ export function MockResult({ session }: MockResultProps) {
               return (
                 <div
                   key={q.n}
+                  className="lg"
                   style={{
-                    background: 'var(--color-surface)',
-                    borderRadius: '14px',
-                    border: '1px solid var(--color-line)',
                     padding: '20px',
                   }}
                 >
@@ -246,7 +243,8 @@ export function MockResult({ session }: MockResultProps) {
                             fontSize: '11px',
                             fontWeight: 600,
                             color: 'var(--color-ink-3)',
-                            background: 'var(--color-surface-3)',
+                            background: 'rgba(47,143,255,.05)',
+                            border: '1px solid var(--hair)',
                             padding: '2px 8px',
                             borderRadius: '999px',
                           }}
@@ -258,7 +256,8 @@ export function MockResult({ session }: MockResultProps) {
                             fontSize: '11px',
                             fontWeight: 600,
                             color: 'var(--color-ink-3)',
-                            background: 'var(--color-surface-3)',
+                            background: 'rgba(47,143,255,.05)',
+                            border: '1px solid var(--hair)',
                             padding: '2px 8px',
                             borderRadius: '999px',
                           }}
@@ -270,7 +269,8 @@ export function MockResult({ session }: MockResultProps) {
                             fontSize: '11px',
                             fontWeight: 600,
                             color: 'var(--color-ink-4)',
-                            background: 'var(--color-surface-3)',
+                            background: 'rgba(47,143,255,.05)',
+                            border: '1px solid var(--hair)',
                             padding: '2px 8px',
                             borderRadius: '999px',
                           }}
@@ -288,7 +288,7 @@ export function MockResult({ session }: MockResultProps) {
                           width: '44px',
                           height: '44px',
                           borderRadius: '12px',
-                          background: score >= 60 ? 'var(--color-success-soft, #f0fdf4)' : score >= 40 ? 'var(--color-warn-soft, #fffbeb)' : 'var(--color-danger-soft)',
+                          background: score >= 60 ? 'var(--color-success-soft)' : score >= 40 ? 'var(--color-warn-soft)' : 'var(--color-danger-soft)',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -311,7 +311,8 @@ export function MockResult({ session }: MockResultProps) {
                     <>
                       <div
                         style={{
-                          background: 'var(--color-surface-2)',
+                          background: 'rgba(47,143,255,.05)',
+                          border: '1px solid var(--hair)',
                           borderRadius: '8px',
                           padding: '12px 14px',
                           marginBottom: '10px',
@@ -351,7 +352,7 @@ export function MockResult({ session }: MockResultProps) {
                             fontSize: '11px',
                             fontWeight: 600,
                             color: 'var(--color-warn)',
-                            background: 'var(--color-warn-soft, #fffbeb)',
+                            background: 'var(--color-warn-soft)',
                             padding: '2px 8px',
                             borderRadius: '6px',
                           }}

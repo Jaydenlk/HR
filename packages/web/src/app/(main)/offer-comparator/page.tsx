@@ -228,7 +228,7 @@ function OfferCard({
         <input
           style={{
             ...inputStyle,
-            borderColor: hasError ? 'var(--color-danger, #ef4444)' : inputStyle.borderColor,
+            borderColor: hasError ? 'var(--color-danger)' : inputStyle.borderColor,
           }}
           type={type}
           placeholder={placeholder}
@@ -241,7 +241,7 @@ function OfferCard({
               display: 'block',
               marginTop: '3px',
               fontSize: '11px',
-              color: 'var(--color-danger, #ef4444)',
+              color: 'var(--color-danger)',
               fontWeight: 600,
             }}
           >
@@ -254,10 +254,9 @@ function OfferCard({
 
   return (
     <div
+      className="lg"
       style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: '14px',
+        borderRadius: 'var(--radius-default)',
         padding: '18px 18px 14px',
         position: 'relative',
       }}
@@ -393,10 +392,14 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
 
   const offerIds = comparison.map((c) => c.offer_id);
 
+  // 数据卡:单层液态玻璃(对齐 .lg 观感)。透出外壳极光,暗/亮自动适配。
   const cardStyle: React.CSSProperties = {
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-line)',
-    borderRadius: '14px',
+    background: 'var(--glass-bg)',
+    WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+    backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+    border: '1px solid var(--glass-bd)',
+    borderRadius: '22px',
+    boxShadow: 'var(--glass-sh), inset 0 1px 0 var(--glass-rim)',
     padding: '18px 20px',
   };
 
@@ -509,7 +512,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
 
       {/* Comparison table */}
       <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid var(--color-line)' }}>
+        <div style={{ padding: '14px 18px 10px', borderBottom: '1px solid var(--hair)' }}>
           {sectionTitle('各维度对比')}
         </div>
         <div style={{ overflowX: 'auto' }}>
@@ -520,8 +523,8 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                   style={{
                     padding: '10px 18px',
                     textAlign: 'left',
-                    background: 'var(--color-surface-2)',
-                    borderBottom: '1px solid var(--color-line)',
+                    background: 'rgba(47,143,255,.05)',
+                    borderBottom: '1px solid var(--hair)',
                     fontSize: '11px',
                     fontWeight: 700,
                     color: 'var(--color-ink-3)',
@@ -540,8 +543,8 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                       textAlign: 'right',
                       background: recommendation?.preferred_offer_id === id
                         ? 'var(--color-success-soft)'
-                        : 'var(--color-surface-2)',
-                      borderBottom: '1px solid var(--color-line)',
+                        : 'rgba(47,143,255,.05)',
+                      borderBottom: '1px solid var(--hair)',
                       fontSize: '12px',
                       fontWeight: 700,
                       color: recommendation?.preferred_offer_id === id ? 'var(--color-success)' : 'var(--color-ink)',
@@ -573,7 +576,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                     <td
                       style={{
                         padding: '9px 18px',
-                        borderBottom: '1px solid var(--color-line)',
+                        borderBottom: '1px solid var(--hair)',
                         color: 'var(--color-ink-3)',
                         fontWeight: 600,
                         fontSize: '12px',
@@ -590,7 +593,7 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                           key={id}
                           style={{
                             padding: '9px 18px',
-                            borderBottom: '1px solid var(--color-line)',
+                            borderBottom: '1px solid var(--hair)',
                             textAlign: 'right',
                             color: 'var(--color-ink)',
                             fontFamily: typeof val === 'number' ? 'var(--font-mono)' : 'inherit',
@@ -623,13 +626,13 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                 style={{
                   flex: 1,
                   minWidth: '100px',
-                  background: 'var(--color-surface-2)',
-                  borderRadius: '10px',
+                  background: 'rgba(47,143,255,.05)',
+                  borderRadius: 'var(--radius-default)',
                   padding: '14px',
                   textAlign: 'center',
                   border: recommendation?.preferred_offer_id === ws.offer_id
                     ? '2px solid var(--color-success)'
-                    : '1px solid var(--color-line)',
+                    : '1px solid var(--hair)',
                 }}
               >
                 <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--color-ink-2)', marginBottom: '6px' }}>
@@ -664,8 +667,9 @@ function ResultPanel({ result }: { result: OfferCompareResult }) {
                 style={{
                   flex: 1,
                   minWidth: '100px',
-                  background: 'var(--color-surface-2)',
-                  borderRadius: '10px',
+                  background: 'rgba(47,143,255,.05)',
+                  border: '1px solid var(--hair)',
+                  borderRadius: 'var(--radius-default)',
                   padding: '12px 14px',
                 }}
               >
@@ -863,6 +867,7 @@ export default function OfferComparatorPage() {
         <div>
           <h1
             style={{
+              fontFamily: 'var(--serif)',
               fontSize: '24px',
               fontWeight: 700,
               color: 'var(--color-ink)',
@@ -924,14 +929,17 @@ export default function OfferComparatorPage() {
                 alignItems: 'center',
                 gap: '7px',
                 padding: '10px 24px',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius-default)',
                 border: 'none',
-                background: loading ? 'var(--color-surface-3)' : 'var(--color-brand)',
+                background: loading
+                  ? 'var(--color-surface-3)'
+                  : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                 color: loading ? 'var(--color-ink-3)' : '#fff',
                 fontSize: '13.5px',
                 fontWeight: 700,
                 cursor: loading ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit',
+                boxShadow: loading ? 'none' : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
               }}
             >
               {loading ? (
@@ -978,9 +986,12 @@ export default function OfferComparatorPage() {
               alignItems: 'center',
               padding: '32px',
               textAlign: 'center',
-              background: 'var(--color-surface)',
-              borderRadius: '14px',
-              border: '1.5px dashed var(--color-line-2)',
+              background: 'var(--glass-bg)',
+              WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+              backdropFilter: 'blur(var(--glass-blur)) saturate(160%)',
+              borderRadius: '22px',
+              border: '1.5px dashed var(--hair-2)',
+              boxShadow: 'inset 0 1px 0 var(--glass-rim)',
               gap: '8px',
               color: 'var(--color-ink-4)',
             }}
@@ -1016,11 +1027,9 @@ export default function OfferComparatorPage() {
         {/* Insufficient state */}
         {result && result.confidence === 'insufficient' && (
           <div
+            className="lg"
             style={{
               padding: '16px 18px',
-              background: 'var(--color-surface-2)',
-              borderRadius: '12px',
-              border: '1px solid var(--color-line)',
             }}
           >
             <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', marginBottom: '8px' }}>
