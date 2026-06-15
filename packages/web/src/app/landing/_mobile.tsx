@@ -655,30 +655,6 @@ const Closing = () => (
   </section>
 );
 
-// ── 状态栏信号图标 ─────────────────────────────────────────────────────────────
-const SignalIcons = (
-  <svg width="62" height="13" viewBox="0 0 62 13" fill="none">
-    <g fill="currentColor">
-      <rect x="0" y="7.5" width="3" height="4.5" rx="0.7" />
-      <rect x="4.5" y="5" width="3" height="7" rx="0.7" />
-      <rect x="9" y="2.5" width="3" height="9.5" rx="0.7" />
-      <rect x="13.5" y="0" width="3" height="12" rx="0.7" />
-    </g>
-    <path
-      d="M28 3.4C30.2 3.4 32.2 4.2 33.7 5.6L34.8 4.5C33 2.8 30.6 1.7 28 1.7C25.4 1.7 23 2.8 21.2 4.5L22.3 5.6C23.8 4.2 25.8 3.4 28 3.4Z"
-      fill="currentColor"
-    />
-    <path
-      d="M28 6.9C29.3 6.9 30.5 7.4 31.4 8.2L32.5 7.1C31.3 6 29.7 5.2 28 5.2C26.3 5.2 24.7 6 23.5 7.1L24.6 8.2C25.5 7.4 26.7 6.9 28 6.9Z"
-      fill="currentColor"
-    />
-    <circle cx="28" cy="10.4" r="1.4" fill="currentColor" />
-    <rect x="44" y="0.5" width="15" height="12" rx="3" stroke="currentColor" strokeOpacity="0.4" fill="none" />
-    <rect x="45.5" y="2" width="11" height="9" rx="1.6" fill="currentColor" />
-    <path d="M60.5 4.5V8.5C61.2 8.2 61.7 7.4 61.7 6.5C61.7 5.6 61.2 4.8 60.5 4.5Z" fill="currentColor" fillOpacity="0.5" />
-  </svg>
-);
-
 // ── shell ──────────────────────────────────────────────────────────────────────
 const PHASES = 6;
 const DUR = [380, 1500, 880, 700, 880, 1100];
@@ -789,11 +765,6 @@ export default function LandingMobile() {
   return (
     <div className="stage">
       <div className="device">
-        <div className="island" />
-        <div className="statusbar">
-          <span className="time">9:41</span>
-          <span className="ind">{SignalIcons}</span>
-        </div>
         <div className="topbar">
           <a className="logo" href="#m-hero">
             <span className="mk">C</span>Coach

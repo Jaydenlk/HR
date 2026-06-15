@@ -99,16 +99,8 @@ const TOKENS_CSS = `
 @keyframes mdrift3{to{transform:translate(40px,-40px) scale(.9)}}
 
 /* ═══════ CHROME (fixed within device) ═══════ */
-/* status bar */
-.lg-mroot .statusbar{position:absolute;top:0;left:0;right:0;height:54px;z-index:40;display:flex;align-items:center;
-  justify-content:space-between;padding:16px 30px 0;pointer-events:none}
-.lg-mroot .statusbar .time{font-family:-apple-system,"SF Pro",system-ui,var(--sans);font-weight:600;font-size:15px;color:var(--ink)}
-.lg-mroot .statusbar .ind{display:flex;align-items:center;gap:6px;color:var(--ink)}
-.lg-mroot .island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:20px;background:#000;z-index:45}
-@media (max-width:460px){.lg-mroot .island{display:none}}
-
 /* top bar */
-.lg-mroot .topbar{position:absolute;top:50px;left:0;right:0;z-index:38;display:flex;align-items:center;justify-content:space-between;
+.lg-mroot .topbar{position:absolute;top:0;left:0;right:0;z-index:38;display:flex;align-items:center;justify-content:space-between;
   padding:9px 16px;background:var(--chrome);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
   border-bottom:1px solid var(--hair);transition:background .4s var(--ease)}
 .lg-mroot .topbar .logo{display:flex;align-items:center;gap:8px;font-family:var(--serif);font-weight:700;font-size:17px;color:var(--ink);letter-spacing:-.01em;text-decoration:none}
@@ -183,7 +175,7 @@ const TOKENS_CSS = `
 // ── sections(m-app.jsx M_CSS)→ each rule prefixed with .lg-mroot ────────────
 const SECTIONS_CSS = `
 /* ═══ HERO ═══ */
-.lg-mroot .m-hero{position:relative;padding:118px 20px 38px;min-height:760px;display:flex;flex-direction:column;justify-content:center}
+.lg-mroot .m-hero{position:relative;padding:68px 20px 38px;min-height:760px;display:flex;flex-direction:column;justify-content:center}
 .lg-mroot .m-hero .pill{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;font-weight:600;
   letter-spacing:.1em;padding:7px 13px;border-radius:999px;background:var(--glass-bg);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   border:1px solid var(--glass-bd);color:var(--ink-2);box-shadow:inset 0 1px 0 var(--glass-rim);margin-bottom:20px}
