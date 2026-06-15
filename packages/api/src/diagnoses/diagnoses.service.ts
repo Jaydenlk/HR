@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import NodeCache from 'node-cache';
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Diagnosis } from './entities/diagnosis.entity';
@@ -11,89 +11,67 @@ import { ParserService } from '../ai/parser.service';
 import { AnalyzerService } from '../ai/analyzer.service';
 import { RewriterService } from '../ai/rewriter.service';
 import { ProfessionPresetsService } from '../profession-presets/profession-presets.service';
+import { ConcurrencyLimiter } from '../ai/concurrency-limiter';
+import { CreditService } from '../credit/credit.service';
+import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { renderResumeForReview } from '../ai/prompts/analyze-profession-standard';
-import type { ParsedJD } from '../common/types';
+import { DiagnosisEventStream } from './diagnosis-event-stream';
+import type {
+  ParsedJD,
+  MatchDimensions,
+  ProfessionPreset,
+  ProfessionStandardResult,
+  RewriteSuggestion,
+} from '../common/types';
+
+// SSE 事件契约(与前端逐字一致):
+//   queue    被并发限流排队时推送当前排位(position>0)
+//   step     某真实阶段完成时推送(parsing/analyzing/suggesting + 中文文案)
+//   analysis 分析完成并落库后推送(带 diagnosisId + 分析结果),核心价值前置;此刻 suggestions 仍为 []
+//   done     改写完成、同行 UPDATE 后推送完整 Diagnosis 实体
+//   error    任一步抛错时推送中文可读错误
+export type DiagnosisStreamEvent =
+  | { type: 'queue'; position: number }
+  | { type: 'step'; stage: 'parsing' | 'analyzing' | 'suggesting'; label: string }
+  | {
+      type: 'analysis';
+      diagnosisId: string;
+      payload: ProfessionStandardResult | MatchDimensions;
+    }
+  | { type: 'done'; diagnosisId: string; diagnosis: Diagnosis }
+  | { type: 'error'; message: string };
 
 @Injectable()
 export class DiagnosesService {
+  private readonly logger = new Logger(DiagnosesService.name);
   private readonly jdCache = new NodeCache({ stdTTL: 7 * 24 * 3600 });
 
   constructor(
     @InjectRepository(Diagnosis) private readonly repo: Repository<Diagnosis>,
+    @InjectRepository(AiUsage) private readonly usageRepo: Repository<AiUsage>,
     private readonly resumes: ResumesService,
     private readonly parser: ParserService,
     private readonly analyzer: AnalyzerService,
     private readonly rewriter: RewriterService,
     private readonly presets: ProfessionPresetsService,
+    private readonly limiter: ConcurrencyLimiter,
+    private readonly credit: CreditService,
   ) {}
 
+  // ── 非流式(向后兼容兜底,行为保持不变)────────────────────────────────────
+
   async create(userId: string, dto: CreateDiagnosisDto): Promise<Diagnosis> {
-    // 0. Validate JD text is substantive enough for meaningful analysis
-    const jdText = dto.jd_text?.trim() ?? '';
-    if (jdText.length < 50) {
-      throw new BadRequestException(
-        'JD 文本至少需要 50 字，包含岗位职责和要求。仅提供公司名称无法进行有效匹配。',
-      );
-    }
-
-    // 1. Get resume and verify ownership
-    const resume = await this.resumes.findOne(dto.resume_id, userId);
-
-    // 1.5 Validate resume has actual content
-    const resumeText = resume.raw_text?.trim() ?? '';
-    if (resumeText.length < 30) {
-      throw new BadRequestException(
-        '简历内容不足，请上传包含完整工作经历和技能的简历（至少 30 字）。',
-      );
-    }
-
-    // 2. Parse resume if not already parsed
-    let parsedResume = resume.parsed_json;
-    if (!parsedResume) {
-      parsedResume = await this.parser.parseResume(resume.raw_text);
-      await this.resumes.updateParsedJson(resume.id, parsedResume);
-    }
-
-    // 3. Hash JD text → check cache → parse if miss (TTL 7 days)
-    const jdHash = crypto.createHash('md5').update(dto.jd_text).digest('hex');
-    let parsedJD = this.jdCache.get<ParsedJD>(jdHash);
-    if (!parsedJD) {
-      parsedJD = await this.parser.parseJD(dto.jd_text);
-      this.jdCache.set(jdHash, parsedJD);
-    }
-
-    // 4. Analyze resume vs JD
+    const prepared = await this.prepareJdMatch(userId, dto);
     const matchResult = await this.analyzer.analyze(
-      JSON.stringify(parsedResume),
-      JSON.stringify(parsedJD),
+      JSON.stringify(prepared.parsedResume),
+      JSON.stringify(prepared.parsedJD),
     );
-
-    // 5. Get rewrite suggestions
     const suggestions = await this.rewriter.suggest(
-      resume.raw_text,
+      prepared.resumeText,
       dto.jd_text,
       JSON.stringify(matchResult),
     );
-
-    // 6. Extract keywords_hit and keywords_miss from dimensions.skills
-    const keywordsHit = matchResult.dimensions.skills.matched;
-    const keywordsMiss = matchResult.dimensions.skills.missing;
-
-    // 7. Save and return Diagnosis entity
-    const diagnosis = this.repo.create({
-      user_id: userId,
-      resume_id: resume.id,
-      jd_text: dto.jd_text,
-      jd_parsed: parsedJD,
-      jd_company: parsedJD.company ?? undefined,
-      jd_role: parsedJD.job_title ?? undefined,
-      score: matchResult.total_score,
-      dimensions: matchResult.dimensions,
-      keywords_hit: keywordsHit,
-      keywords_miss: keywordsMiss,
-      suggestions,
-    });
-
+    const diagnosis = this.buildJdMatchEntity(userId, prepared, dto, matchResult, suggestions);
     return this.repo.save(diagnosis) as Promise<Diagnosis>;
   }
 
@@ -101,10 +79,232 @@ export class DiagnosesService {
     userId: string,
     dto: CreateCampusDiagnosisDto,
   ): Promise<Diagnosis> {
+    const prepared = await this.prepareProfessionStandard(userId, dto);
+    const analysis = await this.analyzer.analyzeAgainstPreset(
+      renderResumeForReview(prepared.parsedResume),
+      prepared.preset,
+      prepared.jdJson,
+      prepared.parsedResume,
+      prepared.resumeRawText,
+    );
+    const suggestions = await this.rewriter.suggestAgainstPreset(
+      prepared.resumeRawText,
+      prepared.preset,
+      analysis,
+    );
+    const diagnosis = this.buildProfessionEntity(userId, prepared, dto, analysis, suggestions);
+    return this.repo.save(diagnosis) as Promise<Diagnosis>;
+  }
+
+  // ── 流式(SSE):真进度 + 兜底永不丢 ─────────────────────────────────────
+
+  /**
+   * 校招职业标尺诊断 — 流式。返回的异步生成器只负责"消费"事件;真正的流水线在
+   * {@link runPipeline} 里作为独立后台任务运行,**不绑定本生成器的迭代生命周期**——
+   * 客户端断开后台流水线仍跑完并落库,结果永不丢。
+   */
+  streamCreateProfessionStandard(
+    userId: string,
+    dto: CreateCampusDiagnosisDto,
+    endpoint: string,
+  ): AsyncIterable<DiagnosisStreamEvent> {
+    return this.runPipeline(userId, endpoint, async (out) => {
+      const prepared = await this.prepareProfessionStandard(userId, dto);
+      out.push({ type: 'step', stage: 'analyzing', label: '正在按职业标尺逐维度诊断…' });
+
+      const analysis = await this.analyzer.analyzeAgainstPreset(
+        renderResumeForReview(prepared.parsedResume),
+        prepared.preset,
+        prepared.jdJson,
+        prepared.parsedResume,
+        prepared.resumeRawText,
+      );
+
+      // 不变量:analysis 事件发出前诊断行必须已落库(suggestions 暂空),diagnosisId 一到前端即可跳已存结果。
+      const diagnosis = this.buildProfessionEntity(userId, prepared, dto, analysis, []);
+      const saved = (await this.repo.save(diagnosis)) as Diagnosis;
+      out.push({ type: 'analysis', diagnosisId: saved.id, payload: analysis });
+
+      out.push({ type: 'step', stage: 'suggesting', label: '正在生成针对性改写建议…' });
+      const suggestions = await this.rewriter.suggestAgainstPreset(
+        prepared.resumeRawText,
+        prepared.preset,
+        analysis,
+      );
+      await this.repo.update(saved.id, { suggestions });
+      saved.suggestions = suggestions;
+      return saved;
+    });
+  }
+
+  /** JD 匹配诊断 — 流式。结构同上;analyzeAgainstPreset 的对位是 analyzer.analyze。 */
+  streamCreate(
+    userId: string,
+    dto: CreateDiagnosisDto,
+    endpoint: string,
+  ): AsyncIterable<DiagnosisStreamEvent> {
+    return this.runPipeline(userId, endpoint, async (out) => {
+      const prepared = await this.prepareJdMatch(userId, dto);
+      out.push({ type: 'step', stage: 'analyzing', label: '正在分析简历与 JD 的多维匹配…' });
+
+      const matchResult = await this.analyzer.analyze(
+        JSON.stringify(prepared.parsedResume),
+        JSON.stringify(prepared.parsedJD),
+      );
+
+      const diagnosis = this.buildJdMatchEntity(userId, prepared, dto, matchResult, []);
+      const saved = (await this.repo.save(diagnosis)) as Diagnosis;
+      out.push({ type: 'analysis', diagnosisId: saved.id, payload: matchResult.dimensions });
+
+      out.push({ type: 'step', stage: 'suggesting', label: '正在生成针对性改写建议…' });
+      const suggestions = await this.rewriter.suggest(
+        prepared.resumeText,
+        dto.jd_text,
+        JSON.stringify(matchResult),
+      );
+      await this.repo.update(saved.id, { suggestions });
+      saved.suggestions = suggestions;
+      return saved;
+    });
+  }
+
+  /**
+   * 流式流水线骨架(两种诊断共用)。
+   *
+   * - 并发护栏:重 AI 工作整体走 limiter.runObservable;排队时把排位作为 queue 事件推给前端。
+   * - 落库铁律:work() 内部的 repo.save / repo.update 在后台任务里执行,不随消费者(SSE 连接)生死;
+   *   即使客户端断开,本任务仍跑完落库,故结果永不丢。
+   * - 计费:仅当整条流水线成功(done)后才扣 1 点 + 记一条 ai_usage(对齐非流式端点的两枚拦截器语义,
+   *   失败/排队满/抛错均不扣不记);余额前置校验由 CreditGuard 完成。
+   * - 解析阶段:work() 第一步先发 parsing step(解析简历/JD 属真实工作),analyzing/suggesting 由 work() 内部按真实完成推送。
+   */
+  private runPipeline(
+    userId: string,
+    endpoint: string,
+    work: (out: DiagnosisEventStream<DiagnosisStreamEvent>) => Promise<Diagnosis>,
+  ): AsyncIterable<DiagnosisStreamEvent> {
+    const out = new DiagnosisEventStream<DiagnosisStreamEvent>();
+
+    // 后台任务:独立于消费者运行,确保断开也跑完落库。不 await,异步推进。
+    void (async () => {
+      try {
+        const diagnosis = await this.limiter.runObservable<Diagnosis>(
+          async () => {
+            out.push({ type: 'step', stage: 'parsing', label: '正在解析简历与岗位信息…' });
+            return work(out);
+          },
+          (position) => {
+            if (position > 0) out.push({ type: 'queue', position });
+          },
+        );
+
+        out.push({ type: 'done', diagnosisId: diagnosis.id, diagnosis });
+
+        // 成功后计费(扣点 + ai_usage),失败不阻断已交付的结果。
+        await this.bill(userId, endpoint);
+      } catch (err) {
+        out.push({ type: 'error', message: this.readableError(err) });
+      } finally {
+        out.close();
+      }
+    })();
+
+    return out;
+  }
+
+  /** 扣 1 点 + 记一条 ai_usage(对齐非流式端点 CreditInterceptor + AiUsageInterceptor;均失败不阻断)。 */
+  private async bill(userId: string, endpoint: string): Promise<void> {
+    try {
+      await this.credit.consume(userId, endpoint);
+    } catch (err) {
+      this.logger.error(
+        `CREDIT_CONSUME_FAILED userId=${userId} endpoint=${endpoint}: ${this.readableError(err)}`,
+      );
+    }
+    try {
+      await this.usageRepo.insert({ user_id: userId, endpoint });
+    } catch (err) {
+      this.logger.error(`写入 ai_usage 失败 userId=${userId} endpoint=${endpoint}: ${String(err)}`);
+    }
+  }
+
+  // ── 共用阶段:输入校验 / 解析 / 实体构建 ────────────────────────────────
+
+  private async prepareJdMatch(
+    userId: string,
+    dto: CreateDiagnosisDto,
+  ): Promise<{
+    resume: Awaited<ReturnType<ResumesService['findOne']>>;
+    resumeText: string;
+    parsedResume: NonNullable<Awaited<ReturnType<ParserService['parseResume']>>>;
+    parsedJD: ParsedJD;
+  }> {
+    const jdText = dto.jd_text?.trim() ?? '';
+    if (jdText.length < 50) {
+      throw new BadRequestException(
+        'JD 文本至少需要 50 字，包含岗位职责和要求。仅提供公司名称无法进行有效匹配。',
+      );
+    }
+
+    const resume = await this.resumes.findOne(dto.resume_id, userId);
+    const resumeText = resume.raw_text?.trim() ?? '';
+    if (resumeText.length < 30) {
+      throw new BadRequestException(
+        '简历内容不足，请上传包含完整工作经历和技能的简历（至少 30 字）。',
+      );
+    }
+
+    let parsedResume = resume.parsed_json;
+    if (!parsedResume) {
+      parsedResume = await this.parser.parseResume(resume.raw_text);
+      await this.resumes.updateParsedJson(resume.id, parsedResume);
+    }
+
+    const jdHash = crypto.createHash('md5').update(dto.jd_text).digest('hex');
+    let parsedJD = this.jdCache.get<ParsedJD>(jdHash);
+    if (!parsedJD) {
+      parsedJD = await this.parser.parseJD(dto.jd_text);
+      this.jdCache.set(jdHash, parsedJD);
+    }
+
+    return { resume, resumeText: resume.raw_text, parsedResume, parsedJD };
+  }
+
+  private buildJdMatchEntity(
+    userId: string,
+    prepared: { resume: { id: string }; parsedJD: ParsedJD },
+    dto: CreateDiagnosisDto,
+    matchResult: { total_score: number; dimensions: MatchDimensions },
+    suggestions: RewriteSuggestion[],
+  ): Diagnosis {
+    return this.repo.create({
+      user_id: userId,
+      resume_id: prepared.resume.id,
+      jd_text: dto.jd_text,
+      jd_parsed: prepared.parsedJD,
+      jd_company: prepared.parsedJD.company ?? undefined,
+      jd_role: prepared.parsedJD.job_title ?? undefined,
+      score: matchResult.total_score,
+      dimensions: matchResult.dimensions,
+      keywords_hit: matchResult.dimensions.skills.matched,
+      keywords_miss: matchResult.dimensions.skills.missing,
+      suggestions,
+    });
+  }
+
+  private async prepareProfessionStandard(
+    userId: string,
+    dto: CreateCampusDiagnosisDto,
+  ): Promise<{
+    preset: ReturnType<ProfessionPresetsService['resolveByProfession']>;
+    resume: Awaited<ReturnType<ResumesService['findOne']>>;
+    resumeRawText: string;
+    parsedResume: NonNullable<Awaited<ReturnType<ParserService['parseResume']>>>;
+    jdJson: string | null;
+  }> {
     const preset = this.presets.resolveByProfession(dto.profession, dto.tier ?? 'standard');
 
     const resume = await this.resumes.findOne(dto.resume_id, userId);
-
     const resumeText = resume.raw_text?.trim() ?? '';
     if (resumeText.length < 30) {
       throw new BadRequestException(
@@ -124,27 +324,23 @@ export class DiagnosesService {
         : Promise.resolve(null),
     ]);
 
-    const analysis = await this.analyzer.analyzeAgainstPreset(
-      renderResumeForReview(parsedResume),
-      preset,
-      jdJson,
-      parsedResume,
-      resume.raw_text,
-    );
+    return { preset, resume, resumeRawText: resume.raw_text, parsedResume, jdJson };
+  }
 
-    const suggestions = await this.rewriter.suggestAgainstPreset(
-      resume.raw_text,
-      preset,
-      analysis,
-    );
-
-    const diagnosis = this.repo.create({
+  private buildProfessionEntity(
+    userId: string,
+    prepared: { resume: { id: string }; preset: ProfessionPreset },
+    dto: CreateCampusDiagnosisDto,
+    analysis: ProfessionStandardResult,
+    suggestions: RewriteSuggestion[],
+  ): Diagnosis {
+    return this.repo.create({
       user_id: userId,
-      resume_id: resume.id,
+      resume_id: prepared.resume.id,
       mode: 'profession_standard',
-      profession: preset.profession,
-      preset_id: preset.id,
-      tier: preset.tier,
+      profession: prepared.preset.profession,
+      preset_id: prepared.preset.id,
+      tier: prepared.preset.tier,
       jd_text: dto.jd_text,
       score: analysis.total_score,
       dimensions: analysis,
@@ -152,9 +348,17 @@ export class DiagnosesService {
       keywords_miss: [],
       suggestions,
     });
-
-    return this.repo.save(diagnosis) as Promise<Diagnosis>;
   }
+
+  private readableError(err: unknown): string {
+    if (err && typeof err === 'object' && 'message' in err) {
+      const m = (err as { message: unknown }).message;
+      if (typeof m === 'string' && m.length > 0) return m;
+    }
+    return 'AI 服务暂时不可用，请稍后重试。';
+  }
+
+  // ── 查询 ────────────────────────────────────────────────────────────────
 
   findAllByUser(userId: string): Promise<Diagnosis[]> {
     return this.repo.find({

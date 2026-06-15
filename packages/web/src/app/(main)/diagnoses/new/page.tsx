@@ -4,16 +4,42 @@ import { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import type { Resume, Diagnosis } from '@/lib/types';
+import type {
+  Resume,
+  Diagnosis,
+  DiagnosisStreamEvent,
+  DiagnosisStreamStage,
+  DiagnosisAnalysisPayload,
+} from '@/lib/types';
+import { getScoreColor } from '@/lib/score-utils';
 import { JdInput } from '@/components/diagnosis/jd-input';
 import {
   useHandoffReception,
   HandoffConfirmDialog,
   ReturnToCoachBanner,
 } from '@/components/chat/handoff-reception';
-import { FileText, Plus, ChevronRight, Sparkles } from 'lucide-react';
+import { FileText, Plus, ChevronRight, Sparkles, Check } from 'lucide-react';
 
 type Step = 'resume' | 'jd' | 'analyzing';
+
+// 真实步骤状态:与校招诊断同一模型,按收到的 step 事件点亮。
+type StageStatus = 'pending' | 'active' | 'done';
+
+const STAGE_ORDER: DiagnosisStreamStage[] = ['parsing', 'analyzing', 'suggesting'];
+
+// JD 匹配模式 analysis.payload 即 MatchDimensions(无顶层 total_score,综合分在 overall.score)。
+// 用结构守卫从联合类型取综合分供就地展示;非匹配形态返回 null,不做不安全强转。
+function matchOverallScore(payload: DiagnosisAnalysisPayload | null): number | null {
+  if (
+    payload &&
+    'overall' in payload &&
+    payload.overall &&
+    typeof payload.overall.score === 'number'
+  ) {
+    return payload.overall.score;
+  }
+  return null;
+}
 
 function ProgressDots({ step }: { step: Step }) {
   const steps: Step[] = ['resume', 'jd', 'analyzing'];
@@ -72,15 +98,22 @@ function ProgressDots({ step }: { step: Step }) {
   );
 }
 
-function AnalyzingScreen() {
-  const [dots, setDots] = useState('');
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setDots((d) => (d.length >= 3 ? '' : d + '.'));
-    }, 500);
-    return () => clearInterval(timer);
-  }, []);
+// 真实进度评估屏:步骤按收到的 step 事件点亮(非装饰脉冲);收到 analysis 即就地展示总分。
+function AnalyzingScreen({
+  stageStatus,
+  stageLabels,
+  analysis,
+}: {
+  stageStatus: Record<DiagnosisStreamStage, StageStatus>;
+  stageLabels: Record<DiagnosisStreamStage, string>;
+  analysis: DiagnosisAnalysisPayload | null;
+}) {
+  const defaultLabels: Record<DiagnosisStreamStage, string> = {
+    parsing: '解析简历与职位描述',
+    analyzing: '匹配简历与 JD',
+    suggesting: '生成优化建议',
+  };
+  const overallScore = matchOverallScore(analysis);
 
   return (
     <div
@@ -89,19 +122,13 @@ function AnalyzingScreen() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '80px 24px',
+        padding: '64px 24px',
         gap: '24px',
         textAlign: 'center',
       }}
     >
       {/* Animated ring */}
-      <div
-        style={{
-          position: 'relative',
-          width: '80px',
-          height: '80px',
-        }}
-      >
+      <div style={{ position: 'relative', width: '80px', height: '80px' }}>
         <div
           style={{
             position: 'absolute',
@@ -146,14 +173,14 @@ function AnalyzingScreen() {
             marginBottom: '8px',
           }}
         >
-          正在分析{dots}
+          正在对比简历与 JD
         </h2>
         <p style={{ fontSize: '14px', color: 'var(--color-ink-3)', margin: 0 }}>
-          AI 正在对比简历与 JD，通常需要 1-2 分钟
+          每完成一步会实时点亮，分数一出立即呈现，请勿关闭页面
         </p>
       </div>
 
-      {/* Progress steps */}
+      {/* Progress steps — 真实反映后端三步串行,按 step 事件点亮 */}
       <div
         className="lg"
         style={{
@@ -161,52 +188,117 @@ function AnalyzingScreen() {
           flexDirection: 'column',
           gap: '10px',
           padding: '20px 28px',
-          minWidth: '280px',
+          minWidth: '300px',
         }}
       >
-        {[
-          '解析职位描述',
-          '提取关键技能要求',
-          '匹配简历内容',
-          '生成优化建议',
-        ].map((step, i) => (
-          <div
-            key={step}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              fontSize: '13.5px',
-              color: 'var(--color-ink-2)',
-            }}
-          >
+        {STAGE_ORDER.map((stage) => {
+          const status = stageStatus[stage];
+          const label = stageLabels[stage] || defaultLabels[stage];
+          return (
             <div
+              key={stage}
               style={{
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                background: 'var(--color-brand-soft)',
-                border: '1.5px solid var(--color-brand)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
+                gap: '10px',
+                fontSize: '13.5px',
+                fontWeight: status === 'active' ? 600 : 500,
+                color:
+                  status === 'pending'
+                    ? 'var(--color-ink-4)'
+                    : status === 'active'
+                      ? 'var(--color-ink)'
+                      : 'var(--color-ink-2)',
+                transition: 'color 0.2s',
               }}
             >
               <div
                 style={{
-                  width: '7px',
-                  height: '7px',
+                  width: '18px',
+                  height: '18px',
                   borderRadius: '50%',
-                  background: 'var(--color-brand)',
-                  animation: `pulse 1.2s ease-in-out ${i * 0.3}s infinite`,
+                  background:
+                    status === 'done'
+                      ? 'var(--color-success)'
+                      : status === 'active'
+                        ? 'var(--color-brand-soft)'
+                        : 'rgba(47,143,255,.05)',
+                  border:
+                    status === 'pending'
+                      ? '1.5px solid var(--hair)'
+                      : status === 'active'
+                        ? '1.5px solid var(--color-brand)'
+                        : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'background 0.2s, border-color 0.2s',
                 }}
-              />
+              >
+                {status === 'done' ? (
+                  <Check size={11} color="#fff" strokeWidth={3} />
+                ) : status === 'active' ? (
+                  <div
+                    style={{
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      background: 'var(--color-brand)',
+                      animation: 'pulse 1.1s ease-in-out infinite',
+                    }}
+                  />
+                ) : null}
+              </div>
+              <span>
+                {label}
+                {status === 'active' && '…'}
+              </span>
             </div>
-            {step}
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* analysis 到达:就地展示匹配综合分(核心价值前置,建议生成中) */}
+      {overallScore !== null && (
+        <div
+          className="lg"
+          style={{
+            width: '100%',
+            maxWidth: '520px',
+            padding: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            textAlign: 'left',
+            animation: 'fadeInUp 0.35s ease',
+          }}
+        >
+          {(() => {
+            const { color, bg } = getScoreColor(overallScore);
+            return (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '4px 12px',
+                  borderRadius: '8px',
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  color,
+                  background: bg,
+                  flexShrink: 0,
+                }}
+              >
+                {overallScore}分
+              </span>
+            );
+          })()}
+          <div style={{ fontSize: '13px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
+            匹配分数已生成，优化建议生成中，稍候即可查看完整报告。
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes spin {
@@ -215,6 +307,10 @@ function AnalyzingScreen() {
         @keyframes pulse {
           0%, 100% { opacity: 0.3; transform: scale(0.8); }
           50% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
@@ -247,6 +343,30 @@ function NewDiagnosisPageInner() {
   const [jdText, setJdText] = useState('');
   const [jdError, setJdError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // ── 流式诊断进度状态 ──────────────────────────────────────────────────────
+  const [stageStatus, setStageStatus] = useState<Record<DiagnosisStreamStage, StageStatus>>({
+    parsing: 'pending',
+    analyzing: 'pending',
+    suggesting: 'pending',
+  });
+  const [stageLabels, setStageLabels] = useState<Record<DiagnosisStreamStage, string>>({
+    parsing: '',
+    analyzing: '',
+    suggesting: '',
+  });
+  const [analysisPreview, setAnalysisPreview] = useState<DiagnosisAnalysisPayload | null>(null);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     api
@@ -284,33 +404,170 @@ function NewDiagnosisPageInner() {
     setStep('jd');
   }
 
+  function goToDiagnosis(id: string) {
+    window.dispatchEvent(new Event('coach:credit-refresh'));
+    if (activeHandoffId && activeConvId) {
+      setShowReturn(true);
+    }
+    router.push(`/diagnoses/${id}`);
+  }
+
+  // 兜底②:流断且没拿到 diagnosisId 时,查最近一条本简历、晚于本次提交的诊断,跳过去。
+  async function findRecentDiagnosis(
+    resumeId: string,
+    submittedAt: number,
+  ): Promise<string | null> {
+    try {
+      const list = await api.get<Diagnosis[]>('/diagnoses');
+      const match = list.find(
+        (d) =>
+          d.resume_id === resumeId &&
+          new Date(d.created_at).getTime() >= submittedAt - 10_000,
+      );
+      return match?.id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async function handleSubmit() {
     if (jdText.trim().length < 10) {
       setJdError('职位描述至少需要 10 个字符');
       return;
     }
+    if (!selectedResumeId) return;
     setJdError(null);
     setSubmitError(null);
     setStep('analyzing');
+    setStageStatus({ parsing: 'pending', analyzing: 'pending', suggesting: 'pending' });
+    setStageLabels({ parsing: '', analyzing: '', suggesting: '' });
+    setAnalysisPreview(null);
+    setQueuePosition(null);
+
+    const resumeId = selectedResumeId;
+    const submittedAt = Date.now();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    let knownId: string | null = null;
+    let navigated = false;
+    let handledError = false;
+
+    function markStageActive(stage: DiagnosisStreamStage, label: string) {
+      const idx = STAGE_ORDER.indexOf(stage);
+      setStageStatus((prev) => {
+        const next = { ...prev };
+        STAGE_ORDER.forEach((s, i) => {
+          if (i < idx) next[s] = 'done';
+          else if (i === idx) next[s] = 'active';
+        });
+        return next;
+      });
+      if (label) setStageLabels((prev) => ({ ...prev, [stage]: label }));
+    }
 
     try {
-      const diagnosis = await api.post<Diagnosis>('/diagnoses', {
-        resume_id: selectedResumeId,
-        jd_text: jdText.trim(),
-      });
-      window.dispatchEvent(new Event('coach:credit-refresh'));
-      if (activeHandoffId && activeConvId) {
-        setShowReturn(true);
+      for await (const evt of api.postStreamRaw<DiagnosisStreamEvent>(
+        '/diagnoses/stream',
+        { resume_id: resumeId, jd_text: jdText.trim() },
+        controller.signal,
+      )) {
+        if (!mountedRef.current) break;
+        if (evt.type === 'queue') {
+          setQueuePosition(evt.position);
+        } else if (evt.type === 'step') {
+          setQueuePosition(null);
+          markStageActive(evt.stage, evt.label);
+        } else if (evt.type === 'analysis') {
+          knownId = evt.diagnosisId;
+          setAnalysisPreview(evt.payload);
+          setStageStatus((prev) => ({
+            ...prev,
+            parsing: 'done',
+            analyzing: 'done',
+            suggesting: prev.suggesting === 'pending' ? 'active' : prev.suggesting,
+          }));
+        } else if (evt.type === 'done') {
+          navigated = true;
+          goToDiagnosis(evt.diagnosisId);
+        } else if (evt.type === 'error') {
+          handledError = true;
+          if (knownId) {
+            navigated = true;
+            goToDiagnosis(knownId);
+          } else {
+            setSubmitError(evt.message || '创建诊断失败，请重试');
+            setStep('jd');
+          }
+        }
       }
-      router.push(`/diagnoses/${diagnosis.id}`);
+
+      if (!navigated && !handledError && mountedRef.current) {
+        if (knownId) {
+          goToDiagnosis(knownId);
+        } else {
+          const recovered = await findRecentDiagnosis(resumeId, submittedAt);
+          if (recovered) {
+            goToDiagnosis(recovered);
+          } else {
+            setSubmitError('诊断连接中断，但结果可能已生成，请到「我的诊断」查看或重试。');
+            setStep('jd');
+          }
+        }
+      }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : '创建诊断失败，请重试');
-      setStep('jd');
+      if (!mountedRef.current) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
+      if (handledError || navigated) return;
+
+      if (knownId) {
+        goToDiagnosis(knownId);
+        return;
+      }
+      const recovered = await findRecentDiagnosis(resumeId, submittedAt);
+      if (recovered && mountedRef.current) {
+        goToDiagnosis(recovered);
+        return;
+      }
+      if (mountedRef.current) {
+        setSubmitError(err instanceof Error ? err.message : '创建诊断失败，请重试');
+        setStep('jd');
+      }
+    } finally {
+      if (mountedRef.current && !navigated) {
+        setQueuePosition(null);
+      }
     }
   }
 
   if (step === 'analyzing') {
-    return <AnalyzingScreen />;
+    return (
+      <>
+        {queuePosition !== null && queuePosition > 0 && (
+          <div
+            style={{
+              maxWidth: '520px',
+              margin: '24px auto 0',
+              padding: '10px 16px',
+              borderRadius: 'var(--radius-default)',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
+              color: 'var(--color-ink-2)',
+              fontSize: '13px',
+              fontWeight: 500,
+              textAlign: 'center',
+            }}
+          >
+            当前使用人数较多，正在排队，前面还有 {queuePosition} 个请求…
+          </div>
+        )}
+        <AnalyzingScreen
+          stageStatus={stageStatus}
+          stageLabels={stageLabels}
+          analysis={analysisPreview}
+        />
+      </>
+    );
   }
 
   return (
