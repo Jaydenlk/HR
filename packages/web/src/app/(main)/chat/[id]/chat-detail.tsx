@@ -334,7 +334,7 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <div
           style={{
             padding: '16px 24px',
@@ -411,7 +411,8 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100%',
+        position: 'absolute',
+        inset: 0,
         overflow: 'hidden',
       }}
     >
