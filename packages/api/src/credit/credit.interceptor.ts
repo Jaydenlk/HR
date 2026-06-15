@@ -8,6 +8,7 @@ import {
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { CreditService } from './credit.service';
+import { OpsEventsService } from '../ops/ops-events.service';
 
 // AI 端点「成功」后扣 1 点(失败/503 不扣,语义对齐现行 AiUsageInterceptor)。
 // 只在 tap 的 next 回调里 consume;error 路径不扣,保证用户不为失败请求耗点数。
@@ -16,7 +17,10 @@ import { CreditService } from './credit.service';
 export class CreditInterceptor implements NestInterceptor {
   private readonly logger = new Logger(CreditInterceptor.name);
 
-  constructor(private readonly credit: CreditService) {}
+  constructor(
+    private readonly credit: CreditService,
+    private readonly opsEvents: OpsEventsService,
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context
@@ -31,19 +35,16 @@ export class CreditInterceptor implements NestInterceptor {
           if (!userId) {
             return;
           }
-          // 扣点失败不应影响业务响应:结构化 error 日志,不抛错。
-          // OpsEvents 注入代价超出本模块边界(需扩展 OpsEventType 联合类型),
-          // 故退而求其次用结构化 logger.error 实现账务漏扣可见化。
-          this.credit
-            .consume(userId, endpoint)
-            .catch((err: unknown) =>
-              this.logger.error('CREDIT_CONSUME_FAILED', {
-                event: 'CREDIT_CONSUME_FAILED',
-                userId,
-                endpoint,
-                error: err instanceof Error ? err.message : String(err),
-              }),
-            );
+          // 扣点失败:先写 ops_events 留审计轨迹,再记结构化日志。绝不抛错。
+          this.credit.consume(userId, endpoint).catch((err: unknown) => {
+            const error = err instanceof Error ? err.message : String(err);
+            void this.opsEvents.record('CREDIT_CONSUME_FAILED', {
+              user_id: userId,
+              endpoint,
+              error,
+            });
+            this.logger.error('CREDIT_CONSUME_FAILED', { userId, endpoint, error });
+          });
         },
       }),
     );

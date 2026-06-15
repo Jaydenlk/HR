@@ -8,7 +8,33 @@ import type {
   AdminInvite,
   AdminUsageOverview,
 } from '@/lib/types';
-import { Loader2, Shield, Users, Ticket, BarChart2, X, Coins } from 'lucide-react';
+import {
+  Loader2,
+  Shield,
+  Users,
+  Ticket,
+  BarChart2,
+  X,
+  Coins,
+  Activity,
+  HeartPulse,
+  ScrollText,
+} from 'lucide-react';
+import PlatformHealthTab from './_components/PlatformHealthTab';
+import LogCenterTab from './_components/LogCenterTab';
+import { UserActivityPanel } from './_components/UserActivityPanel';
+
+// ─── Tab 定义 ─────────────────────────────────────────────────────────────────
+// 页1 用户活跃与成功率(现有 用量/用户/邀请码 基座 + 单用户活动抽屉)
+// 页2 平台健康(PlatformHealthTab)
+// 页3 流水中心(LogCenterTab)
+type AdminTab = 'activity' | 'health' | 'logs';
+
+const TABS: { key: AdminTab; label: string; icon: typeof Activity }[] = [
+  { key: 'activity', label: '用户活跃与成功率', icon: Activity },
+  { key: 'health', label: '平台健康', icon: HeartPulse },
+  { key: 'logs', label: '流水中心', icon: ScrollText },
+];
 
 // ─── 共享样式 ─────────────────────────────────────────────────────────────────
 // 卡/面板外层统一用 className="lg"(单层玻璃),内部背景/边由 .lg 提供;cardStyle 仅留内边距。
@@ -118,6 +144,12 @@ function smallBtn(variant: 'primary' | 'danger' | 'neutral'): React.CSSPropertie
 export default function AdminPage() {
   const [me, setMe] = useState<User | null>(null);
   const [meLoaded, setMeLoaded] = useState(false);
+
+  // 当前激活的子页(tab)
+  const [tab, setTab] = useState<AdminTab>('activity');
+
+  // 单用户活动明细抽屉:点击用户行「活动」按钮时设为该用户,null 收起
+  const [activityTarget, setActivityTarget] = useState<AdminUserRow | null>(null);
 
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [invites, setInvites] = useState<AdminInvite[]>([]);
@@ -298,28 +330,83 @@ export default function AdminPage() {
       >
         <Shield size={22} /> 管理后台
       </h1>
-      <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', marginBottom: '24px' }}>
-        用户管理 · 邀请码 · 用量监控
+      <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', marginBottom: '20px' }}>
+        用户活跃 · 邀请码 · 平台健康 · 流水中心
       </p>
 
-      {error && (
-        <div
-          role="alert"
-          style={{
-            background: 'var(--color-danger-soft)',
-            color: 'var(--color-danger)',
-            borderRadius: '10px',
-            padding: '12px 14px',
-            fontSize: '13.5px',
-            marginBottom: '20px',
-            fontWeight: 500,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {/* ── Tab 栏 ── */}
+      <div
+        role="tablist"
+        aria-label="管理后台子页"
+        style={{
+          display: 'flex',
+          gap: '4px',
+          marginBottom: '24px',
+          borderBottom: '1px solid var(--color-line)',
+        }}
+      >
+        {TABS.map(({ key, label, icon: Icon }) => {
+          const active = tab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(key)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '9px 14px',
+                background: 'none',
+                border: 'none',
+                borderBottom: active
+                  ? '2px solid var(--color-brand)'
+                  : '2px solid transparent',
+                marginBottom: '-1px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '13.5px',
+                fontWeight: active ? 700 : 600,
+                color: active ? 'var(--color-brand)' : 'var(--color-ink-3)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Icon size={15} />
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
-      {loading ? (
+      {/* ── 页2 平台健康 ── */}
+      {tab === 'health' && <PlatformHealthTab />}
+
+      {/* ── 页3 流水中心 ── */}
+      {tab === 'logs' && <LogCenterTab />}
+
+      {/* ── 页1 用户活跃与成功率(用量/用户/邀请码 基座)── */}
+      {tab === 'activity' && (
+        <>
+          {error && (
+            <div
+              role="alert"
+              style={{
+                background: 'var(--color-danger-soft)',
+                color: 'var(--color-danger)',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                fontSize: '13.5px',
+                marginBottom: '20px',
+                fontWeight: 500,
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {loading ? (
         <div style={{ padding: '40px', display: 'flex', justifyContent: 'center' }}>
           <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-ink-3)' }} />
         </div>
@@ -515,6 +602,19 @@ export default function AdminPage() {
                         </td>
                         <td style={tdStyle}>
                           <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setActivityTarget(u)}
+                              style={{
+                                ...smallBtn('neutral'),
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                              title="查看活动明细（仅计数）"
+                            >
+                              <Activity size={12} /> 活动
+                            </button>
                             {u.status === 'banned' ? (
                               <button
                                 type="button"
@@ -628,6 +728,17 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+        </>
+      )}
+
+      {/* ── 单用户活动明细抽屉(只计数,无正文)── */}
+      <UserActivityPanel
+        userId={activityTarget?.id ?? null}
+        userLabel={
+          activityTarget ? `${activityTarget.name}（${activityTarget.email}）` : undefined
+        }
+        onClose={() => setActivityTarget(null)}
+      />
 
       {/* ── 充值弹窗 ── */}
       {chargeTarget && (

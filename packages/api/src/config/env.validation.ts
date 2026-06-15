@@ -271,6 +271,17 @@ export function validate(config: Record<string, unknown>): Record<string, unknow
       'Environment validation failed:\n必须配置至少一个 AI 通道密钥(AI_DEEPSEEK_API_KEY 或 AI_RELAY_API_KEY,或旧名 DEEPSEEK_API_KEY/CLOUDDREAM_API_KEY)',
     );
   }
+  // JWT_SECRET 强度跨字段校验(仅 production 强制,对齐 main.ts 启动期自检语义):
+  // 不得为占位 'dev-secret'(config.get 三处兜底用的弱默认),长度须 ≥32,否则可被猜测密钥自签 admin token 越权。
+  // 非生产放行(开发/测试常用短密钥),与现有 AI key 二选一手写校验同处跨字段块。
+  if (config.NODE_ENV === 'production') {
+    const jwtSecret = validated.JWT_SECRET;
+    if (jwtSecret === 'dev-secret' || jwtSecret.length < 32) {
+      throw new Error(
+        'Environment validation failed:\nproduction 环境 JWT_SECRET 必须为强随机值(长度 ≥32 且非占位 dev-secret),否则可被猜测密钥自签 admin token 越权。',
+      );
+    }
+  }
   // 返回完整 config 而非仅声明字段的实例:@nestjs/config 用本函数返回值作为 ConfigService 的配置源。
   // 若只返回 validated 实例,DB_PATH/DB_TYPE/DB_HOST/DB_PORT/NODE_ENV 等未声明变量会被剥离 →
   // 生产 postgres 连接全部退回默认值、且 NODE_ENV 读不到致 synchronize 永不关闭(数据风险);

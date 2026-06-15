@@ -94,11 +94,20 @@ describe('Auth dev-login (e2e)', () => {
   describe('DEV_LOGIN=1 但 NODE_ENV=production', () => {
     let app: INestApplication;
     beforeAll(async () => {
-      app = await buildApp({ DEV_LOGIN: '1', NODE_ENV: 'production' });
+      // 波0 安全:env.validation 现强制 production 下 JWT_SECRET 须 ≥32 且非 dev-secret,
+      // 否则 ConfigModule.forRoot 校验即抛错(防弱密钥上线)。本用例验证「dev-login 端点在
+      // production 下 404」,与密钥强度无关,故注入合规强密钥让 app 正常起来再断言 404。
+      app = await buildApp({
+        DEV_LOGIN: '1',
+        NODE_ENV: 'production',
+        JWT_SECRET: 'x'.repeat(48),
+      });
     });
     afterAll(async () => {
       await app.close();
       delete process.env.NODE_ENV;
+      // 还原全局弱密钥基线(供后续非生产分组使用)。
+      process.env.JWT_SECRET = 'test-secret';
     });
 
     it('POST /api/auth/dev-login → 404(production 二重保护)', async () => {

@@ -19,6 +19,8 @@ import { AiModule } from '../ai/ai.module';
 import { IntelligenceModule } from '../intelligence/intelligence.module';
 import { QuotaModule } from '../quota/quota.module';
 import { CreditModule } from '../credit/credit.module';
+import { UsersModule } from '../users/users.module';
+import { AdminGuard } from '../common/guards/admin.guard';
 import { SourceRegistryService } from './source-registry.service';
 import { FeedClassifierService } from './feed-classifier.service';
 import { FeedIngestionService } from './feed-ingestion.service';
@@ -34,9 +36,11 @@ import { SearchSchedulerService } from './search-scheduler.service';
     IntelligenceModule,
     QuotaModule,
     CreditModule,
+    UsersModule,
   ],
   controllers: [FeedController, NewspaperController],
   providers: [
+    AdminGuard,
     FeedService,
     NewspaperService,
     RssImporterService,

@@ -5,6 +5,7 @@ describe('Feed (e2e)', () => {
   let app: INestApplication;
   let token: string;
   let otherToken: string;
+  let adminToken: string;
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
@@ -12,13 +13,19 @@ describe('Feed (e2e)', () => {
     process.env.CLOUDDREAM_API_KEY = 'test-key';
     process.env.CLOUDDREAM_MODEL = 'auto-v2';
     delete process.env.XHS_MCP_BASE_URL;
+    // 波0 隔离:POST /feed/import、/feed/digest 现挂 AdminGuard(本就该管理员),
+    // 故采集相关用例须用管理员 token。ADMIN_EMAILS 命中即注册为 admin;
+    // 在 createTestApp 前置入 process.env(被 __SEAL_OPS_ENV__ 密封逻辑保留显式设置的键)。
+    process.env.ADMIN_EMAILS = 'feed-admin@coach.dev';
     app = await createTestApp();
     token = await loginUser(app, 'feed1@coach.dev', 'Feed User One');
     otherToken = await loginUser(app, 'feed2@coach.dev', 'Feed User Two');
+    adminToken = await loginUser(app, 'feed-admin@coach.dev', 'Feed Admin');
   });
 
   afterAll(async () => {
     await app.close();
+    delete process.env.ADMIN_EMAILS;
   });
 
   describe('POST /api/feed', () => {
@@ -207,12 +214,12 @@ describe('Feed (e2e)', () => {
     it('records a failed run when an explicit source needs configuration', async () => {
       const sourcesRes = await request(app.getHttpServer())
         .get('/api/feed/sources')
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer ${adminToken}`);
       const xhs = sourcesRes.body.find((source: { kind: string }) => source.kind === 'xhs');
 
       const importRes = await request(app.getHttpServer())
         .post('/api/feed/import')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({ source_id: xhs.id, keyword: '字节 面经' });
 
       expect(importRes.status).toBe(201);
@@ -237,6 +244,16 @@ describe('Feed (e2e)', () => {
         .send({});
 
       expect(res.status).toBe(401);
+    });
+
+    // 波0 隔离新契约:普通(非管理员)用户调采集端点 → 403。
+    it('rejects non-admin import with 403', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/feed/import')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ keyword: '随便' });
+
+      expect(res.status).toBe(403);
     });
   });
 

@@ -21,6 +21,29 @@ import type { Server } from 'http';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
+// 生产启动安全自检(纯函数,可单测):
+// JWT_SECRET 不得为占位 'dev-secret'(三处 config.get 兜底用的弱默认),且长度须 ≥32,
+// 否则可被人猜中密钥自签 admin token 越权。仅 production 强制;非生产返回错误信息给调用方决定(开发态放行)。
+// 抽成纯函数:越狱渗透测试可直接断言 throw,无需真启进程。
+export function assertJwtSecret(jwtSecret: string | undefined, isProd: boolean): void {
+  if (!isProd) {
+    return;
+  }
+  if (!jwtSecret || jwtSecret === 'dev-secret' || jwtSecret.length < 32) {
+    throw new Error(
+      'production 环境 JWT_SECRET 必须为强随机值(长度 ≥32 且非占位 dev-secret),否则可被猜测密钥自签 admin token 越权。',
+    );
+  }
+}
+
+// 生产 fail-closed:严禁 production 环境开启 DEV_LOGIN(免验证码免邀请码登录后门)。
+// auth.service 已有运行时 isProd→404 防护,这里再加启动期拒启,任一也不放过。
+export function assertDevLoginClosed(devLogin: string | undefined, isProd: boolean): void {
+  if (isProd && devLogin === '1') {
+    throw new Error('production 环境严禁开启 DEV_LOGIN=1(免验证码登录后门)。');
+  }
+}
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const isProd = process.env.NODE_ENV === 'production';
@@ -31,6 +54,10 @@ async function bootstrap() {
   if (isProd && !process.env.RESEND_API_KEY && !process.env.SMTP_HOST) {
     throw new Error('production 环境必须配置 RESEND_API_KEY 或 SMTP_HOST 其中之一,否则登录验证码无法发送。');
   }
+
+  // production fail-closed:DEV_LOGIN 后门 + JWT_SECRET 弱密钥 启动期拒启。
+  assertDevLoginClosed(process.env.DEV_LOGIN, isProd);
+  assertJwtSecret(process.env.JWT_SECRET, isProd);
 
   // 进程级安全网:未捕获的 promise rejection / 异常会让 Node 直接退出,
   // 进而裸 reset 所有在连接(客户端连 503 都收不到)。这里捕获并记录,
@@ -89,4 +116,8 @@ async function bootstrap() {
   server.headersTimeout = Number(process.env.HTTP_HEADERS_TIMEOUT_MS ?? 65000);
   server.keepAliveTimeout = Number(process.env.HTTP_KEEPALIVE_TIMEOUT_MS ?? 61000);
 }
-bootstrap();
+
+// 仅当本文件是进程入口时启动服务;被单测 import(断言自检纯函数 throw)时不真启进程。
+if (require.main === module) {
+  void bootstrap();
+}

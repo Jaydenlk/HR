@@ -102,12 +102,16 @@ describe('F6: CreditGuard 防御性兜底', () => {
 import { CreditInterceptor } from './../../src/credit/credit.interceptor';
 import { Logger } from '@nestjs/common';
 
-describe('F7: 扣点失败结构化日志', () => {
-  it('consume 失败时 logger.error 带结构化标记(event=CREDIT_CONSUME_FAILED)', async () => {
+describe('F7: 扣点失败结构化日志 + ops_events 审计', () => {
+  it('consume 失败时:先写 ops_events(CREDIT_CONSUME_FAILED)再记结构化 logger.error', async () => {
     const mockCredit = {
       consume: jest.fn().mockRejectedValue(new Error('DB down')),
     };
-    const interceptor = new CreditInterceptor(mockCredit as any);
+    // Phase2:CreditInterceptor 注入 OpsEventsService,扣点失败先落审计轨迹。
+    const mockOpsEvents = {
+      record: jest.fn().mockResolvedValue(undefined),
+    };
+    const interceptor = new CreditInterceptor(mockCredit as any, mockOpsEvents as any);
 
     // 监控 logger.error
     const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
@@ -136,16 +140,25 @@ describe('F7: 扣点失败结构化日志', () => {
     // 等待异步 consume 失败回调
     await new Promise((r) => setTimeout(r, 100));
 
+    // ① ops_events 审计:类型 + 计数级 detail(user_id/endpoint/error),绝无正文。
+    expect(mockOpsEvents.record).toHaveBeenCalledWith(
+      'CREDIT_CONSUME_FAILED',
+      expect.objectContaining({
+        user_id: 'u1',
+        endpoint: '/api/test',
+        error: 'DB down',
+      }),
+    );
+
+    // ② 结构化 logger.error:消息名 + { userId, endpoint, error }。
     expect(errorSpy).toHaveBeenCalled();
     const firstCallArgs = errorSpy.mock.calls[0];
-    // 第一个参数是消息名
     expect(firstCallArgs[0]).toBe('CREDIT_CONSUME_FAILED');
-    // 第二个参数是结构化对象
     const detail = firstCallArgs[1] as Record<string, unknown>;
     expect(detail).toMatchObject({
-      event: 'CREDIT_CONSUME_FAILED',
       userId: 'u1',
       endpoint: '/api/test',
+      error: 'DB down',
     });
 
     errorSpy.mockRestore();
