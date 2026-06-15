@@ -4,6 +4,7 @@ import { SpeechConfig } from '../../config/speech.config';
 import {
   SpeechCapabilities,
   SpeechProvider,
+  SynthesizedAudio,
   TranscriptSegment,
 } from './speech.provider';
 
@@ -41,6 +42,10 @@ type StepFunEvent =
 export class StepFunProvider implements SpeechProvider {
   private readonly logger = new Logger(StepFunProvider.name);
   private readonly cfg: SpeechConfig['stepfun'];
+  private readonly ttsCfg: SpeechConfig['tts'];
+
+  // TTS 输入上限(StepFun /audio/speech 单次最大 1000 字符);超长在 synthesize 前截断保护。
+  private static readonly TTS_MAX_CHARS = 1000;
 
   readonly capabilities: SpeechCapabilities = {
     diarization: false,
@@ -50,6 +55,7 @@ export class StepFunProvider implements SpeechProvider {
 
   constructor(config: ConfigService) {
     this.cfg = config.get<SpeechConfig['stepfun']>('speech.stepfun')!;
+    this.ttsCfg = config.get<SpeechConfig['tts']>('speech.tts')!;
   }
 
   async transcribeFile(
@@ -111,6 +117,98 @@ export class StepFunProvider implements SpeechProvider {
     }
 
     return this.consumeSse(response.body, controller, timer);
+  }
+
+  /**
+   * 文本 → 合成音频字节(StepFun /audio/speech,step-tts-mini)。
+   * 与 ASR 不同:此端点直回二进制音频(非 SSE、非 base64),body = {model,input,voice,response_format}。
+   * 音频字节始终在 后端↔StepFun 的 HTTPS 加密信道,纯内存返回,供应商不落盘、不持有 fs。
+   *
+   * 防编造红线:缺 key / 空文本 / 非 2xx / 空响应体 → 显式抛错,绝不返回空 Buffer 当成功。
+   * 超时按 ttsCfg.timeoutMs 控制(AbortController);并发由调用方(SpeechService)包在 limiter 里。
+   */
+  async synthesize(text: string, voice?: string): Promise<SynthesizedAudio> {
+    if (!this.ttsCfg.apiKey) {
+      // 缺 key 显式抛错,绝不静默(防编造:不把缺配置当成功)。
+      throw new Error('StepFun TTS 未配置 STEP_API_KEY,无法合成语音');
+    }
+    const input = text.trim();
+    if (input.length === 0) {
+      throw new Error('合成文本为空,无法生成语音');
+    }
+    // 超长截断保护:StepFun 单次最大 1000 字符;面试题为正常语句,极少触顶,触顶则截断而非抛错。
+    const safeInput =
+      input.length > StepFunProvider.TTS_MAX_CHARS
+        ? input.slice(0, StepFunProvider.TTS_MAX_CHARS)
+        : input;
+
+    const body = JSON.stringify({
+      model: this.ttsCfg.model,
+      input: safeInput,
+      voice: voice?.trim() || this.ttsCfg.voice,
+      response_format: this.ttsCfg.responseFormat,
+    });
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.ttsCfg.timeoutMs);
+    let response: Response;
+    try {
+      response = await fetch(`${this.ttsCfg.baseURL}/audio/speech`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.ttsCfg.apiKey}`,
+        },
+        body,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new Error(`StepFun TTS 请求失败:${this.describeTtsError(err)}`);
+    } finally {
+      clearTimeout(timer);
+    }
+
+    if (!response.ok) {
+      const detail = await this.safeReadText(response);
+      throw new Error(`StepFun TTS 返回非 2xx(${response.status}):${detail}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const audio = Buffer.from(arrayBuffer);
+    if (audio.length === 0) {
+      // 空音频:上游未产出内容,显式抛错(防编造红线)。
+      throw new Error('StepFun TTS 未产出任何音频内容(响应体为空)');
+    }
+
+    return { audio, mimeType: this.mimeFromFormat(this.ttsCfg.responseFormat) };
+  }
+
+  /** 区分 abort(TTS 超时)与一般错误,给出可读信息。 */
+  private describeTtsError(err: unknown): string {
+    if (err instanceof Error) {
+      if (err.name === 'AbortError') {
+        return `请求超时(${this.ttsCfg.timeoutMs}ms)`;
+      }
+      return err.message;
+    }
+    return String(err);
+  }
+
+  /** 由 response_format 推合成音频的 mimeType,供 HTTP 直回 Content-Type / 浏览器播放。 */
+  private mimeFromFormat(format: string): string {
+    switch (format.toLowerCase()) {
+      case 'wav':
+        return 'audio/wav';
+      case 'flac':
+        return 'audio/flac';
+      case 'opus':
+        return 'audio/opus';
+      case 'pcm':
+        return 'audio/pcm';
+      case 'mp3':
+      default:
+        return 'audio/mpeg';
+    }
   }
 
   /**

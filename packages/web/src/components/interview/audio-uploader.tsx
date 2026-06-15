@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { api } from '@/lib/api';
-import { Upload, Mic, X } from 'lucide-react';
+import { Upload, Mic, X, AlertTriangle } from 'lucide-react';
 
 // Response shape from POST /interviews/:id/transcribe (202 Accepted)
 export interface TranscribeStarted {
@@ -159,6 +159,30 @@ export function AudioUploader({ interviewId, open, onClose, onStarted }: AudioUp
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {/* 群面门控提示 */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              background: 'rgba(255,181,0,.08)',
+              border: '1px solid rgba(255,181,0,.35)',
+            }}
+          >
+            <AlertTriangle
+              size={15}
+              color="var(--color-warn)"
+              style={{ flexShrink: 0, marginTop: '1px' }}
+            />
+            <span style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.65 }}>
+              <strong>仅支持 1 对 1 面试复盘</strong>（一位面试官 + 你）。
+              群面（多人同时说话）由于缺乏说话人分离，转写结果不可靠，
+              <strong>暂不支持</strong>——后续接入讯飞多说话人分轨后开放。
+            </span>
+          </div>
+
           {/* Drop zone */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--color-ink-2)' }}>

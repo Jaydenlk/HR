@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  UseInterceptors,
+  ParseIntPipe,
+  StreamableFile,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
@@ -56,6 +68,19 @@ export class MockController {
   @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
   complete(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.mock.complete(id, user.id);
+  }
+
+  // 语音模式读题:把第 n 题(0-based)的题面 TTS 合成音频返回(audio/mpeg 等)。
+  // 仅 JwtAuthGuard,不计费:读题是已付费会话内的辅助朗读,与 GET 详情同性质,不独立扣点。
+  // 仅 mode='voice' 会话可用(service 校验);所有权不匹配 → 404;题号越界 → 400。
+  @Get(':id/question-audio/:n')
+  async questionAudio(
+    @Param('id') id: string,
+    @Param('n', ParseIntPipe) n: number,
+    @CurrentUser() user: { id: string },
+  ): Promise<StreamableFile> {
+    const { audio, mimeType } = await this.mock.synthesizeQuestion(id, user.id, n);
+    return new StreamableFile(audio, { type: mimeType });
   }
 
   @Delete(':id')

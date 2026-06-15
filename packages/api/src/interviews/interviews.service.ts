@@ -18,6 +18,11 @@ import {
   TranscribeStatus,
 } from '../speech/entities/transcribe-task.entity';
 import { LabelCorrectionDto } from '../speech/dto/confirm-labels.dto';
+import { CreditService } from '../credit/credit.service';
+import { AiUsage } from '../quota/entities/ai-usage.entity';
+
+// 转写扣点端点标识:写入 credit_transactions.endpoint / ai_usage.endpoint(与控制器路由模板同口径)。
+const TRANSCRIBE_ENDPOINT = '/api/interviews/:id/transcribe';
 
 /** POST /interviews/:id/transcribe 的 202 响应:仅回 taskId,前端据此轮询 status。 */
 export interface TranscribeStartedResponse {
@@ -47,9 +52,12 @@ export class InterviewsService {
     private readonly repo: Repository<Interview>,
     @InjectRepository(InterviewTranscribeTask)
     private readonly taskRepo: Repository<InterviewTranscribeTask>,
+    @InjectRepository(AiUsage)
+    private readonly aiUsageRepo: Repository<AiUsage>,
     private readonly debrief: DebriefService,
     private readonly speech: SpeechService,
     private readonly label: LabelService,
+    private readonly credit: CreditService,
   ) {}
 
   async create(userId: string, dto: CreateInterviewDto): Promise<Interview> {
@@ -145,16 +153,17 @@ export class InterviewsService {
   }
 
   /**
-   * 上传音频 → 转写 → 角色打标,落 task.segments_json 并停在 awaiting_confirm 等用户确认。
+   * 上传音频 → 立即建 task 返回 taskId(不阻塞)→ 后台跑转写+打标 → 落 awaiting_confirm。
    *
-   * 同步编排(不 fire-and-forget):转写/打标失败时本方法直接抛错 → 控制器响应非 2xx →
-   * AiUsageInterceptor / CreditInterceptor 的成功路径不触发 → 失败不计费(规格 §9 步骤 8)。
-   * 成功时返回 taskId,此刻 status 已是 awaiting_confirm,前端轮询立即拿到可纠正列表。
+   * 异步编排(fire-and-forget):重活(StepFun ASR + LLM 打标)放后台跑,用户不白等;前端拿
+   * taskId 后轮询 GET status 看进度。这与同步版的本质差别在计费时机——同步版靠拦截器在 handler
+   * 返回时扣点,异步版 handler 立即 202 返回,故扣点必须挪到后台任务"真实成功"(落 awaiting_confirm)
+   * 时由本 service 内部完成(chargeTranscribe),对齐 check-in"真实成功才计费"理念。
    *
    * 防编造红线:
-   *  - SpeechService/LabelService 内部对上游失败/空结果均显式抛错,本方法不吞错、不兜底空。
-   *  - 任一阶段异常 → 标 task.status=failed + 记 failed_at_stage,再上抛(前端轮询见 failed)。
-   * 隐私铁律:audio Buffer 仅在本方法栈内存活,转写结束即出作用域 GC;interview.audio_url 全程 null。
+   *  - SpeechService/LabelService 内部对上游失败/空结果均显式抛错,后台 runner 不吞错、不兜底空。
+   *  - 任一阶段异常 → 标 task.status=failed + 记 failed_at_stage,且不扣点(前端轮询见 failed)。
+   * 隐私铁律:audio Buffer 仅在内存存活,转写结束即出作用域 GC;interview.audio_url 全程 null。
    */
   async transcribe(
     id: string,
@@ -162,8 +171,9 @@ export class InterviewsService {
     audio: Buffer,
     mimeType: string,
   ): Promise<TranscribeStartedResponse> {
-    // 所有权校验:非本人面试 → 404(不泄露存在性)。
+    // 所有权校验:非本人面试 → 404(不泄露存在性)。建任务前先校验,不为越权请求建任务。
     const interview = await this.findOne(id, userId);
+    const hotwords = this.buildHotwords(interview);
 
     const task = await this.taskRepo.save(
       this.taskRepo.create({
@@ -173,10 +183,36 @@ export class InterviewsService {
       }),
     );
 
+    // 后台跑转写+打标:不 await,handler 立即 202 返回 taskId。runner 自身吞掉所有异常
+    // (内部已标 task=failed),故这里 void 即可,不会留下未处理的 rejection。
+    void this.runTranscribe(task.id, userId, audio, mimeType, hotwords);
+
+    return { taskId: task.id };
+  }
+
+  /**
+   * 后台转写+打标 runner。由 transcribe() fire-and-forget 调起,不向调用方抛错。
+   *
+   * 成功(落 awaiting_confirm)时调 chargeTranscribe 扣 1 点 + 记 ai_usage(真实成功才计费);
+   * 任一阶段失败 → 标 task=failed + 记 failed_at_stage,不扣点(失败不计费)。
+   */
+  private async runTranscribe(
+    taskId: string,
+    userId: string,
+    audio: Buffer,
+    mimeType: string,
+    hotwords: string[],
+  ): Promise<void> {
+    const task = await this.taskRepo.findOne({ where: { id: taskId } });
+    if (!task) {
+      // 理论不达:任务刚由 transcribe() 落库。极端竞态(任务被删)下仅记日志,不扣点。
+      this.logger.error(`后台转写找不到任务 taskId=${taskId},放弃执行`);
+      return;
+    }
+
     try {
       // 1) 转写:岗位/技术热词传入纠正同音黑话(全栈→全站)。
       await this.setTaskStatus(task, 'transcribing');
-      const hotwords = this.buildHotwords(interview);
       const segments = await this.speech.transcribeFile(audio, mimeType, hotwords);
 
       // 2) 角色打标:LLM 判 interviewer|candidate,失败/漂移在 LabelService 内抛错。
@@ -195,11 +231,40 @@ export class InterviewsService {
       task.status = 'awaiting_confirm';
       await this.taskRepo.save(task);
 
-      return { taskId: task.id };
+      // 转写+打标"真实成功" → 此刻扣 1 点 + 记 ai_usage(失败不会走到这里,故失败不计费)。
+      await this.chargeTranscribe(userId);
     } catch (err) {
-      // 记失败态后上抛:控制器返回非 2xx,失败不计费;前端轮询看到 failed。
+      // 失败:标 task=failed + 记 failed_at_stage,不扣点;前端轮询看到 failed + errorMessage。
       await this.markTaskFailed(task, err);
-      throw err;
+      this.logger.error(
+        `后台转写失败 taskId=${taskId} stage=${task.failed_at_stage}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * 转写"真实成功"后扣 1 点 + 记一条 ai_usage(双轨计账,与 CreditInterceptor/AiUsageInterceptor
+   * 同口径:credit 账务、ai_usage 运营)。扣点/记账失败均不抛错(不能让计账失败回滚已完成的转写)——
+   * 仅记日志,与拦截器 fire-and-forget catch 同语义。
+   */
+  private async chargeTranscribe(userId: string): Promise<void> {
+    try {
+      await this.credit.consume(userId, TRANSCRIBE_ENDPOINT);
+    } catch (err) {
+      this.logger.error(
+        `转写扣点失败 userId=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    try {
+      await this.aiUsageRepo.insert({ user_id: userId, endpoint: TRANSCRIBE_ENDPOINT });
+    } catch (err) {
+      this.logger.error(
+        `转写 ai_usage 写入失败 userId=${userId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 

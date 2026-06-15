@@ -417,7 +417,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
               marginBottom: '20px',
             }}
           >
-            上传录音将转写并标注「面试官 / 用户」，确认后生成能力评分、逐题点评与下一轮预测
+            上传后立即返回——后台自动转写（约 30–120 秒），完成后在此确认角色标注，再生成能力评分与逐题点评
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { api } from '@/lib/api';
 import type { MockQuestion, MockAnswer } from '@/lib/types';
-import { ChevronDown, ChevronRight, Send, StopCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Send, StopCircle, Volume2, Loader2 } from 'lucide-react';
 
 interface MockStageProps {
   sessionId: string;
+  mode: string;
   questions: MockQuestion[];
   answers: MockAnswer[];
   onAnswer: (answer: string) => Promise<void>;
@@ -26,7 +28,12 @@ function difficultyLabel(difficulty: string): string {
   return '中等';
 }
 
+// 读题播放态:idle 未播 / loading 合成中 / playing 播放中 / error 合成或播放失败。
+type VoiceState = 'idle' | 'loading' | 'playing' | 'error';
+
 export function MockStage({
+  sessionId,
+  mode,
   questions,
   answers,
   onAnswer,
@@ -42,6 +49,70 @@ export function MockStage({
   const totalQuestions = questions.length;
   const answeredCount = answers.length;
   const progress = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+
+  // ── 语音模式读题(mode='voice'):面试官问题用 TTS 朗读 ──────────────────────────
+  const isVoice = mode === 'voice';
+  const [voiceState, setVoiceState] = useState<VoiceState>('idle');
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  // <audio> 元素与上一个 object URL:换题/卸载时停旧音频、释放旧 URL,避免叠播与内存泄漏。
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+
+  const stopPlayback = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+  }, []);
+
+  // 拉取第 idx 题(0-based)的 TTS 音频并播放。失败显式置 error 态(不静默),供用户重试。
+  const playQuestion = useCallback(
+    async (idx: number) => {
+      stopPlayback();
+      setVoiceError(null);
+      setVoiceState('loading');
+      try {
+        const blob = await api.getBlob(`/mock-sessions/${sessionId}/question-audio/${idx}`);
+        const url = URL.createObjectURL(blob);
+        objectUrlRef.current = url;
+        const el = new Audio(url);
+        audioRef.current = el;
+        el.onended = () => setVoiceState('idle');
+        el.onerror = () => {
+          setVoiceState('error');
+          setVoiceError('音频播放失败');
+        };
+        await el.play();
+        setVoiceState('playing');
+      } catch (err) {
+        setVoiceState('error');
+        setVoiceError(err instanceof Error ? err.message : '读题失败');
+      }
+    },
+    [sessionId, stopPlayback],
+  );
+
+  // 语音模式:进入新一题时自动读题。浏览器自动播放策略下首次可能被拦截 → 失败置 error,
+  // 用户点"重新朗读"即可(那是用户手势,必放行)。换题/卸载先停旧音频。
+  // 用 queueMicrotask 异步触发(而非在 effect 体内同步 setState),并以 cancelled 闸门防竞态:
+  // 题号快速切换时,旧 effect 的延后任务被其 cleanup 置 cancelled,不会读旧题。
+  useEffect(() => {
+    if (!isVoice || !currentQuestion) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void playQuestion(currentIndex);
+    });
+    return () => {
+      cancelled = true;
+      stopPlayback();
+    };
+    // currentIndex 变化 = 进入新一题;playQuestion/stopPlayback 由 useCallback 稳定。
+  }, [isVoice, currentIndex, currentQuestion, playQuestion, stopPlayback]);
 
   // Last answered question's feedback
   const lastAnswer = answers.length > 0 ? answers[answers.length - 1] : null;
@@ -245,6 +316,47 @@ export function MockStage({
         >
           {currentQuestion.question}
         </p>
+
+        {/* Voice mode: 读题控制(朗读中 / 重新朗读 / 失败重试)。仅 mode='voice' 显示。 */}
+        {isVoice && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+            <style>{`@keyframes mock-tts-spin { to { transform: rotate(360deg); } }`}</style>
+            <button
+              onClick={() => void playQuestion(currentIndex)}
+              disabled={voiceState === 'loading'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                background: 'var(--color-brand-soft)',
+                color: 'var(--color-brand)',
+                border: '1px solid var(--hair)',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: voiceState === 'loading' ? 'not-allowed' : 'pointer',
+                opacity: voiceState === 'loading' ? 0.7 : 1,
+              }}
+            >
+              {voiceState === 'loading' ? (
+                <Loader2 size={14} style={{ animation: 'mock-tts-spin 1s linear infinite' }} />
+              ) : (
+                <Volume2 size={14} />
+              )}
+              {voiceState === 'loading'
+                ? '生成语音中…'
+                : voiceState === 'playing'
+                  ? '朗读中…'
+                  : '重新朗读'}
+            </button>
+            {voiceState === 'error' && voiceError && (
+              <span style={{ fontSize: '12.5px', color: 'var(--color-danger)' }}>
+                {voiceError}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Hint toggle */}
         {currentQuestion.hint && (

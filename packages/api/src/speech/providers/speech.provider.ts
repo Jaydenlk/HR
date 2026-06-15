@@ -1,5 +1,5 @@
-// 语音供应商抽象。P0 实现 = StepFunProvider(ASR);P1 再补 synthesize()(TTS)。
-// 设计原则:供应商不持久化、不持有 fs,纯内存 buffer 进、结构化 segment 出;
+// 语音供应商抽象。实现 = StepFunProvider(ASR transcribeFile + TTS synthesize)。
+// 设计原则:供应商不持久化、不持有 fs,纯内存 buffer 进、结构化 segment / 音频字节出;
 // 上游失败/空结果一律由实现显式抛错,绝不返回空当成功(防编造红线)。
 
 /** 供应商能力声明。调用方据此决定是否需要 LLM 打标(diarization=false 时必须)。 */
@@ -20,9 +20,18 @@ export interface TranscriptSegment {
   speaker?: string;
 }
 
+/** 合成音频结果:纯内存音频字节 + 其 mimeType(供 HTTP 直回 / 浏览器 <audio> 播放)。 */
+export interface SynthesizedAudio {
+  audio: Buffer;
+  mimeType: string;
+}
+
 /**
- * 语音供应商接口。transcribeFile 收纯内存音频 buffer + mimeType,出句级带毫秒时间戳的片段数组。
- * hotwords:岗位/技术热词,纠正同音黑话(如 全栈→全站);P0 可空数组,接口预留。
+ * 语音供应商接口。
+ * - transcribeFile:收纯内存音频 buffer + mimeType,出句级带毫秒时间戳的片段数组。
+ *   hotwords:岗位/技术热词,纠正同音黑话(如 全栈→全站);可空数组,接口预留。
+ * - synthesize:收一段文本(+ 可选音色),出合成音频字节(模拟面试 voice 模式读题)。
+ *   voice 缺省时由实现取配置缺省音色;上游失败/空结果显式抛错,绝不返回空当成功(防编造红线)。
  */
 export interface SpeechProvider {
   readonly capabilities: SpeechCapabilities;
@@ -31,6 +40,7 @@ export interface SpeechProvider {
     mimeType: string,
     hotwords?: string[],
   ): Promise<TranscriptSegment[]>;
+  synthesize(text: string, voice?: string): Promise<SynthesizedAudio>;
 }
 
 /** DI token:SpeechProvider 是接口(运行期不存在),用此 token 在 module 里绑定具体实现。 */

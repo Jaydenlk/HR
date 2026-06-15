@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AiService } from '../ai/ai.service';
+import { SpeechService } from '../speech/speech.service';
+import type { SynthesizedAudio } from '../speech/providers/speech.provider';
 import { CompanyRegistryService } from '../feed/company-registry.service';
 import { CompanySearchService, SearchCandidate } from './company-search.service';
 import type { Company } from '../feed/entities/company.entity';
@@ -66,6 +68,7 @@ export class MockService {
     @InjectRepository(MockSession)
     private readonly repo: Repository<MockSession>,
     private readonly ai: AiService,
+    private readonly speech: SpeechService,
     private readonly companyRegistry: CompanyRegistryService,
     private readonly companySearch: CompanySearchService,
   ) {}
@@ -387,6 +390,40 @@ ${qaList}
     });
     if (!session) throw new NotFoundException();
     return session;
+  }
+
+  /**
+   * 语音模式读题:把指定题号的问题文本经 TTS 合成音频字节返回(模拟面试 mode='voice')。
+   *
+   * 所有权:非本人会话 → findOne 抛 404(不泄露存在性)。
+   * 边界:仅 mode='voice' 会话允许读题(text 模式调此端点 → 400);题号越界 → 400。
+   * 防编造红线:SpeechService.synthesize 对缺 key/上游失败/空音频显式抛错,本方法不吞错、不兜底空音频。
+   */
+  async synthesizeQuestion(
+    id: string,
+    userId: string,
+    questionIndex: number,
+  ): Promise<SynthesizedAudio> {
+    const session = await this.findOne(id, userId);
+
+    if (session.mode !== 'voice') {
+      throw new BadRequestException('该模拟面试不是语音模式,无需朗读题目');
+    }
+
+    const questions = session.questions ?? [];
+    if (questionIndex < 0 || questionIndex >= questions.length) {
+      throw new BadRequestException(
+        `题号越界 n=${questionIndex}(有效范围 0..${questions.length - 1})`,
+      );
+    }
+
+    const text = questions[questionIndex].question?.trim();
+    if (!text) {
+      // 题面为空说明出题异常,显式抛错而非合成空音频(防编造)。
+      throw new BadRequestException('该题目无可朗读的文本内容');
+    }
+
+    return this.speech.synthesize(text);
   }
 
   async submitAnswer(

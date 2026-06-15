@@ -90,9 +90,13 @@ export class InterviewsController {
   }
 
   // ── 录音转写(StepFun ASR + LLM 角色打标)──────────────────────────────────────
-  // 上传音频 → 同步转写+打标 → 落 awaiting_confirm。同步编排:失败抛错 → 拦截器成功路径不触发 →
-  // 失败不计费(规格 §9 步骤 8)。consent 必须 'true'(@IsIn 硬校验,缺/非 true → 400 不进流程)。
-  // 计费:成功扣 1(CreditGuard 预检余额 ≥1,CreditInterceptor 成功后扣)。
+  // 上传音频 → 立即建 task 返回 taskId(202,不阻塞)→ 后台跑转写+打标 → 落 awaiting_confirm。
+  // consent 必须 'true'(@IsIn 硬校验,缺/非 true → 400 不进流程)。
+  //
+  // 计费不走 CreditInterceptor:本端点 fire-and-forget,handler 立即 resolve(202)→ 拦截器会
+  // 在 ASR/LLM 真正完成前就扣点,违反"失败不计费"。故移除 CreditInterceptor/AiUsageInterceptor,
+  // 改由后台任务在转写+打标"真实成功"(落 awaiting_confirm)时由 service 内部扣 1 + 记 ai_usage;
+  // 任一阶段失败标 task=failed 且不扣点。CreditGuard 保留:接活前预检余额 ≥1(无点直接 402,不建任务)。
   @Post(':id/transcribe')
   @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(CreditGuard)
@@ -101,8 +105,6 @@ export class InterviewsController {
       limits: { fileSize: AUDIO_MAX_BYTES },
       fileFilter: audioFileFilter,
     }),
-    AiUsageInterceptor,
-    CreditInterceptor,
   )
   transcribe(
     @Param('id') id: string,

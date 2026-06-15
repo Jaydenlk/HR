@@ -249,6 +249,23 @@ export class EnvironmentVariables {
   @IsNumberString()
   STEP_MAX_RETRIES?: string;
 
+  // ── 语音合成 StepFun TTS(可选;复用 STEP_API_KEY,缺省值在 speech.config.ts) ────────
+  @IsOptional()
+  @IsString()
+  STEP_TTS_MODEL?: string;
+
+  @IsOptional()
+  @IsString()
+  STEP_TTS_VOICE?: string;
+
+  @IsOptional()
+  @IsString()
+  STEP_TTS_FORMAT?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  STEP_TTS_TIMEOUT_MS?: string;
+
   @IsOptional()
   @IsNumberString()
   AUDIO_MAX_SIZE_MB?: string;

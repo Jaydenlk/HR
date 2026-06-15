@@ -228,6 +228,7 @@ export function MockDetail({ params }: MockDetailProps) {
       ) : (
         <MockStage
           sessionId={id}
+          mode={session.mode}
           questions={questions}
           answers={answers}
           onAnswer={handleAnswer}

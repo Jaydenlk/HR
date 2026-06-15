@@ -155,6 +155,12 @@ export function TranscriptProgress({
             ? '转写失败，请重新上传'
             : isCompleted
             ? '转写完成'
+            : status === 'submitted'
+            ? '排队中，请稍候…'
+            : status === 'transcribing'
+            ? '转写中，请稍候（约 30–120 秒）…'
+            : status === 'labeling'
+            ? '角色识别中…'
             : '正在处理录音…'}
         </span>
       </div>
@@ -292,7 +298,7 @@ export function TranscriptProgress({
           }}
         >
           <Clock size={13} />
-          <span>转写通常需要 30–120 秒，完成后页面自动更新</span>
+          <span>后台转写中，可离开本页面稍后回来查看进度</span>
         </div>
       )}
 
