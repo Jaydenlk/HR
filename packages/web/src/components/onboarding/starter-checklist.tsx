@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Resume, Diagnosis, Conversation } from '@/lib/types';
 import { Check, X } from 'lucide-react';
+import { STARTER_ITEMS, hasCompletedDiagnosis } from './starter-items';
 
 const HIDDEN_KEY = 'coach_starter_hidden';
 
@@ -47,8 +48,10 @@ export default function StarterChecklist() {
       .then((data) => setHasResume(data.length > 0))
       .catch(() => {});
     api
+      // 「完成」以真实成功为准:存在至少一条 score 非空的诊断,而非仅有记录。
+      // 超时/失败/孤立(无 score)记录不勾选,见 hasCompletedDiagnosis。
       .get<Diagnosis[]>('/diagnoses')
-      .then((data) => setHasDiagnosis(data.length > 0))
+      .then((data) => setHasDiagnosis(hasCompletedDiagnosis(data)))
       .catch(() => {});
     api
       .get<Conversation[]>('/conversations')
@@ -61,13 +64,18 @@ export default function StarterChecklist() {
     setHidden(true);
   }
 
-  const items: ChecklistItem[] = [
-    // 预勾第一项:注册时已收集求职方向,直接打勾(endowed progress)。
-    { id: 'direction', label: '已了解你的求职方向', href: '/me', done: true },
-    { id: 'resume', label: '传一份简历', href: '/resumes', done: hasResume },
-    { id: 'diagnosis', label: '跑出第一份诚实诊断', href: '/diagnoses/campus', done: hasDiagnosis },
-    { id: 'conversation', label: '问 Coach 一句', href: '/chat', done: hasConversation },
-  ];
+  // 条目文案/顺序来自单一真相源 STARTER_ITEMS(与导览清单卡同源);
+  // 此处只按 id 叠加真实 done 状态(direction 预勾——注册已收集求职方向,endowed progress)。
+  const doneById: Record<string, boolean> = {
+    direction: true,
+    resume: hasResume,
+    diagnosis: hasDiagnosis,
+    conversation: hasConversation,
+  };
+  const items: ChecklistItem[] = STARTER_ITEMS.map((item) => ({
+    ...item,
+    done: doneById[item.id] ?? false,
+  }));
 
   const doneCount = items.filter((i) => i.done).length;
   const total = items.length;

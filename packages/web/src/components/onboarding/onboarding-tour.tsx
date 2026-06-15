@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { STARTER_ITEMS } from './starter-items';
 
 const DONE_KEY = 'coach_tour_done';
 
@@ -55,13 +56,8 @@ const STEPS: TourStep[] = [
 ];
 
 // 末尾"启动清单"卡:给"完整 / 讲完"感,收口指向第一份诚实诊断(aha)。
+// 清单条目来自单一真相源 STARTER_ITEMS(与 /today 常驻清单同源),不再各自硬编码。
 const CHECKLIST_TITLE = '你的校招启动清单';
-const CHECKLIST_ITEMS = [
-  '传一份简历',
-  '跑出你的第一份诚实诊断',
-  '看 Coach 当场拦下一处水分',
-  '问 Coach 一句你最关心的求职问题',
-];
 const CHECKLIST_CTA = '传简历,开始第一份诊断';
 
 /** 目标元素的视口矩形(只取定位所需四个值,避免持有 DOMRect) */
@@ -149,13 +145,14 @@ function Dots({ current }: { current: number }) {
   );
 }
 
-/** 末尾启动清单卡的清单条目展示(导览态,纯视觉前瞻,不接真实进度——真实进度在 /today 的常驻清单) */
+/** 末尾启动清单卡的清单条目展示(导览态,纯视觉前瞻,不接真实进度——真实进度在 /today 的常驻清单)。
+ *  条目来自单一真相源 STARTER_ITEMS,与 /today 常驻清单同源、编译期不可分叉。 */
 function ChecklistPreview() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
-      {CHECKLIST_ITEMS.map((item, i) => (
+      {STARTER_ITEMS.map((item, i) => (
         <div
-          key={i}
+          key={item.id}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -182,7 +179,7 @@ function ChecklistPreview() {
             {i + 1}
           </span>
           <span style={{ fontSize: '13.5px', color: 'var(--color-ink-2)', lineHeight: 1.4 }}>
-            {item}
+            {item.label}
           </span>
         </div>
       ))}
