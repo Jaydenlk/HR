@@ -8,6 +8,9 @@ export interface DailyStats {
   AI_FAILOVER: number;
   AI_BOTH_DOWN: number;
   QUEUE_FULL: number;
+  AI_CALL_FAILED: number;
+  CREDIT_CONSUME_FAILED: number;
+  ADMIN_ACTION: number;
 }
 
 @Injectable()
@@ -61,12 +64,23 @@ export class OpsEventsService {
     for (const row of rows) {
       const date = row.created_at.toISOString().slice(0, 10);
       if (!map.has(date)) {
-        map.set(date, { date, AI_FAILOVER: 0, AI_BOTH_DOWN: 0, QUEUE_FULL: 0 });
+        map.set(date, {
+          date,
+          AI_FAILOVER: 0,
+          AI_BOTH_DOWN: 0,
+          QUEUE_FULL: 0,
+          AI_CALL_FAILED: 0,
+          CREDIT_CONSUME_FAILED: 0,
+          ADMIN_ACTION: 0,
+        });
       }
       const entry = map.get(date)!;
       if (row.type === 'AI_FAILOVER') entry.AI_FAILOVER += 1;
       else if (row.type === 'AI_BOTH_DOWN') entry.AI_BOTH_DOWN += 1;
       else if (row.type === 'QUEUE_FULL') entry.QUEUE_FULL += 1;
+      else if (row.type === 'AI_CALL_FAILED') entry.AI_CALL_FAILED += 1;
+      else if (row.type === 'CREDIT_CONSUME_FAILED') entry.CREDIT_CONSUME_FAILED += 1;
+      else if (row.type === 'ADMIN_ACTION') entry.ADMIN_ACTION += 1;
     }
 
     return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));

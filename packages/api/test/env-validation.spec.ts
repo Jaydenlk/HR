@@ -153,4 +153,44 @@ describe('EnvironmentVariables validate()', () => {
     expect(result.DAILY_AI_QUOTA).toBeUndefined();
     expect(result.CORS_ORIGINS).toBeUndefined();
   });
+
+  // ── 波0 安全:production JWT_SECRET 强度跨字段校验(规格 §3③ 用例②) ──────────
+  // production 下 JWT_SECRET 为占位 'dev-secret' 或长度 <32 → validate throw 拒启,
+  // 防被人猜中密钥自签 admin token 越权。非生产放行(开发/测试常用短密钥)。
+  describe('波0:production JWT_SECRET 强度', () => {
+    const STRONG = 'x'.repeat(32); // 恰好 32 位强随机占位
+
+    it('②production + JWT_SECRET=dev-secret → 抛错(占位密钥拒启)', () => {
+      expect(() =>
+        validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: 'dev-secret', NODE_ENV: 'production' }),
+      ).toThrow(/JWT_SECRET/);
+    });
+
+    it('②production + JWT_SECRET 过短(<32)→ 抛错', () => {
+      expect(() =>
+        validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: 'short-secret-123', NODE_ENV: 'production' }),
+      ).toThrow(/JWT_SECRET/);
+    });
+
+    it('production + JWT_SECRET 恰好 31 位 → 抛错(边界:<32 拒绝)', () => {
+      expect(() =>
+        validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: 'x'.repeat(31), NODE_ENV: 'production' }),
+      ).toThrow(/JWT_SECRET/);
+    });
+
+    it('production + JWT_SECRET 恰好 32 位强随机 → 通过(边界:=32 放行)', () => {
+      const result = validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: STRONG, NODE_ENV: 'production' });
+      expect(result.JWT_SECRET).toBe(STRONG);
+    });
+
+    it('非 production + JWT_SECRET=dev-secret → 通过(开发态放行)', () => {
+      const result = validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: 'dev-secret', NODE_ENV: 'development' });
+      expect(result.JWT_SECRET).toBe('dev-secret');
+    });
+
+    it('NODE_ENV 缺省 + JWT_SECRET=dev-secret → 通过(仅 production 强制)', () => {
+      const result = validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: 'dev-secret' });
+      expect(result.JWT_SECRET).toBe('dev-secret');
+    });
+  });
 });

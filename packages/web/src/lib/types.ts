@@ -1418,3 +1418,91 @@ export interface AdminUsageOverview {
   daily: { date: string; count: number }[];
   today_by_user: { user_id: string; email: string; name: string; count: number }[];
 }
+
+// ─── 管理后台 Phase2 类型(波3前端使用)────────────────────────────────────────
+
+// GET /api/admin/user-activity:单用户活动明细(仅计数,无任何正文)。
+// 与后端 AdminActivityResponseDto 字段一一对应。
+export interface AdminUserActivity {
+  // 被查询用户 ID(与入参 userId 一致)。
+  userId: string;
+  // 查询时间窗口(ISO 8601 或 null)。
+  from: string | null;
+  to: string | null;
+  // AI 调用次数按端点分组(来源:ai_usage 表,成功调用)。
+  aiCallsByEndpoint: Array<{ endpoint: string; count: number }>;
+  // AI 调用总次数。
+  aiCallsTotal: number;
+  // credit 消耗次数按端点分组(来源:credit_transactions where type='consume')。
+  creditConsumeByEndpoint: Array<{ endpoint: string | null; count: number }>;
+  // credit 消耗总次数。
+  creditConsumeTotal: number;
+}
+
+// ops_events.type 全集(与后端 OpsEventType 一致)。
+export type OpsEventType =
+  | 'AI_FAILOVER'
+  | 'AI_BOTH_DOWN'
+  | 'QUEUE_FULL'
+  | 'AI_CALL_FAILED'
+  | 'CREDIT_CONSUME_FAILED'
+  | 'ADMIN_ACTION';
+
+// GET /api/admin/ops-events 与 GET /api/admin/error-stream 单条响应。
+// 与后端 AdminErrorEventResponseDto 字段一一对应(detail 已经白名单过滤)。
+export interface AdminOpsEvent {
+  id: string;
+  type: OpsEventType;
+  // detail 白名单投影(后端已剔除 token/正文):只含 endpoint/error/model/provider/
+  // active/maxConcurrent/maxQueue/user_id/actor/target/op/patch/delta/note。
+  detail: Record<string, unknown> | null;
+  created_at: string; // ISO 8601
+}
+
+// GET /api/admin/health-snapshot 响应。
+// 与后端 AdminHealthResponseDto 字段一一对应。
+export interface AdminHealthSnapshot {
+  // 整体健康状态:DB ping 通过为 'ok',否则 'error'。
+  status: 'ok' | 'error';
+  // 数据库连通性。
+  db: 'ok' | 'error';
+  // 进程运行时长(秒,取整)。
+  uptime: number;
+  // 应用版本号。
+  version: string;
+  // 快照时间戳 ISO 8601。
+  timestamp: string;
+  // 并发护栏状态。
+  concurrency: {
+    active: number;
+    queued: number;
+    // queued > 0 即视为有压力,供前端高亮展示。
+    under_pressure: boolean;
+  };
+}
+
+// GET /api/admin/success-stats 单日行(后端返回数组)。
+// 与后端 AdminSuccessStatsRow 字段一一对应。
+export interface AdminSuccessStats {
+  // UTC 日期键 YYYY-MM-DD。
+  date: string;
+  // 当日 AI 调用成功次数(来源:ai_usage 表)。
+  success: number;
+  // 当日 AI 调用失败次数(来源:ops_events AI 失败类:AI_FAILOVER/AI_BOTH_DOWN/AI_CALL_FAILED)。
+  failed: number;
+  // 成功率 = success/(success+failed);当日无任何 AI 活动时为 null。
+  success_rate: number | null;
+}
+
+// GET /api/admin/ops-stats 单日行(后端返回数组,稀疏:仅含有事件的日期)。
+// 与后端 DailyStats(OpsEventsService)字段一一对应:按日各类 ops_events 计数。
+export interface AdminOpsDailyStats {
+  // 日期键 YYYY-MM-DD(UTC,与 success-stats 同口径)。
+  date: string;
+  AI_FAILOVER: number;
+  AI_BOTH_DOWN: number;
+  QUEUE_FULL: number;
+  AI_CALL_FAILED: number;
+  CREDIT_CONSUME_FAILED: number;
+  ADMIN_ACTION: number;
+}
