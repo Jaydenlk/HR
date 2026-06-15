@@ -174,14 +174,15 @@ export type ChatStreamEvent =
       message_id: string;
     };
 
-// POST 一条消息并以 SSE 流式消费回复。带 Bearer 头(fetch + ReadableStream,EventSource 不支持自定义头)。
+// POST 并以 SSE 流式消费,逐 data: 帧解析为泛型事件 T 产出。聊天与诊断共用同一帧协议。
+// 带 Bearer 头(fetch + ReadableStream,EventSource 不支持自定义头)。
 // 流开始前的 HTTP 层错误(401/402/网络)按现有 handleError 语义抛出,让调用方走降级或登录跳转。
-// 流开始后(200 + text/event-stream)逐 data: 帧解析成 ChatStreamEvent 产出。
-async function* postStream(
+// 流开始后(200 + text/event-stream)逐 data: 帧 JSON.parse 成 T 产出;半截/损坏帧跳过不中断整流。
+async function* postStreamRaw<T>(
   path: string,
   body: unknown,
   signal?: AbortSignal,
-): AsyncGenerator<ChatStreamEvent, void, void> {
+): AsyncGenerator<T, void, void> {
   const token = authToken();
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
@@ -221,7 +222,7 @@ async function* postStream(
         const json = line.slice(5).trim();
         if (!json) continue;
         try {
-          yield JSON.parse(json) as ChatStreamEvent;
+          yield JSON.parse(json) as T;
         } catch {
           // 半截/损坏帧:跳过,不中断整流。
         }
@@ -236,10 +237,20 @@ async function* postStream(
   }
 }
 
+// 聊天专用流:对 postStreamRaw 的具名收窄(保持现有调用方类型不变)。
+function postStream(
+  path: string,
+  body: unknown,
+  signal?: AbortSignal,
+): AsyncGenerator<ChatStreamEvent, void, void> {
+  return postStreamRaw<ChatStreamEvent>(path, body, signal);
+}
+
 export const api = {
   post: <T>(path: string, body: unknown) =>
     requestWithQueueWatch<T>(path, { method: 'POST', body: JSON.stringify(body) }),
   postStream,
+  postStreamRaw,
   // options 透传 signal,支持 AbortController 真正中止 GET(页面切换/竞态时取消旧请求)。
   get: <T>(path: string, options?: Pick<RequestInit, 'signal'>) => request<T>(path, options),
   patch: <T>(path: string, body: unknown) =>

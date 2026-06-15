@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import type {
@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   X,
   Gauge,
+  RefreshCw,
 } from 'lucide-react';
 import { getScoreColor } from '@/lib/score-utils';
 import { SuggestionCard } from '@/components/diagnosis/suggestion-card';
@@ -268,6 +269,92 @@ function ConventionCheckRow({ check }: { check: ConventionCheck }) {
   );
 }
 
+// 改写建议为空(流式诊断中分析已落库、suggesting 仍在跑,或旧诊断本无建议)的优雅占位。
+// 不崩、不留白:说明状态 + 提供刷新入口,让用户稍后取回完整结果。
+function RewritePendingCard({
+  onRefresh,
+  refreshing,
+}: {
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
+  return (
+    <div
+      className="lg"
+      style={{
+        padding: '24px',
+        marginBottom: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+      }}
+    >
+      <h2 style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 600, color: 'var(--color-ink)', margin: 0 }}>
+        改写建议
+      </h2>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '12px',
+          padding: '16px 18px',
+          background: 'var(--color-brand-soft)',
+          borderRadius: '12px',
+          border: '1px solid var(--color-line)',
+        }}
+      >
+        <RefreshCw
+          size={16}
+          color="var(--color-brand)"
+          style={{
+            flexShrink: 0,
+            marginTop: '2px',
+            animation: refreshing ? 'rwspin 0.8s linear infinite' : undefined,
+          }}
+        />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--color-brand-ink)', margin: '0 0 4px' }}>
+            改写建议生成中
+          </p>
+          <p style={{ fontSize: '13px', color: 'var(--color-ink-2)', lineHeight: 1.6, margin: 0 }}>
+            分析评分已就绪，针对性改写示范通常还需十几秒。点击刷新即可取回，无需重新诊断。
+          </p>
+        </div>
+      </div>
+      <div>
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            minHeight: '40px',
+            padding: '9px 18px',
+            background: refreshing
+              ? 'rgba(47,143,255,.05)'
+              : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+            color: refreshing ? 'var(--color-ink-4)' : '#fff',
+            border: refreshing ? '1px solid var(--hair)' : 'none',
+            borderRadius: '10px',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            boxShadow: refreshing ? 'none' : '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+            transition: 'background 0.15s',
+          }}
+        >
+          <RefreshCw size={14} style={{ animation: refreshing ? 'rwspin 0.8s linear infinite' : undefined }} />
+          {refreshing ? '刷新中…' : '刷新查看改写建议'}
+        </button>
+      </div>
+      <style>{`
+        @keyframes rwspin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
+
 // 职业标尺模式结果页主体
 function ProfessionStandardView({
   diagnosis,
@@ -275,13 +362,18 @@ function ProfessionStandardView({
   date,
   onAskCoach,
   chatLoading,
+  onRefresh,
+  refreshing,
 }: {
   diagnosis: ProfessionStandardDiagnosis;
   result: ProfessionStandardResult;
   date: string;
   onAskCoach: () => void;
   chatLoading: boolean;
+  onRefresh: () => void;
+  refreshing: boolean;
 }) {
+  const hasSuggestions = (diagnosis.suggestions ?? []).length > 0;
   return (
     <div style={{ maxWidth: '860px', margin: '0 auto', padding: '48px 32px' }}>
       {/* Back */}
@@ -436,8 +528,8 @@ function ProfessionStandardView({
         </div>
       )}
 
-      {/* 改写示范 */}
-      {(diagnosis.suggestions ?? []).length > 0 && (
+      {/* 改写示范:有则展示;为空(流式 suggesting 未落库 / 旧诊断)则优雅占位 + 刷新入口 */}
+      {hasSuggestions ? (
         <div
           className="lg"
           style={{
@@ -454,6 +546,8 @@ function ProfessionStandardView({
             ))}
           </div>
         </div>
+      ) : (
+        <RewritePendingCard onRefresh={onRefresh} refreshing={refreshing} />
       )}
 
       {/* 面试追问预演 */}
@@ -527,6 +621,20 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
   const [chatLoading, setChatLoading] = useState(false);
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyDone, setApplyDone] = useState(false);
+  // 改写建议为空时的手动刷新(重新拉取本诊断,取回稍后落库的 suggestions)。
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refreshDiagnosis = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const data = await api.get<Diagnosis>(`/diagnoses/${id}`);
+      setDiagnosis(data);
+    } catch {
+      // 刷新失败保留现有内容,不打断已展示的分析;用户可再次点击。
+    } finally {
+      setRefreshing(false);
+    }
+  }, [id]);
 
   async function handleCreateApplication() {
     if (!diagnosis) return;
@@ -642,6 +750,8 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
         date={date}
         onAskCoach={handleAskCoach}
         chatLoading={chatLoading}
+        onRefresh={() => void refreshDiagnosis()}
+        refreshing={refreshing}
       />
     );
   }
@@ -857,8 +967,8 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
-      {/* Suggestions */}
-      {(diagnosis.suggestions ?? []).length > 0 && (
+      {/* Suggestions:有则展示;为空(流式 suggesting 未落库 / 旧诊断)则优雅占位 + 刷新入口 */}
+      {(diagnosis.suggestions ?? []).length > 0 ? (
         <div
           className="lg"
           style={{
@@ -874,6 +984,8 @@ export function DiagnosisDetailClient({ params }: { params: Promise<{ id: string
             ))}
           </div>
         </div>
+      ) : (
+        <RewritePendingCard onRefresh={() => void refreshDiagnosis()} refreshing={refreshing} />
       )}
 
       {/* Overall analysis */}

@@ -105,6 +105,26 @@ export interface ProfessionStandardDiagnosis extends DiagnosisBase {
 // mode 为判别字段:渲染时按 diagnosis.mode 收窄 dimensions,无需类型断言。
 export type Diagnosis = JdMatchDiagnosis | ProfessionStandardDiagnosis;
 
+// ─── 诊断流式事件(SSE) ─────────────────────────────────────────────────────
+// 与后端固定契约逐字一致:POST /diagnoses/campus/stream 与 POST /diagnoses/stream。
+// 每帧 data:{json}\n\n,json 为下列之一。关键不变量:analysis 事件发出前诊断行已落库
+// (suggestions 暂空),故 diagnosisId 一到即可在断流时跳到已存结果。
+// stage 取值与后端三步串行 AI 对应:parsing/analyzing/suggesting。
+export type DiagnosisStreamStage = 'parsing' | 'analyzing' | 'suggesting';
+
+// analysis 事件的 payload(与后端逐字一致):校招模式为 ProfessionStandardResult
+// (带 total_score + dimensions[] + conventionChecks[] + interviewHooks[]);
+// JD 匹配模式为 MatchDimensions(无顶层 total_score,总分体现在 overall.score)。
+// 两形态结构不同,消费方按页面已知 mode 各自取数,不做跨形态强转。
+export type DiagnosisAnalysisPayload = ProfessionStandardResult | MatchDimensions;
+
+export type DiagnosisStreamEvent =
+  | { type: 'queue'; position: number }
+  | { type: 'step'; stage: DiagnosisStreamStage; label: string }
+  | { type: 'analysis'; diagnosisId: string; payload: DiagnosisAnalysisPayload }
+  | { type: 'done'; diagnosisId: string; diagnosis: Diagnosis }
+  | { type: 'error'; message: string };
+
 export interface ParsedResume {
   basic_info: {
     name: string;
