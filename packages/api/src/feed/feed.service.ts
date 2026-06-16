@@ -4,6 +4,7 @@ import { Brackets, Repository } from 'typeorm';
 import { FeedItem } from './entities/feed-item.entity';
 import { CreateFeedItemDto } from './dto/create-feed-item.dto';
 import { FeedQueryDto } from './dto/feed-query.dto';
+import { FeedItemResponseDto } from './dto/feed-item-response.dto';
 import type { ClassifiedFeed } from './feed-classifier.service';
 import type { FeedCandidate } from './importers/feed-importer.interface';
 import { CompanyRegistryService } from './company-registry.service';
@@ -17,7 +18,7 @@ export class FeedService {
     private readonly companyRegistry: CompanyRegistryService,
   ) {}
 
-  create(userId: string, dto: CreateFeedItemDto): Promise<FeedItem> {
+  async create(userId: string, dto: CreateFeedItemDto): Promise<FeedItemResponseDto> {
     const item = this.repo.create({
       user_id: userId,
       title: dto.title,
@@ -30,13 +31,13 @@ export class FeedService {
         source_name: '用户投稿',
         category: 'interview_exp',
       });
-    return this.repo.save(item);
+    const saved = await this.repo.save(item);
+    return FeedItemResponseDto.from(saved);
   }
 
-  async findAll(query: FeedQueryDto = {}): Promise<FeedItem[]> {
+  async findAll(query: FeedQueryDto = {}): Promise<FeedItemResponseDto[]> {
     const qb = this.repo
       .createQueryBuilder('item')
-      .leftJoinAndSelect('item.user', 'user')
       .leftJoinAndSelect('item.source_ref', 'source')
       .where(
         new Brackets((scope) => {
@@ -71,7 +72,8 @@ export class FeedService {
     const raw = await qb.getMany();
     return raw
       .map((item) => applyFeedQualityFilter(item))
-      .filter((item): item is FeedItem => item !== null);
+      .filter((item): item is FeedItem => item !== null)
+      .map((item) => FeedItemResponseDto.from(item));
   }
 
   async remove(id: string, userId: string): Promise<void> {

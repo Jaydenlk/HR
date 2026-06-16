@@ -381,8 +381,9 @@ export class AdminService {
     );
 
     // 连续填充窗口内每一天(含零值天),便于前端画趋势。
+    // i = window-1 downto 0:days=7 时精确输出 7 天(今日为 i=0)。
     const rows: AdminSuccessStatsRow[] = [];
-    for (let i = window; i >= 0; i--) {
+    for (let i = window - 1; i >= 0; i--) {
       const d = new Date();
       d.setUTCDate(d.getUTCDate() - i);
       const key = d.toISOString().slice(0, 10);

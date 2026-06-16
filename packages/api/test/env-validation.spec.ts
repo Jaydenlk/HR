@@ -3,6 +3,24 @@ import { validate } from '../src/config/env.validation';
 // 主通道密钥用新名 AI_PRIMARY_API_KEY;旧名 CLOUDDREAM_API_KEY 仍兜底(单独用例覆盖)。
 const BASE = { AI_PRIMARY_API_KEY: 'key', JWT_SECRET: 'secret' };
 
+// ── e2e seal 旗标隔离 ──────────────────────────────────────────────────────────
+// jest-setup-env.ts(jest-e2e.json setupFiles)会置 __SEAL_OPS_ENV__='1',
+// 该旗标在 env.validation.validate() 内会把「不在 process.env 的密封键」从 config 中剔除。
+// 本文件是纯函数单测,入参 config 全部显式构造,不应受 e2e seal 约束。
+// beforeAll 清除旗标(还原交给 afterAll),保证普通单测与带旗标跑法都绿。
+let _sealFlagSaved: string | undefined;
+beforeAll(() => {
+  _sealFlagSaved = process.env.__SEAL_OPS_ENV__;
+  delete process.env.__SEAL_OPS_ENV__;
+});
+afterAll(() => {
+  if (_sealFlagSaved !== undefined) {
+    process.env.__SEAL_OPS_ENV__ = _sealFlagSaved;
+  } else {
+    delete process.env.__SEAL_OPS_ENV__;
+  }
+});
+
 describe('EnvironmentVariables validate()', () => {
   // ── 必填字段 ──────────────────────────────────────────────────────
   it('缺主通道密钥(AI_PRIMARY_API_KEY 与 CLOUDDREAM_API_KEY 都缺) → 抛错', () => {
