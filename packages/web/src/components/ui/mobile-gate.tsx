@@ -9,7 +9,10 @@ import { usePathname } from 'next/navigation';
 // 挂载后在 useEffect 里读 window.innerWidth 才判定,避免服务端/客户端 hydration 不一致。
 //
 // 豁免:落地页 /landing 已有移动版,放行不拦;/ 是未登录跳板(会 replace 到 /landing),
-// 一并豁免以避免跳转瞬间闪一下拦截层。其余路由保持拦截。
+// 一并豁免以避免跳转瞬间闪一下拦截层。
+// 扫码上传 /upload/[token] 是手机端「未登录」直传音频的专用路由,本就为移动端设计,
+// 必须放行(否则二维码扫开就被拦死);用 startsWith('/upload/') 覆盖动态令牌段。
+// 其余路由保持拦截。
 
 // 视口宽度阈值(px):小于该值判为移动端
 const MOBILE_MAX_WIDTH = 768;
@@ -27,8 +30,8 @@ export function MobileGate() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // 落地页与根跳板:移动端放行(已有移动版 / 跳板瞬时)
-  if (pathname === '/landing' || pathname === '/') return null;
+  // 落地页与根跳板:移动端放行(已有移动版 / 跳板瞬时);扫码上传页为移动端专用,前缀放行。
+  if (pathname === '/landing' || pathname === '/' || pathname.startsWith('/upload/')) return null;
 
   // 服务端渲染与未判定阶段(null)、桌面端(false)均不输出任何 DOM
   if (!isMobile) return null;

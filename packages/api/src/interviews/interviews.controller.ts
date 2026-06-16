@@ -89,6 +89,16 @@ export class InterviewsController {
     return this.interviews.analyze(id, user.id);
   }
 
+  // ── 扫码上传(手机端录音直传)──────────────────────────────────────────────────
+  // 电脑端已登录用户为自己的某个 interview 签发 scoped 一次性令牌(60s),返回 token + /upload/<token>
+  // 链接;前端编成二维码,手机扫码打开豁免页直传音频。归属校验在 service(findOne)兜住:
+  // 非本人 / 不存在的 interview → 404,绝不为越权请求发令牌。
+  // IMPORTANT: 必须定义在通用 /:id 路由之前。
+  @Post(':id/upload-token')
+  issueUploadToken(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.interviews.issueUploadToken(id, user.id);
+  }
+
   // ── 录音转写(StepFun ASR + LLM 角色打标)──────────────────────────────────────
   // 上传音频 → 立即建 task 返回 taskId(202,不阻塞)→ 后台跑转写+打标 → 落 awaiting_confirm。
   // consent 必须 'true'(@IsIn 硬校验,缺/非 true → 400 不进流程)。
