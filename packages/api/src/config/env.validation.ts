@@ -20,9 +20,9 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   JWT_SECRET!: string;
 
-  // ── AI 通道顺序(可选):测试期默认 deepseek 主力,relay 备份。 ──
+  // ── AI 通道顺序(可选):测试期默认 deepseek 主力,relay 备份,glm 可选第三通道。 ──
   @IsOptional()
-  @IsIn(['deepseek', 'relay'])
+  @IsIn(['deepseek', 'relay', 'glm'])
   AI_PRIMARY_PROVIDER?: string;
 
   // ── AI DeepSeek 直连(可选,字符串):分档型号 + 直连端点。旧名 DEEPSEEK_*/AI_FALLBACK_* 兜底。──
@@ -56,6 +56,24 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   AI_RELAY_BASE_URL?: string;
+
+  // ── AI GLM 智谱直连(可选,字符串):Anthropic 兼容端点。缺 AI_GLM_API_KEY 时该通道不可用、不可设主力。──
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  AI_GLM_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_GLM_MODEL_PRO?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_GLM_MODEL_FLASH?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_GLM_BASE_URL?: string;
 
   // ── AI 大模型(可选,字符串):新名 AI_PRIMARY_*/AI_FALLBACK_* + 旧名兜底 ──
   @IsOptional()
@@ -130,6 +148,14 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsNumberString()
   AI_RELAY_MAX_RETRIES?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AI_GLM_TIMEOUT_MS?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AI_GLM_MAX_RETRIES?: string;
 
   @IsOptional()
   @IsNumberString()

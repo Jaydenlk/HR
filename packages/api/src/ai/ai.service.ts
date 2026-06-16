@@ -2,8 +2,9 @@ import { Injectable, Optional, ServiceUnavailableException, Logger } from '@nest
 import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { ConcurrencyLimiter } from './concurrency-limiter';
-import { AiConfig, AiTier } from '../config/ai.config';
+import { AiConfig, AiProviderKind, AiTier, orderProviders } from '../config/ai.config';
 import { OpsEventsService } from '../ops/ops-events.service';
+import { AiProviderSettingsService } from './ai-provider-settings.service';
 
 interface CompleteParams {
   system: string;
@@ -35,9 +36,9 @@ interface ChatParams {
   signal?: AbortSignal;
 }
 
-// 通道:封装 SDK client + 按 tier 选型号的 modelFor。deepseek 直连按档分型号,relay 中转单一别名。
+// 通道:封装 SDK client + 按 tier 选型号的 modelFor。deepseek 直连按档分型号,relay 中转单一别名,glm 智谱按档分型号。
 interface Provider {
-  name: string;
+  name: AiProviderKind;
   client: Anthropic;
   modelFor: (tier: AiTier) => string;
 }
@@ -45,13 +46,17 @@ interface Provider {
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  // 按 AI_PRIMARY_PROVIDER 排序后的可用通道:[0]=主、[1]=备(若存在)。
-  private readonly providers: Provider[];
+  // 已构造的可用通道池(按名索引,无密钥的通道不入池)。实例在构造期建好,顺序运行时由 resolveOrder 定。
+  private readonly pool: Map<AiProviderKind, Provider>;
+  // 构造期默认顺序(按 env primaryProvider):无 DB 配置 / 无 settings service 时回退此序,与历史行为一致。
+  private readonly defaultOrder: Provider[];
 
   constructor(
     private readonly limiter: ConcurrencyLimiter,
     @Optional() private readonly opsEvents: OpsEventsService | undefined,
     config: ConfigService,
+    // 运行时主备配置(DB 覆盖层):缺失(如单元测试不接 DB)时一律走 defaultOrder,行为与历史一致。
+    @Optional() private readonly providerSettings?: AiProviderSettingsService,
   ) {
     const ai = config.get<AiConfig>('ai')!;
 
@@ -86,15 +91,60 @@ export class AiService {
         }
       : null;
 
-    // 按通道顺序排列:测试期默认 deepseek 在前。配置的主通道无密钥时,顺位由另一通道顶上。
-    const ordered =
-      ai.primaryProvider === 'relay' ? [relay, deepseek] : [deepseek, relay];
-    this.providers = ordered.filter((p): p is Provider => p !== null);
+    // 智谱 GLM 直连官方 Anthropic 兼容端点(可选第三通道):无 key 则不构造。按 tier 分 pro/flash 型号。
+    // completeStructured 的 thinking:{type:'disabled'} 字段对不识别端点 SDK 仅透传不报错(见 L148 注释),容错链不受影响。
+    const glm: Provider | null = ai.glm.apiKey
+      ? {
+          name: 'glm',
+          client: new Anthropic({
+            apiKey: ai.glm.apiKey,
+            baseURL: ai.glm.baseURL,
+            timeout: ai.glm.timeoutMs,
+            maxRetries: ai.glm.maxRetries,
+          }),
+          modelFor: (tier) => (tier === 'pro' ? ai.glm.modelPro : ai.glm.modelFlash),
+        }
+      : null;
 
-    if (this.providers.length === 0) {
+    // 已配置(有密钥)的通道入池,按名索引。无密钥的通道不入池,自然从任何顺序中缺席。
+    this.pool = new Map();
+    for (const p of [deepseek, relay, glm]) {
+      if (p !== null) this.pool.set(p.name, p);
+    }
+
+    if (this.pool.size === 0) {
       throw new Error(
-        '至少需要配置一个 AI 通道密钥(AI_DEEPSEEK_API_KEY 或 AI_RELAY_API_KEY,或旧名 DEEPSEEK_API_KEY/CLOUDDREAM_API_KEY)',
+        '至少需要配置一个 AI 通道密钥(AI_DEEPSEEK_API_KEY / AI_RELAY_API_KEY / AI_GLM_API_KEY,或旧名 DEEPSEEK_API_KEY/CLOUDDREAM_API_KEY)',
       );
+    }
+
+    // 构造期默认顺序:按 env primaryProvider + 默认降级序排列已入池通道(通用排序函数,与 resolveOrder 共用规则)。
+    this.defaultOrder = this.orderPool(orderProviders(ai.primaryProvider));
+  }
+
+  /** 按给定通道名顺序,把池中已配置通道排成 Provider 数组(缺席名跳过,不引入空通道)。 */
+  private orderPool(order: AiProviderKind[]): Provider[] {
+    const result: Provider[] = [];
+    for (const name of order) {
+      const p = this.pool.get(name);
+      if (p) result.push(p);
+    }
+    return result;
+  }
+
+  /**
+   * 运行时解析通道顺序:每次 AI 调用进入时读「有效配置」(DB 覆盖层,带短 TTL 缓存)据此排序池中通道。
+   * settings service 缺失 / 读取失败 / 排序后为空 → 回退构造期 defaultOrder,绝不让一次调用因配置读取失败而无通道可用。
+   */
+  private async resolveOrder(): Promise<Provider[]> {
+    if (!this.providerSettings) return this.defaultOrder;
+    try {
+      const effective = await this.providerSettings.current();
+      const ordered = this.orderPool(orderProviders(effective.primary, effective.order));
+      return ordered.length > 0 ? ordered : this.defaultOrder;
+    } catch (err) {
+      this.logger.warn(`resolveOrder 读取运行时配置失败,回退默认顺序 —— ${this.errMsg(err)}`);
+      return this.defaultOrder;
     }
   }
 
@@ -168,10 +218,11 @@ export class AiService {
       messages,
     });
 
+    const providers = await this.resolveOrder();
     let lastErr: unknown;
-    for (let i = 0; i < this.providers.length; i++) {
-      const provider = this.providers[i];
-      const isLast = i === this.providers.length - 1;
+    for (let i = 0; i < providers.length; i++) {
+      const provider = providers[i];
+      const isLast = i === providers.length - 1;
       let emitted = false;
       try {
         // 流式调用仍占并发槽:runStreaming 在整段流消费完毕(或抛错/提前关闭)后才释放槽位,
@@ -197,7 +248,7 @@ export class AiService {
         this.logger.warn(
           `chat: 通道 ${provider.name} 首 token 前失败,切下一通道 —— ${this.errMsg(err)}`,
         );
-        const next = this.providers[i + 1];
+        const next = providers[i + 1];
         void this.opsEvents
           ?.record('AI_FAILOVER', {
             op: 'chat',
@@ -214,7 +265,7 @@ export class AiService {
     void this.opsEvents
       ?.record('AI_BOTH_DOWN', {
         op: 'chat',
-        providers: this.providers.map((p) => p.name).join(','),
+        providers: providers.map((p) => p.name).join(','),
         error: this.errMsg(lastErr),
       })
       .catch((e: unknown) => this.logger.warn(`OpsEvents AI_BOTH_DOWN 写入失败:${this.errMsg(e)}`));
@@ -247,16 +298,17 @@ export class AiService {
     }
   }
 
-  // 默认走主通道(providers[0]);失败按顺序降级到后续通道;全部失败才抛 503。
+  // 默认走主通道(运行时解析顺序的 [0]);失败按顺序降级到后续通道;全部失败才抛 503。
   private async withFailover<T>(op: string, run: (provider: Provider) => Promise<T>): Promise<T> {
+    const providers = await this.resolveOrder();
     let lastErr: unknown;
-    for (let i = 0; i < this.providers.length; i++) {
-      const provider = this.providers[i];
+    for (let i = 0; i < providers.length; i++) {
+      const provider = providers[i];
       try {
         return await run(provider);
       } catch (err) {
         lastErr = err;
-        const next = this.providers[i + 1];
+        const next = providers[i + 1];
         if (!next) break;
         this.logger.warn(
           `${op}: 主通道(${provider.name})失败,降级到备用(${next.name}) —— ${this.errMsg(err)}`,
@@ -271,7 +323,7 @@ export class AiService {
     void this.opsEvents
       ?.record('AI_BOTH_DOWN', {
         op,
-        providers: this.providers.map((p) => p.name).join(','),
+        providers: providers.map((p) => p.name).join(','),
         error: this.errMsg(lastErr),
       })
       .catch((e: unknown) => this.logger.warn(`OpsEvents AI_BOTH_DOWN 写入失败:${this.errMsg(e)}`));

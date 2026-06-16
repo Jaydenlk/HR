@@ -74,6 +74,15 @@ const aiCfg: AiConfig = {
     timeoutMs: 60000,
     maxRetries: 0,
   },
+  // glm 可选第三通道(无 key → 不构造 Provider);AiConfig.glm 为必填字段,fixture 须补齐。
+  glm: {
+    apiKey: undefined,
+    modelPro: 'glm-4.6',
+    modelFlash: 'glm-4.5-air',
+    baseURL: 'https://open.bigmodel.cn/api/anthropic',
+    timeoutMs: 120000,
+    maxRetries: 3,
+  },
   concurrency: { max: 2, queue: 8 },
 };
 

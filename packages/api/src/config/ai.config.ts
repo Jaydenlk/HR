@@ -1,8 +1,36 @@
 import { registerAs } from '@nestjs/config';
 
-// 通道顺序:测试期默认 deepseek 主力(直连官方,pro/flash 两档),relay(auto-v2 中转)备份。
-// AI_PRIMARY_PROVIDER=deepseek|relay 切换主备顺序,日后切回中转主力不改代码。
-export type AiProviderKind = 'deepseek' | 'relay';
+// 通道顺序:测试期默认 deepseek 主力(直连官方,pro/flash 两档),relay(auto-v2 中转)备份,glm(智谱 Anthropic 兼容端点)可选第三通道。
+// AI_PRIMARY_PROVIDER=deepseek|relay|glm 切换主备顺序,日后切主力不改代码;面板切换由 ai_provider_settings DB 覆盖(运行时,免重启)。
+export type AiProviderKind = 'deepseek' | 'relay' | 'glm';
+
+// 默认通道顺序:deepseek 主、relay 次、glm 末。运行时无 DB 配置 / env 无显式 primary 时回退此序。
+// 无密钥的通道在 AiService 构造期被 filter,不影响实际可用顺位。
+export const DEFAULT_PROVIDER_ORDER: AiProviderKind[] = ['deepseek', 'relay', 'glm'];
+
+/**
+ * 通用通道排序:给定「主力 provider」+「降级顺序」,产出去重后的有序 AiProviderKind 列表。
+ * 规则:primary 永远排第一;其后按 order 去重补齐;最后用 DEFAULT_PROVIDER_ORDER 兜底补齐遗漏的通道。
+ * 构造期默认排序(按 env primaryProvider)与运行时 resolveOrder(按 DB 配置)共用此函数,避免两处排序逻辑分叉。
+ * 仅排序已知通道名,不校验密钥(密钥过滤由 AiService 构造期完成)。
+ */
+export function orderProviders(
+  primary: AiProviderKind,
+  order?: AiProviderKind[],
+): AiProviderKind[] {
+  const seen = new Set<AiProviderKind>();
+  const result: AiProviderKind[] = [];
+  const push = (k: AiProviderKind): void => {
+    if (!seen.has(k)) {
+      seen.add(k);
+      result.push(k);
+    }
+  };
+  push(primary);
+  for (const k of order ?? []) push(k);
+  for (const k of DEFAULT_PROVIDER_ORDER) push(k);
+  return result;
+}
 
 // DeepSeek 直连官方:按场景档位选型号(deepseek-v4-pro / deepseek-v4-flash),
 // 官方 Anthropic 兼容端点支持 SSE 流式。
@@ -24,6 +52,17 @@ export interface AiRelayConfig {
   maxRetries: number;
 }
 
+// 智谱 GLM 直连官方 Anthropic 兼容端点:按场景档位选型号(pro/flash),复用 @anthropic-ai/sdk client 形态。
+// 端点固定 https://open.bigmodel.cn/api/anthropic(Anthropic 原生兼容,勿手动加 /v1;见 baseURL 默认值注释)。
+export interface AiGlmConfig {
+  apiKey: string | undefined;
+  modelPro: string;
+  modelFlash: string;
+  baseURL: string;
+  timeoutMs: number;
+  maxRetries: number;
+}
+
 export interface AiConcurrencyConfig {
   max: number;
   queue: number;
@@ -33,6 +72,7 @@ export interface AiConfig {
   primaryProvider: AiProviderKind;
   deepseek: AiDeepseekConfig;
   relay: AiRelayConfig;
+  glm: AiGlmConfig;
   concurrency: AiConcurrencyConfig;
 }
 
@@ -85,9 +125,11 @@ export function parseMaxRetries(raw: string | undefined, fallback: number): numb
   return Math.max(0, parseEnvNumber(raw, fallback));
 }
 
-/** 通道顺序:仅识别 'relay',其余(含缺省)落 'deepseek'(测试期主力)。 */
+/** 通道顺序:识别 'relay'/'glm',其余(含缺省)落 'deepseek'(测试期主力)。 */
 function parsePrimaryProvider(raw: string | undefined): AiProviderKind {
-  return raw === 'relay' ? 'relay' : 'deepseek';
+  if (raw === 'relay') return 'relay';
+  if (raw === 'glm') return 'glm';
+  return 'deepseek';
 }
 
 export const aiConfig = registerAs('ai', (): AiConfig => ({
@@ -144,6 +186,18 @@ export const aiConfig = registerAs('ai', (): AiConfig => ({
       process.env.AI_RELAY_MAX_RETRIES ?? process.env.AI_PRIMARY_MAX_RETRIES,
       0,
     ),
+  },
+  // 智谱 GLM 直连官方 Anthropic 兼容端点(可选第三通道):无 AI_GLM_API_KEY 时该通道不构造、不可设主力。
+  // 型号默认 glm-4.6(pro)/glm-4.5-air(flash):2026-06-16 智谱官方文档 + 多源交叉核实的真实代号
+  // (社区个别摘要出现 GLM-5.x 系列疑为幻觉,以智谱开放平台模型列表为准;运维可经 AI_GLM_MODEL_* 覆盖)。
+  glm: {
+    apiKey: process.env.AI_GLM_API_KEY,
+    modelPro: process.env.AI_GLM_MODEL_PRO ?? 'glm-4.6',
+    modelFlash: process.env.AI_GLM_MODEL_FLASH ?? 'glm-4.5-air',
+    // Anthropic 原生兼容端点;勿手动加 /v1(OpenAI 兼容模式会被强拼 /v1 致 404,Anthropic SDK 走 /api/anthropic 即可)。
+    baseURL: process.env.AI_GLM_BASE_URL ?? 'https://open.bigmodel.cn/api/anthropic',
+    timeoutMs: parseTimeoutMs(process.env.AI_GLM_TIMEOUT_MS, 120000),
+    maxRetries: parseMaxRetries(process.env.AI_GLM_MAX_RETRIES, 3),
   },
   concurrency: {
     max: Math.max(1, parseEnvNumber(process.env.AI_MAX_CONCURRENCY, 2)),

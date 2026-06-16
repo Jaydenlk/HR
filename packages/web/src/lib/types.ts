@@ -1539,3 +1539,72 @@ export interface AdminOpsDailyStats {
   CREDIT_CONSUME_FAILED: number;
   ADMIN_ACTION: number;
 }
+
+// AI 通道名:与后端 AiProviderKind 一一对应。
+export type AdminAiProviderKind = 'deepseek' | 'relay' | 'glm';
+
+// GET/PATCH /api/admin/ai-provider 响应中单个通道的状态。
+// 与后端 AdminAiProviderItemDto 字段一一对应。
+// 安全红线:后端 DTO 强制白名单投影,绝不含 apiKey / baseURL。
+export interface AdminAiProviderItem {
+  // 通道名(deepseek / relay / glm)。
+  name: AdminAiProviderKind;
+  // 该通道是否已配置密钥(env 有 key)。未配置者前端灰显、不可设主力。
+  configured: boolean;
+  // pro 档型号(从 env 读,只读展示;relay 两档同值)。
+  modelPro: string;
+  // flash 档型号(从 env 读,只读展示;relay 两档同值)。
+  modelFlash: string;
+}
+
+// GET/PATCH /api/admin/ai-provider 响应。
+// 与后端 AdminAiProviderResponseDto 字段一一对应。
+export interface AdminAiProvider {
+  // 三个通道的状态列表(固定顺序 deepseek/relay/glm)。
+  providers: AdminAiProviderItem[];
+  // 当前主力通道名。
+  primary: AdminAiProviderKind;
+  // 当前完整降级顺序(已去重补齐)。
+  order: AdminAiProviderKind[];
+}
+
+// ─── 管理后台 波3 用户管理类型 ─────────────────────────────────────────────────
+
+// GET /api/admin/users/:id:单用户详情。
+// 与后端 AdminUserDetailResponseDto 字段一一对应(白名单投影,无 PII 无关字段)。
+export interface AdminUserDetail {
+  id: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+  status: 'active' | 'banned';
+  credit_balance: number;
+  created_at: string;
+  last_login_ip: string | null;
+  last_login_province: string | null;
+  last_login_city: string | null;
+  last_login_at: string | null;
+  usage_today: number;
+  usage_total: number;
+  // 近 7 日按日 UTC 调用数。
+  daily_usage: { date: string; count: number }[];
+}
+
+// GET /api/admin/users/:id/credit-history 单条积分流水。
+// 与后端 AdminCreditTxResponseDto 字段一一对应(仅账务字段,无正文)。
+export interface AdminCreditTransaction {
+  id: string;
+  delta: number;
+  type: string;
+  balance_after: number;
+  note: string | null;
+  created_by: string | null;
+  endpoint: string | null;
+  created_at: string; // ISO 8601
+}
+
+// GET /api/admin/users/:id/credit-history 分页响应。
+export interface AdminCreditHistory {
+  items: AdminCreditTransaction[];
+  total: number;
+}

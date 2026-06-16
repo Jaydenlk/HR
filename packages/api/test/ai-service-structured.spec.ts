@@ -55,6 +55,14 @@ async function buildService(primaryKey: string, fallbackKey?: string): Promise<A
       timeoutMs: 60000,
       maxRetries: 0,
     },
+    glm: {
+      apiKey: undefined,
+      modelPro: 'glm-4.6',
+      modelFlash: 'glm-4.5-air',
+      baseURL: 'https://open.bigmodel.cn/api/anthropic',
+      timeoutMs: 120000,
+      maxRetries: 3,
+    },
     concurrency: { max: 2, queue: 8 },
   };
 

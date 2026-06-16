@@ -4,7 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Between, DataSource, MoreThanOrEqual, Repository } from 'typeorm';
+import { AiConfig, AiProviderKind } from '../config/ai.config';
+import { AiProviderSettingsService } from '../ai/ai-provider-settings.service';
+import { UpdateAiProviderDto } from './dto/update-ai-provider.dto';
+import { AdminAiProviderResponseDto } from './dto/admin-ai-provider-response.dto';
 import { UsersService } from '../users/users.service';
 import { InvitesService } from '../invites/invites.service';
 import { CreditService } from '../credit/credit.service';
@@ -74,6 +79,8 @@ export class AdminService {
     private readonly health: HealthService,
     private readonly concurrency: ConcurrencyLimiter,
     private readonly dataSource: DataSource,
+    private readonly config: ConfigService,
+    private readonly aiProviderSettings: AiProviderSettingsService,
     @InjectRepository(AiUsage) private readonly usageRepo: Repository<AiUsage>,
     @InjectRepository(CreditTransaction)
     private readonly creditTxRepo: Repository<CreditTransaction>,
@@ -166,7 +173,7 @@ export class AdminService {
   }
 
   createInvite(dto: CreateInviteDto): Promise<InviteCode> {
-    return this.invites.create(dto.code, dto.max_uses);
+    return this.invites.create(dto.code, dto.max_uses, dto.note);
   }
 
   async updateInvite(id: string, disabled: boolean): Promise<InviteCode> {
@@ -398,6 +405,46 @@ export class AdminService {
       });
     }
     return rows;
+  }
+
+  // ============================================================
+  // API 管理:AI provider 主备切换(GET/PATCH /admin/ai-provider)
+  // 安全红线:出站 DTO 只投影 configured/型号,绝不含 apiKey/baseURL;
+  //   切换只写「谁是主力 / 降级顺序」到 ai_provider_settings(密钥永远走 env)。
+  // ============================================================
+
+  // AI provider 当前状态:三通道 configured/型号(env)+ 当前有效主力/顺序(DB 覆盖,无则回退 env)。
+  async aiProviderStatus(): Promise<AdminAiProviderResponseDto> {
+    const ai = this.config.get<AiConfig>('ai')!;
+    const effective = await this.aiProviderSettings.current();
+    return AdminAiProviderResponseDto.from(ai, effective);
+  }
+
+  // 切换 AI provider 主备:primary 必须是「已配置密钥」的通道(否则 400,防 filter 后顺序错乱)。
+  // 写表 + 记审计事件 + invalidate 缓存(下次 AI 调用即时生效,免重启)。
+  async updateAiProvider(
+    actingUserId: string,
+    dto: UpdateAiProviderDto,
+  ): Promise<AdminAiProviderResponseDto> {
+    const ai = this.config.get<AiConfig>('ai')!;
+    if (!this.isProviderConfigured(ai, dto.primary)) {
+      throw new BadRequestException(`通道 ${dto.primary} 未配置密钥,不能设为主力`);
+    }
+    const effective = await this.aiProviderSettings.update(dto.primary, dto.order, actingUserId);
+    void this.opsEvents.record('ADMIN_ACTION', {
+      actor: actingUserId,
+      op: 'switchAiProvider',
+      primary: effective.primary,
+      order: effective.order,
+    });
+    return AdminAiProviderResponseDto.from(ai, effective);
+  }
+
+  // 该通道在 env 是否配置了密钥(deepseek/glm 用 apiKey,relay 同样判 apiKey 非空)。
+  private isProviderConfigured(ai: AiConfig, kind: AiProviderKind): boolean {
+    if (kind === 'deepseek') return !!ai.deepseek.apiKey;
+    if (kind === 'relay') return !!ai.relay.apiKey;
+    return !!ai.glm.apiKey;
   }
 
   // ---- 波2A 私有助手 ----

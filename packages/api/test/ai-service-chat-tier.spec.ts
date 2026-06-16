@@ -87,6 +87,7 @@ async function buildService(opts: {
   primaryProvider: AiConfig['primaryProvider'];
   deepseekKey?: string;
   relayKey?: string;
+  glmKey?: string;
 }): Promise<AiService> {
   const aiCfg: AiConfig = {
     primaryProvider: opts.primaryProvider,
@@ -104,6 +105,14 @@ async function buildService(opts: {
       baseURL: 'https://api.tutorial.clouddreamai.com',
       timeoutMs: 60000,
       maxRetries: 0,
+    },
+    glm: {
+      apiKey: opts.glmKey,
+      modelPro: 'glm-4.6',
+      modelFlash: 'glm-4.5-air',
+      baseURL: 'https://open.bigmodel.cn/api/anthropic',
+      timeoutMs: 120000,
+      maxRetries: 3,
     },
     concurrency: { max: 2, queue: 8 },
   };
