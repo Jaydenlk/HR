@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import type { DailyTask } from '@/lib/types';
+import type { DailyTask, Resume, Diagnosis, Conversation } from '@/lib/types';
 import StarterChecklist from '@/components/onboarding/starter-checklist';
+import DiscoverCards from '@/components/onboarding/discover-cards';
+import { hasCompletedDiagnosis } from '@/components/onboarding/starter-items';
 import {
   CalendarDays,
   RefreshCw,
@@ -299,6 +301,9 @@ export default function TodayPage() {
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // 启动清单进度:供 DiscoverCards 判断默认展开/折叠,与 StarterChecklist 共用同一批 GET。
+  const [starterAllDone, setStarterAllDone] = useState(false);
+
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -325,6 +330,22 @@ export default function TodayPage() {
         setLoading(false);
       }
     })();
+
+    // 启动清单进度(轻量并发 GET,失败静默):
+    // - 方向步(direction)视为恒完成;只需核实其余三步。
+    // - 全部完成 → DiscoverCards 默认折叠;否则默认展开,让新手看到能力。
+    // - 与 StarterChecklist 共用端点但独立发请求,避免跨组件传状态链路过长。
+    Promise.all([
+      api.get<Resume[]>('/resumes').catch(() => [] as Resume[]),
+      api.get<Diagnosis[]>('/diagnoses').catch(() => [] as Diagnosis[]),
+      api.get<Conversation[]>('/conversations').catch(() => [] as Conversation[]),
+    ]).then(([resumes, diagnoses, conversations]) => {
+      const done =
+        resumes.length > 0 &&
+        hasCompletedDiagnosis(diagnoses) &&
+        conversations.length > 0;
+      setStarterAllDone(done);
+    });
   }, []);
 
   const handleGenerate = async () => {
@@ -467,6 +488,10 @@ export default function TodayPage() {
           </div>
         )}
       </div>
+
+      {/* ── 功能发现区(探索 Coach 能帮你做什么) ──────────────────── */}
+      {/* 新手(清单未全完成)默认展开;老用户默认折叠为一行可展开。 */}
+      <DiscoverCards starterAllDone={starterAllDone} />
 
       {/* ── Toolbar ──────────────────────────────────────────────────── */}
       <div
