@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { api } from '@/lib/api';
-import { Upload, Mic, X, AlertTriangle } from 'lucide-react';
+import { Upload, Mic, X, Info, Zap } from 'lucide-react';
 
 // Response shape from POST /interviews/:id/transcribe (202 Accepted)
 export interface TranscribeStarted {
@@ -129,16 +129,35 @@ export function AudioUploader({ interviewId, open, onClose, onStarted }: AudioUp
             marginBottom: '24px',
           }}
         >
-          <div
-            style={{
-              fontFamily: 'var(--serif)',
-              fontSize: '19px',
-              fontWeight: 600,
-              color: 'var(--color-ink)',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            上传面试录音
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                fontFamily: 'var(--serif)',
+                fontSize: '19px',
+                fontWeight: 600,
+                color: 'var(--color-ink)',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              上传面试录音
+            </div>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                background: 'rgba(255,111,0,.12)',
+                border: '1px solid rgba(255,111,0,.4)',
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#d96000',
+                letterSpacing: '0.04em',
+                lineHeight: 1,
+              }}
+            >
+              Beta
+            </span>
           </div>
           <button
             type="button"
@@ -159,28 +178,35 @@ export function AudioUploader({ interviewId, open, onClose, onStarted }: AudioUp
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {/* 群面门控提示 */}
+          {/* Beta 准确率提示 + 群面门控 */}
           <div
             style={{
               display: 'flex',
               alignItems: 'flex-start',
               gap: '10px',
-              padding: '12px 14px',
+              padding: '14px 16px',
               borderRadius: '10px',
-              background: 'rgba(255,181,0,.08)',
+              background: 'rgba(255,181,0,.07)',
               border: '1px solid rgba(255,181,0,.35)',
             }}
           >
-            <AlertTriangle
+            <Info
               size={15}
               color="var(--color-warn)"
-              style={{ flexShrink: 0, marginTop: '1px' }}
+              style={{ flexShrink: 0, marginTop: '2px' }}
             />
-            <span style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.65 }}>
-              <strong>仅支持 1 对 1 面试复盘</strong>（一位面试官 + 你）。
-              群面（多人同时说话）由于缺乏说话人分离，转写结果不可靠，
-              <strong>暂不支持</strong>——后续接入讯飞多说话人分轨后开放。
-            </span>
+            <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.7 }}>
+              <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--color-ink)' }}>
+                当前为 Beta 功能，转写能力持续优化中
+              </div>
+              <div>
+                <strong>仅支持 1 对 1 面试</strong>（一位面试官 + 你）；群面暂不支持，后续接入多说话人分轨后开放。
+              </div>
+              <div style={{ marginTop: '4px', color: 'var(--color-ink-3)' }}>
+                以下情况识别准确率会下降：方言口音、多人同时说话、环境嘈杂。
+                建议在安静环境下、单人清晰普通话录制，效果最佳。
+              </div>
+            </div>
           </div>
 
           {/* Drop zone */}
@@ -301,6 +327,25 @@ export function AudioUploader({ interviewId, open, onClose, onStarted }: AudioUp
               {error}
             </div>
           )}
+
+          {/* 7 点数消耗提示 */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              borderRadius: '9px',
+              background: 'rgba(47,143,255,.05)',
+              border: '1px solid var(--hair)',
+            }}
+          >
+            <Zap size={13} color="var(--color-brand)" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '12px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
+              本次录音转写复盘消耗 <strong style={{ color: 'var(--color-ink-2)' }}>7 点数</strong>
+              （成功才扣，失败不扣）。
+            </span>
+          </div>
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>

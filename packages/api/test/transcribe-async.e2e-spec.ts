@@ -4,9 +4,11 @@
  * 验收点(对齐任务要求):
  *  1. POST :id/transcribe 立即 202 返回 taskId,不阻塞 ASR/LLM(handler 返回时后台仍在跑)。
  *  2. 后台跑完转写+打标 → GET status 变 awaiting_confirm 且 segmentsJson 非空。
- *  3. 计费在"真实成功"(落 awaiting_confirm)时发生:credit_transactions consume +1、ai_usage +1、余额 -1。
+ *  3. 计费在"真实成功"(落 awaiting_confirm)时一次性扣满 7 点(整条复盘链路总成本):
+ *     credit_transactions 恰新增 1 条 consume(delta=-7)、ai_usage +1、余额 -7。confirm/analyze 不再额外扣。
  *  4. ASR/LLM 失败 → status=failed、不扣点、不写 ai_usage、余额不变(失败不计费)。
- *  5. CreditGuard 预检:余额 0 → 402,且不建任务。
+ *  5. 足额预检(service.hasBalance(7)):余额 < 7 → 402,且不建任务——含余额 0 与余额 1..6
+ *     (≥1 能过 CreditGuard 廉价快路,但不足 7 仍被 service 兜住挡下)。
  *
  * ASR 与 LLM 全部 mock(不触真实 StepFun/中转):
  *  - SPEECH_PROVIDER:可控成功/抛错的假 ASR,并带可观测的延迟以验证"不阻塞"。
@@ -186,7 +188,7 @@ describe('录音转写异步化 (e2e)', () => {
   });
 
   // ── 验收 1+2+3:立即 202 + 后台跑完 + 真实成功才计费 ──────────────────────────
-  it('POST transcribe 立即 202 返回 taskId,后台跑完落 awaiting_confirm,成功扣 1 点 + ai_usage +1', async () => {
+  it('POST transcribe 立即 202 返回 taskId,后台跑完落 awaiting_confirm,成功一次性扣 7 点 + ai_usage +1', async () => {
     const email = `transcribe-ok-${Date.now()}@coach.dev`;
     const token = await registerUser(app, email, '转写成功');
     const interviewId = await createInterview(app, token);
@@ -230,21 +232,76 @@ describe('录音转写异步化 (e2e)', () => {
     expect(segs[0]).toMatchObject({ idx: 0, speaker: 'interviewer' });
     expect(segs[1]).toMatchObject({ idx: 1, speaker: 'candidate' });
 
-    // 验收 3:真实成功才计费 — consume +1、ai_usage +1、余额 -1。
+    // 验收 3:真实成功才计费 — 恰新增 1 条 consume(不拆多条小额)、ai_usage +1、余额一次性 -7。
     const afterCredit = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });
     const afterUsage = await aiUsageRepo.count({ where: { user_id: user.id } });
     expect(afterCredit - beforeCredit).toBe(1);
     expect(afterUsage - beforeUsage).toBe(1);
 
     const refreshed = await userRepo.findOneByOrFail({ id: user.id });
-    expect(refreshed.credit_balance).toBe(beforeBalance - 1);
+    expect(refreshed.credit_balance).toBe(beforeBalance - 7);
 
-    // consume 流水的 endpoint 落转写端点模板。
+    // 唯一一条转写 consume 流水:endpoint 落转写端点模板,delta=-7、balance_after 自洽(一条扣满 7,不双扣)。
     const lastConsume = await txRepo.findOne({
       where: { user_id: user.id, type: 'consume' },
       order: { created_at: 'DESC' },
     });
     expect(lastConsume?.endpoint).toBe('/api/interviews/:id/transcribe');
+    expect(lastConsume?.delta).toBe(-7);
+    expect(lastConsume?.balance_after).toBe(beforeBalance - 7);
+  }, 30000);
+
+  // ── 验收 3(全链路收口):一次完整复盘(transcribe → confirm)恰好扣 7 点,不双扣 ──────────
+  // transcribe 真实成功扣 7;confirm/analyze 段不再额外扣点(端点已移除 CreditInterceptor)。
+  // 故一条 consume(delta=-7)+ 两条 ai_usage(transcribe 1 + confirm 1),credit 总额恒为 7。
+  it('完整复盘 transcribe→confirm 总共恰扣 7 点(confirm 不再扣),ai_usage 计 2 条', async () => {
+    const email = `transcribe-full-${Date.now()}@coach.dev`;
+    const token = await registerUser(app, email, '完整复盘');
+    const interviewId = await createInterview(app, token);
+
+    const user = await userRepo.findOneByOrFail({ email });
+    const beforeBalance = user.credit_balance;
+    const beforeCredit = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });
+    const beforeUsage = await aiUsageRepo.count({ where: { user_id: user.id } });
+
+    // 1) transcribe → awaiting_confirm。
+    const post = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewId}/transcribe`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('consent', 'true')
+      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
+    expect(post.status).toBe(202);
+    const taskId = post.body.taskId as string;
+
+    const done = await pollStatus(app, token, interviewId, (s) => s === 'awaiting_confirm' || s === 'failed');
+    expect(done.status).toBe('awaiting_confirm');
+
+    // 2) confirm:按 mock 打标原样确认(0=面试官,1=候选人)→ 触发 analyze → completed。
+    const confirm = await request(app.getHttpServer())
+      .patch(`/api/interviews/${interviewId}/transcribe/${taskId}/confirm`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        segments: [
+          { idx: 0, speaker: 'interviewer' },
+          { idx: 1, speaker: 'candidate' },
+        ],
+      });
+    expect(confirm.status).toBe(200);
+    expect(confirm.body.overall_grade).toBe('B+');
+
+    // 等 confirm 端的 AiUsageInterceptor fire-and-forget 落库。
+    await new Promise((r) => setTimeout(r, 200));
+
+    // 收口断言:credit 只新增 1 条 consume(transcribe 扣满 7,confirm 不扣)→ 余额恰好 -7。
+    const afterCredit = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });
+    expect(afterCredit - beforeCredit).toBe(1);
+
+    const refreshed = await userRepo.findOneByOrFail({ id: user.id });
+    expect(refreshed.credit_balance).toBe(beforeBalance - 7);
+
+    // ai_usage 计两条(transcribe 成功 1 + confirm 成功 1),仅运营计数、不影响 credit 总额。
+    const afterUsage = await aiUsageRepo.count({ where: { user_id: user.id } });
+    expect(afterUsage - beforeUsage).toBe(2);
   }, 30000);
 
   // ── 验收 4:ASR 失败 → failed + 不计费 ─────────────────────────────────────────
@@ -286,7 +343,7 @@ describe('录音转写异步化 (e2e)', () => {
     expect(refreshed.credit_balance).toBe(beforeBalance);
   }, 30000);
 
-  // ── 验收 5:CreditGuard 预检 — 0 余额 → 402,且不建任务 ───────────────────────
+  // ── 验收 5:足额预检 — 余额 < 7 → 402,且不建任务 ─────────────────────────────
   it('余额为 0 → POST 402,不建任务(GET status 404)', async () => {
     const email = `transcribe-broke-${Date.now()}@coach.dev`;
     const token = await registerUser(app, email, '余额耗尽');
@@ -314,6 +371,41 @@ describe('录音转写异步化 (e2e)', () => {
     // 余额仍为 0,且转写未新增任何 consume 流水(只读上面的基线)。
     const refreshed = await userRepo.findOneByOrFail({ id: user.id });
     expect(refreshed.credit_balance).toBe(0);
+    const afterConsume = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });
+    expect(afterConsume - beforeConsume).toBe(0);
+  }, 30000);
+
+  // ── 验收 5(关键回归):余额 ≥1 但 < 7 仍 402 ──────────────────────────────────
+  // 这正是从「扣 1」改「扣 7」要守住的护栏:CreditGuard 只保证 ≥1(够付 1 ≠ 够付 7),
+  // service.hasBalance(7) 才是真正的足额预检。余额 6 能过 Guard 廉价快路,却仍被 service 兜住挡下。
+  it('余额为 6(≥1 但 < 7)→ POST 402,不建任务(GET status 404)、不扣点', async () => {
+    const email = `transcribe-short-${Date.now()}@coach.dev`;
+    const token = await registerUser(app, email, '余额不足七');
+    const user = await userRepo.findOneByOrFail({ email });
+    const interviewId = await createInterview(app, token);
+
+    const beforeConsume = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });
+    // 余额置 6:够付 CreditGuard 的 ≥1,但不够本次复盘的 7。
+    await userRepo.update({ id: user.id }, { credit_balance: 6 });
+
+    const post = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewId}/transcribe`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('consent', 'true')
+      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
+
+    // CreditGuard 放行(≥1),但 service 足额预检挡下 → 402。
+    expect(post.status).toBe(402);
+
+    // 不建任务:status 端点 404。
+    const status = await request(app.getHttpServer())
+      .get(`/api/interviews/${interviewId}/transcribe/status`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(status.status).toBe(404);
+
+    // 余额仍为 6(预检只读不扣),无新增 consume 流水。
+    const refreshed = await userRepo.findOneByOrFail({ id: user.id });
+    expect(refreshed.credit_balance).toBe(6);
     const afterConsume = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });
     expect(afterConsume - beforeConsume).toBe(0);
   }, 30000);

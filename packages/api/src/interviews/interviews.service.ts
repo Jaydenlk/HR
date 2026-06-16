@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,6 +25,11 @@ import { AiUsage } from '../quota/entities/ai-usage.entity';
 
 // 转写扣点端点标识:写入 credit_transactions.endpoint / ai_usage.endpoint(与控制器路由模板同口径)。
 const TRANSCRIBE_ENDPOINT = '/api/interviews/:id/transcribe';
+
+// 「一次录音转写复盘」总成本 = 7 点。这是 ASR 转写 + LLM 角色打标 + LLM 复盘分析三段重活的合计定价。
+// 计费铁律:整条复盘链路只在「转写+打标真实成功」(落 awaiting_confirm)那一刻一次性扣满 7 点;
+// 后续 confirm/analyze 段不再额外扣点(避免双扣),故用户一次完整复盘恰好扣 7 点,不多不少。
+const TRANSCRIBE_DEBRIEF_CREDIT_COST = 7;
 
 /** POST /interviews/:id/transcribe 的 202 响应:仅回 taskId,前端据此轮询 status。 */
 export interface TranscribeStartedResponse {
@@ -173,6 +180,17 @@ export class InterviewsService {
   ): Promise<TranscribeStartedResponse> {
     // 所有权校验:非本人面试 → 404(不泄露存在性)。建任务前先校验,不为越权请求建任务。
     const interview = await this.findOne(id, userId);
+
+    // 余额预检:整条复盘链路总成本 7 点,接活前校验余额 ≥ 7,不足 → 402 且不建任务。
+    // CreditGuard 只保证 ≥ 1(够付不代表够付 7),故重端点的足额预检放在 service 内由本方法兜住。
+    const enough = await this.credit.hasBalance(userId, TRANSCRIBE_DEBRIEF_CREDIT_COST);
+    if (!enough) {
+      throw new HttpException(
+        { message: `点数不足，本次录音转写复盘需 ${TRANSCRIBE_DEBRIEF_CREDIT_COST} 点，请联系管理员充值` },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+
     const hotwords = this.buildHotwords(interview);
 
     const task = await this.taskRepo.save(
@@ -245,13 +263,14 @@ export class InterviewsService {
   }
 
   /**
-   * 转写"真实成功"后扣 1 点 + 记一条 ai_usage(双轨计账,与 CreditInterceptor/AiUsageInterceptor
-   * 同口径:credit 账务、ai_usage 运营)。扣点/记账失败均不抛错(不能让计账失败回滚已完成的转写)——
-   * 仅记日志,与拦截器 fire-and-forget catch 同语义。
+   * 转写"真实成功"后一次性扣满 7 点(整条复盘链路总成本)+ 记一条 ai_usage(双轨计账,与
+   * CreditInterceptor/AiUsageInterceptor 同口径:credit 账务、ai_usage 运营)。
+   * 这是全链路唯一的扣点点——后续 confirm/analyze 段不再扣,故一次完整复盘恰好扣 7 点(不双扣)。
+   * 扣点/记账失败均不抛错(不能让计账失败回滚已完成的转写)——仅记日志,与拦截器 fire-and-forget catch 同语义。
    */
   private async chargeTranscribe(userId: string): Promise<void> {
     try {
-      await this.credit.consume(userId, TRANSCRIBE_ENDPOINT);
+      await this.credit.consume(userId, TRANSCRIBE_ENDPOINT, TRANSCRIBE_DEBRIEF_CREDIT_COST);
     } catch (err) {
       this.logger.error(
         `转写扣点失败 userId=${userId}: ${err instanceof Error ? err.message : String(err)}`,

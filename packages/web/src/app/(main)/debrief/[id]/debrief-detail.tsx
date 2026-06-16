@@ -10,7 +10,7 @@ import { PredictionCard } from '@/components/interview/prediction-card';
 import { AudioUploader } from '@/components/interview/audio-uploader';
 import { TranscriptProgress } from '@/components/interview/transcript-progress';
 import { SpeakerLabelSection } from '@/components/interview/speaker-label-section';
-import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic, Zap } from 'lucide-react';
 
 function gradeColors(grade: string | null): { bg: string; text: string } {
   if (!grade) return { bg: 'var(--color-ink-4)', text: '#fff' };
@@ -419,29 +419,53 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
           >
             上传后立即返回——后台自动转写（约 30–120 秒），完成后在此确认角色标注，再生成能力评分与逐题点评
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              <button
-                onClick={() => setShowUploader(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '7px',
-                  padding: '10px 22px',
-                  background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 'var(--radius-default)',
-                  fontSize: '13.5px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  letterSpacing: '-0.005em',
-                  boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
-                }}
-              >
-                <Mic size={14} />
-                上传录音转写
-              </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <button
+                  onClick={() => setShowUploader(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '10px 22px',
+                    background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 'var(--radius-default)',
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    letterSpacing: '-0.005em',
+                    boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                    position: 'relative',
+                  }}
+                >
+                  <Mic size={14} />
+                  上传录音转写
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '-8px',
+                      padding: '1px 6px',
+                      borderRadius: '999px',
+                      background: 'rgba(255,111,0,.9)',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: '#fff',
+                      letterSpacing: '0.03em',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Beta
+                  </span>
+                </button>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>
+                  <Zap size={10} />
+                  消耗 7 点（成功才扣）
+                </span>
+              </div>
               <button
                 onClick={handleAnalyze}
                 disabled={analyzing}
@@ -465,7 +489,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
                 {analyzing ? '分析中…' : '直接分析文字记录'}
               </button>
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>各消耗 1 点</span>
+            <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>文字分析各消耗 1 点</span>
           </div>
         </div>
       )}
