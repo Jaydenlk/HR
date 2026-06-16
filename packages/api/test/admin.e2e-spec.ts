@@ -342,4 +342,73 @@ describe('Admin (e2e)', () => {
       expect(adminId).not.toBe(userId);
     });
   });
+
+  // ─── 成功率趋势(cosmetic 修复:days=N 须恰好返回 N 天,窗口连续且末日=今日 UTC)──────
+  // 修复前循环 i=window..0 会多出 1 天(8 天),前端趋势图横轴错位。
+  describe('GET /api/admin/success-stats', () => {
+    const todayUtcKey = (): string => new Date().toISOString().slice(0, 10);
+
+    it('days=7 → 恰好 7 行,窗口连续、末行=今日 UTC、首行=6 天前', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/success-stats?days=7')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      // 红线:恰好 7 行(不是 8)。
+      expect(res.body.length).toBe(7);
+
+      const dates = (res.body as { date: string }[]).map((r) => r.date);
+      // 末行 = 今日(UTC);首行 = 今日 - 6 天。
+      expect(dates[dates.length - 1]).toBe(todayUtcKey());
+      const expectedFirst = new Date();
+      expectedFirst.setUTCDate(expectedFirst.getUTCDate() - 6);
+      expect(dates[0]).toBe(expectedFirst.toISOString().slice(0, 10));
+
+      // 连续无断档:相邻两天相差恰好 1 天。
+      for (let i = 1; i < dates.length; i++) {
+        const prev = Date.parse(`${dates[i - 1]}T00:00:00Z`);
+        const cur = Date.parse(`${dates[i]}T00:00:00Z`);
+        expect(cur - prev).toBe(86_400_000);
+      }
+
+      // 每行字段齐全;无数据日 success_rate=null(不是 0/NaN,前端可区分"无样本")。
+      for (const row of res.body as {
+        date: string;
+        success: number;
+        failed: number;
+        success_rate: number | null;
+      }[]) {
+        expect(typeof row.date).toBe('string');
+        expect(typeof row.success).toBe('number');
+        expect(typeof row.failed).toBe('number');
+        if (row.success + row.failed === 0) {
+          expect(row.success_rate).toBeNull();
+        }
+      }
+    });
+
+    it('days=1 → 恰好 1 行,且为今日 UTC(边缘日口径一致)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/success-stats?days=1')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBe(1);
+      expect(res.body[0].date).toBe(todayUtcKey());
+    });
+
+    it('缺省 days(不传)→ 默认 7 行', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/success-stats')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBe(7);
+    });
+
+    it('普通用户访问 success-stats → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/success-stats')
+        .set('Authorization', `Bearer ${userToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
 });

@@ -51,8 +51,8 @@ export class OpsEventsService {
    */
   async dailyStats(days = 7): Promise<DailyStats[]> {
     const since = new Date();
-    since.setDate(since.getDate() - days);
-    since.setHours(0, 0, 0, 0);
+    since.setUTCDate(since.getUTCDate() - days);
+    since.setUTCHours(0, 0, 0, 0);
 
     const rows = await this.repo.find({
       where: { created_at: MoreThan(since) },

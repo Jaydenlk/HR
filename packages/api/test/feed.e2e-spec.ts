@@ -181,6 +181,127 @@ describe('Feed (e2e)', () => {
     });
   });
 
+  // ── 隐私红线:feed 是跨用户共享数据集,GET /feed 绝不得回吐投稿人身份(PII) ──
+  // 造一个带「可识别真名 + 邮箱」的投稿人 A,让 B(已登录)与匿名各自取 feed,
+  // 断言响应里:① 没有 user / user_id 关系;② 任何字段值都不含 A 的 email/真名;
+  // ③ 顶层键命中白名单(防未来新增列把 PII 顺带带出)。
+  describe('GET /api/feed — 投稿人身份隔离(隐私红线)', () => {
+    // A 的身份用足够独特、绝不会自然出现在 title/content 里的值,避免误报/漏报。
+    const A_EMAIL = 'pii-author-zhang.wei.unique@coach.dev';
+    const A_NAME = '张伟独特真名PiiMarker';
+    let aToken: string;
+    let createdId: string;
+
+    // GET /api/feed 响应允许出现的顶层键(FeedItemResponseDto 字段全集)。
+    // 任何不在此白名单内的键 = 潜在身份/内部字段泄露,直接判失败。
+    const ALLOWED_KEYS = new Set([
+      'id',
+      'title',
+      'content',
+      'summary',
+      'company',
+      'role',
+      'outcome',
+      'source_kind',
+      'source_name',
+      'category',
+      'source_url',
+      'author',
+      'quality_score',
+      'published_at',
+      'fetched_at',
+      'created_at',
+      'date_confidence',
+    ]);
+
+    beforeAll(async () => {
+      aToken = await loginUser(app, A_EMAIL, A_NAME);
+      const res = await request(app.getHttpServer())
+        .post('/api/feed')
+        .set('Authorization', `Bearer ${aToken}`)
+        .send({
+          title: 'A 的面试经历(隔离用例)',
+          content: 'A 投稿正文,不含个人身份信息,仅用于验证 feed 不回吐作者身份。',
+          company: 'IsolationCo',
+        });
+      expect(res.status).toBe(201);
+      createdId = res.body.id;
+      // 创建响应已走 FeedItemResponseDto 收口(与 findAll 一致):不回吐 user_id /
+      // user 关系,响应里也绝不应凭空出现作者邮箱或真名,且顶层键命中 DTO 白名单。
+      const createdJson = JSON.stringify(res.body);
+      expect(res.body).not.toHaveProperty('user');
+      expect(res.body).not.toHaveProperty('user_id');
+      expect(createdJson).not.toContain(A_EMAIL);
+      expect(createdJson).not.toContain(A_NAME);
+      expect(createdJson).not.toContain('pii-author-zhang.wei.unique');
+      for (const key of Object.keys(res.body as Record<string, unknown>)) {
+        expect(ALLOWED_KEYS.has(key)).toBe(true);
+      }
+    });
+
+    it('包含 A 的投稿(确保后续断言不是空集 → 防漏测)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed')
+        .set('Authorization', `Bearer ${otherToken}`);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      const mine = res.body.find((i: { id: string }) => i.id === createdId);
+      expect(mine).toBeDefined();
+    });
+
+    it('B(他人)GET /feed → 响应不含 A 的 email / 真名,且无 user 关系键', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed')
+        .set('Authorization', `Bearer ${otherToken}`);
+      expect(res.status).toBe(200);
+
+      const json = JSON.stringify(res.body);
+      // 红线①:整段响应不得出现 A 的邮箱或可识别真名。
+      expect(json).not.toContain(A_EMAIL);
+      expect(json).not.toContain(A_NAME);
+      // 红线②:邮箱域名片段(防只截断 local-part)也不应整体出现。
+      expect(json).not.toContain('pii-author-zhang.wei.unique');
+
+      // 红线③:每条记录都不得带 user/user_id 关系,且顶层键命中白名单。
+      for (const item of res.body as Record<string, unknown>[]) {
+        expect(item).not.toHaveProperty('user');
+        expect(item).not.toHaveProperty('user_id');
+        for (const key of Object.keys(item)) {
+          expect(ALLOWED_KEYS.has(key)).toBe(true);
+        }
+      }
+    });
+
+    it('B 用 company 过滤命中 A 的投稿 → 仍不回吐 A 的身份', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed?company=IsolationCo')
+        .set('Authorization', `Bearer ${otherToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThan(0);
+
+      const json = JSON.stringify(res.body);
+      expect(json).not.toContain(A_EMAIL);
+      expect(json).not.toContain(A_NAME);
+      for (const item of res.body as Record<string, unknown>[]) {
+        expect(item).not.toHaveProperty('user');
+        expect(item).not.toHaveProperty('user_id');
+        // UGC 投稿的 author 必须为空(匿名);绝不能等于投稿人真名。
+        expect(item.author == null || item.author !== A_NAME).toBe(true);
+      }
+    });
+
+    it('UGC 投稿的 author 字段为 null(渲染为匿名,不暴露作者)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed?company=IsolationCo')
+        .set('Authorization', `Bearer ${otherToken}`);
+      const mine = (res.body as { id: string; author: string | null }[]).find(
+        (i) => i.id === createdId,
+      );
+      expect(mine).toBeDefined();
+      expect(mine!.author).toBeNull();
+    });
+  });
+
   describe('GET /api/feed/sources', () => {
     it('returns configured source registry', async () => {
       const res = await request(app.getHttpServer())
