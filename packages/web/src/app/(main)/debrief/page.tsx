@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Interview } from '@/lib/types';
 import { InterviewCard } from '@/components/interview/interview-card';
 import { InterviewForm } from '@/components/interview/interview-form';
-import { Plus, Mic } from 'lucide-react';
+import { Plus, Mic, Zap } from 'lucide-react';
 
 // ── 统计卡片 ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,13 @@ function StatTile({
 
 // ── 录音 capture banner ───────────────────────────────────────────────────────
 
-function CaptureBanner({ onNew }: { onNew: () => void }) {
+function CaptureBanner({
+  onUpload,
+  uploadBusy,
+}: {
+  onUpload: () => void;
+  uploadBusy: boolean;
+}) {
   return (
     <div
       style={{
@@ -92,13 +99,15 @@ function CaptureBanner({ onNew }: { onNew: () => void }) {
             刚完成一场面试？
           </div>
           <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', marginTop: '2px' }}>
-            趁记忆新鲜录入面试记录，AI 将自动生成复盘分析
+            趁记忆新鲜把录音传上来，自动转文字 + 逐题复盘 · 成功才扣 7 点
           </div>
         </div>
       </div>
       <button
-        onClick={onNew}
+        onClick={onUpload}
+        disabled={uploadBusy}
         style={{
+          position: 'relative',
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
@@ -109,20 +118,109 @@ function CaptureBanner({ onNew }: { onNew: () => void }) {
           borderRadius: 'var(--radius-default)',
           fontSize: '13px',
           fontWeight: 600,
-          cursor: 'pointer',
+          cursor: uploadBusy ? 'not-allowed' : 'pointer',
+          opacity: uploadBusy ? 0.7 : 1,
           letterSpacing: '-0.005em',
           flexShrink: 0,
           boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
         }}
       >
-        <Plus size={14} />
-        录入面试
+        <Mic size={14} />
+        {uploadBusy ? '准备中…' : '上传面试录音'}
+        <span
+          style={{
+            position: 'absolute',
+            top: '-7px',
+            right: '-7px',
+            padding: '1px 6px',
+            borderRadius: '999px',
+            background: 'rgba(255,111,0,.9)',
+            fontSize: '9.5px',
+            fontWeight: 700,
+            color: '#fff',
+            letterSpacing: '0.03em',
+            lineHeight: 1.5,
+          }}
+        >
+          Beta
+        </span>
       </button>
     </div>
   );
 }
 
-function EmptyState({ onNew }: { onNew: () => void }) {
+// ── 上传录音主按钮(品牌渐变 + Mic + Beta + 「成功才扣 7 点」副字)──────────────
+// 列表页常驻主入口:点击先建空白 interview 容器,跳详情页 ?upload=1 自动弹上传框。
+
+function UploadRecordingButton({
+  onUpload,
+  busy,
+}: {
+  onUpload: () => void;
+  busy: boolean;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+      <button
+        onClick={onUpload}
+        disabled={busy}
+        style={{
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '7px',
+          padding: '10px 18px',
+          background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 'var(--radius-default)',
+          fontSize: '13.5px',
+          fontWeight: 600,
+          cursor: busy ? 'not-allowed' : 'pointer',
+          opacity: busy ? 0.7 : 1,
+          letterSpacing: '-0.005em',
+          flexShrink: 0,
+          boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+        }}
+      >
+        <Mic size={15} />
+        {busy ? '准备中…' : '上传面试录音'}
+        <span
+          style={{
+            position: 'absolute',
+            top: '-8px',
+            right: '-8px',
+            padding: '1px 6px',
+            borderRadius: '999px',
+            background: 'rgba(255,111,0,.9)',
+            fontSize: '10px',
+            fontWeight: 700,
+            color: '#fff',
+            letterSpacing: '0.03em',
+            lineHeight: 1.5,
+          }}
+        >
+          Beta
+        </span>
+      </button>
+      <span
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          fontSize: '11px',
+          color: 'var(--color-ink-4)',
+          fontWeight: 500,
+        }}
+      >
+        <Zap size={10} />
+        自动转文字 + 逐题复盘 · 成功才扣 7 点
+      </span>
+    </div>
+  );
+}
+
+function EmptyState({ onNew, onUpload, uploadBusy }: { onNew: () => void; onUpload: () => void; uploadBusy: boolean }) {
   return (
     <div
       style={{
@@ -130,9 +228,9 @@ function EmptyState({ onNew }: { onNew: () => void }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '80px 32px',
+        padding: '72px 32px',
         textAlign: 'center',
-        gap: '16px',
+        gap: '18px',
       }}
     >
       <div
@@ -147,46 +245,87 @@ function EmptyState({ onNew }: { onNew: () => void }) {
           justifyContent: 'center',
         }}
       >
-        <Mic size={28} color="var(--color-ink-3)" />
+        <Mic size={28} color="var(--color-brand)" />
       </div>
-      <div>
+      <div style={{ maxWidth: '440px' }}>
         <div
           style={{
             fontFamily: 'var(--serif)',
-            fontSize: '16px',
+            fontSize: '18px',
             fontWeight: 700,
             color: 'var(--color-ink)',
             letterSpacing: '-0.01em',
-            marginBottom: '6px',
+            marginBottom: '8px',
           }}
         >
-          还没有面试记录
+          把面试录音变成复盘
         </div>
-        <div style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
-          录入你的第一场面试，AI 将自动生成复盘分析
+        <div style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', fontWeight: 500, lineHeight: 1.7 }}>
+          面完了别让记忆溜走。把录音传上来，我帮你把对话转成文字，再逐题告诉你哪答得好、哪可以更好。
         </div>
       </div>
-      <button
-        onClick={onNew}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '7px',
-          padding: '11px 22px',
-          background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 'var(--radius-default)',
-          fontSize: '14px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          letterSpacing: '-0.005em',
-          boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
-        }}
-      >
-        <Plus size={16} />
-        录入新面试
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+        <button
+          onClick={onUpload}
+          disabled={uploadBusy}
+          style={{
+            position: 'relative',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            padding: '11px 24px',
+            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 'var(--radius-default)',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: uploadBusy ? 'not-allowed' : 'pointer',
+            opacity: uploadBusy ? 0.7 : 1,
+            letterSpacing: '-0.005em',
+            boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+          }}
+        >
+          <Mic size={16} />
+          {uploadBusy ? '准备中…' : '上传第一段面试录音'}
+          <span
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              padding: '1px 6px',
+              borderRadius: '999px',
+              background: 'rgba(255,111,0,.9)',
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#fff',
+              letterSpacing: '0.03em',
+              lineHeight: 1.5,
+            }}
+          >
+            Beta
+          </span>
+        </button>
+        <button
+          onClick={onNew}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 8px',
+            background: 'transparent',
+            color: 'var(--color-ink-3)',
+            border: 'none',
+            fontSize: '12.5px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          <Plus size={13} />
+          或手动录入面试（粘贴文字记录）
+        </button>
+      </div>
     </div>
   );
 }
@@ -201,12 +340,27 @@ const FILTER_LABELS: Record<FilterKey, string> = {
 };
 
 export default function DebriefListPage() {
+  // useSearchParams 需 Suspense 边界(Next.js App Router 约定,对齐 mock/page.tsx)。
+  return (
+    <Suspense fallback={null}>
+      <DebriefListInner />
+    </Suspense>
+  );
+}
+
+function DebriefListInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState<FilterKey>('all');
+  // 「上传面试录音」主入口:点击先建空白 interview 容器再跳详情页弹上传框。
+  // creatingContainer 兼作防抖标记,避免重复点击建出多个空草稿(每次建容器扣 1 点)。
+  const [creatingContainer, setCreatingContainer] = useState(false);
+  const handledUploadParam = useRef(false);
 
   useEffect(() => {
     api
@@ -220,6 +374,35 @@ export default function DebriefListPage() {
         setLoading(false);
       });
   }, []);
+
+  // 「上传面试录音」主路径:建一个最小空白 interview 容器(round 给中性默认值,
+  // 避免 round 必填校验 400),拿到 id 后跳详情页 ?upload=1,详情页自动弹上传框。
+  // 计费提示:POST /interviews 会扣 1 点(草稿),转写成功再扣 7 点;故做 loading 防抖防重复建容器。
+  async function startUploadFlow() {
+    if (creatingContainer) return;
+    setCreatingContainer(true);
+    try {
+      const created = await api.post<Interview>('/interviews', { round: '面试' });
+      router.push(`/debrief/${created.id}?upload=1`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '创建失败，请重试');
+      setCreatingContainer(false);
+    }
+    // 成功时不复位 creatingContainer:页面即将跳走,保持禁用态防二次点击。
+  }
+
+  // 发现卡 /debrief?upload=1 直达:列表页加载后检测到该参数即走同一「建空白→跳详情?upload=1」流程,
+  // 对用户表现为一键弹上传框。用 ref 保证只触发一次,避免 re-render 重复建容器。
+  useEffect(() => {
+    if (handledUploadParam.current) return;
+    if (loading) return;
+    if (searchParams.get('upload') === '1') {
+      handledUploadParam.current = true;
+      // Defer 避免 set-state-in-effect 同步 cascade(对齐 mock/page.tsx 既有写法)。
+      setTimeout(() => { void startUploadFlow(); }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, searchParams]);
 
   async function handleSubmit(data: {
     company: string;
@@ -316,28 +499,32 @@ export default function DebriefListPage() {
             记录 · 转写 · 逐题评估 · 预测下一轮
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '7px',
-            padding: '10px 18px',
-            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 'var(--radius-default)',
-            fontSize: '13.5px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            letterSpacing: '-0.005em',
-            flexShrink: 0,
-            boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
-          }}
-        >
-          <Plus size={15} />
-          录入新面试
-        </button>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flexShrink: 0 }}>
+          {/* 常驻主入口:上传面试录音(无论有无历史记录都在)。 */}
+          <UploadRecordingButton onUpload={startUploadFlow} busy={creatingContainer} />
+          {/* 次级入口:手动录入(粘贴文字记录)。 */}
+          <button
+            onClick={() => setShowForm(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '10px 16px',
+              background: 'transparent',
+              color: 'var(--color-ink-2)',
+              border: '1.5px solid var(--color-line)',
+              borderRadius: 'var(--radius-default)',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              letterSpacing: '-0.005em',
+              flexShrink: 0,
+            }}
+          >
+            <Plus size={15} />
+            录入新面试
+          </button>
+        </div>
       </div>
 
       {/* 4 stat tiles — 仅有数据时显示 */}
@@ -401,13 +588,17 @@ export default function DebriefListPage() {
 
       {/* Empty */}
       {!loading && !error && interviews.length === 0 && (
-        <EmptyState onNew={() => setShowForm(true)} />
+        <EmptyState
+          onNew={() => setShowForm(true)}
+          onUpload={startUploadFlow}
+          uploadBusy={creatingContainer}
+        />
       )}
 
       {/* Capture banner + filter + grid */}
       {!loading && !error && interviews.length > 0 && (
         <>
-          <CaptureBanner onNew={() => setShowForm(true)} />
+          <CaptureBanner onUpload={startUploadFlow} uploadBusy={creatingContainer} />
 
           {/* Filter chips */}
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>

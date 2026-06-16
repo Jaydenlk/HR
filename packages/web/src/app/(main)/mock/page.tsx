@@ -10,7 +10,8 @@ import {
   HandoffConfirmDialog,
   ReturnToCoachBanner,
 } from '@/components/chat/handoff-reception';
-import { Play, X, ExternalLink } from 'lucide-react';
+import { Play, X, ExternalLink, MessageSquare, Volume2, Info } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
 
 function LoadingSkeleton() {
   return (
@@ -36,6 +37,7 @@ interface NewSessionForm {
   company: string;
   role: string;
   jd_text: string;
+  mode: 'text' | 'voice';
 }
 
 interface SearchCandidate {
@@ -75,8 +77,10 @@ function MockPageInner() {
   const [error, setError] = useState<string | null>(null);
 
   // Dialog state
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<NewSessionForm>({ company: '', role: '', jd_text: '' });
+  const modeParam = searchParams.get('mode');
+  const initialMode: 'text' | 'voice' = modeParam === 'voice' ? 'voice' : 'text';
+  const [dialogOpen, setDialogOpen] = useState(modeParam === 'voice');
+  const [form, setForm] = useState<NewSessionForm>({ company: '', role: '', jd_text: '', mode: initialMode });
 
   // handoff 接待:accepted 后预填表单并打开弹窗
   // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题。
@@ -90,6 +94,7 @@ function MockPageInner() {
           company: String(payload.company ?? ''),
           role: String(payload.role ?? ''),
           jd_text: String(payload.jd_text ?? ''),
+          mode: 'text',
         });
         setDialogOpen(true);
       }, 0);
@@ -147,7 +152,7 @@ function MockPageInner() {
     setCreating(true);
     setCreateError(null);
     try {
-      const payload: Record<string, unknown> = {};
+      const payload: Record<string, unknown> = { mode: form.mode };
       if (form.company.trim()) payload.company = form.company.trim();
       if (form.role.trim()) payload.role = form.role.trim();
       if (form.jd_text.trim()) payload.jd_text = form.jd_text.trim();
@@ -167,7 +172,7 @@ function MockPageInner() {
 
       const session = await api.post<MockSession & { company_known: boolean }>('/mock-sessions', payload);
       setDialogOpen(false);
-      setForm({ company: '', role: '', jd_text: '' });
+      setForm({ company: '', role: '', jd_text: '', mode: 'text' });
       setCheckResult(null);
       setCandidateConfirmed(null);
       window.dispatchEvent(new Event('coach:credit-refresh'));
@@ -258,6 +263,114 @@ function MockPageInner() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* 模式选择卡 */}
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--color-ink-3)',
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                  }}
+                >
+                  选择面试方式
+                </label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {/* 文字模式卡 */}
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, mode: 'text' }))}
+                    style={{
+                      flex: 1,
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: form.mode === 'text'
+                        ? '1.5px solid var(--color-brand)'
+                        : '1.5px solid var(--color-line)',
+                      background: form.mode === 'text'
+                        ? 'var(--color-brand-soft)'
+                        : 'transparent',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'border-color 0.12s, background 0.12s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '4px' }}>
+                      <MessageSquare size={15} color={form.mode === 'text' ? 'var(--color-brand)' : 'var(--color-ink-3)'} />
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: form.mode === 'text' ? 'var(--color-brand)' : 'var(--color-ink)',
+                      }}>
+                        文字模式
+                      </span>
+                    </div>
+                    <p style={{
+                      fontSize: '11.5px',
+                      color: 'var(--color-ink-3)',
+                      margin: 0,
+                      lineHeight: 1.5,
+                    }}>
+                      题目用文字给你，你打字作答。安静、随时能停。
+                    </p>
+                  </button>
+
+                  {/* 语音模式卡 */}
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, mode: 'voice' }))}
+                    style={{
+                      flex: 1,
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: form.mode === 'voice'
+                        ? '1.5px solid var(--color-brand)'
+                        : '1.5px solid var(--color-line)',
+                      background: form.mode === 'voice'
+                        ? 'var(--color-brand-soft)'
+                        : 'transparent',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'border-color 0.12s, background 0.12s',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '4px' }}>
+                      <Volume2 size={15} color={form.mode === 'voice' ? 'var(--color-brand)' : 'var(--color-ink-3)'} />
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: form.mode === 'voice' ? 'var(--color-brand)' : 'var(--color-ink)',
+                      }}>
+                        语音模式
+                      </span>
+                    </div>
+                    <p style={{
+                      fontSize: '11.5px',
+                      color: 'var(--color-ink-3)',
+                      margin: 0,
+                      lineHeight: 1.5,
+                    }}>
+                      面试官会念题给你听，更接近真实面试的紧张感。
+                    </p>
+                  </button>
+                </div>
+
+                {/* 语音模式提示 */}
+                {form.mode === 'voice' && (
+                  <p style={{
+                    margin: '8px 0 0',
+                    fontSize: '12px',
+                    color: 'var(--color-ink-3)',
+                    lineHeight: 1.6,
+                  }}>
+                    语音模式会用 AI 语音念题（每题读题约消耗额外点数），建议戴耳机、找安静的地方。
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label
                   style={{
@@ -550,30 +663,49 @@ function MockPageInner() {
               AI 实时反馈，提升面试表达
             </p>
           </div>
-          <button
-            onClick={() => setDialogOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '10px 18px',
-              borderRadius: 'var(--radius-default)',
-              border: 'none',
-              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-              color: '#fff',
-              fontSize: '13.5px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'opacity 0.12s',
-              letterSpacing: '-0.01em',
-              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-          >
-            <Play size={16} />
-            开始新模拟
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => setDialogOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                padding: '10px 18px',
+                borderRadius: 'var(--radius-default)',
+                border: 'none',
+                background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+                color: '#fff',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'opacity 0.12s',
+                letterSpacing: '-0.01em',
+                boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.92'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+            >
+              <Play size={16} />
+              开始新模拟
+            </button>
+            <Tooltip
+              content="选好公司岗位,AI 现场出题面你。可以打字答,也能开口说。"
+              triggerRender={<span />}
+              side="bottom"
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: 'var(--color-ink-4)',
+                  cursor: 'help',
+                }}
+                aria-label="模拟面试说明"
+              >
+                <Info size={13} />
+              </span>
+            </Tooltip>
+          </div>
         </div>
 
         {/* Content */}

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useRef, use } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Interview, LabeledSegment, TranscribeStatusResponse } from '@/lib/types';
 import { ScoreRadar } from '@/components/interview/score-radar';
@@ -10,7 +11,8 @@ import { PredictionCard } from '@/components/interview/prediction-card';
 import { AudioUploader } from '@/components/interview/audio-uploader';
 import { TranscriptProgress } from '@/components/interview/transcript-progress';
 import { SpeakerLabelSection } from '@/components/interview/speaker-label-section';
-import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic, Zap } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic, Zap, Info } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
 
 function gradeColors(grade: string | null): { bg: string; text: string } {
   if (!grade) return { bg: 'var(--color-ink-4)', text: '#fff' };
@@ -48,6 +50,7 @@ interface DebriefDetailProps {
 
 export function DebriefDetail({ params }: DebriefDetailProps) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +97,22 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
       // 无转写任务(404)或网络异常:静默,落入普通"手动分析/上传录音"入口。
       .catch(() => {});
   }, [id]);
+
+  // ?upload=1 直达:从列表页主入口或首页发现卡跳来时,interview 加载完成后自动弹上传框,
+  // 让"点一下就能传录音"对用户透明。仅在无活动转写任务时触发一次,避免打断进行中的转写。
+  // 用 ref 保证整个生命周期只自动弹一次:用户关掉后、或转写确认后重拉 interview,都不再被拉起。
+  const autoUploadDone = useRef(false);
+  useEffect(() => {
+    if (autoUploadDone.current) return;
+    if (!interview) return;
+    if (searchParams.get('upload') !== '1') return;
+    if (taskId) return; // 已有进行中/待确认任务:不自动弹,交给进度区。
+    autoUploadDone.current = true;
+    // Defer 避免 set-state-in-effect 同步 cascade(对齐 mock/page.tsx 既有写法)。
+    const t = setTimeout(() => setShowUploader(true), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interview, taskId]);
 
   async function handleAnalyze() {
     setAnalyzing(true);
@@ -366,8 +385,40 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
         </div>
       )}
 
-      {/* Transcribe progress (active task, not yet awaiting confirm) */}
-      {!hasAnalysis && taskId && transcribeStatus?.status !== 'awaiting_confirm' && (
+      {/* 已分析也能再传:轻量「重新上传录音」次级入口(放宽原 !hasAnalysis 门控)。
+          仅当已有分析且当前无进行中转写任务时显示,换一段录音重跑复盘。 */}
+      {hasAnalysis && !taskId && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+          <button
+            onClick={() => setShowUploader(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '7px 14px',
+              background: 'transparent',
+              color: 'var(--color-ink-3)',
+              border: '1.5px solid var(--color-line)',
+              borderRadius: 'var(--radius-default)',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              letterSpacing: '-0.005em',
+            }}
+          >
+            <Mic size={13} />
+            重新上传录音
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--color-ink-4)', fontWeight: 500 }}>
+              <Zap size={10} />
+              成功才扣 7 点
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Transcribe progress (active task, not yet awaiting confirm) —
+          有进行中任务即显示进度,不再受 !hasAnalysis 限制(支持已分析后重新上传重跑)。 */}
+      {taskId && transcribeStatus?.status !== 'awaiting_confirm' && (
         <div style={{ marginBottom: '20px' }}>
           <TranscriptProgress
             interviewId={id}
@@ -377,8 +428,9 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
         </div>
       )}
 
-      {/* Speaker label confirm section (awaiting_confirm with segments) */}
-      {!hasAnalysis && taskId && transcribeStatus?.status === 'awaiting_confirm' && segments && (
+      {/* Speaker label confirm section (awaiting_confirm with segments) —
+          同上,有待确认任务即显示,支持已分析后重新上传重跑。 */}
+      {taskId && transcribeStatus?.status === 'awaiting_confirm' && segments && (
         <div style={{ marginBottom: '20px' }}>
           <SpeakerLabelSection
             interviewId={id}
@@ -422,45 +474,64 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                <button
-                  onClick={() => setShowUploader(true)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    padding: '10px 22px',
-                    background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 'var(--radius-default)',
-                    fontSize: '13.5px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    letterSpacing: '-0.005em',
-                    boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
-                    position: 'relative',
-                  }}
-                >
-                  <Mic size={14} />
-                  上传录音转写
-                  <span
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => setShowUploader(true)}
                     style={{
-                      position: 'absolute',
-                      top: '-8px',
-                      right: '-8px',
-                      padding: '1px 6px',
-                      borderRadius: '999px',
-                      background: 'rgba(255,111,0,.9)',
-                      fontSize: '10px',
-                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '10px 22px',
+                      background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
                       color: '#fff',
-                      letterSpacing: '0.03em',
-                      lineHeight: 1.5,
+                      border: 'none',
+                      borderRadius: 'var(--radius-default)',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      letterSpacing: '-0.005em',
+                      boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                      position: 'relative',
                     }}
                   >
-                    Beta
-                  </span>
-                </button>
+                    <Mic size={14} />
+                    上传录音转写
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '-8px',
+                        padding: '1px 6px',
+                        borderRadius: '999px',
+                        background: 'rgba(255,111,0,.9)',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        color: '#fff',
+                        letterSpacing: '0.03em',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Beta
+                    </span>
+                  </button>
+                  <Tooltip
+                    content="支持 1 对 1 面试录音(MP3/WAV 等)。传上来约 1-2 分钟变成文字。"
+                    triggerRender={<span />}
+                    side="bottom"
+                  >
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        color: 'var(--color-ink-4)',
+                        cursor: 'help',
+                      }}
+                      aria-label="上传录音说明"
+                    >
+                      <Info size={13} />
+                    </span>
+                  </Tooltip>
+                </div>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>
                   <Zap size={10} />
                   消耗 7 点（成功才扣）

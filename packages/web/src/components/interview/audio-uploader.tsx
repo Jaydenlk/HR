@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { api } from '@/lib/api';
-import { Upload, Mic, X, Info, Zap } from 'lucide-react';
+import { Upload, Mic, X, Info, Zap, QrCode } from 'lucide-react';
 
 // Response shape from POST /interviews/:id/transcribe (202 Accepted)
 export interface TranscribeStarted {
@@ -276,6 +276,49 @@ export function AudioUploader({ interviewId, open, onClose, onStarted }: AudioUp
                   </div>
                 </>
               )}
+            </button>
+            {/* Block F 占位: 手机扫码上传 — 主路径锚点，功能待 P1 专项实现 */}
+            <button
+              type="button"
+              disabled
+              title="该功能正在开发中，敬请期待"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '7px',
+                marginTop: '10px',
+                padding: '9px 16px',
+                width: '100%',
+                borderRadius: '9px',
+                border: '1.5px dashed var(--color-line-2)',
+                background: 'transparent',
+                color: 'var(--color-ink-4)',
+                fontSize: '12.5px',
+                cursor: 'not-allowed',
+                opacity: 0.65,
+              }}
+            >
+              <QrCode size={14} />
+              <span>录音在手机里?扫码用手机传</span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '1px 7px',
+                  borderRadius: '999px',
+                  background: 'rgba(47,143,255,.08)',
+                  border: '1px solid rgba(47,143,255,.25)',
+                  fontSize: '10.5px',
+                  fontWeight: 600,
+                  color: 'var(--color-brand)',
+                  letterSpacing: '0.03em',
+                  lineHeight: 1,
+                  marginLeft: '2px',
+                }}
+              >
+                即将上线
+              </span>
             </button>
           </div>
 

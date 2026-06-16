@@ -6,7 +6,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import OnboardingTour from '@/components/onboarding/onboarding-tour';
+import CapabilityGuide from '@/components/onboarding/capability-guide';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Tooltip } from '@/components/ui/tooltip';
+import { NAV_HINTS } from '@/components/onboarding/nav-hints';
 import { api } from '@/lib/api';
 import type { User, Conversation, Interview, Application, MeProfile } from '@/lib/types';
 import {
@@ -35,6 +38,7 @@ import {
   Shield,
   LogOut,
   Coins,
+  HelpCircle,
 } from 'lucide-react';
 
 interface NavItem {
@@ -121,6 +125,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [interviewCount, setInterviewCount] = useState(0);
   const [applicationCount, setApplicationCount] = useState(0);
   const [showMore, setShowMore] = useState(false);
+  const [showCapabilityGuide, setShowCapabilityGuide] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -222,6 +227,25 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   // 导航数据 hoist 到渲染作用域,供 JSX 与下方滑动指示器测量共享(buildXxxNav 是纯函数,廉价)。
   const mainNav = buildMainNav(interviewCount);
   const toolNav = buildToolNav(applicationCount);
+
+  // 给侧栏导航项包悬停说明。link 本身是交互元素(<Link>=<a>),必须用 triggerRender={<span/>} 穿透,
+  // 避免 base-ui 把 Trigger 渲染成 <button> 套在 <a> 外形成非法嵌套。span 设 display:block 不塌陷,
+  // 且不带定位/边距——保证内部 Link 的 offsetParent 仍是外层 relative 容器,滑动指示器测量不受影响。
+  // 移动端是抽屉、触屏无 hover,不包 Tooltip(避免误触卡住),可发现性靠主页发现区 + 引导承担。
+  function withHint(id: string, link: React.ReactNode, key?: string): React.ReactNode {
+    const hint = NAV_HINTS[id];
+    if (isMobile || !hint) return link;
+    return (
+      <Tooltip
+        key={key}
+        content={hint}
+        side="right"
+        triggerRender={<span style={{ display: 'block' }} />}
+      >
+        {link}
+      </Tooltip>
+    );
+  }
 
   // ── 浮动磨砂滑动指示器 ────────────────────────────────────────────────
   // 每组(主导航 / 工具导航)一个共享指示器。容器 position:relative,指示器 position:absolute。
@@ -499,31 +523,34 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         {/* CTA — "问 Coach" */}
         {/* 主操作钮:用品牌蓝渐变(两套主题都可读,替代原 --color-ink 实色——暗色下 ink 变浅
             会与白字撞色)。Night Atelier 的 .btn-primary 同款渐变 + 蓝光阴影。 */}
-        <Link
-          href="/chat"
-          data-tour="chat"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 14px',
-            background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-            color: '#fff',
-            borderRadius: '12px',
-            fontSize: '13.5px',
-            fontWeight: 600,
-            margin: '8px 0 16px',
-            letterSpacing: '-0.005em',
-            textDecoration: 'none',
-            boxShadow: '0 8px 22px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.35)',
-            transition: 'opacity 0.12s, transform 0.12s',
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <MessageSquare size={15} />
-            问 Coach
-          </span>
-        </Link>
+        {withHint(
+          'chat',
+          <Link
+            href="/chat"
+            data-tour="chat"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+              color: '#fff',
+              borderRadius: '12px',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              margin: '8px 0 16px',
+              letterSpacing: '-0.005em',
+              textDecoration: 'none',
+              boxShadow: '0 8px 22px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.35)',
+              transition: 'opacity 0.12s, transform 0.12s',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MessageSquare size={15} />
+              问 Coach
+            </span>
+          </Link>,
+        )}
 
         {/* Main nav — relative 容器承载浮动磨砂滑动指示器(单块磨砂在组内平滑滑动到激活项) */}
         <div
@@ -533,7 +560,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           <div ref={mainIndicatorRef} className="nav-indicator" data-active="false" aria-hidden="true" />
           {mainNav.map((item) => {
             const active = isActive(item);
-            return (
+            const link = (
               <Link
                 key={item.id}
                 href={item.href}
@@ -601,6 +628,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 )}
               </Link>
             );
+            return withHint(item.id, link, item.id);
           })}
         </div>
 
@@ -609,7 +637,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           const { core, more } = toolNav;
           const renderTool = (item: NavItem) => {
             const active = isActive(item);
-            return (
+            const link = (
               <Link
                 key={item.id}
                 href={item.href}
@@ -666,6 +694,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 )}
               </Link>
             );
+            return withHint(item.id, link, item.id);
           };
           return (
             <>
@@ -888,18 +917,54 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             flexShrink: 0,
           }}
         >
-          <span
-            style={{
-              fontSize: '12px',
-              color: 'var(--color-ink-3)',
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            Coach 公测版
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'var(--color-ink-3)',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              Coach 公测版
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowCapabilityGuide(true)}
+              aria-label="使用帮助"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 9px',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--color-ink-3)',
+                fontSize: '12px',
+                fontWeight: 600,
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+                letterSpacing: '-0.003em',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                transition: 'background 0.12s, color 0.12s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--color-brand-soft)';
+                e.currentTarget.style.color = 'var(--color-brand)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--color-ink-3)';
+              }}
+            >
+              <HelpCircle size={14} />
+              使用帮助
+            </button>
+          </div>
           <button
             type="button"
             onClick={handleLogout}
@@ -955,6 +1020,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
       {/* 新手导览:首次使用引导。桌面聚光灯 / 移动端居中卡降级,由组件内部按 isMobile 决定形态(完成标记在 localStorage) */}
       <OnboardingTour />
+
+      {/* 能力速览:底部「使用帮助」入口触发,任何页面可打开;可重看新手引导(派发 coach:restart-tour) */}
+      <CapabilityGuide open={showCapabilityGuide} onClose={() => setShowCapabilityGuide(false)} />
 
       {/* 全站 toast 出口:写操作成功 toast.success / 失败 toast.error。 */}
       <Toaster position="top-center" richColors closeButton />

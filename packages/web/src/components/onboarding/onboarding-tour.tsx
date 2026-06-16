@@ -219,6 +219,17 @@ export default function OnboardingTour() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  // 重看引导:能力速览的「重新看一遍」派发 coach:restart-tour,从第一步重播。
+  // 对齐 layout 已有的 coach:credit-refresh 事件总线模式,比清 localStorage + reload 更顺。
+  useEffect(() => {
+    const onRestart = () => {
+      setStepIndex(0);
+      setActive(true);
+    };
+    window.addEventListener('coach:restart-tour', onRestart);
+    return () => window.removeEventListener('coach:restart-tour', onRestart);
+  }, []);
+
   // 步骤变化/窗口缩放:重算目标位置(仅桌面聚光灯需要)。移动端不挖洞,跳过测量。
   // 目标元素不存在(如该锚点被折叠/未渲染)则不聚光,退化为居中卡。
   useEffect(() => {
@@ -381,7 +392,7 @@ export default function OnboardingTour() {
               textAlign: 'center',
             }}
           >
-            四步走完,你就跑通了 Coach 最核心的一圈。
+            四步走完,你就跑通了最核心的一圈。还有录音复盘、语音模拟面试等更多能力,随时能在首页「探索」区点开试。
           </div>
           <ChecklistPreview />
           <div style={{ marginTop: '22px', display: 'flex', justifyContent: 'center' }}>
