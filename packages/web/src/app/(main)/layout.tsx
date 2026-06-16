@@ -10,6 +10,7 @@ import CapabilityGuide from '@/components/onboarding/capability-guide';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Tooltip } from '@/components/ui/tooltip';
 import { NAV_HINTS } from '@/components/onboarding/nav-hints';
+import { AnnouncementBanner } from '@/components/ui/announcement-banner';
 import { api } from '@/lib/api';
 import type { User, Conversation, Interview, Application, MeProfile } from '@/lib/types';
 import {
@@ -39,6 +40,7 @@ import {
   LogOut,
   Coins,
   HelpCircle,
+  Megaphone,
 } from 'lucide-react';
 
 interface NavItem {
@@ -827,6 +829,44 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               </span>
               <span style={{ flex: 1 }}>管理后台</span>
             </Link>
+            <Link
+              href="/admin/announcements"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '11px',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                fontSize: '13.5px',
+                color: (pathname?.startsWith('/admin/announcements') ?? false)
+                  ? 'var(--color-ink)'
+                  : 'var(--color-ink-2)',
+                fontWeight: (pathname?.startsWith('/admin/announcements') ?? false) ? 600 : 500,
+                background: (pathname?.startsWith('/admin/announcements') ?? false)
+                  ? 'var(--color-surface)'
+                  : 'transparent',
+                boxShadow: (pathname?.startsWith('/admin/announcements') ?? false)
+                  ? '0 1px 2px rgba(0,0,0,0.04)'
+                  : 'none',
+                textDecoration: 'none',
+                letterSpacing: '-0.003em',
+                transition: 'background 0.1s, color 0.1s',
+              }}
+            >
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '18px',
+                  justifyContent: 'center',
+                  color: 'var(--color-ink-3)',
+                  flexShrink: 0,
+                }}
+              >
+                <Megaphone size={16} />
+              </span>
+              <span style={{ flex: 1 }}>公告管理</span>
+            </Link>
           </>
         )}
 
@@ -1015,7 +1055,11 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           ...(isMobile ? { paddingTop: '52px' } : {}),
         }}
       >
-        <div style={{ position: 'relative', zIndex: 1, minHeight: '100%' }}>{children}</div>
+        <div style={{ position: 'relative', zIndex: 1, minHeight: '100%' }}>
+          {/* 站内公告横幅:接 GET /announcements,有 active 公告时显示,已读存 localStorage */}
+          <AnnouncementBanner />
+          {children}
+        </div>
       </main>
 
       {/* 新手导览:首次使用引导。桌面聚光灯 / 移动端居中卡降级,由组件内部按 isMobile 决定形态(完成标记在 localStorage) */}

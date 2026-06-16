@@ -1,0 +1,226 @@
+'use client';
+
+// ── 公告横幅 ─────────────────────────────────────────────────────────────────
+// 挂在 (main)/layout.tsx 主区顶部(侧栏下方),展示 GET /announcements 返回的 active 公告。
+// 已读记录存 localStorage key = "coach_announce_dismissed"(Set 序列化为 JSON 数组)。
+// 按 kind 配色:feature=品牌蓝 / fix=成功绿 / maintenance=警告橙;沿用玻璃风格。
+// 静默降级:API 失败或无公告时不渲染任何内容。
+
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
+import type { Announcement, AnnouncementKind } from '@/lib/types';
+import { X, Sparkles, Wrench, AlertTriangle } from 'lucide-react';
+
+// ── 按 kind 的视觉配置 ──────────────────────────────────────────────────────
+const KIND_META: Record<
+  AnnouncementKind,
+  {
+    label: string;
+    color: string;       // 前景/图标色(CSS 变量或字面量)
+    bg: string;          // 背景
+    border: string;      // 边框
+    icon: React.ReactNode;
+  }
+> = {
+  feature: {
+    label: '新功能',
+    color: 'var(--color-brand)',
+    bg: 'var(--color-brand-soft)',
+    border: 'color-mix(in srgb, var(--color-brand) 30%, transparent)',
+    icon: <Sparkles size={14} />,
+  },
+  fix: {
+    label: '修复',
+    color: 'var(--color-success)',
+    bg: 'var(--color-success-soft)',
+    border: 'color-mix(in srgb, var(--color-success) 30%, transparent)',
+    icon: <Wrench size={14} />,
+  },
+  maintenance: {
+    label: '维护',
+    color: 'var(--color-warn)',
+    bg: 'var(--color-warn-soft)',
+    border: 'color-mix(in srgb, var(--color-warn) 30%, transparent)',
+    icon: <AlertTriangle size={14} />,
+  },
+};
+
+// ── localStorage 读/写工具函数 ──────────────────────────────────────────────
+const LS_KEY = 'coach_announce_dismissed';
+
+function readDismissed(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return new Set();
+    const arr: unknown = JSON.parse(raw);
+    if (!Array.isArray(arr)) return new Set();
+    return new Set(arr as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeDismissed(ids: Set<string>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify([...ids]));
+  } catch {
+    // 存储已满或无痕模式:静默忽略
+  }
+}
+
+// ── 单条公告横幅 ─────────────────────────────────────────────────────────────
+function AnnouncementItem({
+  item,
+  onDismiss,
+}: {
+  item: Announcement;
+  onDismiss: (id: string) => void;
+}) {
+  const meta = KIND_META[item.kind];
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px',
+        padding: '10px 14px',
+        background: meta.bg,
+        border: `1px solid ${meta.border}`,
+        borderRadius: 'var(--radius-default)',
+        fontSize: '13.5px',
+        lineHeight: 1.45,
+        // 玻璃感:轻微毛玻璃
+        WebkitBackdropFilter: 'blur(8px)',
+        backdropFilter: 'blur(8px)',
+      }}
+      role="status"
+      aria-label={`公告: ${item.title}`}
+    >
+      {/* 图标 + 种类标签 */}
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          color: meta.color,
+          fontWeight: 600,
+          flexShrink: 0,
+          marginTop: '1px',
+          fontSize: '12px',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {meta.icon}
+        {meta.label}
+      </span>
+
+      {/* 正文 */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span
+          style={{
+            fontWeight: 600,
+            color: 'var(--color-ink)',
+            letterSpacing: '-0.003em',
+          }}
+        >
+          {item.title}
+        </span>
+        {item.body && (
+          <span
+            style={{
+              marginLeft: '6px',
+              color: 'var(--color-ink-2)',
+              fontWeight: 400,
+            }}
+          >
+            {item.body}
+          </span>
+        )}
+      </div>
+
+      {/* 关闭按钮 */}
+      <button
+        type="button"
+        onClick={() => onDismiss(item.id)}
+        aria-label="关闭公告"
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--color-ink-3)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '2px',
+          borderRadius: '6px',
+          flexShrink: 0,
+          marginTop: '1px',
+          transition: 'color 0.1s, background 0.1s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'var(--color-ink)';
+          e.currentTarget.style.background = 'rgba(0,0,0,0.06)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'var(--color-ink-3)';
+          e.currentTarget.style.background = 'none';
+        }}
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
+
+// ── 主组件 ──────────────────────────────────────────────────────────────────
+export function AnnouncementBanner() {
+  const [items, setItems] = useState<Announcement[]>([]);
+  // useState 惰性初始化:组件首次挂载时同步从 localStorage 读取,避免在 effect 里 setState。
+  const [dismissed, setDismissed] = useState<Set<string>>(readDismissed);
+  const [loaded, setLoaded] = useState(false);
+
+  // 初始加载:拉接口
+  useEffect(() => {
+    api
+      .get<Announcement[]>('/announcements')
+      .then((data) => {
+        setItems(data.filter((a) => a.active));
+        setLoaded(true);
+      })
+      .catch(() => {
+        // 失败静默:不渲染
+        setLoaded(true);
+      });
+  }, []);
+
+  function handleDismiss(id: string) {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      writeDismissed(next);
+      return next;
+    });
+  }
+
+  // 未加载完或无可见公告:不占位
+  const visible = items.filter((a) => !dismissed.has(a.id));
+  if (!loaded || visible.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        padding: '12px 24px 0',
+      }}
+      aria-label="站内公告"
+    >
+      {visible.map((item) => (
+        <AnnouncementItem key={item.id} item={item} onDismiss={handleDismiss} />
+      ))}
+    </div>
+  );
+}
