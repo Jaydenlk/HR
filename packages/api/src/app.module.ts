@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { aiConfig } from './config/ai.config';
+import { speechConfig } from './config/speech.config';
 import { validate } from './config/env.validation';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -36,10 +37,11 @@ import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
 import { OpsEventsModule } from './ops/ops-events.module';
 import { CoachHandoffsModule } from './coach-handoffs/coach-handoffs.module';
+import { SpeechModule } from './speech/speech.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [aiConfig], validate, cache: true }),
+    ConfigModule.forRoot({ isGlobal: true, load: [aiConfig, speechConfig], validate, cache: true }),
     ScheduleModule.forRoot(),
     // 全局限流:默认每 IP 60s 内 120 次(ttl 毫秒)。auth 端点经 @Throttle 进一步收紧。
     // skipIf:e2e 套件多用户共享 127.0.0.1 高频请求会误触限流,故 DISABLE_THROTTLE=1 时整体跳过
@@ -116,6 +118,8 @@ import { CoachHandoffsModule } from './coach-handoffs/coach-handoffs.module';
     // 非 AI 入口(如 T3 管理后台)也能稳定注入 OpsEventsService。
     OpsEventsModule,
     CoachHandoffsModule,
+    // 语音转写(StepFun ASR + LLM 角色打标);InterviewsModule import 之以编排 transcribe 流程。
+    SpeechModule,
   ],
   // 全局限流守卫:与 ThrottlerModule.forRoot 配合,对所有路由生效。
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

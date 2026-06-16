@@ -225,6 +225,50 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   APP_VERSION?: string;
+
+  // ── 语音转写 StepFun ASR(可选;缺 STEP_API_KEY 时转写端点显式 503,不静默) ────────
+  // 真实 key 由主代理写 .env.production,永不入库;此处仅声明,缺省值在 speech.config.ts。
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  STEP_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  STEP_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  STEP_ASR_MODEL?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  STEP_TIMEOUT_MS?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  STEP_MAX_RETRIES?: string;
+
+  // ── 语音合成 StepFun TTS(可选;复用 STEP_API_KEY,缺省值在 speech.config.ts) ────────
+  @IsOptional()
+  @IsString()
+  STEP_TTS_MODEL?: string;
+
+  @IsOptional()
+  @IsString()
+  STEP_TTS_VOICE?: string;
+
+  @IsOptional()
+  @IsString()
+  STEP_TTS_FORMAT?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  STEP_TTS_TIMEOUT_MS?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AUDIO_MAX_SIZE_MB?: string;
 }
 
 // 测试密封名单:这些运营开关只应来自显式 process.env,绝不从 .env 文件泄入测试。

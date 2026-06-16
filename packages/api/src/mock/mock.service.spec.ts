@@ -45,13 +45,26 @@ function makeRepo() {
   };
 }
 
+function makeSpeechService() {
+  return {
+    synthesize: jest.fn().mockResolvedValue({ audio: Buffer.from(''), mimeType: 'audio/mpeg' }),
+  };
+}
+
 function makeService({
   ai = makeAiService(),
+  speech = makeSpeechService(),
   registry = makeCompanyRegistry(),
   search = makeCompanySearch(),
   repo = makeRepo(),
 } = {}) {
-  return new MockService(repo as any, ai as any, registry as any, search as any);
+  return new MockService(
+    repo as any,
+    ai as any,
+    speech as any,
+    registry as any,
+    search as any,
+  );
 }
 
 // ─── 核心测试 ─────────────────────────────────────────────────────────────
@@ -150,5 +163,58 @@ describe('MockService — generateEvaluation tier:pro', () => {
     expect(ai.completeStructured).toHaveBeenCalledTimes(1);
     const callArg = (ai.completeStructured as jest.Mock).mock.calls[0][0];
     expect(callArg.tier).toBe('pro');
+  });
+});
+
+describe('MockService — synthesizeQuestion(voice 读题)', () => {
+  const voiceSession = {
+    id: 's1',
+    user_id: 'u1',
+    mode: 'voice',
+    questions: [
+      { n: 1, type: '行为', topic: '自我介绍', difficulty: '简单', question: '请做个自我介绍。', hint: '' },
+      { n: 2, type: '技术', topic: '算法', difficulty: '中等', question: '解释一下快速排序。', hint: '' },
+    ],
+  };
+
+  function repoReturning(session: unknown) {
+    return { ...makeRepo(), findOne: jest.fn().mockResolvedValue(session) };
+  }
+
+  it('voice 模式 → 用该题题面调 speech.synthesize,回传音频', async () => {
+    const speech = makeSpeechService();
+    const svc = makeService({ speech, repo: repoReturning(voiceSession) });
+
+    const result = await svc.synthesizeQuestion('s1', 'u1', 1);
+
+    expect(speech.synthesize).toHaveBeenCalledWith('解释一下快速排序。');
+    expect(result.mimeType).toBe('audio/mpeg');
+  });
+
+  it('非本人会话(findOne 返回 null)→ 404,不调 speech', async () => {
+    const speech = makeSpeechService();
+    const svc = makeService({ speech, repo: repoReturning(null) });
+
+    await expect(svc.synthesizeQuestion('s1', 'other', 0)).rejects.toMatchObject({ status: 404 });
+    expect(speech.synthesize).not.toHaveBeenCalled();
+  });
+
+  it('text 模式会话 → 400,不调 speech', async () => {
+    const speech = makeSpeechService();
+    const svc = makeService({
+      speech,
+      repo: repoReturning({ ...voiceSession, mode: 'text' }),
+    });
+
+    await expect(svc.synthesizeQuestion('s1', 'u1', 0)).rejects.toMatchObject({ status: 400 });
+    expect(speech.synthesize).not.toHaveBeenCalled();
+  });
+
+  it('题号越界 → 400,不调 speech', async () => {
+    const speech = makeSpeechService();
+    const svc = makeService({ speech, repo: repoReturning(voiceSession) });
+
+    await expect(svc.synthesizeQuestion('s1', 'u1', 9)).rejects.toMatchObject({ status: 400 });
+    expect(speech.synthesize).not.toHaveBeenCalled();
   });
 });

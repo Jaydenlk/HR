@@ -8,9 +8,10 @@ import { AiModule } from '../ai/ai.module';
 import { QuotaModule } from '../quota/quota.module';
 import { CreditModule } from '../credit/credit.module';
 import { FeedModule } from '../feed/feed.module';
+import { SpeechModule } from '../speech/speech.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MockSession]), AiModule, QuotaModule, CreditModule, FeedModule],
+  imports: [TypeOrmModule.forFeature([MockSession]), AiModule, QuotaModule, CreditModule, FeedModule, SpeechModule],
   controllers: [MockController],
   providers: [MockService, CompanySearchService],
   exports: [MockService],

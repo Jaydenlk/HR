@@ -253,6 +253,17 @@ export const api = {
   postStreamRaw,
   // options 透传 signal,支持 AbortController 真正中止 GET(页面切换/竞态时取消旧请求)。
   get: <T>(path: string, options?: Pick<RequestInit, 'signal'>) => request<T>(path, options),
+  // 二进制 GET:用于 TTS 读题等返回原始音频字节的端点。带 Bearer 头,出 Blob(供 <audio> 播放);
+  // 非 2xx 走统一 handleError(401 跳登录 / 402 余额 / 其余带后端 message),不静默吞错。
+  getBlob: async (path: string, options?: Pick<RequestInit, 'signal'>): Promise<Blob> => {
+    const token = authToken();
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return handleError(res);
+    return res.blob();
+  },
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (path: string) => request(path, { method: 'DELETE' }),

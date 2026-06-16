@@ -144,6 +144,39 @@ export function InterviewCard({ interview: iv }: InterviewCardProps) {
               已分析
             </span>
           )}
+          {/* 转写进行中 / 待确认状态：引导用户回到详情页查看进度或确认角色标注 */}
+          {!iv.scores && iv.transcript_status === 'awaiting_confirm' && (
+            <span
+              style={{
+                padding: '2px 8px',
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontWeight: 600,
+                background: 'rgba(47,143,255,.1)',
+                color: 'var(--color-brand-ink)',
+              }}
+            >
+              待确认
+            </span>
+          )}
+          {!iv.scores &&
+            iv.transcript_status &&
+            iv.transcript_status !== 'completed' &&
+            iv.transcript_status !== 'failed' &&
+            iv.transcript_status !== 'awaiting_confirm' && (
+              <span
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  background: 'rgba(255,181,0,.1)',
+                  color: 'var(--color-warn)',
+                }}
+              >
+                转写中
+              </span>
+            )}
           <span
             style={{
               fontFamily: 'var(--font-mono)',
