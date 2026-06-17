@@ -24,6 +24,7 @@ import { CreditService } from '../credit/credit.service';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { QrUploadTokenService } from './qr-upload-token.service';
 import { OpsEventsService } from '../ops/ops-events.service';
+import { isAiCallFailure } from '../quota/ai-usage.interceptor';
 import { AiService } from '../ai/ai.service';
 import type { TranscriptSegment } from '../speech/providers/speech.provider';
 
@@ -359,16 +360,22 @@ export class InterviewsService {
       this.logger.error(
         `后台转写失败 taskId=${taskId} stage=${task.failed_at_stage}: ${reason}`,
       );
-      // 失败入运维流水(管理面板 AI 失败计数 + 排障可见);复用既有 AI_CALL_FAILED 类型,
+      // 仅「真正的 AI/ASR 失败」(5xx/超时/provider-down/非 HttpException)才入运维流水(AI_CALL_FAILED)。
+      // 非面试闸门拒绝(assertLooksLikeInterview 抛 BadRequestException,4xx 客户端类)是预期的用户输入
+      // 拒绝、不是 AI 坏了:不发此事件,以免污染管理面板成功率分母、并在 recent-failures 里冒充 AI 故障。
+      // 与 HTTP 层 AiUsageInterceptor 共用同一 isAiCallFailure 判定(单一真相源)。task 仍标 failed
+      // (用户能看原因 + 删除/重传),只是 4xx 不发 ops 事件。
       // record 内部不抛错(写失败仅 warn),故 fire-and-forget,不影响失败态落库。
       // detail 键对齐 AiUsageInterceptor 约定(endpoint/user_id/error),否则 recent-failures DTO
       // 读不到(它取 detail.endpoint/user_id/error),转写失败在管理面板会丢失「谁/为何」;stage 额外标转写阶段。
-      void this.opsEvents.record('AI_CALL_FAILED', {
-        endpoint: TRANSCRIBE_ENDPOINT,
-        user_id: userId,
-        error: reason,
-        stage: 'transcribe',
-      });
+      if (isAiCallFailure(err)) {
+        void this.opsEvents.record('AI_CALL_FAILED', {
+          endpoint: TRANSCRIBE_ENDPOINT,
+          user_id: userId,
+          error: reason,
+          stage: 'transcribe',
+        });
+      }
     }
   }
 

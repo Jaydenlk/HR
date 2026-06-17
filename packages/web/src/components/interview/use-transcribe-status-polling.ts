@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import type { TranscribeStatusResponse } from '@/lib/types';
 
 // 轮询间隔(与 transcript-progress 同口径)。
@@ -18,11 +18,11 @@ const TERMINAL_STATUSES: ReadonlySet<TranscribeStatusResponse['status']> = new S
   'failed',
 ]);
 
-// 判断 api 抛出的错误是否为 404(该面试暂无转写任务)。api 客户端把 404 包成
-// Error('API 404: ...') 或带后端 message 的 Error;统一用消息里的 404 数字识别。
-function is404(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return /(^|\D)404(\D|$)/.test(msg);
+// 判断 api 抛出的错误是否为 404(该面试暂无转写任务)。api 客户端把所有非 2xx 包成 ApiError 并带
+// HTTP status,故直接按状态码判定。绝不用 message 子串识别:NestJS 的 NotFoundException 默认错误体
+// message 是 "Not Found"(不含数字 404),消息匹配会永远落空、让连续 404 熔断成为死代码。
+export function is404(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 404;
 }
 
 export interface UseTranscribeStatusPollingOptions {

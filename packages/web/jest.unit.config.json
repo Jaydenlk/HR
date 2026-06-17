@@ -1,0 +1,22 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts", "tsx"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": "test/.*\\.spec\\.ts$",
+  "modulePathIgnorePatterns": ["<rootDir>/.next/"],
+  "transform": {
+    "^.+\\.tsx?$": ["E:/Agent program/HRBP/packages/api/node_modules/ts-jest", {
+      "tsconfig": {
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "jsx": "react-jsx",
+        "moduleResolution": "node",
+        "skipLibCheck": true,
+        "strict": true
+      }
+    }]
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1"
+  }
+}

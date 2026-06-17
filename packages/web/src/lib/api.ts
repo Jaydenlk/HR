@@ -25,6 +25,17 @@ function authToken(): string | null {
   return typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 }
 
+// 通用 API 错误:携带 HTTP 状态码,供调用方按 status 精确分支(如 404 熔断),
+// 而非脆弱地在 message 字符串里匹配数字(NestJS 默认错误体的 message 常是 "Not Found" 不含状态码)。
+export class ApiError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 // 402 余额不足错误:带 code 标记方便调用方或全局层识别。
 export class InsufficientCreditError extends Error {
   readonly code = 'INSUFFICIENT_CREDIT';
@@ -53,7 +64,8 @@ async function handleError(res: Response): Promise<never> {
     }
     throw new InsufficientCreditError(msg || '点数不足，请联系管理员充值');
   }
-  throw new Error(msg);
+  // 其余非 2xx:抛带 HTTP status 的 ApiError,让调用方可按状态码(如 404)精确判定。
+  throw new ApiError(res.status, msg);
 }
 
 // 解析响应体:204 / 空 body(常见于 DELETE)安全返回 undefined,避免对空串调用 JSON.parse 抛 SyntaxError
