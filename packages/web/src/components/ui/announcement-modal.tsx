@@ -10,9 +10,11 @@
 // 静默降级:API 失败 / 无未读 modal 公告时不渲染任何内容。
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Announcement, AnnouncementKind } from '@/lib/types';
-import { X, Sparkles, Wrench, AlertTriangle } from 'lucide-react';
+import { launchFeatureTour } from '@/lib/feature-tour';
+import { X, Sparkles, Wrench, AlertTriangle, ArrowRight } from 'lucide-react';
 
 // ── 按 kind 的视觉配置(与横幅同源色板,弹窗用更大图标/更醒目的色块)──────────
 const KIND_META: Record<
@@ -78,6 +80,7 @@ export function AnnouncementModal() {
   const [queue, setQueue] = useState<Announcement[]>([]);
   // 当前展示的下标。关一条 +1,越界即全部弹完、卸载。
   const [index, setIndex] = useState(0);
+  const router = useRouter();
 
   // 初始加载:只拉 modal 公告,本地再剔除已读(seen)。
   useEffect(() => {
@@ -116,6 +119,16 @@ export function AnnouncementModal() {
     seen.add(current.id);
     writeSeen(seen);
     setIndex((i) => i + 1);
+  }
+
+  // 点击 CTA:先把当前条记为已读关掉,再跳站内路径;有 cta_tour_id 则派发功能导览事件,
+  // 目标页的 onboarding-tour 监听到即启动该 mini-tour。
+  function handleCta() {
+    if (!current || !current.cta_href) return;
+    const { cta_href, cta_tour_id } = current;
+    dismissCurrent();
+    router.push(cta_href);
+    if (cta_tour_id) launchFeatureTour(cta_tour_id);
   }
 
   // 队列空 / 已全部弹完:不占位。
@@ -278,6 +291,36 @@ export function AnnouncementModal() {
             >
               {current.body}
             </p>
+          )}
+
+          {/* CTA:整宽 secondary 按钮(在「知道了」之上)。仅 cta_label + cta_href 同时有值才渲染。 */}
+          {current.cta_label && current.cta_href && (
+            <button
+              type="button"
+              onClick={handleCta}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                width: '100%',
+                marginTop: '20px',
+                padding: '11px 18px',
+                borderRadius: '10px',
+                border: '1px solid var(--color-brand)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 600,
+                fontFamily: 'inherit',
+                letterSpacing: '-0.003em',
+                color: 'var(--color-brand)',
+                background: 'var(--color-brand-soft)',
+                transition: 'background 0.12s',
+              }}
+            >
+              {current.cta_label}
+              <ArrowRight size={15} />
+            </button>
           )}
 
           {/* 底部操作区 */}

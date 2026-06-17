@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import type { User, Announcement, AnnouncementKind, AnnouncementDisplayType } from '@/lib/types';
+import type {
+  User,
+  Announcement,
+  AnnouncementKind,
+  AnnouncementDisplayType,
+} from '@/lib/types';
+import { FEATURE_UPDATES } from '@/lib/feature-updates';
 import {
   Loader2,
   Shield,
@@ -16,6 +22,8 @@ import {
   AlertTriangle,
   AlignJustify,
   MonitorPlay,
+  RefreshCw,
+  Send,
 } from 'lucide-react';
 
 // ─── 公告种类元信息(图标 + 中文标签 + 主题色),与后端 AnnouncementKind 一致 ───
@@ -46,6 +54,20 @@ const VISIBLE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 function isWithinWindow(published_at: string | null): boolean {
   if (!published_at) return false;
   return Date.now() - new Date(published_at).getTime() <= VISIBLE_WINDOW_MS;
+}
+
+// 顶部 tab:全部 / 草稿 / 已发布。前端按 item.status 过滤。
+type TabKey = 'all' | 'draft' | 'published';
+const TAB_LABELS: Record<TabKey, string> = {
+  all: '全部',
+  draft: '草稿',
+  published: '已发布',
+};
+const TABS: TabKey[] = ['all', 'draft', 'published'];
+
+// CTA 跳转路径前端校验:站内相对路径(单个 / 开头,排除 // 协议相对),与后端 DTO 同口径。
+function isInternalPath(href: string): boolean {
+  return /^\/(?!\/)/.test(href);
 }
 
 // ─── 共享样式(沿用 admin/page.tsx 既有约定:玻璃卡用 .lg,样式只留内边距/排版)───
@@ -130,7 +152,7 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString('zh-CN');
 }
 
-// 编辑态草稿:create 时 id 为 null,edit 时为目标 id。
+// 编辑态草稿:create 时 id 为 null,edit 时为目标 id。含 CTA 字段(空串=未设)。
 interface Draft {
   id: string | null;
   title: string;
@@ -138,6 +160,10 @@ interface Draft {
   kind: AnnouncementKind;
   display_type: AnnouncementDisplayType;
   active: boolean;
+  cta_label: string;
+  cta_href: string;
+  cta_tour_id: string;
+  feature_key: string;
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -147,7 +173,43 @@ const EMPTY_DRAFT: Draft = {
   kind: 'feature',
   display_type: 'banner',
   active: true,
+  cta_label: '',
+  cta_href: '',
+  cta_tour_id: '',
+  feature_key: '',
 };
+
+// 把后端公告映射成编辑态草稿(编辑/重新生成共用)。
+function toDraft(item: Announcement): Draft {
+  return {
+    id: item.id,
+    title: item.title,
+    body: item.body,
+    kind: item.kind,
+    display_type: item.display_type,
+    active: item.active,
+    cta_label: item.cta_label ?? '',
+    cta_href: item.cta_href ?? '',
+    cta_tour_id: item.cta_tour_id ?? '',
+    feature_key: item.feature_key ?? '',
+  };
+}
+
+// 把编辑态草稿的 CTA 字段整理成请求体片段:空串 → null(清空);非空 → 原值。
+function ctaPayload(draft: Draft): {
+  cta_label: string | null;
+  cta_href: string | null;
+  cta_tour_id: string | null;
+  feature_key: string | null;
+} {
+  const t = (s: string) => (s.trim() ? s.trim() : null);
+  return {
+    cta_label: t(draft.cta_label),
+    cta_href: t(draft.cta_href),
+    cta_tour_id: t(draft.cta_tour_id),
+    feature_key: t(draft.feature_key),
+  };
+}
 
 export default function AnnouncementsAdminPage() {
   const [me, setMe] = useState<User | null>(null);
@@ -157,12 +219,23 @@ export default function AnnouncementsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 顶部 tab:全部/草稿/已发布。
+  const [tab, setTab] = useState<TabKey>('all');
+
   // 新建/编辑弹窗:null 收起;否则承载草稿。
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // 行级操作中(下架/上架/删除)的 id,用于禁用按钮。
+  // AI 生成弹窗:null 收起;否则承载已粘贴要点 + 展示形态倾向。
+  const [genState, setGenState] = useState<{
+    source: string;
+    preferred: AnnouncementDisplayType;
+  } | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  // 行级操作中(发布/下架/删除/重新生成)的 id,用于禁用按钮。
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -191,37 +264,40 @@ export default function AnnouncementsAdminPage() {
     }
   }
 
+  // 表单校验:标题/正文必填;CTA 填了文案就必须填站内路径,反之亦然(成对)。
+  function validateDraft(d: Draft): string | null {
+    if (!d.title.trim()) return '标题不能为空';
+    if (!d.body.trim()) return '正文不能为空';
+    const label = d.cta_label.trim();
+    const href = d.cta_href.trim();
+    if (href && !isInternalPath(href)) return '跳转路径必须是站内路径(以 / 开头)';
+    if (label && !href) return '填了引导按钮文案,就要填跳转路径';
+    if (href && !label) return '填了跳转路径,就要填引导按钮文案';
+    return null;
+  }
+
   async function submitDraft() {
     if (!draft) return;
-    const title = draft.title.trim();
-    const body = draft.body.trim();
-    if (!title) {
-      setFormError('标题不能为空');
-      return;
-    }
-    if (!body) {
-      setFormError('正文不能为空');
+    const validationError = validateDraft(draft);
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
     setSaving(true);
     setFormError(null);
     try {
+      const body = {
+        title: draft.title.trim(),
+        body: draft.body.trim(),
+        kind: draft.kind,
+        display_type: draft.display_type,
+        active: draft.active,
+        ...ctaPayload(draft),
+      };
       if (draft.id === null) {
-        await api.post<Announcement>('/admin/announcements', {
-          title,
-          body,
-          kind: draft.kind,
-          display_type: draft.display_type,
-          active: draft.active,
-        });
+        await api.post<Announcement>('/admin/announcements', body);
       } else {
-        await api.patch<Announcement>(`/admin/announcements/${draft.id}`, {
-          title,
-          body,
-          kind: draft.kind,
-          display_type: draft.display_type,
-          active: draft.active,
-        });
+        await api.patch<Announcement>(`/admin/announcements/${draft.id}`, body);
       }
       setDraft(null);
       await reload();
@@ -232,20 +308,67 @@ export default function AnnouncementsAdminPage() {
     }
   }
 
-  // 切换上/下架(PATCH active)。
-  async function toggleActive(item: Announcement) {
+  // AI 生成草稿:POST /generate,成功后刷新列表并跳到「草稿」tab(新草稿在那)。
+  async function runGenerate() {
+    if (!genState) return;
+    const source = genState.source.trim();
+    if (!source) {
+      setGenError('请粘贴本次更新要点');
+      return;
+    }
+    setGenerating(true);
+    setGenError(null);
+    try {
+      await api.post<Announcement>('/admin/announcements/generate', {
+        source_content: source,
+        preferred_display_type: genState.preferred,
+      });
+      setGenState(null);
+      setTab('draft');
+      await reload();
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : 'AI 生成失败,请稍后重试');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  // 草稿发布:PATCH status=published(后端同步设 published_at + active=true)。
+  async function publish(item: Announcement) {
     setBusyId(item.id);
     setError(null);
     try {
       await api.patch<Announcement>(`/admin/announcements/${item.id}`, {
-        active: !item.active,
+        status: 'published',
       });
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '更新失败');
+      setError(err instanceof Error ? err.message : '发布失败');
     } finally {
       setBusyId(null);
     }
+  }
+
+  // 已发布下架:PATCH active=false(status 保持 published,公开端因 active=false 不再返回)。
+  async function unpublish(item: Announcement) {
+    setBusyId(item.id);
+    setError(null);
+    try {
+      await api.patch<Announcement>(`/admin/announcements/${item.id}`, {
+        active: false,
+      });
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '下架失败');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // 重新生成:无原始要点可复用(AI 只存产物不存来源),故重开 AI 弹窗让管理员重填要点 —— 更可控、不静默乱出。
+  function regenerate(item: Announcement) {
+    setGenError(null);
+    setGenState({ source: '', preferred: item.display_type });
   }
 
   // 硬删除,带二次确认(浏览器原生确认即可,删除不可逆)。
@@ -294,6 +417,13 @@ export default function AnnouncementsAdminPage() {
     );
   }
 
+  // tab 过滤后的列表。
+  const visibleItems = items.filter((it) => tab === 'all' || it.status === tab);
+  const draftCount = items.filter((it) => it.status === 'draft').length;
+  const publishedCount = items.filter((it) => it.status === 'published').length;
+  const tabCount = (k: TabKey): number =>
+    k === 'all' ? items.length : k === 'draft' ? draftCount : publishedCount;
+
   return (
     <div style={{ maxWidth: '980px', margin: '0 auto', padding: '32px 28px 60px' }}>
       <h1
@@ -312,7 +442,7 @@ export default function AnnouncementsAdminPage() {
         <Megaphone size={22} /> 公告管理
       </h1>
       <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', marginBottom: '20px' }}>
-        发布站内公告 · 上架后对全站用户可见 · 下架即隐藏(保留记录)
+        AI 起草「最近更新」→ 审核编辑 → 发布 · 草稿对用户不可见 · 下架即隐藏(保留记录)
       </p>
 
       {error && (
@@ -339,28 +469,70 @@ export default function AnnouncementsAdminPage() {
             alignItems: 'center',
             justifyContent: 'space-between',
             marginBottom: '16px',
+            gap: '12px',
+            flexWrap: 'wrap',
           }}
         >
           <div style={{ ...sectionTitleStyle, marginBottom: 0 }}>
             <Megaphone size={17} /> 公告列表（{items.length}）
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setFormError(null);
-              setDraft({ ...EMPTY_DRAFT });
-            }}
-            style={smallBtn('primary')}
-          >
-            <Plus size={13} /> 新建公告
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setGenError(null);
+                setGenState({ source: '', preferred: 'banner' });
+              }}
+              style={smallBtn('primary')}
+            >
+              <Sparkles size={13} /> AI 生成最近更新
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFormError(null);
+                setDraft({ ...EMPTY_DRAFT });
+              }}
+              style={smallBtn('neutral')}
+            >
+              <Plus size={13} /> 新建公告
+            </button>
+          </div>
+        </div>
+
+        {/* Tab 切换:全部/草稿/已发布 */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          {TABS.map((k) => {
+            const selected = tab === k;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setTab(k)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: selected ? '1px solid var(--color-brand)' : '1px solid var(--color-line)',
+                  background: selected ? 'var(--color-brand-soft)' : 'transparent',
+                  color: selected ? 'var(--color-brand)' : 'var(--color-ink-3)',
+                  fontSize: '12.5px',
+                  fontWeight: selected ? 700 : 600,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {TAB_LABELS[k]}
+                <span style={{ marginLeft: '5px', opacity: 0.7 }}>{tabCount(k)}</span>
+              </button>
+            );
+          })}
         </div>
 
         {loading ? (
           <div style={{ padding: '40px', display: 'flex', justifyContent: 'center' }}>
             <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-ink-3)' }} />
           </div>
-        ) : items.length === 0 ? (
+        ) : visibleItems.length === 0 ? (
           <div
             style={{
               padding: '48px 20px',
@@ -369,14 +541,19 @@ export default function AnnouncementsAdminPage() {
               fontSize: '13.5px',
             }}
           >
-            还没有公告，点击右上角「新建公告」发布第一条。
+            {tab === 'all'
+              ? '还没有公告。点「AI 生成最近更新」让 AI 起草一条,或「新建公告」手动写。'
+              : tab === 'draft'
+                ? '没有草稿。'
+                : '还没有已发布的公告。'}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const meta = KIND_META[item.kind];
               const Icon = meta.icon;
               const busy = busyId === item.id;
+              const isDraft = item.status === 'draft';
               return (
                 <div
                   key={item.id}
@@ -385,7 +562,7 @@ export default function AnnouncementsAdminPage() {
                     borderRadius: '12px',
                     padding: '14px 16px',
                     background: 'var(--color-surface)',
-                    opacity: item.active ? 1 : 0.62,
+                    opacity: item.active || isDraft ? 1 : 0.62,
                   }}
                 >
                   <div
@@ -397,7 +574,7 @@ export default function AnnouncementsAdminPage() {
                     }}
                   >
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      {/* 标题行:种类标签 + 上/下架状态 + 标题 */}
+                      {/* 标题行:种类标签 + 状态(草稿/已上架/已下架) + 展示类型 + 窗口 */}
                       <div
                         style={{
                           display: 'flex',
@@ -419,22 +596,38 @@ export default function AnnouncementsAdminPage() {
                         >
                           <Icon size={13} /> {meta.label}
                         </span>
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '1px 7px',
-                            borderRadius: '999px',
-                            color: item.active
-                              ? 'var(--color-success)'
-                              : 'var(--color-ink-4)',
-                            background: item.active
-                              ? 'var(--color-success-soft)'
-                              : 'var(--color-line)',
-                          }}
-                        >
-                          {item.active ? '已上架' : '已下架'}
-                        </span>
+                        {/* 状态徽章:草稿 / 已上架 / 已下架 */}
+                        {isDraft ? (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '1px 7px',
+                              borderRadius: '999px',
+                              color: 'var(--color-warn)',
+                              background: 'var(--color-warn-soft)',
+                            }}
+                          >
+                            草稿
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '1px 7px',
+                              borderRadius: '999px',
+                              color: item.active
+                                ? 'var(--color-success)'
+                                : 'var(--color-ink-4)',
+                              background: item.active
+                                ? 'var(--color-success-soft)'
+                                : 'var(--color-line)',
+                            }}
+                          >
+                            {item.active ? '已上架' : '已下架'}
+                          </span>
+                        )}
                         {/* 展示类型徽章 */}
                         {(() => {
                           const dtMeta = DISPLAY_TYPE_META[item.display_type];
@@ -458,8 +651,8 @@ export default function AnnouncementsAdminPage() {
                             </span>
                           );
                         })()}
-                        {/* 3 天窗口状态:仅上架公告显示 */}
-                        {item.active && (
+                        {/* 3 天窗口状态:仅已发布且上架公告显示 */}
+                        {!isDraft && item.active && (
                           <span
                             style={{
                               fontSize: '11px',
@@ -501,6 +694,26 @@ export default function AnnouncementsAdminPage() {
                       >
                         {item.body}
                       </div>
+                      {/* CTA 摘要:有引导按钮则显示文案 → 路径 */}
+                      {item.cta_label && item.cta_href && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            fontSize: '11.5px',
+                            fontWeight: 600,
+                            color: 'var(--color-brand)',
+                            background: 'var(--color-brand-soft)',
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            marginBottom: '8px',
+                          }}
+                        >
+                          <Send size={11} />
+                          {item.cta_label} → {item.cta_href}
+                        </div>
+                      )}
                       <div style={{ fontSize: '11.5px', color: 'var(--color-ink-4)' }}>
                         创建于 {relativeTime(item.created_at)}
                         {item.published_at &&
@@ -508,7 +721,7 @@ export default function AnnouncementsAdminPage() {
                       </div>
                     </div>
 
-                    {/* 操作列 */}
+                    {/* 操作列:草稿 = 发布 + 编辑 + 重新生成 + 删除;已发布 = 编辑 + 上/下架 + 删除 */}
                     <div
                       style={{
                         display: 'flex',
@@ -517,32 +730,49 @@ export default function AnnouncementsAdminPage() {
                         flexShrink: 0,
                       }}
                     >
+                      {isDraft && (
+                        <button
+                          type="button"
+                          onClick={() => void publish(item)}
+                          disabled={busy}
+                          style={smallBtn('primary')}
+                        >
+                          <Send size={12} /> {busy ? '…' : '发布'}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
                           setFormError(null);
-                          setDraft({
-                            id: item.id,
-                            title: item.title,
-                            body: item.body,
-                            kind: item.kind,
-                            display_type: item.display_type,
-                            active: item.active,
-                          });
+                          setDraft(toDraft(item));
                         }}
                         disabled={busy}
                         style={smallBtn('neutral')}
                       >
                         <Pencil size={12} /> 编辑
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void toggleActive(item)}
-                        disabled={busy}
-                        style={item.active ? smallBtn('neutral') : smallBtn('primary')}
-                      >
-                        {busy ? '…' : item.active ? '下架' : '上架'}
-                      </button>
+                      {isDraft && (
+                        <button
+                          type="button"
+                          onClick={() => regenerate(item)}
+                          disabled={busy}
+                          style={smallBtn('neutral')}
+                        >
+                          <RefreshCw size={12} /> 重新生成
+                        </button>
+                      )}
+                      {!isDraft && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            item.active ? void unpublish(item) : void publish(item)
+                          }
+                          disabled={busy}
+                          style={item.active ? smallBtn('neutral') : smallBtn('primary')}
+                        >
+                          {busy ? '…' : item.active ? '下架' : '上架'}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => void removeItem(item)}
@@ -559,6 +789,181 @@ export default function AnnouncementsAdminPage() {
           </div>
         )}
       </div>
+
+      {/* ── AI 生成弹窗 ── */}
+      {genState && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !generating) setGenState(null);
+          }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 400,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+        >
+          <div
+            className="lg"
+            style={{
+              padding: '28px 28px 24px',
+              width: '100%',
+              maxWidth: '520px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '8px',
+              }}
+            >
+              <h3
+                style={{
+                  fontFamily: 'var(--serif)',
+                  fontSize: '17px',
+                  fontWeight: 700,
+                  color: 'var(--color-ink)',
+                  letterSpacing: '-0.02em',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Sparkles size={17} style={{ color: 'var(--color-brand)' }} />
+                AI 生成「最近更新」
+              </h3>
+              <button
+                type="button"
+                onClick={() => !generating && setGenState(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: generating ? 'not-allowed' : 'pointer',
+                  color: 'var(--color-ink-3)',
+                  padding: '4px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p
+              style={{
+                fontSize: '12.5px',
+                color: 'var(--color-ink-3)',
+                lineHeight: 1.6,
+                marginTop: 0,
+                marginBottom: '16px',
+              }}
+            >
+              粘贴本次更新要点(每行一条)。AI 只会把要点改写成友好的公告,不会编造要点之外的功能。生成的是草稿,审核后再发布。
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={labelStyle}>更新要点</label>
+                <textarea
+                  value={genState.source}
+                  onChange={(e) => setGenState({ ...genState, source: e.target.value })}
+                  placeholder={'粘贴本次更新要点，每行一条\n例如：\n- 面试录音可一键上传转写\n- 逐题复盘给出改进建议'}
+                  rows={7}
+                  style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.55 }}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>展示形态倾向</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {DISPLAY_TYPES.map((dt) => {
+                    const dtMeta = DISPLAY_TYPE_META[dt];
+                    const DtIcon = dtMeta.icon;
+                    const selected = genState.preferred === dt;
+                    return (
+                      <button
+                        key={dt}
+                        type="button"
+                        onClick={() => setGenState({ ...genState, preferred: dt })}
+                        title={dtMeta.desc}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '7px 12px',
+                          borderRadius: '999px',
+                          border: selected
+                            ? '1px solid var(--color-brand)'
+                            : '1px solid var(--color-line)',
+                          background: selected ? 'var(--color-brand-soft)' : 'transparent',
+                          color: selected ? 'var(--color-brand)' : 'var(--color-ink-3)',
+                          fontSize: '12.5px',
+                          fontWeight: selected ? 700 : 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <DtIcon size={13} /> {dtMeta.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {genError && (
+              <div
+                role="alert"
+                style={{
+                  background: 'var(--color-danger-soft)',
+                  color: 'var(--color-danger)',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  fontSize: '13px',
+                  marginTop: '14px',
+                  fontWeight: 500,
+                }}
+              >
+                {genError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button
+                type="button"
+                onClick={() => !generating && setGenState(null)}
+                style={smallBtn('neutral')}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => void runGenerate()}
+                disabled={generating}
+                style={smallBtn('primary')}
+              >
+                {generating ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" /> 生成中…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={13} /> 生成草稿
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── 新建/编辑弹窗 ── */}
       {draft && (
@@ -732,6 +1137,66 @@ export default function AnnouncementsAdminPage() {
                   }}
                 >
                   {DISPLAY_TYPE_META[draft.display_type].desc}
+                </div>
+              </div>
+
+              {/* ── 引导按钮(CTA),全部可选 ── */}
+              <div
+                style={{
+                  borderTop: '1px dashed var(--color-line)',
+                  paddingTop: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-2)' }}>
+                  引导按钮(可选)
+                </div>
+                <div>
+                  <label style={labelStyle}>引导按钮文案</label>
+                  <input
+                    type="text"
+                    value={draft.cta_label}
+                    onChange={(e) => setDraft({ ...draft, cta_label: e.target.value })}
+                    placeholder="例如：去试试"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>跳转路径(站内,以 / 开头)</label>
+                  <input
+                    type="text"
+                    value={draft.cta_href}
+                    onChange={(e) => setDraft({ ...draft, cta_href: e.target.value })}
+                    placeholder="例如：/debrief"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>引导教程 ID(可选)</label>
+                  <input
+                    type="text"
+                    value={draft.cta_tour_id}
+                    onChange={(e) => setDraft({ ...draft, cta_tour_id: e.target.value })}
+                    placeholder="例如：asr-recording(点击后在目标页启动该导览)"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>关联功能(可选)</label>
+                  <select
+                    value={draft.feature_key}
+                    onChange={(e) => setDraft({ ...draft, feature_key: e.target.value })}
+                    style={inputStyle}
+                  >
+                    <option value="">— 不关联 —</option>
+                    {FEATURE_UPDATES.map((f) => (
+                      <option key={f.key} value={f.key}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

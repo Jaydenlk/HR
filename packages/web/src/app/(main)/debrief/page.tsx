@@ -6,7 +6,11 @@ import { api } from '@/lib/api';
 import type { Interview } from '@/lib/types';
 import { InterviewCard } from '@/components/interview/interview-card';
 import { InterviewForm } from '@/components/interview/interview-form';
+import { getFeatureUpdateByKey } from '@/lib/feature-updates';
 import { Plus, Mic, Zap } from 'lucide-react';
+
+// ASR 录音上传是本页的新功能入口:用 feature-updates 注册表的 seenKey 控制「新」徽章。
+const ASR_FEATURE = getFeatureUpdateByKey('asr_recording');
 
 // ── 统计卡片 ──────────────────────────────────────────────────────────────────
 
@@ -155,12 +159,17 @@ function CaptureBanner({
 function UploadRecordingButton({
   onUpload,
   busy,
+  showNew,
 }: {
   onUpload: () => void;
   busy: boolean;
+  showNew: boolean;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+    <div
+      data-tour="asr-upload"
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}
+    >
       <button
         onClick={onUpload}
         disabled={busy}
@@ -185,6 +194,27 @@ function UploadRecordingButton({
       >
         <Mic size={15} />
         {busy ? '准备中…' : '上传面试录音'}
+        {/* 「新」徽章:未看过该功能时显示,看过(seenKey 置位)即消失。与 Beta 标错位避免重叠。 */}
+        {showNew && (
+          <span
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              left: '-8px',
+              padding: '1px 6px',
+              borderRadius: '999px',
+              background: 'var(--color-brand)',
+              fontSize: '10px',
+              fontWeight: 700,
+              color: '#fff',
+              letterSpacing: '0.03em',
+              lineHeight: 1.5,
+              boxShadow: '0 2px 8px -2px var(--au-blue-glow)',
+            }}
+          >
+            新
+          </span>
+        )}
         <span
           style={{
             position: 'absolute',
@@ -361,6 +391,18 @@ function DebriefListInner() {
   // creatingContainer 兼作防抖标记,避免重复点击建出多个空草稿(每次建容器扣 1 点)。
   const [creatingContainer, setCreatingContainer] = useState(false);
   const handledUploadParam = useRef(false);
+  // ASR 录音上传「新」徽章:默认 false(避免 SSR/hydration 不一致),挂载后读 seenKey 决定是否点亮。
+  const [showAsrNew, setShowAsrNew] = useState(false);
+
+  // 挂载后读 localStorage:未看过该功能则点亮「新」徽章。看完功能导览会置位 seenKey,徽章随之消失。
+  // defer 一拍避免在 effect 内同步 setState(对齐本文件 upload 参数处理的既有写法,绕开 cascading render)。
+  useEffect(() => {
+    if (!ASR_FEATURE) return;
+    const t = setTimeout(() => {
+      setShowAsrNew(localStorage.getItem(ASR_FEATURE.seenKey) !== '1');
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     api
@@ -501,7 +543,11 @@ function DebriefListInner() {
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flexShrink: 0 }}>
           {/* 常驻主入口:上传面试录音(无论有无历史记录都在)。 */}
-          <UploadRecordingButton onUpload={startUploadFlow} busy={creatingContainer} />
+          <UploadRecordingButton
+            onUpload={startUploadFlow}
+            busy={creatingContainer}
+            showNew={showAsrNew}
+          />
           {/* 次级入口:手动录入(粘贴文字记录)。 */}
           <button
             onClick={() => setShowForm(true)}
