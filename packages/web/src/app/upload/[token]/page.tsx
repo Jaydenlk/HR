@@ -24,7 +24,7 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api'
 // 故意把扩展名摆在前面并加 audio/*:部分 Android 微信 XWeb 内核据此才肯露出「文件」入口让用户挑录音;
 // 但这对 iOS 微信几乎无效(WKWebView 只给相册/拍照),所以下方还配了「在浏览器打开」引导横幅兜底。
 const ACCEPT =
-  '.mp3,.wav,.m4a,.aac,.amr,.ogg,.flac,.webm,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm,audio/aac,audio/*';
+  '.mp3,.wav,.m4a,.aac,.ogg,.webm,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm,audio/aac,audio/*';
 
 // 可读文件大小。
 function fileSize(bytes: number): string {
