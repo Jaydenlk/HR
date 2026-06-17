@@ -126,6 +126,9 @@ export function AnnouncementModal() {
   function handleCta() {
     if (!current || !current.cta_href) return;
     const { cta_href, cta_tour_id } = current;
+    // 防御兜底:仅放行站内相对路径(单个 / 开头,排除 // 协议相对与外链),与后端 DTO/admin 同口径。
+    // 不依赖写入时校验,杜绝任何未来未校验写入路径导致的开放跳转。校验失败则整体 no-op(不关、不跳)。
+    if (!/^\/(?!\/)/.test(cta_href)) return;
     dismissCurrent();
     router.push(cta_href);
     if (cta_tour_id) launchFeatureTour(cta_tour_id);

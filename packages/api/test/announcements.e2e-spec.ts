@@ -13,7 +13,7 @@ import { request } from './test-utils';
 // 覆盖三条契约:
 //  ① 发布端点(POST /api/admin/announcements）AdminGuard 门控:无 token→401、普通用户→403、admin→成功。
 //  ② 公开端点(GET /api/announcements）只返 active=true，且出站为 DTO 白名单（无内部/未声明字段泄漏）。
-//  ③ 出站 DTO 字段集恰为白名单 7 字段。
+//  ③ 出站 DTO 字段集恰为白名单 13 字段(基础 8 + status + 4 个 cta 字段)。
 //
 // 复用 admin.e2e-spec 同款脚手架:AppModule + mock AiService(AppModule 校验 AI 配置存在）+
 // ADMIN_EMAILS 引导 admin。sqlite 由 jest-setup-env 强制 :memory:（不污染 dev 库）。

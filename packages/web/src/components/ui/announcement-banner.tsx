@@ -254,6 +254,9 @@ export function AnnouncementBanner() {
   // 横幅不因点击 CTA 而消失(用户可能想保留可见),与 modal「点后关闭」语义不同。
   function handleCta(item: Announcement) {
     if (!item.cta_href) return;
+    // 防御兜底:仅放行站内相对路径(单个 / 开头,排除 // 协议相对与外链),与后端 DTO/admin 同口径。
+    // 不依赖写入时校验,杜绝任何未来未校验写入路径导致的开放跳转。
+    if (!/^\/(?!\/)/.test(item.cta_href)) return;
     router.push(item.cta_href);
     if (item.cta_tour_id) launchFeatureTour(item.cta_tour_id);
   }
