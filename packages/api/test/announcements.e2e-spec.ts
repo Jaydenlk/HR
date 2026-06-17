@@ -13,7 +13,7 @@ import { request } from './test-utils';
 // 覆盖三条契约:
 //  ① 发布端点(POST /api/admin/announcements）AdminGuard 门控:无 token→401、普通用户→403、admin→成功。
 //  ② 公开端点(GET /api/announcements）只返 active=true，且出站为 DTO 白名单（无内部/未声明字段泄漏）。
-//  ③ 出站 DTO 字段集恰为白名单 13 字段(基础 8 + status + 4 个 cta 字段)。
+//  ③ 公开端出站 DTO 字段集恰为白名单 12 字段(基础 8 + 4 个 cta 字段;status 仅管理端返回,公开端不暴露)。
 //
 // 复用 admin.e2e-spec 同款脚手架:AppModule + mock AiService(AppModule 校验 AI 配置存在）+
 // ADMIN_EMAILS 引导 admin。sqlite 由 jest-setup-env 强制 :memory:（不污染 dev 库）。
@@ -23,8 +23,9 @@ const mockAiService = {
   completeStructured: jest.fn().mockResolvedValue({}),
 };
 
-// DTO 白名单:AnnouncementResponseDto 暴露的全部字段（出站契约）。
-// 含 display_type(banner/modal)——前端按此分流横幅/弹窗;status + 4 个 cta 字段为本期新增。
+// DTO 白名单:公开端 GET /api/announcements 出站字段契约。
+// 含 display_type(banner/modal)——前端按此分流横幅/弹窗;4 个 cta 字段为本期新增。
+// status(审核状态)【不在公开端字段集】:仅管理端返回,公开端不暴露内部审核词汇(fromPublic 不填)。
 const DTO_FIELDS = [
   'id',
   'title',
@@ -34,7 +35,6 @@ const DTO_FIELDS = [
   'active',
   'created_at',
   'published_at',
-  'status',
   'cta_label',
   'cta_href',
   'cta_tour_id',
@@ -471,11 +471,12 @@ describe('Announcements (e2e)', () => {
       const res = await request(app.getHttpServer()).get('/api/announcements?limit=50');
       expect(res.status).toBe(200);
       const ids = (res.body as { id: string }[]).map((r) => r.id);
+      // 核心安全断言:草稿 ID 绝不出现在公开端(service findActive 硬过滤 status='published')。
       expect(ids).not.toContain(draftId);
       expect(ids).toContain(publishedId);
-      // 公开端每条 status 必为 published。
-      for (const item of res.body as { status: string }[]) {
-        expect(item.status).toBe('published');
+      // 公开端不暴露 status 字段(fromPublic 不填),逐条核验确无该字段泄漏内部审核词汇。
+      for (const item of res.body as Record<string, unknown>[]) {
+        expect(item).not.toHaveProperty('status');
       }
     });
 

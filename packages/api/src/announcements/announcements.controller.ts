@@ -15,6 +15,6 @@ export class AnnouncementsController {
       query.offset,
       query.placement,
     );
-    return items.map(AnnouncementResponseDto.from);
+    return items.map(AnnouncementResponseDto.fromPublic);
   }
 }

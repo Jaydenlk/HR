@@ -1592,8 +1592,8 @@ export interface Announcement {
   active: boolean;
   created_at: string;
   published_at: string | null;
-  // 审核状态:草稿/已发布(公开端只返 published)。
-  status: AnnouncementStatus;
+  // 审核状态:草稿/已发布。仅管理端(/api/admin/announcements)返回;公开端(/api/announcements)不返回,故可选。
+  status?: AnnouncementStatus;
   // 引导按钮(CTA):cta_label + cta_href 同时非空才渲染。cta_href 为站内路径(/ 开头)。
   cta_label: string | null;
   cta_href: string | null;

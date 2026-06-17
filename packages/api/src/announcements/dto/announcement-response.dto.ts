@@ -16,13 +16,15 @@ export class AnnouncementResponseDto {
   active: boolean;
   created_at: Date;
   published_at: Date | null;
-  status: AnnouncementStatus;
+  // 审核状态:仅管理端(from)填充;公开端(fromPublic)不填 → undefined 不入 JSON,匿名客户端见不到内部审核词汇。
+  status?: AnnouncementStatus;
   cta_label: string | null;
   cta_href: string | null;
   cta_tour_id: string | null;
   feature_key: string | null;
 
-  static from(item: Announcement): AnnouncementResponseDto {
+  // 公开端工厂(GET /announcements):不含 status——公开端只读 published,审核词汇对匿名客户端无消费需求。
+  static fromPublic(item: Announcement): AnnouncementResponseDto {
     const dto = new AnnouncementResponseDto();
     dto.id = item.id;
     dto.title = item.title;
@@ -32,11 +34,17 @@ export class AnnouncementResponseDto {
     dto.active = item.active;
     dto.created_at = item.created_at;
     dto.published_at = item.published_at ?? null;
-    dto.status = item.status;
     dto.cta_label = item.cta_label ?? null;
     dto.cta_href = item.cta_href ?? null;
     dto.cta_tour_id = item.cta_tour_id ?? null;
     dto.feature_key = item.feature_key ?? null;
+    return dto;
+  }
+
+  // 管理端工厂(GET/POST/PATCH /admin/announcements):在公开端字段基础上补 status,供后台 tab/草稿计数/发布判断。
+  static from(item: Announcement): AnnouncementResponseDto {
+    const dto = AnnouncementResponseDto.fromPublic(item);
+    dto.status = item.status;
     return dto;
   }
 }

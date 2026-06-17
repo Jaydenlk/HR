@@ -4,10 +4,15 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
+import { SPEECH_PROVIDER } from '../src/speech/providers/speech.provider';
+import type {
+  SpeechProvider,
+  SynthesizedAudio,
+  TranscriptSegment,
+} from '../src/speech/providers/speech.provider';
 import { User } from '../src/users/entities/user.entity';
 import { AiUsage } from '../src/quota/entities/ai-usage.entity';
 import { OpsEvent } from '../src/ops/entities/ops-event.entity';
-import { OpsEventsService } from '../src/ops/ops-events.service';
 import { request } from './test-utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,8 +22,8 @@ import { request } from './test-utils';
 //   (a) 一次失败的 AI 调用经 AiUsageInterceptor 记下 ops_events AI_CALL_FAILED(且原样 rethrow)。
 //   (b) 管理后台成功率(GET /admin/success-stats)把这次失败计入分母(failed≥1、success_rate<1)。
 //   (c) GET /admin/recent-failures 返回这条失败,带【打码】用户标识 + 失败原因 + 端点。
-//   (d) interviews 组经【同一个】OpsEventsService.record(AI_CALL_FAILED,{stage:'transcribe'})
-//       写的转写失败,也被计数与展示覆盖(我方按 type 计数,天然兼容)。
+//   (d) interviews 组经【真实 runTranscribe 路径】写的转写失败,也被计数与展示覆盖,
+//       且 recent-failures 行的 原因/用户/端点 均非空(检验生产 detail 键与 DTO 对齐,绝不手写键掩盖)。
 //
 // AI 失败用 override AiService 制造:completeStructured 必 reject,使 POST /mock-sessions
 // 在出题阶段抛错,错误穿过 AiUsageInterceptor(catchError 记 AI_CALL_FAILED 后 rethrow)。
@@ -26,12 +31,26 @@ import { request } from './test-utils';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const AI_FAILURE_MESSAGE = 'AI 主备通道均不可用(测试注入)';
+// (d) 用真实转写路径制造失败:注入一个 transcribeFile 必 reject 的 SpeechProvider,
+// 让 interviews.service.runTranscribe 的 catch 块发出真实 OpsEvent(而非测试手写 detail 键)。
+const ASR_FAILURE_MESSAGE = 'ASR 上游不可用(测试注入)';
 
 const mockAiService = {
   // 出题走 completeStructured;统一 reject 制造失败路径。
   completeStructured: jest.fn().mockRejectedValue(new Error(AI_FAILURE_MESSAGE)),
   complete: jest.fn().mockRejectedValue(new Error(AI_FAILURE_MESSAGE)),
   testConnection: jest.fn().mockResolvedValue({ ok: true, latencyMs: 10 }),
+};
+
+// 失败版语音供应商:transcribeFile 必抛 → 走 interviews 真实失败分支(转写阶段),发真实 AI_CALL_FAILED。
+const failingSpeechProvider: SpeechProvider = {
+  capabilities: { diarization: false, channelSplit: false, realtime: false },
+  transcribeFile(): Promise<TranscriptSegment[]> {
+    return Promise.reject(new Error(ASR_FAILURE_MESSAGE));
+  },
+  synthesize(): Promise<SynthesizedAudio> {
+    return Promise.reject(new Error(ASR_FAILURE_MESSAGE));
+  },
 };
 
 async function registerUser(app: INestApplication, email: string, name: string): Promise<string> {
@@ -51,7 +70,6 @@ describe('#4 AI 调用失败落库 (e2e)', () => {
   let userRepo: Repository<User>;
   let usageRepo: Repository<AiUsage>;
   let opsRepo: Repository<OpsEvent>;
-  let opsEvents: OpsEventsService;
 
   let userToken: string;
   let userId: string;
@@ -65,11 +83,14 @@ describe('#4 AI 调用失败落库 (e2e)', () => {
     process.env.CLOUDDREAM_MODEL = 'auto-v2';
     process.env.JWT_SECRET = 'test-secret';
     process.env.ADMIN_EMAILS = 'ofl-admin@coach.dev';
+    process.env.STEP_API_KEY = 'test-step-key';
     delete process.env.SMTP_HOST;
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(AiService)
       .useValue(mockAiService)
+      .overrideProvider(SPEECH_PROVIDER)
+      .useValue(failingSpeechProvider)
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -80,7 +101,6 @@ describe('#4 AI 调用失败落库 (e2e)', () => {
     userRepo = moduleRef.get<Repository<User>>(getRepositoryToken(User));
     usageRepo = moduleRef.get<Repository<AiUsage>>(getRepositoryToken(AiUsage));
     opsRepo = moduleRef.get<Repository<OpsEvent>>(getRepositoryToken(OpsEvent));
-    opsEvents = moduleRef.get(OpsEventsService);
 
     userEmail = 'ofl-user@coach.dev';
     userToken = await registerUser(app, userEmail, '失败测试用户');
@@ -177,20 +197,51 @@ describe('#4 AI 调用失败落库 (e2e)', () => {
     expect(JSON.stringify(res.body)).not.toContain(userEmail);
   });
 
-  // (d) interviews 组经同一 OpsEventsService 写的转写失败也被计数与展示覆盖 ────────
-  it('(d) 转写失败(stage=transcribe,经同一 OpsEventsService)同样进成功率分母与 recent-failures', async () => {
+  // (d) interviews 组【真实转写路径】失败也被计数与展示覆盖 ──────────────────────
+  // 关键:驱动真实上传 → runTranscribe 调被注入的 failingSpeechProvider(reject)→ service catch 块发真实 OpsEvent。
+  // 这条断言对 reason/user/endpoint 三者都做非空检查,正是检验生产 detail 键是否与 recent-failures DTO 对齐:
+  //  - 若生产用错键(旧版 {reason,userId})→ DTO 读 detail.error/user_id/endpoint 全 null → 本用例 FAIL(fail-before)。
+  //  - 修复后用 {endpoint,user_id,error,stage} → 三者全非空 → PASS(pass-after)。不再手写 record,绝不掩盖键名缺陷。
+  it('(d) 真实转写失败(经 interviews.service runTranscribe)同样进成功率分母,且 recent-failures 带非空 原因/用户/端点', async () => {
     const beforeStats = await request(app.getHttpServer())
       .get('/api/admin/success-stats?days=1')
       .set('Authorization', `Bearer ${adminToken}`);
     const beforeFailed = beforeStats.body[beforeStats.body.length - 1].failed as number;
 
-    // 模拟 interviews 组的既有写法:同一个 OpsEventsService.record(AI_CALL_FAILED,{stage:'transcribe',...})。
-    await opsEvents.record('AI_CALL_FAILED', {
-      endpoint: '/api/interviews/:id/transcribe',
-      stage: 'transcribe',
-      user_id: userId,
-      error: 'ASR 转写失败(测试注入)',
-    });
+    // 建一个面试,再真实上传一段音频,触发后台转写;failingSpeechProvider 让 transcribeFile reject → 转写阶段真实失败。
+    const ivRes = await request(app.getHttpServer())
+      .post('/api/interviews')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ round: '技术一面', company: 'Acme', role: '后端开发工程师' });
+    expect(ivRes.status).toBe(201);
+    const interviewId = ivRes.body.id as string;
+    await new Promise((r) => setTimeout(r, 200));
+
+    const post = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewId}/transcribe`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .field('consent', 'true')
+      .attach('file', Buffer.from('fake-audio-ofl-transcribe'), {
+        filename: 'ofl.m4a',
+        contentType: 'audio/mp4',
+      });
+    expect(post.status).toBe(202);
+
+    // 轮询到 failed(后台 runTranscribe 已 catch ASR reject 并发出真实 AI_CALL_FAILED)。
+    const deadline = Date.now() + 8000;
+    let lastStatus = '';
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const st = await request(app.getHttpServer())
+        .get(`/api/interviews/${interviewId}/transcribe/status`)
+        .set('Authorization', `Bearer ${userToken}`);
+      expect(st.status).toBe(200);
+      lastStatus = st.body.status as string;
+      if (lastStatus === 'failed') break;
+      if (Date.now() > deadline) throw new Error(`转写未在预期内失败,最后状态=${lastStatus}`);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(lastStatus).toBe('failed');
 
     const afterStats = await request(app.getHttpServer())
       .get('/api/admin/success-stats?days=1')
@@ -201,12 +252,21 @@ describe('#4 AI 调用失败落库 (e2e)', () => {
     const failures = await request(app.getHttpServer())
       .get('/api/admin/recent-failures?limit=20')
       .set('Authorization', `Bearer ${adminToken}`);
-    const transcribeRow = (failures.body as Array<{ stage: string | null; reason: string | null; user: string | null }>)
-      .find((r) => r.stage === 'transcribe');
+    const transcribeRow = (
+      failures.body as Array<{
+        stage: string | null;
+        reason: string | null;
+        user: string | null;
+        endpoint: string | null;
+      }>
+    ).find((r) => r.stage === 'transcribe');
     expect(transcribeRow).toBeDefined();
-    expect(transcribeRow!.reason).toBe('ASR 转写失败(测试注入)');
+    // 检验生产 detail 键已对齐 DTO:原因/用户/端点三者均非空(键名不匹配时三者会是 null,本用例即 FAIL)。
+    expect(transcribeRow!.reason).toBe(ASR_FAILURE_MESSAGE);
+    expect(transcribeRow!.endpoint).toBe('/api/interviews/:id/transcribe');
+    expect(transcribeRow!.user).toBeTruthy();
     expect(transcribeRow!.user).toContain('*');
-  });
+  }, 30000);
 
   // 鉴权护栏:recent-failures 走 JwtAuthGuard + AdminGuard ────────────────────────
   it('recent-failures 无 token → 401;普通用户 → 403', async () => {

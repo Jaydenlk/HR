@@ -336,14 +336,15 @@ describe('录音转写异步化 (e2e)', () => {
     expect(done.errorMessage).toContain('ASR 上游不可用');
     expect(done.segmentsJson).toBeNull();
 
-    // 失败入运维流水:恰写一条 AI_CALL_FAILED,detail.stage=transcribe、reason 含失败原因(管理面板可见)。
+    // 失败入运维流水:恰写一条 AI_CALL_FAILED,detail.stage=transcribe、error 含失败原因(管理面板可见)。
+    // detail 键对齐 AiUsageInterceptor 约定(endpoint/user_id/error),与 recent-failures DTO 一致。
     // record 是 fire-and-forget,给它一点时间落库再断言。
     await new Promise((r) => setTimeout(r, 200));
     const opsRows = await opsRepo.find({ where: { type: 'AI_CALL_FAILED' } });
-    const mine = opsRows.find((e) => (e.detail?.userId as string) === user.id);
+    const mine = opsRows.find((e) => (e.detail?.user_id as string) === user.id);
     expect(mine).toBeDefined();
     expect(mine?.detail?.stage).toBe('transcribe');
-    expect(String(mine?.detail?.reason)).toContain('ASR 上游不可用');
+    expect(String(mine?.detail?.error)).toContain('ASR 上游不可用');
 
     // 失败不计费:两轨均无新增,余额不变。
     const afterCredit = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });

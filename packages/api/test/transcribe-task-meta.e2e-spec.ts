@@ -273,6 +273,36 @@ describe('转写任务元数据回执 + 删除所有权 (e2e)', () => {
     expect(res.status).toBe(404);
   }, 30000);
 
+  // ── (b') 跨面试-同用户:用面试 A 的 :id 删属于自己面试 B 的 taskId → 404,taskB 不被误删 ──
+  // where 子句的 interview_id 过滤兜底:taskId 虽属本人,但不属路径里的面试 A,故 404(覆盖 A2 审计指出的缺口)。
+  it('DELETE 转写任务:同一用户用面试 A 的 id 删面试 B 的 task → 404 且 taskB 仍在', async () => {
+    const owner = await registerUser(app, `del-cross-${Date.now()}@coach.dev`, '跨面试物主');
+    const interviewA = await createInterview(app, owner);
+    const interviewB = await createInterview(app, owner);
+
+    const postB = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewB}/transcribe`)
+      .set('Authorization', `Bearer ${owner}`)
+      .field('consent', 'true')
+      .attach('file', FAKE_AUDIO, { filename: 'b.mp3', contentType: 'audio/mpeg' });
+    expect(postB.status).toBe(202);
+    const taskB = postB.body.taskId as string;
+    await pollStatus(app, owner, interviewB, (s) => s === 'awaiting_confirm' || s === 'failed');
+
+    // 用面试 A 的 id 去删属于面试 B 的 task → 404(interview_id 不匹配,不泄露存在性)。
+    const cross = await request(app.getHttpServer())
+      .delete(`/api/interviews/${interviewA}/transcribe/${taskB}`)
+      .set('Authorization', `Bearer ${owner}`);
+    expect(cross.status).toBe(404);
+
+    // taskB 未被误删:从其正确归属面试 B 查仍能拿到同一 taskId。
+    const stillThere = await request(app.getHttpServer())
+      .get(`/api/interviews/${interviewB}/transcribe/status`)
+      .set('Authorization', `Bearer ${owner}`);
+    expect(stillThere.status).toBe(200);
+    expect(stillThere.body.taskId).toBe(taskB);
+  }, 30000);
+
   // ── (c) DELETE 复盘记录 :id 所有权 ───────────────────────────────────────────
   it('DELETE 复盘记录:owner 删成功(GET 404);非 owner→404', async () => {
     const owner = await registerUser(app, `iv-owner-${Date.now()}@coach.dev`, '复盘物主');

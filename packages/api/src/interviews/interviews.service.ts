@@ -345,10 +345,13 @@ export class InterviewsService {
       );
       // 失败入运维流水(管理面板 AI 失败计数 + 排障可见);复用既有 AI_CALL_FAILED 类型,
       // record 内部不抛错(写失败仅 warn),故 fire-and-forget,不影响失败态落库。
+      // detail 键对齐 AiUsageInterceptor 约定(endpoint/user_id/error),否则 recent-failures DTO
+      // 读不到(它取 detail.endpoint/user_id/error),转写失败在管理面板会丢失「谁/为何」;stage 额外标转写阶段。
       void this.opsEvents.record('AI_CALL_FAILED', {
+        endpoint: TRANSCRIBE_ENDPOINT,
+        user_id: userId,
+        error: reason,
         stage: 'transcribe',
-        reason,
-        userId,
       });
     }
   }
