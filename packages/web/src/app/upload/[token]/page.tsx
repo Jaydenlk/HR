@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, use } from 'react';
-import { Upload, Mic, Info, Zap, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Upload, Mic, Info, Zap, CheckCircle2, AlertTriangle, Compass } from 'lucide-react';
+import { useIsWeChatBrowser } from '@/lib/wechat';
 
 // 扫码上传页(手机端 · 未登录直传):由电脑端生成的二维码扫开,凭 URL 路径里的一次性令牌
 // 把面试录音直传到后端 POST /upload/:token。鉴权完全靠令牌(见 api 端 qr-upload.controller),
@@ -19,9 +20,11 @@ import { Upload, Mic, Info, Zap, CheckCircle2, AlertTriangle } from 'lucide-reac
 // 与 lib/api 同口径的 API base(NEXT_PUBLIC_API_URL 缺省指向本地 3002/api)。
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api').trim();
 
-// 文件选择 accept:与桌面端 audio-uploader 对齐(后端 multer fileFilter 才是真 guard)。
+// 文件选择 accept:显式列全音频扩展名 + audio/* 兜底(后端 multer fileFilter 才是真 guard)。
+// 故意把扩展名摆在前面并加 audio/*:部分 Android 微信 XWeb 内核据此才肯露出「文件」入口让用户挑录音;
+// 但这对 iOS 微信几乎无效(WKWebView 只给相册/拍照),所以下方还配了「在浏览器打开」引导横幅兜底。
 const ACCEPT =
-  'audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm,audio/aac,.mp3,.wav,.ogg,.m4a,.webm,.aac';
+  '.mp3,.wav,.m4a,.aac,.ogg,.webm,audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm,audio/aac,audio/*';
 
 // 可读文件大小。
 function fileSize(bytes: number): string {
@@ -61,6 +64,9 @@ export default function UploadPage({
   // 链接本身失效(401):单独成态,展示「无效/过期」终态,而非可重试的普通错误。
   const [linkDead, setLinkDead] = useState(false);
   const [success, setSuccess] = useState(false);
+  // 是否身处微信内置浏览器:其文件选择器只给相册/拍照、不给文件选择器,挑不了已有录音。
+  // SSR 安全(服务端快照恒 false,客户端首帧给真值),详见 lib/wechat。
+  const inWeChat = useIsWeChatBrowser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 路径里没有令牌段时(理论上 Next 不会路由到此,这里兜底)直接判失效。
@@ -212,6 +218,10 @@ export default function UploadPage({
                   </div>
                 </div>
               </div>
+
+              {/* 微信内置浏览器引导:微信里点选录音只会弹「拍照/相册」,选不了已有文件,
+                  唯一可靠出口是「在浏览器打开」后再传。仅在微信内显示,普通浏览器不显示。 */}
+              {inWeChat && <WeChatGuide />}
 
               {/* 选择/拍摄音频 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -409,6 +419,75 @@ function SuccessView() {
         <br />
         此页面可以关闭了。
       </p>
+    </div>
+  );
+}
+
+// 微信内置浏览器引导横幅:告诉用户点右上角「···」→「在浏览器打开」后再上传。
+// 不做自动跳转(微信禁止网页主动跳外部浏览器),只给静态图文指引 + 右上角箭头。
+function WeChatGuide() {
+  return (
+    <div
+      data-testid="wechat-guide"
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        padding: '14px 16px',
+        borderRadius: '10px',
+        background: 'var(--color-brand-soft)',
+        border: '1px solid var(--color-brand)',
+      }}
+    >
+      {/* 指向右上角「···」的箭头(横幅本就在卡片内、靠近页面顶部,箭头朝右上提示菜单位置) */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: '-10px',
+          right: '6px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          fontSize: '20px',
+          lineHeight: 1,
+          color: 'var(--color-brand)',
+          transform: 'rotate(-8deg)',
+        }}
+      >
+        <span style={{ fontSize: '15px', fontWeight: 700 }}>···</span>
+        <span>↗</span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Compass size={16} color="var(--color-brand)" style={{ flexShrink: 0 }} />
+        <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-brand-ink)' }}>
+          微信里选不了录音文件
+        </div>
+      </div>
+
+      <div style={{ fontSize: '12.5px', color: 'var(--color-ink-2)', lineHeight: 1.7 }}>
+        微信自带的浏览器只能拍照、选图片，挑不出已经录好的音频。请按下面两步换到手机自带浏览器再上传：
+      </div>
+
+      <ol
+        style={{
+          margin: 0,
+          paddingLeft: '18px',
+          fontSize: '12.5px',
+          color: 'var(--color-ink-2)',
+          lineHeight: 1.85,
+        }}
+      >
+        <li>
+          点屏幕<strong style={{ color: 'var(--color-ink)' }}>右上角的「···」</strong>
+        </li>
+        <li>
+          选<strong style={{ color: 'var(--color-ink)' }}>「在浏览器打开」</strong>
+          （苹果手机显示「在Safari中打开」），打开后再在这个页面里选录音上传即可
+        </li>
+      </ol>
     </div>
   );
 }
