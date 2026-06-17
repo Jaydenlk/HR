@@ -10,7 +10,6 @@ import { AiModule } from '../ai/ai.module';
 import { QuotaModule } from '../quota/quota.module';
 import { CreditModule } from '../credit/credit.module';
 import { SpeechModule } from '../speech/speech.module';
-import { OpsEventsModule } from '../ops/ops-events.module';
 import { InterviewTranscribeTask } from '../speech/entities/transcribe-task.entity';
 
 @Module({

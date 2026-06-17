@@ -55,7 +55,7 @@ function friendlyError(raw: string | null): string {
   const msg = (raw ?? '').trim();
   if (!msg) return '转写失败，请重新上传或稍后重试。';
   const lower = msg.toLowerCase();
-  if (lower.includes('unsupported audio format') || lower.includes('format')) {
+  if (lower.includes('unsupported audio format')) {
     return '录音格式暂不支持，请换用常见录音格式（如手机自带录音的 m4a）后重试。';
   }
   if (msg.includes('录音过长') || lower.includes('maximum allowed size') || lower.includes('exceeds')) {
