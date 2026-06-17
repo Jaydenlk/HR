@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AnnouncementsService } from './announcements.service';
 import { AnnouncementGeneratorService } from './announcement-generator.service';
+import { ChangelogReaderService } from './changelog-reader.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import { GenerateAnnouncementDto } from './dto/generate-announcement.dto';
@@ -30,6 +31,7 @@ export class AdminAnnouncementsController {
   constructor(
     private readonly announcements: AnnouncementsService,
     private readonly generator: AnnouncementGeneratorService,
+    private readonly changelogReader: ChangelogReaderService,
   ) {}
 
   // 全部公告(含草稿/已下架),供后台管理。可选 ?status=draft|published 过滤(前端 tab)。
@@ -45,6 +47,22 @@ export class AdminAnnouncementsController {
   async generate(
     @Body() dto: GenerateAnnouncementDto,
   ): Promise<AnnouncementResponseDto> {
+    const item = await this.generator.generateDraft(dto);
+    return AnnouncementResponseDto.from(item);
+  }
+
+  // 从最近更新自动起草:读 CHANGELOG.md 最新一节要点 → 交 AnnouncementGeneratorService
+  // 复用同一防编造 prompt 改写 → 保存为草稿(公开端不可见)。管理员无需手写/粘贴,点按钮即起草后审核。
+  // 无可用更新日志(文件缺失/解析为空)→ 400(合法的「无内容可总结」,非 500;reader 层已保证不抛)。
+  @Post('generate-from-changelog')
+  async generateFromChangelog(): Promise<AnnouncementResponseDto> {
+    const entry = this.changelogReader.getLatestEntry();
+    if (!entry) {
+      throw new BadRequestException('暂无可用的更新日志,无法生成公告');
+    }
+    const dto: GenerateAnnouncementDto = {
+      source_content: this.changelogReader.toSourceContent(entry),
+    };
     const item = await this.generator.generateDraft(dto);
     return AnnouncementResponseDto.from(item);
   }

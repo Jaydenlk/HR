@@ -235,6 +235,9 @@ export default function AnnouncementsAdminPage() {
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
 
+  // 「从最近更新生成」:直读 CHANGELOG 起草,无需粘贴。独立 loading,禁用按钮防重复点。
+  const [genFromChangelog, setGenFromChangelog] = useState(false);
+
   // 行级操作中(发布/下架/删除/重新生成)的 id,用于禁用按钮。
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -330,6 +333,22 @@ export default function AnnouncementsAdminPage() {
       setGenError(err instanceof Error ? err.message : 'AI 生成失败,请稍后重试');
     } finally {
       setGenerating(false);
+    }
+  }
+
+  // 从最近更新生成:无需粘贴,后端读 CHANGELOG 最新一节交 AI 起草草稿。成功后跳「草稿」tab 待审核。
+  // 无可用更新日志(后端 400)等错误经页面顶部 error 横幅透出。
+  async function runGenerateFromChangelog() {
+    setGenFromChangelog(true);
+    setError(null);
+    try {
+      await api.post<Announcement>('/admin/announcements/generate-from-changelog', {});
+      setTab('draft');
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '生成失败,请稍后重试');
+    } finally {
+      setGenFromChangelog(false);
     }
   }
 
@@ -479,11 +498,27 @@ export default function AnnouncementsAdminPage() {
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               type="button"
+              onClick={() => void runGenerateFromChangelog()}
+              disabled={genFromChangelog}
+              style={smallBtn('primary')}
+            >
+              {genFromChangelog ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" /> 生成中…
+                </>
+              ) : (
+                <>
+                  <Sparkles size={13} /> 从最近更新生成
+                </>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setGenError(null);
                 setGenState({ source: '', preferred: 'banner' });
               }}
-              style={smallBtn('primary')}
+              style={smallBtn('neutral')}
             >
               <Sparkles size={13} /> AI 生成最近更新
             </button>
