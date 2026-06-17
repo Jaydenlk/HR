@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import { api } from '@/lib/api';
-import { generateQrMatrix } from '@/lib/qrcode';
 import type { QrUploadTokenResponse, TranscribeStatusResponse } from '@/lib/types';
 import { Smartphone, RefreshCw, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -28,6 +28,7 @@ const ACTIVE_STATUSES = new Set<TranscribeStatusResponse['status']>([
 ]);
 
 // 站点 origin(手机扫码后访问的地址)。优先用显式配置,回退当前页 origin。
+// 必须是绝对地址(prod 即 http://139.224.248.44):微信/相机扫到相对路径打不开。
 function siteOrigin(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (configured) return configured.replace(/\/$/, '');
@@ -35,39 +36,20 @@ function siteOrigin(): string {
   return '';
 }
 
-// 内联 SVG 渲染 QR 矩阵:每个深色模块一个 <rect>,白底由父容器给。
-function QrSvg({ matrix, size }: { matrix: boolean[][]; size: number }) {
-  const n = matrix.length;
-  const quiet = 2; // 静默区(规范要求 ≥4,这里取 2 个模块 + 容器留白,扫码足够)。
-  const dim = n + quiet * 2;
-  const rects: React.ReactElement[] = [];
-  for (let r = 0; r < n; r++) {
-    for (let c = 0; c < n; c++) {
-      if (matrix[r][c]) {
-        rects.push(
-          <rect key={`${r}-${c}`} x={c + quiet} y={r + quiet} width={1} height={1} fill="#0b1220" />,
-        );
-      }
-    }
-  }
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${dim} ${dim}`}
-      shapeRendering="crispEdges"
-      style={{ display: 'block', background: '#fff', borderRadius: '8px' }}
-      role="img"
-      aria-label="手机上传二维码"
-    >
-      <rect x={0} y={0} width={dim} height={dim} fill="#fff" />
-      {rects}
-    </svg>
-  );
+// 用 qrcode 库把 URL 渲染成 SVG 字符串(纯 JS、不依赖 canvas)。
+// 纠错等级 M、留白 4 模块(规范要求)、纯黑#000 / 纯白#fff,尺寸 220px。
+async function buildQrSvg(url: string): Promise<string> {
+  return QRCode.toString(url, {
+    type: 'svg',
+    errorCorrectionLevel: 'M',
+    margin: 4,
+    width: 220,
+    color: { dark: '#000000', light: '#ffffff' },
+  });
 }
 
 export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelProps) {
-  const [matrix, setMatrix] = useState<boolean[][] | null>(null);
+  const [svg, setSvg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState(false);
@@ -90,7 +72,7 @@ export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelPro
     let baselineTaskId: string | null = null;
     let baselineResolved = false;
 
-    // 签发/重签令牌 → 拼 origin → 生成二维码矩阵 → 安排下一次重签(过期前 10s)。
+    // 签发/重签令牌 → 拼绝对 URL → 生成二维码 SVG → 安排下一次重签(过期前 10s)。
     async function issueToken(): Promise<void> {
       try {
         const resp = await api.post<QrUploadTokenResponse>(
@@ -99,7 +81,9 @@ export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelPro
         );
         if (!mounted) return;
         const url = `${siteOrigin()}${resp.uploadPath}`;
-        setMatrix(generateQrMatrix(url));
+        const qrSvg = await buildQrSvg(url);
+        if (!mounted) return;
+        setSvg(qrSvg);
         setError(null);
         setLoading(false);
 
@@ -231,10 +215,22 @@ export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelPro
               重试
             </button>
           </div>
-        ) : loading || !matrix ? (
+        ) : loading || !svg ? (
           <Loader2 size={28} color="var(--color-brand)" style={{ animation: 'qr-spin 0.8s linear infinite' }} />
         ) : (
-          <QrSvg matrix={matrix} size={150} />
+          <div
+            role="img"
+            aria-label="手机上传二维码"
+            className="qr-upload-svg"
+            style={{
+              width: '150px',
+              height: '150px',
+              background: '#fff',
+              borderRadius: '8px',
+            }}
+            // qrcode 库输出的 SVG 字符串(库内置,非用户输入,无 XSS 风险);带 viewBox 故等比缩放到 150px。
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
         )}
       </div>
 
@@ -256,6 +252,7 @@ export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelPro
 
       <style>{`
         @keyframes qr-spin { to { transform: rotate(360deg); } }
+        .qr-upload-svg svg { display: block; width: 100%; height: 100%; }
       `}</style>
     </div>
   );

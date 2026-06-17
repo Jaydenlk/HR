@@ -11,7 +11,7 @@ import { randomBytes } from 'crypto';
  * 为什么用「短随机不透明 id + 内存映射」而不是 JWT:
  *  - 令牌进的是二维码,而二维码内容越长所需版本越高。JWT(header.payload.signature,内含
  *    purpose/interviewId/sub/jti/iat/exp 多个 UUID 字段)动辄 200–300+ 字符,加上站点 origin 拼成
- *    完整 URL 后,超出轻量二维码生成器(lib/qrcode.ts 版本 1–10)的容量,直接编码失败。
+ *    完整 URL 后,二维码所需版本高、模块密、在小尺寸下更难被手机扫出。
  *  - 改成 24 字符以内的 url-safe 短 id,绑定关系(interviewId/userId/过期/是否用过)全部存在服务端内存,
  *    URL 极短,二维码用最低版本即可编码,且令牌本身不携带任何归属信息(更不可被伪造/篡改)。
  *
