@@ -49,6 +49,25 @@ function stepState(stepStatus: TranscribeStatus, current: TranscribeStatus): Ste
 
 const TERMINAL_STATUSES: TranscribeStatus[] = ['completed', 'failed'];
 
+// 把后端 error_message 收敛成对用户友好的一句话。后端多数原因本就可读(录音过长 / ffmpeg 未装等),
+// 直接透出;少数带上游技术字样(unsupported format / internal error / 429)的,映射成人话提示。
+function friendlyError(raw: string | null): string {
+  const msg = (raw ?? '').trim();
+  if (!msg) return '转写失败，请重新上传或稍后重试。';
+  const lower = msg.toLowerCase();
+  if (lower.includes('unsupported audio format')) {
+    return '录音格式暂不支持，请换用常见录音格式（如手机自带录音的 m4a）后重试。';
+  }
+  if (msg.includes('录音过长') || lower.includes('maximum allowed size') || lower.includes('exceeds')) {
+    return '录音过长，请控制在约 40 分钟以内（更长时段的分段转写正在开发中）。';
+  }
+  if (lower.includes('internal error') || lower.includes('429') || lower.includes('繁忙')) {
+    return '语音服务暂时繁忙，请稍后重试。';
+  }
+  // 其余后端消息本就是中文可读原因,直接展示。
+  return msg;
+}
+
 export function TranscriptProgress({
   interviewId,
   taskId,
@@ -56,6 +75,8 @@ export function TranscriptProgress({
   onStop,
 }: TranscriptProgressProps) {
   const [status, setStatus] = useState<TranscribeStatus>('submitted');
+  // 后端 failed 时回传的具体原因(格式不支持 / 录音过长 / 服务繁忙…),失败时展示给用户排障。
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
@@ -76,7 +97,10 @@ export function TranscriptProgress({
     // body) to avoid react-hooks/set-state-in-effect cascading renders — same convention as
     // the rest of the app (see cover-letter / mock / diagnoses pages).
     void Promise.resolve().then(() => {
-      if (mountedRef.current) setStatus('submitted');
+      if (mountedRef.current) {
+        setStatus('submitted');
+        setErrorMessage(null);
+      }
     });
 
     async function fetchStatus() {
@@ -87,6 +111,7 @@ export function TranscriptProgress({
         if (!mountedRef.current) return;
 
         setStatus(data.status);
+        setErrorMessage(data.errorMessage ?? null);
         onStatusUpdate(data);
 
         if (TERMINAL_STATUSES.includes(data.status)) {
@@ -164,6 +189,23 @@ export function TranscriptProgress({
             : '正在处理录音…'}
         </span>
       </div>
+
+      {/* Failure detail: surface the backend reason (格式不支持 / 录音过长 / 服务繁忙) so用户知道为何失败。 */}
+      {isFailed && (
+        <div
+          style={{
+            fontSize: '13px',
+            lineHeight: 1.6,
+            color: 'var(--color-ink-3)',
+            background: 'var(--color-danger-soft)',
+            border: '1px solid var(--color-danger)',
+            borderRadius: '8px',
+            padding: '10px 12px',
+          }}
+        >
+          {friendlyError(errorMessage)}
+        </div>
+      )}
 
       {/* Step strip */}
       <div
