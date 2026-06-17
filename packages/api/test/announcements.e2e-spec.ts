@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
 import { User } from '../src/users/entities/user.entity';
 import { Announcement } from '../src/announcements/entities/announcement.entity';
+import { ChangelogReaderService } from '../src/announcements/changelog-reader.service';
 import { request } from './test-utils';
 
 // ─── 公告 e2e(AnnouncementsController + AdminAnnouncementsController）──────────
@@ -59,6 +60,7 @@ describe('Announcements (e2e)', () => {
   let annRepo: Repository<Announcement>;
   let adminToken: string;
   let userToken: string;
+  let changelogReader: ChangelogReaderService;
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
@@ -81,6 +83,8 @@ describe('Announcements (e2e)', () => {
 
     userRepo = moduleRef.get<Repository<User>>(getRepositoryToken(User));
     annRepo = moduleRef.get<Repository<Announcement>>(getRepositoryToken(Announcement));
+    // 真实 ChangelogReaderService(不 override):generate-from-changelog 用例读真实仓库根 CHANGELOG.md。
+    changelogReader = moduleRef.get<ChangelogReaderService>(ChangelogReaderService);
 
     adminToken = await registerUser(app, 'admin@coach.dev', '超管');
     const admin = await userRepo.findOneBy({ email: 'admin@coach.dev' });
@@ -720,6 +724,146 @@ describe('Announcements (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ title: '协议相对', body: 'x', cta_href: '//evil.com' });
       expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── 从最近更新(CHANGELOG)AI 自动起草(POST /generate-from-changelog,mock AiService)──
+  // 端点读真实仓库根 CHANGELOG.md(测试时 cwd=packages/api → ../../CHANGELOG.md 命中)经
+  // ChangelogReaderService 解析,把最新一节要点交 AnnouncementGeneratorService 起草草稿。
+  // 复用同一防编造 prompt/落库逻辑,故只验证 changelog→草稿这条增量链路与 graceful 行为。
+  describe('POST /api/admin/announcements/generate-from-changelog 从最近更新起草', () => {
+    const DRAFT_SHAPE = {
+      title: '最近更新已上线',
+      body: '这一阵我们修了录音上传、补了后台失败记录、做了稳定性加固,整体更稳更好用了。',
+      kind: 'fix' as const,
+      display_type: 'banner' as const,
+    };
+
+    it('门控:无 token → 401、普通用户 → 403', async () => {
+      const anon = await request(app.getHttpServer()).post(
+        '/api/admin/announcements/generate-from-changelog',
+      );
+      expect(anon.status).toBe(401);
+
+      const normal = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate-from-changelog')
+        .set('Authorization', `Bearer ${userToken}`);
+      expect(normal.status).toBe(403);
+    });
+
+    // (a) 读 changelog + 创建草稿:source_content 取自真实 CHANGELOG 最新一节,落库为草稿。
+    it('admin → 201:读真实 CHANGELOG 最新节起草草稿(status=draft、active=false、published_at=null),source_content 取自 changelog', async () => {
+      // 真实 reader 解出的最新节要点(用于断言传给 AI 的就是 changelog 内容,不硬编码文案防脆)。
+      const entry = changelogReader.getLatestEntry();
+      expect(entry).not.toBeNull();
+      expect(entry!.bullets.length).toBeGreaterThan(0);
+
+      mockAiService.completeStructured.mockResolvedValueOnce(DRAFT_SHAPE);
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate-from-changelog')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(201);
+      expect(res.body.status).toBe('draft');
+      expect(res.body.active).toBe(false);
+      expect(res.body.published_at).toBeNull();
+      expect(res.body.title).toBe('最近更新已上线');
+      expect(typeof res.body.id).toBe('string');
+      // AI 只写正文,CTA 留空(与粘贴模式同口径)。
+      expect(res.body.cta_label).toBeNull();
+      expect(res.body.cta_href).toBeNull();
+
+      // 落库核实为草稿。
+      const inDb = await annRepo.findOneBy({ id: res.body.id });
+      expect(inDb).not.toBeNull();
+      expect(inDb!.status).toBe('draft');
+      expect(inDb!.active).toBe(false);
+
+      // 传给 AI 的 prompt 确实承载了 changelog 最新节要点(证明「读了 changelog」,非凭空)。
+      const lastCall =
+        mockAiService.completeStructured.mock.calls[
+          mockAiService.completeStructured.mock.calls.length - 1
+        ];
+      const passedPrompt = (lastCall[0] as { prompt: string }).prompt;
+      expect(passedPrompt).toContain(entry!.bullets[0]);
+    });
+
+    // (b) 草稿在发布前绝不被公开 GET /announcements 暴露。
+    it('生成的草稿不出现在公开端,直到发布【安全】', async () => {
+      mockAiService.completeStructured.mockResolvedValueOnce(DRAFT_SHAPE);
+      const gen = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate-from-changelog')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(gen.status).toBe(201);
+      const draftId = gen.body.id as string;
+
+      // 公开端:草稿不可见。
+      const pubBefore = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      expect((pubBefore.body as { id: string }[]).map((r) => r.id)).not.toContain(draftId);
+
+      // 经现有发布流转发布后,才出现在公开端(验证草稿确实可经审核发布,链路完整)。
+      const patch = await request(app.getHttpServer())
+        .patch(`/api/admin/announcements/${draftId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'published' });
+      expect(patch.status).toBe(200);
+
+      const pubAfter = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      expect((pubAfter.body as { id: string }[]).map((r) => r.id)).toContain(draftId);
+    });
+
+    // (c) 无可用 changelog(缺失/解析为空)→ graceful 400,绝不 500。
+    it('无可用更新日志(reader 返 null)→ 400 非 500,不调用 AI', async () => {
+      const spy = jest.spyOn(changelogReader, 'getLatestEntry').mockReturnValueOnce(null);
+      const callsBefore = mockAiService.completeStructured.mock.calls.length;
+
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate-from-changelog')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(400);
+      expect(res.status).not.toBe(500);
+      expect(res.body.message).toContain('更新日志');
+      // 无内容时不应触发 AI 调用(避免空起草/编造)。
+      expect(mockAiService.completeStructured.mock.calls.length).toBe(callsBefore);
+
+      spy.mockRestore();
+    });
+  });
+
+  // ─── ChangelogReaderService 解析/容错单元级验证(真实 reader,不经 HTTP)──────────
+  describe('ChangelogReaderService 解析与 graceful', () => {
+    let reader: ChangelogReaderService;
+
+    beforeAll(() => {
+      reader = new ChangelogReaderService();
+    });
+
+    it('解析真实仓库根 CHANGELOG:取最新一节,bullets 非空且去掉了 - 前缀', () => {
+      const entry = reader.getLatestEntry();
+      expect(entry).not.toBeNull();
+      expect(entry!.heading.length).toBeGreaterThan(0);
+      expect(entry!.bullets.length).toBeGreaterThan(0);
+      // 要点已剥离 markdown 列表前缀。
+      for (const b of entry!.bullets) {
+        expect(b.startsWith('-')).toBe(false);
+        expect(b.startsWith('*')).toBe(false);
+        expect(b.trim()).toBe(b);
+      }
+      // toSourceContent 把要点拼成每行一条。
+      const src = reader.toSourceContent(entry!);
+      expect(src.split('\n').length).toBe(entry!.bullets.length);
+    });
+
+    it('文件缺失(cwd 指向无 CHANGELOG 的目录)→ getLatestEntry 返 null,不抛', () => {
+      const cwdSpy = jest.spyOn(process, 'cwd').mockReturnValue('/__no_such_dir_for_changelog__');
+      let result: ReturnType<ChangelogReaderService['getLatestEntry']> = {
+        heading: 'x',
+        bullets: ['y'],
+      };
+      expect(() => {
+        result = reader.getLatestEntry();
+      }).not.toThrow();
+      expect(result).toBeNull();
+      cwdSpy.mockRestore();
     });
   });
 });
