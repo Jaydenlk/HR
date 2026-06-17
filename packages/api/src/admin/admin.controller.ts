@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -23,7 +24,9 @@ import { StatsQueryDto } from './dto/stats-query.dto';
 import { UserActivityQueryDto } from './dto/user-activity-query.dto';
 import { ErrorStreamQueryDto } from './dto/error-stream-query.dto';
 import { CreditHistoryQueryDto } from './dto/credit-history-query.dto';
+import { CreateAiProviderDto } from './dto/create-ai-provider.dto';
 import { UpdateAiProviderDto } from './dto/update-ai-provider.dto';
+import { TestAiProviderDraftDto } from './dto/test-ai-provider.dto';
 
 // 管理后台:全部端点经 JwtAuthGuard(认证)+ AdminGuard(role==='admin')。
 @Controller('admin')
@@ -132,20 +135,52 @@ export class AdminController {
     return this.admin.successStats(query.days);
   }
 
-  // ===== API 管理:AI provider 主备切换(出站 DTO 绝不含 apiKey/baseURL)=====
+  // ===== API 管理:AI provider 通道 CRUD(出站只回打码密钥,绝不回明文/密文)=====
 
-  // 当前 AI provider 状态:三通道 configured/型号 + 有效主力/降级顺序。
-  @Get('ai-provider')
-  aiProvider() {
-    return this.admin.aiProviderStatus();
+  // 全部 AI 通道列表(密钥打码末 4 位)。
+  @Get('ai-providers')
+  listAiProviders() {
+    return this.admin.listAiProviders();
   }
 
-  // 切换 AI provider 主备:primary 须是已配置密钥的通道(否则 400);即时生效,免重启。
-  @Patch('ai-provider')
+  // 新建通道:apiKey 加密落库;即时生效,免重启。
+  @Post('ai-providers')
+  createAiProvider(
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateAiProviderDto,
+  ) {
+    return this.admin.createAiProvider(req.user.id, dto);
+  }
+
+  // 连通性测试(未保存草稿):用入站明文 key 发一次最小请求,不落库。
+  // 声明在 ':id/test' 之前,避免 'test' 被 ParseUUIDPipe 当 id 拒绝。
+  @Post('ai-providers/test')
+  testAiProviderDraft(@Body() dto: TestAiProviderDraftDto) {
+    return this.admin.testAiProviderDraft(dto);
+  }
+
+  // 连通性测试(已保存通道):解密 key 发一次最小请求,返回 {ok, latencyMs, error}。
+  @Post('ai-providers/:id/test')
+  testAiProvider(@Param('id', ParseUUIDPipe) id: string) {
+    return this.admin.testAiProvider(id);
+  }
+
+  // 改通道:apiKey 不传则不改(write-only);即时生效,免重启。
+  @Patch('ai-providers/:id')
   updateAiProvider(
     @Request() req: { user: { id: string } },
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateAiProviderDto,
   ) {
-    return this.admin.updateAiProvider(req.user.id, dto);
+    return this.admin.updateAiProvider(req.user.id, id, dto);
+  }
+
+  // 删通道。
+  @Delete('ai-providers/:id')
+  deleteAiProvider(
+    @Request() req: { user: { id: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.admin.deleteAiProvider(req.user.id, id);
   }
 }

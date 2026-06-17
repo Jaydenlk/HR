@@ -5,7 +5,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
-import { AiProviderSettingsService } from '../src/ai/ai-provider-settings.service';
+import { AiProviderService } from '../src/ai/ai-provider.service';
+import { AiProvider } from '../src/ai/entities/ai-provider.entity';
 import { User } from '../src/users/entities/user.entity';
 import { CreditTransaction } from '../src/credit/entities/credit-transaction.entity';
 import { AiUsage } from '../src/quota/entities/ai-usage.entity';
@@ -29,6 +30,8 @@ import { request } from './test-utils';
 const mockAiService = {
   complete: jest.fn().mockResolvedValue('mock'),
   completeStructured: jest.fn().mockResolvedValue({ summary: 'mock' }),
+  // 连通性测试 mock:默认连通(避免 e2e 真打外网);失败用例单独覆写。
+  testConnection: jest.fn().mockResolvedValue({ ok: true, latencyMs: 12 }),
 };
 
 async function registerUser(app: INestApplication, email: string, name: string): Promise<string> {
@@ -49,7 +52,8 @@ describe('Admin 新端点 三测 (e2e)', () => {
   let creditTxRepo: Repository<CreditTransaction>;
   let usageRepo: Repository<AiUsage>;
   let jwt: JwtService;
-  let settings: AiProviderSettingsService;
+  let providers: AiProviderService;
+  let providerRepo: Repository<AiProvider>;
 
   let adminToken: string;
   let adminId: string;
@@ -69,8 +73,10 @@ describe('Admin 新端点 三测 (e2e)', () => {
     process.env.JWT_SECRET = 'test-secret';
     process.env.ADMIN_EMAILS = 'ne-admin@coach.dev';
     delete process.env.SMTP_HOST;
-    // 确保 GLM 无 key:验证「切到无 key 的 provider → 400」。
+    // 确保 GLM 无 key(种子只种有 key 的通道:deepseek/relay 两条)。
     delete process.env.AI_GLM_API_KEY;
+    // 主密钥(非生产 → 仅启用加密 CRUD;64 位 hex = 32 字节)。
+    process.env.PROVIDER_ENC_KEY = '0'.repeat(64);
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(AiService)
@@ -86,7 +92,8 @@ describe('Admin 新端点 三测 (e2e)', () => {
     creditTxRepo = moduleRef.get<Repository<CreditTransaction>>(getRepositoryToken(CreditTransaction));
     usageRepo = moduleRef.get<Repository<AiUsage>>(getRepositoryToken(AiUsage));
     jwt = moduleRef.get(JwtService);
-    settings = moduleRef.get(AiProviderSettingsService);
+    providers = moduleRef.get(AiProviderService);
+    providerRepo = moduleRef.get<Repository<AiProvider>>(getRepositoryToken(AiProvider));
 
     adminToken = await registerUser(app, 'ne-admin@coach.dev', '新端点超管');
     adminId = (await userRepo.findOneBy({ email: 'ne-admin@coach.dev' }))!.id;
@@ -137,19 +144,31 @@ describe('Admin 新端点 三测 (e2e)', () => {
     await app.close();
     delete process.env.ADMIN_EMAILS;
     delete process.env.AI_DEEPSEEK_API_KEY;
+    delete process.env.PROVIDER_ENC_KEY;
   });
+
+  // 取种子里 deepseek 通道的 id(CRUD/测试用)。
+  async function providerId(name: string): Promise<string> {
+    const row = await providerRepo.findOneBy({ name });
+    if (!row) throw new Error(`通道 ${name} 未种入`);
+    return row.id;
+  }
 
   // ════════════════════════════════════════════════════════════════════════════
   // ① 隔离对抗
   // ════════════════════════════════════════════════════════════════════════════
   describe('① 隔离对抗:401/403/banned/admin 矩阵', () => {
     type Method = 'get' | 'patch';
+    let deepseekId: string;
+    beforeAll(async () => {
+      deepseekId = await providerId('deepseek');
+    });
     interface EP { name: string; method: Method; path: () => string; body?: Record<string, unknown> }
     const endpoints = (): EP[] => [
       { name: 'GET /admin/users/:id', method: 'get', path: () => `/api/admin/users/${userId}` },
       { name: 'GET /admin/users/:id/credit-history', method: 'get', path: () => `/api/admin/users/${userId}/credit-history` },
-      { name: 'GET /admin/ai-provider', method: 'get', path: () => '/api/admin/ai-provider' },
-      { name: 'PATCH /admin/ai-provider', method: 'patch', path: () => '/api/admin/ai-provider', body: { primary: 'deepseek' } },
+      { name: 'GET /admin/ai-providers', method: 'get', path: () => '/api/admin/ai-providers' },
+      { name: 'PATCH /admin/ai-providers/:id', method: 'patch', path: () => `/api/admin/ai-providers/${deepseekId}`, body: { role: 'primary' } },
     ];
 
     function call(ep: EP, token?: string) {
@@ -191,8 +210,10 @@ describe('Admin 新端点 三测 (e2e)', () => {
   });
 
   describe('① 跨用户零泄露 + 出站字段白名单', () => {
+    // 注:baseURL 在新 CRUD 模型里由 admin 管理、合法回显,故不在禁字段名单;
+    //     明文/密文密钥(apiKey/api_key/api_key_enc)始终禁出。
     const FORBIDDEN_DEEP = [
-      'password', 'password_hash', 'passwordHash', 'apiKey', 'api_key', 'baseURL', 'base_url',
+      'password', 'password_hash', 'passwordHash', 'apiKey', 'api_key', 'api_key_enc',
       'access_token', 'accessToken', 'token', 'code_hash', 'raw_text', 'transcript',
       'terms_agreed_at', 'invite_code', 'daily_quota_override', 'avatar_url',
     ];
@@ -259,41 +280,46 @@ describe('Admin 新端点 三测 (e2e)', () => {
       expect(notes).not.toContain('other-grant');
     });
 
-    it('GET /admin/ai-provider 响应【绝不含 apiKey/baseURL】(逐字段断言 + 深层扫描 + 序列化字面量)', async () => {
+    it('GET /admin/ai-providers 响应【绝不含明文/密文 apiKey】(逐字段白名单 + 序列化字面量)', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/admin/ai-provider')
+        .get('/api/admin/ai-providers')
         .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
-      const ALLOWED_TOP = new Set(['providers', 'primary', 'order']);
-      expect(Object.keys(res.body).filter((k) => !ALLOWED_TOP.has(k))).toEqual([]);
-      const PROVIDER_ALLOWED = new Set(['name', 'configured', 'modelPro', 'modelFlash']);
-      for (const p of res.body.providers as Record<string, unknown>[]) {
+      expect(Array.isArray(res.body)).toBe(true);
+      const PROVIDER_ALLOWED = new Set([
+        'id', 'name', 'protocol', 'baseURL', 'apiKeyMasked', 'modelPro', 'modelFlash',
+        'role', 'sortOrder', 'timeoutMs', 'maxRetries', 'createdAt', 'updatedAt',
+      ]);
+      for (const p of res.body as Record<string, unknown>[]) {
         const extra = Object.keys(p).filter((k) => !PROVIDER_ALLOWED.has(k));
         expect({ extra, name: p.name }).toEqual({ extra: [], name: p.name });
-        // 字段快照断言:apiKey/baseURL 结构上不存在。
+        // 结构上不存在明文 key / 密文列。
         expect('apiKey' in p).toBe(false);
-        expect('baseURL' in p).toBe(false);
         expect('api_key' in p).toBe(false);
-        expect('base_url' in p).toBe(false);
+        expect('api_key_enc' in p).toBe(false);
+        // apiKeyMasked 必须是打码(以 **** 开头),绝非明文密钥。
+        expect(String(p.apiKeyMasked).startsWith('****')).toBe(true);
       }
-      assertNoForbiddenDeep(res.body, 'ai-provider');
-      // 整段序列化里不得出现已知密钥/baseURL 字面量(deepseek key 设为 dk-test)。
+      // FORBIDDEN_DEEP 含 api_key/apiKey;apiKeyMasked 不在名单(它是打码字段,合法)。
+      assertNoForbiddenDeep(res.body, 'ai-providers');
+      // 整段序列化里不得出现明文密钥字面量(deepseek key 设为 dk-test,relay 设为 test-key)。
       const serialized = JSON.stringify(res.body);
       expect(serialized).not.toContain('dk-test');
-      expect(serialized).not.toContain('test-key'); // relay/clouddream key
-      expect(serialized).not.toContain('http'); // baseURL 含 http(s),不应外泄
+      expect(serialized).not.toContain('test-key');
     });
 
-    it('PATCH /admin/ai-provider 返回体同样【绝不含 apiKey/baseURL】', async () => {
+    it('PATCH /admin/ai-providers/:id 返回体同样【绝不含明文/密文 apiKey】', async () => {
+      const id = await providerId('deepseek');
       const res = await request(app.getHttpServer())
-        .patch('/api/admin/ai-provider')
+        .patch(`/api/admin/ai-providers/${id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ primary: 'deepseek' });
+        .send({ role: 'primary' });
       expect(res.status).toBe(200);
       const serialized = JSON.stringify(res.body);
       expect(serialized).not.toContain('dk-test');
       expect(serialized).not.toContain('test-key');
-      expect(serialized).not.toContain('http');
+      expect('apiKey' in res.body).toBe(false);
+      expect('api_key_enc' in res.body).toBe(false);
       assertNoForbiddenDeep(res.body, 'ai-provider-patch');
     });
   });
@@ -354,30 +380,38 @@ describe('Admin 新端点 三测 (e2e)', () => {
       expect(res.status).toBe(400);
     });
 
-    it('PATCH ai-provider primary 注入串 → 400(@IsIn 白名单)', async () => {
+    it('PATCH ai-providers role 非法值 → 400(@IsIn 白名单)', async () => {
+      const id = await providerId('deepseek');
       const res = await request(app.getHttpServer())
-        .patch('/api/admin/ai-provider')
+        .patch(`/api/admin/ai-providers/${id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ primary: 'deepseek; --' });
+        .send({ role: 'superuser; --' });
       expect(res.status).toBe(400);
     });
 
-    it("PATCH ai-provider order 含 __proto__ → 400(@IsIn each 白名单)", async () => {
+    it('PATCH ai-providers protocol 非法值 → 400(@IsIn 白名单)', async () => {
+      const id = await providerId('deepseek');
       const res = await request(app.getHttpServer())
-        .patch('/api/admin/ai-provider')
+        .patch(`/api/admin/ai-providers/${id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ primary: 'deepseek', order: ['glm', '__proto__'] });
+        .send({ protocol: '__proto__' });
       expect(res.status).toBe(400);
-      // 原型未被污染。
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
     });
 
-    it('PATCH ai-provider 切到【无 key 的 glm】→ 400(service 校验已配置)', async () => {
+    it('PATCH ai-providers 畸形 id → 400(ParseUUIDPipe)', async () => {
       const res = await request(app.getHttpServer())
-        .patch('/api/admin/ai-provider')
+        .patch('/api/admin/ai-providers/not-a-uuid')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ primary: 'glm' });
+        .send({ role: 'primary' });
       expect(res.status).toBe(400);
+    });
+
+    it('DELETE ai-providers 合法但不存在的 UUID → 404', async () => {
+      const res = await request(app.getHttpServer())
+        .delete('/api/admin/ai-providers/00000000-0000-4000-8000-000000000000')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(404);
     });
 
     it('JWT 篡改 sub(冒充 admin)不重签 → 401(验签失败)', async () => {
@@ -392,36 +426,43 @@ describe('Admin 新端点 三测 (e2e)', () => {
     });
 
     it('JWT 伪造 role:admin(真密钥自签,sub=普通用户)→ 403(AdminGuard 查库不信 claim)', async () => {
+      const id = await providerId('deepseek');
       const forged = jwt.sign({ sub: userId, email: 'ne-user@coach.dev', role: 'admin', is_admin: true });
       const res = await request(app.getHttpServer())
-        .patch('/api/admin/ai-provider')
+        .patch(`/api/admin/ai-providers/${id}`)
         .set('Authorization', `Bearer ${forged}`)
-        .send({ primary: 'deepseek' });
+        .send({ role: 'primary' });
       expect(res.status).toBe(403);
     });
 
-    it('【套密钥渗透】GET ai-provider 不论如何不返回 key;尝试用 query 注入取 key 字段无效', async () => {
-      // 攻击者试图通过 query 参数让端点回吐更多字段(端点无入参,whitelist 剥离一切)。
+    it('【套密钥渗透】GET ai-providers 只回打码末 4 位,绝不回明文/密文(query 注入无效)', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/admin/ai-provider?fields=apiKey,baseURL&include=secrets&verbose=1')
+        .get('/api/admin/ai-providers?fields=apiKey,api_key_enc&include=secrets&verbose=1')
         .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       const serialized = JSON.stringify(res.body);
       expect(serialized).not.toContain('dk-test');
       expect(serialized).not.toContain('test-key');
-      expect(serialized.toLowerCase()).not.toContain('apikey');
-      expect(serialized).not.toContain('baseURL');
+      // 不得回明文 key 字段名 / 密文列名。
+      expect(serialized).not.toContain('api_key_enc');
+      // apiKeyMasked 合法存在(打码);但不得是明文 key。
+      for (const p of res.body as { apiKeyMasked: string }[]) {
+        expect(p.apiKeyMasked).not.toContain('dk-test');
+        expect(p.apiKeyMasked).not.toContain('test-key');
+      }
     });
 
-    it('【套密钥渗透】PATCH ai-provider body 塞 apiKey/baseURL → whitelist 剥离,不回显、不落库', async () => {
+    it('【密文不出库 → 不出 API】数据库密文列存在且加密,但 API 任何路径都不回吐密文', async () => {
+      // DB 里 api_key_enc 是密文(以 v1: 开头),证明明文确实加密落库。
+      const row = await providerRepo.findOneBy({ name: 'deepseek' });
+      expect(row).not.toBeNull();
+      expect(row!.api_key_enc.startsWith('v1:')).toBe(true);
+      expect(row!.api_key_enc).not.toContain('dk-test'); // 密文不含明文
+      // 但列表 API 完全不回吐该密文串。
       const res = await request(app.getHttpServer())
-        .patch('/api/admin/ai-provider')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ primary: 'deepseek', apiKey: 'attacker-injected-key', baseURL: 'http://evil.example' });
-      expect(res.status).toBe(200);
-      const serialized = JSON.stringify(res.body);
-      expect(serialized).not.toContain('attacker-injected-key');
-      expect(serialized).not.toContain('evil.example');
+        .get('/api/admin/ai-providers')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(JSON.stringify(res.body)).not.toContain(row!.api_key_enc);
     });
   });
 
@@ -493,58 +534,119 @@ describe('Admin 新端点 三测 (e2e)', () => {
       expect(elapsed).toBeLessThan(30000);
     }, 60000);
 
-    it('PATCH ai-provider 20 并发切换(deepseek↔relay)→ 表最终一致(读最新行),无脏读崩溃', async () => {
+    it('PATCH ai-providers 20 并发设主力(deepseek↔relay)→ 最终单主力,无脏读崩溃', async () => {
+      const dsId = await providerId('deepseek');
+      const relayId = await providerId('relay');
       const tasks: Promise<number>[] = [];
       for (let i = 0; i < 20; i++) {
-        const primary = i % 2 === 0 ? 'deepseek' : 'relay';
+        const id = i % 2 === 0 ? dsId : relayId;
         tasks.push(
           request(app.getHttpServer())
-            .patch('/api/admin/ai-provider')
+            .patch(`/api/admin/ai-providers/${id}`)
             .set('Authorization', `Bearer ${adminToken}`)
-            .send({ primary })
+            .send({ role: 'primary' })
             .then((r) => r.status),
         );
       }
       const statuses = await Promise.all(tasks);
-      // relay 是否有 key?relay 走 CLOUDDREAM_API_KEY=test-key → configured=true,可设主力。
       for (const s of statuses) expect([200, 400]).toContain(s);
-      // 最终读一次:primary 是 deepseek 或 relay 之一(最后写入者),order 合法。
+      // 最终读一次:有效通道里最多一个 primary(enforceSinglePrimary)。
       const final = await request(app.getHttpServer())
-        .get('/api/admin/ai-provider')
+        .get('/api/admin/ai-providers')
         .set('Authorization', `Bearer ${adminToken}`);
       expect(final.status).toBe(200);
-      expect(['deepseek', 'relay']).toContain(final.body.primary);
-      expect(Array.isArray(final.body.order)).toBe(true);
-      expect(new Set(final.body.order).size).toBe(final.body.order.length); // 无重复
+      const primaries = (final.body as { role: string }[]).filter((p) => p.role === 'primary');
+      expect(primaries.length).toBeLessThanOrEqual(1);
     }, 60000);
   });
 
   // ════════════════════════════════════════════════════════════════════════════
-  // 配置持久化 + 切换语义(mock provider,无新增调用点)
+  // CRUD + 加密落点 + 运行池即时生效(无新增调用点)
   // ════════════════════════════════════════════════════════════════════════════
-  describe('配置持久化 + 主备切换语义', () => {
-    it('PATCH 切 deepseek 主力 → GET 读回 primary=deepseek(持久化生效,免重启)', async () => {
+  describe('CRUD + 加密 + 运行池', () => {
+    it('PATCH 设 deepseek 为主力 → loadPool 排序 deepseek 居首(缓存失效已在 update 内触发)', async () => {
+      const id = await providerId('deepseek');
       await request(app.getHttpServer())
-        .patch('/api/admin/ai-provider')
+        .patch(`/api/admin/ai-providers/${id}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ primary: 'deepseek', order: ['deepseek', 'relay', 'glm'] });
-      const res = await request(app.getHttpServer())
-        .get('/api/admin/ai-provider')
-        .set('Authorization', `Bearer ${adminToken}`);
-      expect(res.body.primary).toBe('deepseek');
-      expect(res.body.order[0]).toBe('deepseek');
-      // settings service 的 current() 也读到一致值(缓存失效已在 update 内触发)。
-      const eff = await settings.current();
-      expect(eff.primary).toBe('deepseek');
+        .send({ role: 'primary' });
+      const pool = await providers.loadPool();
+      expect(pool[0].name).toBe('deepseek');
     });
 
-    it('AiProviderSettingsService.invalidate + current 读取最新 DB 行(不依赖重启)', async () => {
-      await request(app.getHttpServer())
-        .patch('/api/admin/ai-provider')
+    it('POST 新建通道(apiKey 加密落库)→ GET 列表只回打码;DB 列为 v1: 密文', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/api/admin/ai-providers')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ primary: 'relay' });
-      const eff = await settings.current();
-      expect(eff.primary).toBe('relay');
+        .send({
+          name: 'custom-x',
+          protocol: 'anthropic-compat',
+          baseURL: 'https://api.custom.example/anthropic',
+          apiKey: 'sk-custom-secret-9999',
+          modelPro: 'x-pro',
+          modelFlash: 'x-flash',
+          role: 'backup',
+        });
+      expect(created.status).toBe(201);
+      expect(created.body.apiKeyMasked).toBe('****9999');
+      expect('apiKey' in created.body).toBe(false);
+      // DB 密文以 v1: 开头,且不含明文。
+      const row = await providerRepo.findOneBy({ name: 'custom-x' });
+      expect(row!.api_key_enc.startsWith('v1:')).toBe(true);
+      expect(row!.api_key_enc).not.toContain('sk-custom-secret-9999');
+    });
+
+    it('PATCH 不传 apiKey → 密钥不变(write-only)', async () => {
+      const row = await providerRepo.findOneBy({ name: 'custom-x' });
+      const before = row!.api_key_enc;
+      const res = await request(app.getHttpServer())
+        .patch(`/api/admin/ai-providers/${row!.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ modelPro: 'x-pro-v2' });
+      expect(res.status).toBe(200);
+      const after = await providerRepo.findOneBy({ name: 'custom-x' });
+      expect(after!.api_key_enc).toBe(before); // 密文未变
+      expect(after!.model_pro).toBe('x-pro-v2');
+    });
+
+    it('POST /ai-providers/:id/test → mock testConnection 返回 {ok,latencyMs}(无 key)', async () => {
+      const id = await providerId('deepseek');
+      const res = await request(app.getHttpServer())
+        .post(`/api/admin/ai-providers/${id}/test`)
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(201);
+      expect(res.body.ok).toBe(true);
+      expect(typeof res.body.latencyMs).toBe('number');
+      expect(JSON.stringify(res.body)).not.toContain('dk-test');
+    });
+
+    it('POST /ai-providers/test 草稿测试 → 不落库,只回结果', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/ai-providers/test')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          protocol: 'anthropic-compat',
+          baseURL: 'https://api.draft.example/anthropic',
+          apiKey: 'sk-draft-test',
+          modelFlash: 'draft-flash',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.ok).toBe(true);
+      // 草稿不落库。
+      const row = await providerRepo.findOneBy({ name: 'draft' });
+      expect(row).toBeNull();
+    });
+
+    it('DELETE 通道 → GET 列表不再含该通道', async () => {
+      const row = await providerRepo.findOneBy({ name: 'custom-x' });
+      const del = await request(app.getHttpServer())
+        .delete(`/api/admin/ai-providers/${row!.id}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(del.status).toBe(200);
+      const list = await request(app.getHttpServer())
+        .get('/api/admin/ai-providers')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect((list.body as { name: string }[]).some((p) => p.name === 'custom-x')).toBe(false);
     });
   });
 

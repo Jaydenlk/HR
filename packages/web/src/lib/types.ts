@@ -1540,32 +1540,54 @@ export interface AdminOpsDailyStats {
   ADMIN_ACTION: number;
 }
 
-// AI 通道名:与后端 AiProviderKind 一一对应。
-export type AdminAiProviderKind = 'deepseek' | 'relay' | 'glm';
+// AI 通道协议:Anthropic 兼容 / OpenAI 兼容。
+export type AdminAiProviderProtocol = 'anthropic-compat' | 'openai-compat';
 
-// GET/PATCH /api/admin/ai-provider 响应中单个通道的状态。
-// 与后端 AdminAiProviderItemDto 字段一一对应。
-// 安全红线:后端 DTO 强制白名单投影,绝不含 apiKey / baseURL。
-export interface AdminAiProviderItem {
-  // 通道名(deepseek / relay / glm)。
-  name: AdminAiProviderKind;
-  // 该通道是否已配置密钥(env 有 key)。未配置者前端灰显、不可设主力。
-  configured: boolean;
-  // pro 档型号(从 env 读,只读展示;relay 两档同值)。
+// AI 通道角色:主力 / 备用 / 停用。
+export type AdminAiProviderRole = 'primary' | 'backup' | 'disabled';
+
+// GET /api/admin/ai-providers 列表元素 + POST/PATCH 响应。
+// 与后端 AdminAiProviderResponseDto 字段一一对应。
+// 安全红线:apiKeyMasked 只回打码末 4 位,绝不含明文/密文 key。
+export interface AdminAiProvider {
+  id: string;
+  name: string;
+  protocol: AdminAiProviderProtocol;
+  baseURL: string;
+  // 密钥打码(如 "****abcd");从不回明文。
+  apiKeyMasked: string;
   modelPro: string;
-  // flash 档型号(从 env 读,只读展示;relay 两档同值)。
   modelFlash: string;
+  role: AdminAiProviderRole;
+  sortOrder: number;
+  timeoutMs: number;
+  maxRetries: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// GET/PATCH /api/admin/ai-provider 响应。
-// 与后端 AdminAiProviderResponseDto 字段一一对应。
-export interface AdminAiProvider {
-  // 三个通道的状态列表(固定顺序 deepseek/relay/glm)。
-  providers: AdminAiProviderItem[];
-  // 当前主力通道名。
-  primary: AdminAiProviderKind;
-  // 当前完整降级顺序(已去重补齐)。
-  order: AdminAiProviderKind[];
+// POST /api/admin/ai-providers 入参(apiKey write-only)。
+export interface CreateAiProviderPayload {
+  name: string;
+  protocol: AdminAiProviderProtocol;
+  baseURL: string;
+  apiKey: string;
+  modelPro: string;
+  modelFlash: string;
+  role: AdminAiProviderRole;
+  sortOrder?: number;
+  timeoutMs?: number;
+  maxRetries?: number;
+}
+
+// PATCH /api/admin/ai-providers/:id 入参(全可选;apiKey 不传则不改)。
+export type UpdateAiProviderPayload = Partial<CreateAiProviderPayload>;
+
+// POST /api/admin/ai-providers/:id/test 与 /test 草稿 的响应。
+export interface AdminAiProviderTestResult {
+  ok: boolean;
+  latencyMs: number;
+  error?: string;
 }
 
 // ─── 管理后台 波3 用户管理类型 ─────────────────────────────────────────────────

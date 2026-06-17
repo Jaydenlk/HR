@@ -4,12 +4,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ConfigService } from '@nestjs/config';
 import { Between, DataSource, MoreThanOrEqual, Repository } from 'typeorm';
-import { AiConfig, AiProviderKind } from '../config/ai.config';
-import { AiProviderSettingsService } from '../ai/ai-provider-settings.service';
+import { AiProviderService } from '../ai/ai-provider.service';
+import { AiService } from '../ai/ai.service';
+import { CreateAiProviderDto } from './dto/create-ai-provider.dto';
 import { UpdateAiProviderDto } from './dto/update-ai-provider.dto';
-import { AdminAiProviderResponseDto } from './dto/admin-ai-provider-response.dto';
+import { TestAiProviderDraftDto } from './dto/test-ai-provider.dto';
+import {
+  AdminAiProviderResponseDto,
+  AdminAiProviderTestResponseDto,
+} from './dto/admin-ai-provider-response.dto';
 import { UsersService } from '../users/users.service';
 import { InvitesService } from '../invites/invites.service';
 import { CreditService } from '../credit/credit.service';
@@ -79,8 +83,8 @@ export class AdminService {
     private readonly health: HealthService,
     private readonly concurrency: ConcurrencyLimiter,
     private readonly dataSource: DataSource,
-    private readonly config: ConfigService,
-    private readonly aiProviderSettings: AiProviderSettingsService,
+    private readonly aiProviders: AiProviderService,
+    private readonly aiService: AiService,
     @InjectRepository(AiUsage) private readonly usageRepo: Repository<AiUsage>,
     @InjectRepository(CreditTransaction)
     private readonly creditTxRepo: Repository<CreditTransaction>,
@@ -408,43 +412,101 @@ export class AdminService {
   }
 
   // ============================================================
-  // API 管理:AI provider 主备切换(GET/PATCH /admin/ai-provider)
-  // 安全红线:出站 DTO 只投影 configured/型号,绝不含 apiKey/baseURL;
-  //   切换只写「谁是主力 / 降级顺序」到 ai_provider_settings(密钥永远走 env)。
+  // API 管理:AI provider 通道 CRUD(GET/POST/PATCH/DELETE /admin/ai-providers + 连通性测试)
+  // 安全红线:出站只投影打码密钥(apiKeyMasked 末 4 位),绝不回明文/密文;
+  //   密钥 write-only(PATCH 不传则不改);所有改动 invalidate 缓存,下次 AI 调用即时生效,免重启。
   // ============================================================
 
-  // AI provider 当前状态:三通道 configured/型号(env)+ 当前有效主力/顺序(DB 覆盖,无则回退 env)。
-  async aiProviderStatus(): Promise<AdminAiProviderResponseDto> {
-    const ai = this.config.get<AiConfig>('ai')!;
-    const effective = await this.aiProviderSettings.current();
-    return AdminAiProviderResponseDto.from(ai, effective);
+  // 全部 AI 通道列表(密钥打码)。
+  async listAiProviders(): Promise<AdminAiProviderResponseDto[]> {
+    const views = await this.aiProviders.list();
+    return AdminAiProviderResponseDto.fromMany(views);
   }
 
-  // 切换 AI provider 主备:primary 必须是「已配置密钥」的通道(否则 400,防 filter 后顺序错乱)。
-  // 写表 + 记审计事件 + invalidate 缓存(下次 AI 调用即时生效,免重启)。
-  async updateAiProvider(
+  // 新建通道:apiKey 加密落库;记审计事件。
+  async createAiProvider(
     actingUserId: string,
-    dto: UpdateAiProviderDto,
+    dto: CreateAiProviderDto,
   ): Promise<AdminAiProviderResponseDto> {
-    const ai = this.config.get<AiConfig>('ai')!;
-    if (!this.isProviderConfigured(ai, dto.primary)) {
-      throw new BadRequestException(`通道 ${dto.primary} 未配置密钥,不能设为主力`);
-    }
-    const effective = await this.aiProviderSettings.update(dto.primary, dto.order, actingUserId);
+    const view = await this.aiProviders.create({
+      name: dto.name,
+      protocol: dto.protocol,
+      baseURL: dto.baseURL,
+      apiKey: dto.apiKey,
+      modelPro: dto.modelPro,
+      modelFlash: dto.modelFlash,
+      role: dto.role,
+      sortOrder: dto.sortOrder,
+      timeoutMs: dto.timeoutMs,
+      maxRetries: dto.maxRetries,
+    });
     void this.opsEvents.record('ADMIN_ACTION', {
       actor: actingUserId,
-      op: 'switchAiProvider',
-      primary: effective.primary,
-      order: effective.order,
+      op: 'createAiProvider',
+      provider: view.name,
+      role: view.role,
     });
-    return AdminAiProviderResponseDto.from(ai, effective);
+    return AdminAiProviderResponseDto.from(view);
   }
 
-  // 该通道在 env 是否配置了密钥(deepseek/glm 用 apiKey,relay 同样判 apiKey 非空)。
-  private isProviderConfigured(ai: AiConfig, kind: AiProviderKind): boolean {
-    if (kind === 'deepseek') return !!ai.deepseek.apiKey;
-    if (kind === 'relay') return !!ai.relay.apiKey;
-    return !!ai.glm.apiKey;
+  // 改通道:apiKey 不传则不改(write-only);记审计事件(不含密钥)。
+  async updateAiProvider(
+    actingUserId: string,
+    id: string,
+    dto: UpdateAiProviderDto,
+  ): Promise<AdminAiProviderResponseDto> {
+    const view = await this.aiProviders.update(id, {
+      name: dto.name,
+      protocol: dto.protocol,
+      baseURL: dto.baseURL,
+      apiKey: dto.apiKey,
+      modelPro: dto.modelPro,
+      modelFlash: dto.modelFlash,
+      role: dto.role,
+      sortOrder: dto.sortOrder,
+      timeoutMs: dto.timeoutMs,
+      maxRetries: dto.maxRetries,
+    });
+    void this.opsEvents.record('ADMIN_ACTION', {
+      actor: actingUserId,
+      op: 'updateAiProvider',
+      provider: view.name,
+      role: view.role,
+      keyChanged: dto.apiKey !== undefined && dto.apiKey.trim().length > 0,
+    });
+    return AdminAiProviderResponseDto.from(view);
+  }
+
+  // 删通道:记审计事件。
+  async deleteAiProvider(actingUserId: string, id: string): Promise<{ deleted: true }> {
+    await this.aiProviders.remove(id);
+    void this.opsEvents.record('ADMIN_ACTION', {
+      actor: actingUserId,
+      op: 'deleteAiProvider',
+      providerId: id,
+    });
+    return { deleted: true };
+  }
+
+  // 连通性测试(已保存通道):解密 key 发一次最小请求,返回 {ok, latencyMs, error}(error 无 key)。
+  async testAiProvider(id: string): Promise<AdminAiProviderTestResponseDto> {
+    const loaded = await this.aiProviders.getDecrypted(id);
+    return this.aiService.testConnection(loaded);
+  }
+
+  // 连通性测试(未保存草稿):用入站明文 key 发一次最小请求,不落库。
+  async testAiProviderDraft(dto: TestAiProviderDraftDto): Promise<AdminAiProviderTestResponseDto> {
+    return this.aiService.testConnection({
+      id: 'draft',
+      name: 'draft',
+      protocol: dto.protocol,
+      baseURL: dto.baseURL,
+      apiKey: dto.apiKey,
+      modelPro: dto.modelFlash,
+      modelFlash: dto.modelFlash,
+      timeoutMs: dto.timeoutMs ?? 30000,
+      maxRetries: 0,
+    });
   }
 
   // ---- 波2A 私有助手 ----

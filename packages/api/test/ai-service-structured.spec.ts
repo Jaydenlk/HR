@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { AiService } from '../src/ai/ai.service';
 import { ConcurrencyLimiter } from '../src/ai/concurrency-limiter';
-import type { AiConfig } from '../src/config/ai.config';
+import { AiProviderService, LoadedProvider } from '../src/ai/ai-provider.service';
 
 // 模块级 mock @anthropic-ai/sdk:auto-mock 不会填充运行时创建的 messages 实例属性,
 // 故用工厂返回一个 messages.create 指向可控 createMock 的类,避免任何 as unknown as 断言。
@@ -32,39 +32,37 @@ const validToolUse = (input: Record<string, unknown>) => ({
 });
 const textResponse = (text: string) => ({ content: [{ type: 'text', text }] });
 
+// 新架构:AiService 从 ai_providers 池(LoadedProvider[])取通道。本套件不按 baseURL 分流
+// (createMock 共享),只验重试/降级的「调用次数 + 结果」,故池里通道顺序即降级链顺序。
+function lp(name: 'relay' | 'deepseek', apiKey: string): LoadedProvider {
+  const isRelay = name === 'relay';
+  return {
+    id: `id-${name}`,
+    name,
+    apiKey,
+    protocol: 'anthropic-compat',
+    baseURL: isRelay
+      ? 'https://api.tutorial.clouddreamai.com'
+      : 'https://api.deepseek.com/anthropic',
+    modelPro: isRelay ? 'auto-v2' : 'deepseek-v4-pro',
+    modelFlash: isRelay ? 'auto-v2' : 'deepseek-v4-flash',
+    timeoutMs: isRelay ? 60000 : 120000,
+    maxRetries: isRelay ? 0 : 3,
+  };
+}
+
+function fakeProviders(pool: LoadedProvider[]): AiProviderService {
+  return { loadPool: () => Promise.resolve(pool) } as unknown as AiProviderService;
+}
+
 /**
- * 构造一个带 mock ConfigService 的 AiService 实例。
- * 沿用历史语义:primaryKey=主通道(此处映射到 relay,通道顺序 relay 在前),fallbackKey=备通道(deepseek)。
- * 单 key 时只有 relay 一个通道("主通道");双 key 时 relay→deepseek 降级链。
+ * 构造一个 AiService 实例(新架构:从注入的 provider 池取通道)。
+ * 沿用历史语义:primaryKey=主通道(relay,排池 [0]),fallbackKey=备通道(deepseek,排池 [1])。
+ * 单 key 时池只有 relay 一个通道("主通道");双 key 时池为 relay→deepseek 降级链。
  */
 async function buildService(primaryKey: string, fallbackKey?: string): Promise<AiService> {
-  const aiCfg: AiConfig = {
-    primaryProvider: 'relay',
-    deepseek: {
-      apiKey: fallbackKey,
-      modelPro: 'deepseek-v4-pro',
-      modelFlash: 'deepseek-v4-flash',
-      baseURL: 'https://api.deepseek.com/anthropic',
-      timeoutMs: 120000,
-      maxRetries: 3,
-    },
-    relay: {
-      apiKey: primaryKey,
-      model: 'auto-v2',
-      baseURL: 'https://api.tutorial.clouddreamai.com',
-      timeoutMs: 60000,
-      maxRetries: 0,
-    },
-    glm: {
-      apiKey: undefined,
-      modelPro: 'glm-4.6',
-      modelFlash: 'glm-4.5-air',
-      baseURL: 'https://open.bigmodel.cn/api/anthropic',
-      timeoutMs: 120000,
-      maxRetries: 3,
-    },
-    concurrency: { max: 2, queue: 8 },
-  };
+  const pool: LoadedProvider[] = [lp('relay', primaryKey)];
+  if (fallbackKey) pool.push(lp('deepseek', fallbackKey));
 
   const module = await Test.createTestingModule({
     providers: [
@@ -74,12 +72,13 @@ async function buildService(primaryKey: string, fallbackKey?: string): Promise<A
         provide: ConfigService,
         useValue: {
           get: (key: string) => {
-            if (key === 'ai') return aiCfg;
-            if (key === 'ai.concurrency') return aiCfg.concurrency;
+            if (key === 'ai.concurrency') return { max: 2, queue: 8 };
+            if (key === 'ai') return { concurrency: { max: 2, queue: 8 } };
             return undefined;
           },
         },
       },
+      { provide: AiProviderService, useValue: fakeProviders(pool) },
     ],
   }).compile();
 

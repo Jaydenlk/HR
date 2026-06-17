@@ -11,41 +11,34 @@ import {
 const PROTOCOLS = ['anthropic-compat', 'openai-compat'] as const;
 const ROLES = ['primary', 'backup', 'disabled'] as const;
 
-// 改 AI 通道(PATCH /admin/ai-providers/:id)。全部可选;apiKey 不传则不改密钥(write-only)。
-export class UpdateAiProviderDto {
-  @IsOptional()
+// 新建 AI 通道(POST /admin/ai-providers)。apiKey 必填且 write-only(永不回读)。
+export class CreateAiProviderDto {
   @IsString()
   @IsNotEmpty({ message: 'name 不能为空' })
-  name?: string;
+  name: string;
 
-  @IsOptional()
   @IsIn(PROTOCOLS, { message: 'protocol 必须是 anthropic-compat/openai-compat 之一' })
-  protocol?: 'anthropic-compat' | 'openai-compat';
+  protocol: 'anthropic-compat' | 'openai-compat';
 
-  @IsOptional()
   @IsString()
   @IsNotEmpty({ message: 'baseURL 不能为空' })
-  baseURL?: string;
+  baseURL: string;
 
-  // write-only:传了非空才改密钥;不传保留原值。
-  @IsOptional()
+  // write-only:加密后落库,响应只回打码末 4 位。
   @IsString()
-  @IsNotEmpty({ message: 'apiKey 不能为空字符串(不改密钥请直接省略该字段)' })
-  apiKey?: string;
+  @IsNotEmpty({ message: 'apiKey 不能为空' })
+  apiKey: string;
 
-  @IsOptional()
   @IsString()
   @IsNotEmpty({ message: 'modelPro 不能为空' })
-  modelPro?: string;
+  modelPro: string;
 
-  @IsOptional()
   @IsString()
   @IsNotEmpty({ message: 'modelFlash 不能为空' })
-  modelFlash?: string;
+  modelFlash: string;
 
-  @IsOptional()
   @IsIn(ROLES, { message: 'role 必须是 primary/backup/disabled 之一' })
-  role?: 'primary' | 'backup' | 'disabled';
+  role: 'primary' | 'backup' | 'disabled';
 
   @IsOptional()
   @IsInt()

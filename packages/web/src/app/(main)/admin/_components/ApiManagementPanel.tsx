@@ -1,8 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import type { AdminAiProvider, AdminAiProviderKind } from '@/lib/types';
+import type {
+  AdminAiProvider,
+  AdminAiProviderProtocol,
+  AdminAiProviderRole,
+  AdminAiProviderTestResult,
+  CreateAiProviderPayload,
+  UpdateAiProviderPayload,
+} from '@/lib/types';
 import {
   Loader2,
   Cpu,
@@ -11,59 +18,26 @@ import {
   CheckCircle2,
   XCircle,
   RefreshCw,
-  ListOrdered,
+  Plus,
+  Pencil,
+  Trash2,
+  Plug,
 } from 'lucide-react';
-import { cardStyle, sectionTitleStyle, smallBtn } from './_shared';
+import { cardStyle, sectionTitleStyle, smallBtn, inputStyle } from './_shared';
 
-// ─── 通道展示名(中文)───────────────────────────────────────────────────────
-// 仅展示用;切换/校验全部以后端 AdminAiProviderKind 为准。
+// ─── 角色展示 ─────────────────────────────────────────────────────────────────
 
-const PROVIDER_LABEL: Record<AdminAiProviderKind, string> = {
-  deepseek: 'DeepSeek',
-  relay: 'CloudDreamAI 中转',
-  glm: '智谱 GLM',
+const ROLE_LABEL: Record<AdminAiProviderRole, string> = {
+  primary: '主力',
+  backup: '备用',
+  disabled: '停用',
 };
 
-const PROVIDER_DESC: Record<AdminAiProviderKind, string> = {
-  deepseek: 'DeepSeek 官方 / 兼容端点',
-  relay: 'CloudDreamAI 多模型中转(pro/flash 共用别名)',
-  glm: '智谱 GLM（Anthropic 兼容端点）',
-};
-
-// ─── 角色徽章配色 ─────────────────────────────────────────────────────────────
-// 主力(蓝)/ 备用(中性)/ 未配置(灰,不可设主力)。
-
-type Role = 'primary' | 'backup' | 'unconfigured';
-
-function roleOf(
-  name: AdminAiProviderKind,
-  configured: boolean,
-  primary: AdminAiProviderKind,
-): Role {
-  if (!configured) return 'unconfigured';
-  return name === primary ? 'primary' : 'backup';
-}
-
-function RoleBadge({ role }: { role: Role }) {
-  const cfg: Record<Role, { label: string; color: string; bg: string; border: string }> = {
-    primary: {
-      label: '主力',
-      color: 'var(--color-brand)',
-      bg: 'rgba(47,143,255,.10)',
-      border: 'rgba(47,143,255,.28)',
-    },
-    backup: {
-      label: '备用',
-      color: 'var(--color-ink-3)',
-      bg: 'rgba(120,120,120,.08)',
-      border: 'var(--hair)',
-    },
-    unconfigured: {
-      label: '未配置密钥',
-      color: 'var(--color-ink-4)',
-      bg: 'rgba(120,120,120,.06)',
-      border: 'var(--hair)',
-    },
+function RoleBadge({ role }: { role: AdminAiProviderRole }) {
+  const cfg: Record<AdminAiProviderRole, { color: string; bg: string; border: string }> = {
+    primary: { color: 'var(--color-brand)', bg: 'rgba(47,143,255,.10)', border: 'rgba(47,143,255,.28)' },
+    backup: { color: 'var(--color-ink-3)', bg: 'rgba(120,120,120,.08)', border: 'var(--hair)' },
+    disabled: { color: 'var(--color-ink-4)', bg: 'rgba(120,120,120,.06)', border: 'var(--hair)' },
   };
   const c = cfg[role];
   return (
@@ -83,28 +57,99 @@ function RoleBadge({ role }: { role: Role }) {
       }}
     >
       {role === 'primary' && <Star size={11} />}
-      {c.label}
+      {ROLE_LABEL[role]}
     </span>
   );
+}
+
+// ─── 表单状态 ─────────────────────────────────────────────────────────────────
+
+interface FormState {
+  name: string;
+  protocol: AdminAiProviderProtocol;
+  baseURL: string;
+  apiKey: string; // 编辑态留空 = 不改密钥
+  modelPro: string;
+  modelFlash: string;
+  role: AdminAiProviderRole;
+  sortOrder: string;
+  timeoutMs: string;
+  maxRetries: string;
+}
+
+const EMPTY_FORM: FormState = {
+  name: '',
+  protocol: 'anthropic-compat',
+  baseURL: '',
+  apiKey: '',
+  modelPro: '',
+  modelFlash: '',
+  role: 'backup',
+  sortOrder: '0',
+  timeoutMs: '120000',
+  maxRetries: '2',
+};
+
+function toCreatePayload(f: FormState): CreateAiProviderPayload {
+  return {
+    name: f.name.trim(),
+    protocol: f.protocol,
+    baseURL: f.baseURL.trim(),
+    apiKey: f.apiKey,
+    modelPro: f.modelPro.trim(),
+    modelFlash: f.modelFlash.trim(),
+    role: f.role,
+    sortOrder: Number(f.sortOrder) || 0,
+    timeoutMs: Number(f.timeoutMs) || 120000,
+    maxRetries: Number(f.maxRetries) || 0,
+  };
+}
+
+// 编辑提交:apiKey 留空则不传(write-only,保留原密钥)。
+function toUpdatePayload(f: FormState): UpdateAiProviderPayload {
+  const p: UpdateAiProviderPayload = {
+    name: f.name.trim(),
+    protocol: f.protocol,
+    baseURL: f.baseURL.trim(),
+    modelPro: f.modelPro.trim(),
+    modelFlash: f.modelFlash.trim(),
+    role: f.role,
+    sortOrder: Number(f.sortOrder) || 0,
+    timeoutMs: Number(f.timeoutMs) || 120000,
+    maxRetries: Number(f.maxRetries) || 0,
+  };
+  if (f.apiKey.trim().length > 0) p.apiKey = f.apiKey;
+  return p;
 }
 
 // ─── 组件入口 ─────────────────────────────────────────────────────────────────
 
 export default function ApiManagementPanel() {
-  const [data, setData] = useState<AdminAiProvider | null>(null);
+  const [data, setData] = useState<AdminAiProvider[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // 正在切主力的通道名(按钮 loading + 防重复点击);null 表示无进行中切换。
-  const [switching, setSwitching] = useState<AdminAiProviderKind | null>(null);
-  // 触发刷新的信号:递增即重拉。
   const [tick, setTick] = useState(0);
+
+  // 表单:editing=null 且 showForm=true 为新建;editing=id 为编辑该行。
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // 测试结果(按通道 id 记;'draft' 为表单草稿测试)。
+  const [testing, setTesting] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, AdminAiProviderTestResult>>({});
+
+  // 删除确认中的通道 id。
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    async function fetchStatus() {
+    async function fetchList() {
       setError(null);
       try {
-        const res = await api.get<AdminAiProvider>('/admin/ai-provider');
+        const res = await api.get<AdminAiProvider[]>('/admin/ai-providers');
         if (cancelled) return;
         setData(res);
       } catch (err) {
@@ -114,24 +159,113 @@ export default function ApiManagementPanel() {
         if (!cancelled) setLoading(false);
       }
     }
-    void fetchStatus();
+    void fetchList();
     return () => {
       cancelled = true;
     };
   }, [tick]);
 
-  // 设为主力:PATCH /admin/ai-provider,后端返回最新状态即时反映(免重启)。
-  async function setPrimary(name: AdminAiProviderKind) {
-    if (!data || name === data.primary || switching) return;
-    setSwitching(name);
-    setError(null);
+  const refresh = useCallback(() => setTick((t) => t + 1), []);
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+    setShowForm(true);
+  }
+
+  function openEdit(p: AdminAiProvider) {
+    setEditingId(p.id);
+    setForm({
+      name: p.name,
+      protocol: p.protocol,
+      baseURL: p.baseURL,
+      apiKey: '', // 留空 = 不改;占位提示已配置
+      modelPro: p.modelPro,
+      modelFlash: p.modelFlash,
+      role: p.role,
+      sortOrder: String(p.sortOrder),
+      timeoutMs: String(p.timeoutMs),
+      maxRetries: String(p.maxRetries),
+    });
+    setFormError(null);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+  }
+
+  async function submitForm() {
+    setSaving(true);
+    setFormError(null);
     try {
-      const res = await api.patch<AdminAiProvider>('/admin/ai-provider', { primary: name });
-      setData(res);
+      if (editingId) {
+        await api.patch<AdminAiProvider>(`/admin/ai-providers/${editingId}`, toUpdatePayload(form));
+      } else {
+        await api.post<AdminAiProvider>('/admin/ai-providers', toCreatePayload(form));
+      }
+      closeForm();
+      refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '切换失败');
+      setFormError(err instanceof Error ? err.message : '保存失败');
     } finally {
-      setSwitching(null);
+      setSaving(false);
+    }
+  }
+
+  async function testSaved(id: string) {
+    setTesting(id);
+    try {
+      const res = await api.post<AdminAiProviderTestResult>(`/admin/ai-providers/${id}/test`, {});
+      setTestResults((prev) => ({ ...prev, [id]: res }));
+    } catch (err) {
+      setTestResults((prev) => ({
+        ...prev,
+        [id]: { ok: false, latencyMs: 0, error: err instanceof Error ? err.message : '测试失败' },
+      }));
+    } finally {
+      setTesting(null);
+    }
+  }
+
+  async function testDraft() {
+    if (!form.baseURL.trim() || !form.apiKey.trim() || !form.modelFlash.trim()) {
+      setFormError('草稿测试需填写 baseURL、apiKey、modelFlash');
+      return;
+    }
+    setTesting('draft');
+    try {
+      const res = await api.post<AdminAiProviderTestResult>('/admin/ai-providers/test', {
+        protocol: form.protocol,
+        baseURL: form.baseURL.trim(),
+        apiKey: form.apiKey,
+        modelFlash: form.modelFlash.trim(),
+        timeoutMs: Number(form.timeoutMs) || 30000,
+      });
+      setTestResults((prev) => ({ ...prev, draft: res }));
+    } catch (err) {
+      setTestResults((prev) => ({
+        ...prev,
+        draft: { ok: false, latencyMs: 0, error: err instanceof Error ? err.message : '测试失败' },
+      }));
+    } finally {
+      setTesting(null);
+    }
+  }
+
+  async function confirmDelete(id: string) {
+    setDeletingId(id);
+    try {
+      await api.delete(`/admin/ai-providers/${id}`);
+      refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除失败');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -163,21 +297,7 @@ export default function ApiManagementPanel() {
       >
         <XCircle size={16} />
         {error}
-        <button
-          type="button"
-          onClick={() => setTick((t) => t + 1)}
-          style={{
-            marginLeft: 'auto',
-            background: 'none',
-            border: '1px solid var(--color-danger)',
-            borderRadius: '6px',
-            color: 'var(--color-danger)',
-            fontSize: '12px',
-            padding: '4px 10px',
-            cursor: 'pointer',
-            fontWeight: 600,
-          }}
-        >
+        <button type="button" onClick={refresh} style={{ ...smallBtn('neutral'), marginLeft: 'auto' }}>
           重试
         </button>
       </div>
@@ -186,17 +306,9 @@ export default function ApiManagementPanel() {
 
   if (!data) return null;
 
-  // 降级顺序:把通道名映射成展示名,过滤掉未配置的(运行时实际只在已配置通道间降级)。
-  const configuredNames = new Set(
-    data.providers.filter((p) => p.configured).map((p) => p.name),
-  );
-  const orderLabels = data.order
-    .filter((n) => configuredNames.has(n))
-    .map((n) => PROVIDER_LABEL[n]);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* ── 安全说明条:密钥永远走 env,面板只切主备 ── */}
+      {/* ── 安全说明条 ── */}
       <div
         style={{
           display: 'flex',
@@ -213,13 +325,12 @@ export default function ApiManagementPanel() {
       >
         <KeyRound size={16} style={{ color: 'var(--color-brand)', flexShrink: 0, marginTop: '2px' }} />
         <span>
-          密钥与端点由运维在服务器 <code style={{ fontFamily: 'var(--font-mono)' }}>.env</code> 配置，
-          本面板仅切换主力 / 备用顺序，<strong style={{ color: 'var(--color-ink)' }}>不显示也不输入任何密钥</strong>。
-          切换即时生效，无需重启。
+          密钥以 AES-256-GCM 加密存库，本面板<strong style={{ color: 'var(--color-ink)' }}>只显示末 4 位打码</strong>，
+          编辑时密钥框留空即<strong style={{ color: 'var(--color-ink)' }}>不改密钥</strong>。改动即时生效，无需重启。
         </span>
       </div>
 
-      {/* ── 行内错误(已有数据时切换失败)── */}
+      {/* ── 行内错误 ── */}
       {error && (
         <div
           role="alert"
@@ -236,219 +347,289 @@ export default function ApiManagementPanel() {
         </div>
       )}
 
-      {/* ── provider 列表 ── */}
+      {/* ── 列表卡片 ── */}
       <div className="lg" style={cardStyle}>
         <div style={{ ...sectionTitleStyle, justifyContent: 'space-between', marginBottom: '16px' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <Cpu size={17} /> AI 通道（{data.providers.length}）
+            <Cpu size={17} /> AI 通道（{data.length}）
           </span>
-          <button
-            type="button"
-            onClick={() => setTick((t) => t + 1)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: 'rgba(47,143,255,.06)',
-              border: '1px solid var(--hair)',
-              borderRadius: 'var(--radius-default)',
-              color: 'var(--color-ink)',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCw size={13} /> 刷新
-          </button>
+          <span style={{ display: 'inline-flex', gap: '8px' }}>
+            <button type="button" onClick={refresh} style={smallBtn('neutral')}>
+              <RefreshCw size={13} style={{ marginRight: '5px', verticalAlign: '-2px' }} />
+              刷新
+            </button>
+            <button type="button" onClick={openCreate} style={smallBtn('primary')}>
+              <Plus size={13} style={{ marginRight: '5px', verticalAlign: '-2px' }} />
+              新增通道
+            </button>
+          </span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {data.providers.map((p) => {
-            const role = roleOf(p.name, p.configured, data.primary);
-            const isPrimary = role === 'primary';
-            const isSwitching = switching === p.name;
-            return (
-              <div
-                key={p.name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                  flexWrap: 'wrap',
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  border: `1px solid ${isPrimary ? 'rgba(47,143,255,.28)' : 'var(--color-line)'}`,
-                  background: isPrimary
-                    ? 'rgba(47,143,255,.05)'
-                    : !p.configured
-                      ? 'rgba(120,120,120,.03)'
-                      : 'transparent',
-                  opacity: p.configured ? 1 : 0.7,
-                }}
-              >
-                {/* 名称 + 描述 */}
-                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      color: 'var(--color-ink)',
-                      fontFamily: 'var(--serif)',
-                      marginBottom: '3px',
-                    }}
-                  >
-                    {PROVIDER_LABEL[p.name]}
-                    <RoleBadge role={role} />
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-ink-3)' }}>
-                    {PROVIDER_DESC[p.name]}
-                  </div>
-                </div>
-
-                {/* 型号(只读)*/}
-                <div style={{ flex: '0 0 auto', minWidth: '140px' }}>
-                  <div
-                    style={{
-                      fontSize: '10.5px',
-                      fontWeight: 700,
-                      color: 'var(--color-ink-4)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      marginBottom: '3px',
-                    }}
-                  >
-                    型号 (pro / flash)
-                  </div>
-                  {p.configured ? (
+        {data.length === 0 ? (
+          <div style={{ fontSize: '13px', color: 'var(--color-ink-4)', padding: '12px 0' }}>
+            暂无通道。点「新增通道」配置第一个 AI provider。
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {data.map((p) => {
+              const tr = testResults[p.id];
+              return (
+                <div
+                  key={p.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    flexWrap: 'wrap',
+                    padding: '14px 16px',
+                    borderRadius: '12px',
+                    border: `1px solid ${p.role === 'primary' ? 'rgba(47,143,255,.28)' : 'var(--color-line)'}`,
+                    background: p.role === 'primary' ? 'rgba(47,143,255,.05)' : 'transparent',
+                    opacity: p.role === 'disabled' ? 0.65 : 1,
+                  }}
+                >
+                  {/* 名称 + 角色 + 端点 */}
+                  <div style={{ flex: '1 1 240px', minWidth: 0 }}>
                     <div
                       style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '12px',
-                        color: 'var(--color-ink-2)',
-                        lineHeight: 1.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        color: 'var(--color-ink)',
+                        fontFamily: 'var(--serif)',
+                        marginBottom: '3px',
                       }}
                     >
+                      {p.name}
+                      <RoleBadge role={p.role} />
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '11.5px',
+                        color: 'var(--color-ink-3)',
+                        fontFamily: 'var(--font-mono)',
+                        wordBreak: 'break-all',
+                      }}
+                    >
+                      {p.protocol} · {p.baseURL}
+                    </div>
+                  </div>
+
+                  {/* 型号 + 密钥打码 */}
+                  <div style={{ flex: '0 0 auto', minWidth: '150px' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-ink-2)', lineHeight: 1.5 }}>
                       <div>{p.modelPro}</div>
                       {p.modelFlash !== p.modelPro && <div>{p.modelFlash}</div>}
                     </div>
-                  ) : (
-                    <div style={{ fontSize: '12px', color: 'var(--color-ink-4)' }}>—</div>
-                  )}
-                </div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--color-ink-4)', marginTop: '3px' }}>
+                      <KeyRound size={11} style={{ verticalAlign: '-1px', marginRight: '4px' }} />
+                      {p.apiKeyMasked || '(无密钥)'}
+                    </div>
+                  </div>
 
-                {/* 操作 */}
-                <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center' }}>
-                  {!p.configured ? (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        fontSize: '12px',
-                        color: 'var(--color-ink-4)',
-                        fontWeight: 600,
-                      }}
-                      title="该通道未在 .env 配置密钥，需运维写入后方可设为主力"
-                    >
-                      <KeyRound size={12} /> 需运维配 .env
-                    </span>
-                  ) : isPrimary ? (
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        fontSize: '12.5px',
-                        color: 'var(--color-success)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      <CheckCircle2 size={14} /> 当前主力
-                    </span>
-                  ) : (
+                  {/* 测试结果 */}
+                  <div style={{ flex: '0 0 auto', minWidth: '110px' }}>
+                    {tr ? (
+                      tr.ok ? (
+                        <span style={{ color: 'var(--color-success)', fontSize: '12px', fontWeight: 700 }}>
+                          <CheckCircle2 size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
+                          连通 {tr.latencyMs}ms
+                        </span>
+                      ) : (
+                        <span
+                          title={tr.error}
+                          style={{ color: 'var(--color-danger)', fontSize: '12px', fontWeight: 700 }}
+                        >
+                          <XCircle size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
+                          失败
+                        </span>
+                      )
+                    ) : (
+                      <span style={{ fontSize: '12px', color: 'var(--color-ink-4)' }}>—</span>
+                    )}
+                  </div>
+
+                  {/* 操作 */}
+                  <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button
                       type="button"
-                      onClick={() => void setPrimary(p.name)}
-                      disabled={switching !== null}
-                      style={{
-                        ...smallBtn('primary'),
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        ...(switching !== null ? { opacity: 0.55, cursor: 'not-allowed' } : {}),
-                      }}
+                      onClick={() => void testSaved(p.id)}
+                      disabled={testing === p.id}
+                      style={smallBtn('neutral')}
                     >
-                      {isSwitching ? (
-                        <>
-                          <Loader2 size={12} className="animate-spin" /> 切换中…
-                        </>
+                      {testing === p.id ? (
+                        <Loader2 size={12} className="animate-spin" style={{ verticalAlign: '-2px' }} />
                       ) : (
                         <>
-                          <Star size={12} /> 设为主力
+                          <Plug size={12} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
+                          测试
                         </>
                       )}
                     </button>
-                  )}
+                    <button type="button" onClick={() => openEdit(p)} style={smallBtn('neutral')}>
+                      <Pencil size={12} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
+                      编辑
+                    </button>
+                    {deletingId === p.id ? (
+                      <span style={{ display: 'inline-flex', gap: '6px' }}>
+                        <button type="button" onClick={() => void confirmDelete(p.id)} style={smallBtn('danger')}>
+                          确认删除
+                        </button>
+                        <button type="button" onClick={() => setDeletingId(null)} style={smallBtn('neutral')}>
+                          取消
+                        </button>
+                      </span>
+                    ) : (
+                      <button type="button" onClick={() => setDeletingId(p.id)} style={smallBtn('danger')}>
+                        <Trash2 size={12} style={{ verticalAlign: '-2px' }} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── 当前降级顺序 ── */}
-      <div className="lg" style={cardStyle}>
-        <div style={sectionTitleStyle}>
-          <ListOrdered size={17} /> 当前降级顺序
-        </div>
-        <div style={{ fontSize: '12.5px', color: 'var(--color-ink-3)', marginBottom: '12px', lineHeight: 1.6 }}>
-          主力通道不可用时，按下列顺序自动降级到下一个已配置通道（保命链路）。
-        </div>
-        {orderLabels.length === 0 ? (
-          <div style={{ fontSize: '13px', color: 'var(--color-ink-4)' }}>
-            暂无可用通道（所有通道均未配置密钥）。
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            {orderLabels.map((label, i) => (
-              <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 12px',
-                    borderRadius: '999px',
-                    border: `1px solid ${i === 0 ? 'rgba(47,143,255,.28)' : 'var(--color-line)'}`,
-                    background: i === 0 ? 'rgba(47,143,255,.06)' : 'transparent',
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    color: i === 0 ? 'var(--color-brand)' : 'var(--color-ink-2)',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '11px',
-                      color: 'var(--color-ink-4)',
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                  {label}
-                </span>
-                {i < orderLabels.length - 1 && (
-                  <span style={{ color: 'var(--color-ink-4)', fontSize: '13px' }}>→</span>
-                )}
-              </span>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* ── 表单卡片(新增 / 编辑)── */}
+      {showForm && (
+        <div className="lg" style={cardStyle}>
+          <div style={sectionTitleStyle}>
+            {editingId ? <Pencil size={16} /> : <Plus size={16} />}
+            {editingId ? '编辑通道' : '新增通道'}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+            <Field label="名称 name">
+              <input style={inputStyle} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="deepseek" />
+            </Field>
+            <Field label="协议 protocol">
+              <select
+                style={inputStyle}
+                value={form.protocol}
+                onChange={(e) => setForm({ ...form, protocol: e.target.value as AdminAiProviderProtocol })}
+              >
+                <option value="anthropic-compat">anthropic-compat</option>
+                <option value="openai-compat">openai-compat</option>
+              </select>
+            </Field>
+            <Field label="角色 role">
+              <select
+                style={inputStyle}
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value as AdminAiProviderRole })}
+              >
+                <option value="primary">主力 primary</option>
+                <option value="backup">备用 backup</option>
+                <option value="disabled">停用 disabled</option>
+              </select>
+            </Field>
+            <Field label="baseURL" full>
+              <input style={inputStyle} value={form.baseURL} onChange={(e) => setForm({ ...form, baseURL: e.target.value })} placeholder="https://api.deepseek.com/anthropic" />
+            </Field>
+            <Field label={editingId ? 'apiKey（留空不改）' : 'apiKey'} full>
+              <input
+                style={inputStyle}
+                type="password"
+                value={form.apiKey}
+                onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                placeholder={editingId ? '••••••（留空则保留原密钥）' : 'sk-...'}
+                autoComplete="new-password"
+              />
+            </Field>
+            <Field label="modelPro">
+              <input style={inputStyle} value={form.modelPro} onChange={(e) => setForm({ ...form, modelPro: e.target.value })} placeholder="deepseek-v4-pro" />
+            </Field>
+            <Field label="modelFlash">
+              <input style={inputStyle} value={form.modelFlash} onChange={(e) => setForm({ ...form, modelFlash: e.target.value })} placeholder="deepseek-v4-flash" />
+            </Field>
+            <Field label="sortOrder">
+              <input style={inputStyle} type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} />
+            </Field>
+            <Field label="timeoutMs">
+              <input style={inputStyle} type="number" value={form.timeoutMs} onChange={(e) => setForm({ ...form, timeoutMs: e.target.value })} />
+            </Field>
+            <Field label="maxRetries">
+              <input style={inputStyle} type="number" value={form.maxRetries} onChange={(e) => setForm({ ...form, maxRetries: e.target.value })} />
+            </Field>
+          </div>
+
+          {/* 草稿测试结果 */}
+          {testResults.draft && (
+            <div style={{ marginTop: '12px', fontSize: '12.5px', fontWeight: 700 }}>
+              {testResults.draft.ok ? (
+                <span style={{ color: 'var(--color-success)' }}>
+                  <CheckCircle2 size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
+                  草稿连通 {testResults.draft.latencyMs}ms
+                </span>
+              ) : (
+                <span style={{ color: 'var(--color-danger)' }}>
+                  <XCircle size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
+                  草稿测试失败：{testResults.draft.error}
+                </span>
+              )}
+            </div>
+          )}
+
+          {formError && (
+            <div style={{ marginTop: '12px', color: 'var(--color-danger)', fontSize: '13px', fontWeight: 500 }}>
+              {formError}
+            </div>
+          )}
+
+          <div style={{ marginTop: '16px', display: 'flex', gap: '10px' }}>
+            <button type="button" onClick={() => void submitForm()} disabled={saving} style={smallBtn('primary')}>
+              {saving ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" style={{ verticalAlign: '-2px', marginRight: '5px' }} />
+                  保存中…
+                </>
+              ) : (
+                '保存'
+              )}
+            </button>
+            <button type="button" onClick={() => void testDraft()} disabled={testing === 'draft'} style={smallBtn('neutral')}>
+              {testing === 'draft' ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" style={{ verticalAlign: '-2px', marginRight: '5px' }} />
+                  测试中…
+                </>
+              ) : (
+                <>
+                  <Plug size={12} style={{ verticalAlign: '-2px', marginRight: '5px' }} />
+                  测试连通
+                </>
+              )}
+            </button>
+            <button type="button" onClick={closeForm} style={smallBtn('neutral')}>
+              取消
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// 表单字段包装(label + 控件)。
+function Field({ label, full, children }: { label: string; full?: boolean; children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: '5px', gridColumn: full ? '1 / -1' : 'auto' }}>
+      <span
+        style={{
+          fontSize: '10.5px',
+          fontWeight: 700,
+          color: 'var(--color-ink-4)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }

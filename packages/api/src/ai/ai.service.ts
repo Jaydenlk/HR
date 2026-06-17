@@ -1,10 +1,9 @@
 import { Injectable, Optional, ServiceUnavailableException, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { ConcurrencyLimiter } from './concurrency-limiter';
-import { AiConfig, AiProviderKind, AiTier, orderProviders } from '../config/ai.config';
+import { AiTier } from '../config/ai.config';
 import { OpsEventsService } from '../ops/ops-events.service';
-import { AiProviderSettingsService } from './ai-provider-settings.service';
+import { AiProviderService, LoadedProvider } from './ai-provider.service';
 
 interface CompleteParams {
   system: string;
@@ -36,9 +35,9 @@ interface ChatParams {
   signal?: AbortSignal;
 }
 
-// 通道:封装 SDK client + 按 tier 选型号的 modelFor。deepseek 直连按档分型号,relay 中转单一别名,glm 智谱按档分型号。
+// 通道:封装 SDK client + 按 tier 选型号的 modelFor。型号/baseURL/密钥均来自 DB 配置(运行时解密)。
 interface Provider {
-  name: AiProviderKind;
+  name: string;
   client: Anthropic;
   modelFor: (tier: AiTier) => string;
 }
@@ -46,106 +45,52 @@ interface Provider {
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  // 已构造的可用通道池(按名索引,无密钥的通道不入池)。实例在构造期建好,顺序运行时由 resolveOrder 定。
-  private readonly pool: Map<AiProviderKind, Provider>;
-  // 构造期默认顺序(按 env primaryProvider):无 DB 配置 / 无 settings service 时回退此序,与历史行为一致。
-  private readonly defaultOrder: Provider[];
+  // Anthropic client 缓存:按「baseURL|apiKey|timeout|maxRetries」签名复用,避免每次调用重建 client。
+  // DB 配置变更(改 key/baseURL)→ 签名变 → 自然构造新 client;缓存对失效配置无害(下次不再命中)。
+  private readonly clientCache = new Map<string, Anthropic>();
 
   constructor(
     private readonly limiter: ConcurrencyLimiter,
     @Optional() private readonly opsEvents: OpsEventsService | undefined,
-    config: ConfigService,
-    // 运行时主备配置(DB 覆盖层):缺失(如单元测试不接 DB)时一律走 defaultOrder,行为与历史一致。
-    @Optional() private readonly providerSettings?: AiProviderSettingsService,
-  ) {
-    const ai = config.get<AiConfig>('ai')!;
+    // provider 池源:从 ai_providers 表加载已解密、已排序的通道(带短 TTL 缓存)。
+    // @Optional 兼容个别仅测纯逻辑的单测(不注入时 resolveOrder 抛 503,业务路径恒注入)。
+    @Optional() private readonly providers?: AiProviderService,
+  ) {}
 
-    // DeepSeek 直连官方(Anthropic 兼容端点,支持 SSE 流式)。按 tier 选 pro/flash 型号。
-    // 默认 maxRetries=3:SDK 对瞬时连接错误(Connection error/ECONNRESET/5xx/429)自动指数退避重试,
-    // 使单次网络抖动不再直接冒泡成 503。
-    const deepseek: Provider | null = ai.deepseek.apiKey
-      ? {
-          name: 'deepseek',
-          client: new Anthropic({
-            apiKey: ai.deepseek.apiKey,
-            baseURL: ai.deepseek.baseURL,
-            timeout: ai.deepseek.timeoutMs,
-            maxRetries: ai.deepseek.maxRetries,
-          }),
-          modelFor: (tier) => (tier === 'pro' ? ai.deepseek.modelPro : ai.deepseek.modelFlash),
-        }
-      : null;
-
-    // CloudDreamAI 中转(auto-v2):pro/flash 共用同一别名(降档保命)。默认 maxRetries=0 快速失败,
-    // 交由降级逻辑切另一通道,避免中转挂起时长时间阻塞。
-    const relay: Provider | null = ai.relay.apiKey
-      ? {
-          name: 'relay',
-          client: new Anthropic({
-            apiKey: ai.relay.apiKey,
-            baseURL: ai.relay.baseURL,
-            timeout: ai.relay.timeoutMs,
-            maxRetries: ai.relay.maxRetries,
-          }),
-          modelFor: () => ai.relay.model,
-        }
-      : null;
-
-    // 智谱 GLM 直连官方 Anthropic 兼容端点(可选第三通道):无 key 则不构造。按 tier 分 pro/flash 型号。
-    // completeStructured 的 thinking:{type:'disabled'} 字段对不识别端点 SDK 仅透传不报错(见 L148 注释),容错链不受影响。
-    const glm: Provider | null = ai.glm.apiKey
-      ? {
-          name: 'glm',
-          client: new Anthropic({
-            apiKey: ai.glm.apiKey,
-            baseURL: ai.glm.baseURL,
-            timeout: ai.glm.timeoutMs,
-            maxRetries: ai.glm.maxRetries,
-          }),
-          modelFor: (tier) => (tier === 'pro' ? ai.glm.modelPro : ai.glm.modelFlash),
-        }
-      : null;
-
-    // 已配置(有密钥)的通道入池,按名索引。无密钥的通道不入池,自然从任何顺序中缺席。
-    this.pool = new Map();
-    for (const p of [deepseek, relay, glm]) {
-      if (p !== null) this.pool.set(p.name, p);
-    }
-
-    if (this.pool.size === 0) {
-      throw new Error(
-        '至少需要配置一个 AI 通道密钥(AI_DEEPSEEK_API_KEY / AI_RELAY_API_KEY / AI_GLM_API_KEY,或旧名 DEEPSEEK_API_KEY/CLOUDDREAM_API_KEY)',
-      );
-    }
-
-    // 构造期默认顺序:按 env primaryProvider + 默认降级序排列已入池通道(通用排序函数,与 resolveOrder 共用规则)。
-    this.defaultOrder = this.orderPool(orderProviders(ai.primaryProvider));
+  /** 按签名复用/构造 Anthropic client(同一通道配置只建一次)。 */
+  private clientFor(p: LoadedProvider): Anthropic {
+    const sig = `${p.baseURL}|${p.apiKey}|${p.timeoutMs}|${p.maxRetries}`;
+    const cached = this.clientCache.get(sig);
+    if (cached) return cached;
+    const client = new Anthropic({
+      apiKey: p.apiKey,
+      baseURL: p.baseURL,
+      timeout: p.timeoutMs,
+      maxRetries: p.maxRetries,
+    });
+    this.clientCache.set(sig, client);
+    return client;
   }
 
-  /** 按给定通道名顺序,把池中已配置通道排成 Provider 数组(缺席名跳过,不引入空通道)。 */
-  private orderPool(order: AiProviderKind[]): Provider[] {
-    const result: Provider[] = [];
-    for (const name of order) {
-      const p = this.pool.get(name);
-      if (p) result.push(p);
-    }
-    return result;
+  /** LoadedProvider → 运行期 Provider(含 client + tier 选型)。 */
+  private toProvider(p: LoadedProvider): Provider {
+    return {
+      name: p.name,
+      client: this.clientFor(p),
+      modelFor: (tier) => (tier === 'pro' ? p.modelPro : p.modelFlash),
+    };
   }
 
   /**
-   * 运行时解析通道顺序:每次 AI 调用进入时读「有效配置」(DB 覆盖层,带短 TTL 缓存)据此排序池中通道。
-   * settings service 缺失 / 读取失败 / 排序后为空 → 回退构造期 defaultOrder,绝不让一次调用因配置读取失败而无通道可用。
+   * 运行时解析通道顺序:每次 AI 调用进入时从 ai_providers 表读已解密、已排序的池(带短 TTL 缓存)。
+   * 池为空 / service 缺失 → 抛 503(无可用通道,绝不静默成功);单次读取失败由 loadPool 内部容错。
    */
   private async resolveOrder(): Promise<Provider[]> {
-    if (!this.providerSettings) return this.defaultOrder;
-    try {
-      const effective = await this.providerSettings.current();
-      const ordered = this.orderPool(orderProviders(effective.primary, effective.order));
-      return ordered.length > 0 ? ordered : this.defaultOrder;
-    } catch (err) {
-      this.logger.warn(`resolveOrder 读取运行时配置失败,回退默认顺序 —— ${this.errMsg(err)}`);
-      return this.defaultOrder;
+    if (!this.providers) {
+      throw new ServiceUnavailableException('AI 服务未配置任何可用通道');
     }
+    const loaded = await this.providers.loadPool();
+    return loaded.map((p) => this.toProvider(p));
   }
 
   async complete(params: CompleteParams): Promise<string> {
@@ -425,6 +370,36 @@ export class AiService {
     if (type === 'number' || type === 'integer') return typeof value === 'number';
     if (type === 'boolean') return typeof value === 'boolean';
     return true; // 未知/未声明 type → 不阻拦
+  }
+
+  /**
+   * 连通性测试:用给定通道配置发一次最小请求(flash 型号,1 token),返回 {ok, latencyMs, error}。
+   * error 经 sanitizeError 剔除可能含密钥的片段(只回 SDK 状态/消息),绝不回明文 key。
+   * 该方法不走并发护栏 / 不走 failover —— 它就是单通道探活,供 admin 测试端点调用。
+   */
+  async testConnection(p: LoadedProvider): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+    const client = this.clientFor(p);
+    const start = Date.now();
+    try {
+      await client.messages.create({
+        model: p.modelFlash,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'ping' }],
+      });
+      return { ok: true, latencyMs: Date.now() - start };
+    } catch (err) {
+      return { ok: false, latencyMs: Date.now() - start, error: this.sanitizeError(err, p.apiKey) };
+    }
+  }
+
+  // 清洗错误消息:剔除明文密钥(若意外出现在 SDK 错误里),只保留状态码/类型/简短消息。
+  private sanitizeError(err: unknown, apiKey: string): string {
+    let msg = this.errMsg(err);
+    if (apiKey && apiKey.length >= 6 && msg.includes(apiKey)) {
+      msg = msg.split(apiKey).join('***');
+    }
+    // 限长,避免把超长 body 透出。
+    return msg.length > 300 ? `${msg.slice(0, 300)}…` : msg;
   }
 
   private unavailable(op: string, err: unknown): ServiceUnavailableException {
