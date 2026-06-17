@@ -61,7 +61,8 @@ export interface AdminUsageOverview {
 
 // 成功率趋势:按日(UTC 日期键,与 OpsEventsService.dailyStats 同口径)对齐成功/失败计数。
 //  - success:ai_usage 当日成功调用行数(语义:成功才写)。
-//  - failed:ops_events 中 AI 失败类(AI_FAILOVER + AI_BOTH_DOWN + AI_CALL_FAILED)当日计数。
+//  - failed:ops_events 中 AI_CALL_FAILED 当日计数(每个失败请求恰一条;诊断类 AI_FAILOVER/
+//    AI_BOTH_DOWN 不进分母——见 AI_FAILURE_TYPES 注释)。
 //  - success_rate:success/(success+failed),分母为 0 时记 null(当日无任何 AI 活动)。
 // 隐私铁律:纯计数,不含任何正文/用户标识。credit 扣点失败不计入此分母(单独指标)。
 export interface AdminSuccessStatsRow {
@@ -248,12 +249,15 @@ export class AdminService {
     'ADMIN_ACTION',
   ] as const;
 
-  // 成功率分母中的「AI 失败」类型:只有真正的 AI 调用失败计入,扣点失败单独成指标不进此处。
-  private static readonly AI_FAILURE_TYPES = [
-    'AI_FAILOVER',
-    'AI_BOTH_DOWN',
-    'AI_CALL_FAILED',
-  ] as const;
+  // 成功率分母中的「请求级 AI 失败」:每个失败请求恰好一条信号 = AI_CALL_FAILED。
+  //   - HTTP 边界失败由 AiUsageInterceptor 记一条 AI_CALL_FAILED(每个失败请求仅一条);
+  //   - 转写失败由 interviews 经同一 OpsEventsService 直接记一条 AI_CALL_FAILED。
+  // AI_FAILOVER / AI_BOTH_DOWN 是【诊断事件】不是【请求失败】:一次 withFailover 全败会先发
+  //   多条 AI_FAILOVER(每跳一条)+ 一条 AI_BOTH_DOWN,再抛 503,而那个 503 又被拦截器记成
+  //   一条 AI_CALL_FAILED——若把三者都计入,一次失败请求会被放大成 3-4 条,失败数虚高。
+  //   更关键:AI_FAILOVER 之后请求可能被备通道救活而最终【成功】,把它算失败方向就错了。
+  //   故只数 AI_CALL_FAILED(每请求恰一条);诊断类仍可在 error-stream 流水查看,但不进分母。
+  private static readonly AI_FAILURE_TYPES = ['AI_CALL_FAILED'] as const;
 
   // user-activity 排序枚举白名单(对应入参 DTO 的 orderBy):仅这两个字面量可被接受,杜绝 ORDER BY 注入。
   // 语义映射(GROUP BY endpoint 后无 created_at 列):'created_at' → 按 count 倒序(活跃度);'endpoint' → 按端点名升序。
