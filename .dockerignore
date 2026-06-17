@@ -22,3 +22,5 @@
 **/.env.local
 # 部署文档/本地脚本无需进镜像。
 **/*.md
+# CHANGELOG 需进镜像供 api 运行时读取(从最近更新生成公告),豁免上面的 **/*.md 排除。
+!CHANGELOG.md

@@ -5,6 +5,7 @@ import { AiModule } from '../ai/ai.module';
 import { Announcement } from './entities/announcement.entity';
 import { AnnouncementsService } from './announcements.service';
 import { AnnouncementGeneratorService } from './announcement-generator.service';
+import { ChangelogReaderService } from './changelog-reader.service';
 import { AnnouncementsController } from './announcements.controller';
 import { AdminAnnouncementsController } from './admin-announcements.controller';
 import { AdminGuard } from '../common/guards/admin.guard';
@@ -18,6 +19,11 @@ import { AdminGuard } from '../common/guards/admin.guard';
     AiModule,
   ],
   controllers: [AnnouncementsController, AdminAnnouncementsController],
-  providers: [AnnouncementsService, AnnouncementGeneratorService, AdminGuard],
+  providers: [
+    AnnouncementsService,
+    AnnouncementGeneratorService,
+    ChangelogReaderService,
+    AdminGuard,
+  ],
 })
 export class AnnouncementsModule {}

@@ -55,6 +55,9 @@ COPY --from=prod-deps --chown=node:node /repo/packages/api/package.json /repo/pa
 # 编译产物 + seed 所需的种子数据。
 COPY --from=build --chown=node:node /repo/packages/api/dist /repo/packages/api/dist
 COPY --chown=node:node data /repo/data
+# CHANGELOG.md:供 ChangelogReaderService 运行时读取(WORKDIR=/repo/packages/api → ../../CHANGELOG.md)。
+# 构建上下文为仓库根,CHANGELOG.md 在根;.dockerignore 已用 !CHANGELOG.md 豁免 **/*.md 排除。
+COPY --chown=node:node CHANGELOG.md /repo/CHANGELOG.md
 # 非 root 运行(node:alpine 自带 node 用户),降低容器逃逸风险。
 USER node
 EXPOSE 3002
