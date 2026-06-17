@@ -42,7 +42,7 @@ export interface TranscribeStartedResponse {
  * 前端把 uploadPath 拼上站点 origin 编成二维码;手机扫码打开豁免页(无需登录)直传音频。
  */
 export interface QrUploadTokenResponse {
-  /** scoped JWT(purpose=audio_upload,绑定 interviewId+user,60s 过期,一次性)。 */
+  /** scoped 短令牌(不透明随机 id,服务端映射绑定 interviewId+user,60s 过期,一次性)。 */
   token: string;
   /** 手机端上传页相对路径(/upload/<token>);前端拼 origin 后生成二维码。 */
   uploadPath: string;
@@ -178,7 +178,7 @@ export class InterviewsService {
    * 为「已登录用户的某个 interview」签发扫码上传的 scoped 一次性令牌。
    *
    * 归属红线:先 findOne(id, userId) —— 非本人 / 不存在的 interview 直接 404,绝不为越权请求发令牌。
-   * 校验通过后才把 {purpose:audio_upload, interviewId:id, sub:userId, jti} 签成 60s 短令牌,
+   * 校验通过后才生成一枚短随机 id 令牌,服务端映射记下它绑定的 {interviewId:id, userId},
    * 令牌天然只能传它绑定的这一个 interview、且落库 user_id 恒为签发者本人。
    */
   async issueUploadToken(
@@ -195,10 +195,10 @@ export class InterviewsService {
   /**
    * 凭已校验的 scoped 令牌接收手机端音频:走与登录端点完全相同的转写 pipeline。
    *
-   * 调用前置(由 controller 完成):QrUploadTokenService.verify 已校验签名+exp+purpose+jti 未用过,
-   * 并解出绑定的 interviewId+userId。这里复用 transcribe()——其内部仍会 findOne(interviewId, userId)
-   * 再做一次归属校验(双保险:即便令牌被伪造出不匹配的归属,也会在此 404)+ 余额 ≥7 预检 + 建任务。
-   * 任务建成后由 controller 烧 jti(失败不烧,允许 60s 内重试)。
+   * 调用前置(由 controller 完成):QrUploadTokenService.verify 已校验令牌命中映射 + 未过期 + 未用过,
+   * 并取出绑定的 interviewId+userId。这里复用 transcribe()——其内部仍会 findOne(interviewId, userId)
+   * 再做一次归属校验(双保险:即便归属不匹配,也会在此 404)+ 余额 ≥7 预检 + 建任务。
+   * 任务建成后由 controller 烧令牌(失败不烧,允许 60s 内重试)。
    */
   async transcribeViaQrToken(
     interviewId: string,

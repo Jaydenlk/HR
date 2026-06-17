@@ -36,13 +36,13 @@ function audioFileFilter(
  * 扫码上传豁免控制器:手机端「未登录」直传音频专用。
  *
  * 路由 /upload(不在 /interviews 下),且整个控制器不挂 JwtAuthGuard —— 手机端没有登录态,
- * 鉴权完全靠 URL 路径里的 scoped 一次性令牌(QrUploadTokenService.verify):
- * 校验签名+exp+purpose+jti 未用过 → 解出绑定的 interviewId+userId → 走与登录端点同款转写 pipeline。
+ * 鉴权完全靠 URL 路径里的 scoped 一次性短令牌(QrUploadTokenService.verify):
+ * 校验命中服务端映射 + 未过期 + 未用过 → 取出绑定的 interviewId+userId → 走与登录端点同款转写 pipeline。
  *
- * 归属红线(绝不放宽):令牌只能传它绑定的 interview/user —— interviewId/userId 一律取自令牌,
+ * 归属红线(绝不放宽):令牌只能传它绑定的 interview/user —— interviewId/userId 一律取自服务端映射,
  * 不接受请求体里的任何归属字段;service.transcribe 内部还会再 findOne(interviewId, userId) 兜一层。
  *
- * 一次性:上传「真实成功(已建 task)」后才烧 jti(burn)—— 失败不烧,允许用户在 60s 内重试同一令牌。
+ * 一次性:上传「真实成功(已建 task)」后才烧令牌(burn)—— 失败不烧,允许用户在 60s 内重试同一令牌。
  */
 @Controller('upload')
 export class QrUploadController {
@@ -71,7 +71,7 @@ export class QrUploadController {
     @Body() _dto: TranscribeInterviewDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    // 1) 校验令牌:签名+exp+purpose+jti 未用过 → 解出绑定归属(任一不满足 401)。
+    // 1) 校验令牌:命中服务端映射 + 未过期 + 未用过 → 取出绑定归属(任一不满足 401)。
     const verified = this.qrToken.verify(token);
 
     if (!file) {
@@ -87,9 +87,9 @@ export class QrUploadController {
       file.mimetype,
     );
 
-    // 3) 上传真实成功(已建 task)→ 此刻才烧 jti(用后即焚)。
+    // 3) 上传真实成功(已建 task)→ 此刻才烧令牌(用后即焚)。
     //    校验/建任务失败会在上面抛出、不会走到这里,故失败不烧,允许 60s 内重试。
-    this.qrToken.burn(verified.jti);
+    this.qrToken.burn(verified.tokenId);
 
     return result;
   }
