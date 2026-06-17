@@ -12,8 +12,10 @@ export interface QrUploadPanelProps {
   onPhoneUploaded: (taskId: string) => void;
 }
 
-// 令牌 60s 过期;提前 ~10s(50s)重签,保证手机扫到的链接始终有效,不会扫了个刚过期的码。
-const REFRESH_BEFORE_EXPIRY_MS = 10_000;
+// 令牌服务端 10 分钟过期且一次性。这里把二维码"视觉刷新"节奏定为约 2 分钟换一张新码(纯展示节奏,
+// 与令牌过期解耦):刚换码前签发的旧码因服务端仍保留其映射(未用、未过期),在 10 分钟内继续有效,
+// 所以"扫了 2 分钟前那张码"也能正常上传。换码只是给长时间停留者一张更新鲜的码,不会让旧码失效。
+const QR_REFRESH_INTERVAL_MS = 115_000;
 // 轮询手机是否传完的间隔。
 const POLL_STATUS_MS = 3000;
 
@@ -87,12 +89,12 @@ export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelPro
         setError(null);
         setLoading(false);
 
-        // 过期前重签:60s 令牌,提前 10s,但至少 1s 后,防 expiresInSec 异常小导致空转。
-        const delay = Math.max(1000, resp.expiresInSec * 1000 - REFRESH_BEFORE_EXPIRY_MS);
+        // 约 2 分钟换一张新码(视觉刷新节奏,与 10 分钟令牌过期解耦):旧码在服务端仍有效到自然过期,
+        // 故换码不影响"几分钟前扫的那张码"继续上传。
         if (refreshTimer) clearTimeout(refreshTimer);
         refreshTimer = setTimeout(() => {
           if (mounted && !done) void issueToken();
-        }, delay);
+        }, QR_REFRESH_INTERVAL_MS);
       } catch (err) {
         if (!mounted) return;
         setError(err instanceof Error ? err.message : '生成二维码失败，请重试');
@@ -164,6 +166,22 @@ export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelPro
         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)' }}>
           用手机扫码上传录音
         </span>
+      </div>
+
+      {/* 顶部时效提示:解释"码每约 2 分钟换新"与"扫码后 10 分钟内完成上传即可",消除"码一直变会不会失效"的疑虑。 */}
+      <div
+        style={{
+          fontSize: '11px',
+          color: 'var(--color-ink-3)',
+          textAlign: 'center',
+          lineHeight: 1.6,
+          padding: '7px 10px',
+          borderRadius: '8px',
+          background: 'rgba(47,143,255,.05)',
+          border: '1px solid var(--hair)',
+        }}
+      >
+        二维码每约2分钟自动刷新；已扫码的请在10分钟内完成「选文件→上传」即可。
       </div>
 
       {/* QR / 状态区 */}
@@ -240,7 +258,7 @@ export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelPro
           <br />
           在手机上选录音文件直传。
           <span style={{ display: 'block', marginTop: '4px', color: 'var(--color-ink-4)' }}>
-            二维码每分钟自动刷新，保持本窗口打开
+            二维码每约2分钟自动刷新，保持本窗口打开
           </span>
         </div>
       )}

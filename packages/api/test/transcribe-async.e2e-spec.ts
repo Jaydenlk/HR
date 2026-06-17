@@ -35,10 +35,16 @@ import { request } from './test-utils';
 let asrFailMode = false;
 // 假 ASR 注入的延迟(ms):用于验证 POST 立即返回时后台尚未完成。
 let asrDelayMs = 0;
+// 假 ASR 返回的段落覆盖:为 null 时返回正常 FAKE_SEGMENTS;非 null 时返回该覆盖
+//(用于非面试闸门的「过短/无人声」用例)。
+let asrSegmentsOverride: TranscriptSegment[] | null = null;
 
+// 真实面试量级:≥3 段、合并正文 ≥50 字(过非面试闸门的结构闸);内容是典型问答轮转。
 const FAKE_SEGMENTS: TranscriptSegment[] = [
   { text: '你好,先做个自我介绍吧。', startMs: 0, endMs: 2000 },
-  { text: '我叫小明,本科计算机专业,做过两个全栈项目。', startMs: 2000, endMs: 6000 },
+  { text: '我叫小明,本科计算机专业,做过两个全栈项目,主要用 React 和 NestJS。', startMs: 2000, endMs: 6000 },
+  { text: '能讲讲你在第二个项目里负责的核心模块吗?', startMs: 6000, endMs: 9000 },
+  { text: '我主要负责支付链路的对账服务,从设计到上线都参与了。', startMs: 9000, endMs: 13000 },
 ];
 
 const fakeSpeechProvider: SpeechProvider = {
@@ -50,15 +56,20 @@ const fakeSpeechProvider: SpeechProvider = {
     if (asrFailMode) {
       throw new Error('ASR 上游不可用(测试注入)');
     }
+    if (asrSegmentsOverride !== null) {
+      return asrSegmentsOverride.map((s) => ({ ...s }));
+    }
     return FAKE_SEGMENTS.map((s) => ({ ...s }));
   },
 };
 
-// 打标结果:与输入段一一对应(0=面试官,1=候选人)。
+// 打标结果:与输入段一一对应(偶数=面试官提问,奇数=候选人作答)。
 const LABEL_RESULT = {
   segments: [
     { idx: 0, speaker: 'interviewer' },
     { idx: 1, speaker: 'candidate' },
+    { idx: 2, speaker: 'interviewer' },
+    { idx: 3, speaker: 'candidate' },
   ],
 };
 
@@ -79,8 +90,10 @@ const DEBRIEF_RESULT = {
   prediction: { next_round_topics: [{ topic: '项目深挖', probability: 70 }] },
 };
 
+// 非面试闸门走 ai.complete(裸文本 yes/no);默认回「是」让正常用例放行(非面试用例单独覆盖回「否」)。
+let gateAnswer = '是';
 const mockAiService = {
-  complete: jest.fn().mockResolvedValue('mock'),
+  complete: jest.fn().mockImplementation(() => Promise.resolve(gateAnswer)),
   completeStructured: jest.fn().mockImplementation((params: { toolName?: string }) => {
     if (params.toolName === 'label_speakers') {
       return Promise.resolve(LABEL_RESULT);
@@ -188,6 +201,8 @@ describe('录音转写异步化 (e2e)', () => {
   beforeEach(() => {
     asrFailMode = false;
     asrDelayMs = 0;
+    gateAnswer = '是';
+    asrSegmentsOverride = null;
   });
 
   // ── 验收 1+2+3:立即 202 + 后台跑完 + 真实成功才计费 ──────────────────────────
@@ -231,7 +246,7 @@ describe('录音转写异步化 (e2e)', () => {
     expect(done.taskId).toBe(post.body.taskId);
     const segs = done.segmentsJson as Array<{ idx: number; speaker: string; text: string }>;
     expect(Array.isArray(segs)).toBe(true);
-    expect(segs).toHaveLength(2);
+    expect(segs).toHaveLength(4);
     expect(segs[0]).toMatchObject({ idx: 0, speaker: 'interviewer' });
     expect(segs[1]).toMatchObject({ idx: 1, speaker: 'candidate' });
 
@@ -287,6 +302,8 @@ describe('录音转写异步化 (e2e)', () => {
         segments: [
           { idx: 0, speaker: 'interviewer' },
           { idx: 1, speaker: 'candidate' },
+          { idx: 2, speaker: 'interviewer' },
+          { idx: 3, speaker: 'candidate' },
         ],
       });
     expect(confirm.status).toBe(200);
@@ -436,5 +453,171 @@ describe('录音转写异步化 (e2e)', () => {
       .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
 
     expect(post.status).toBe(404);
+  }, 30000);
+
+  // ── #1 非面试内容闸门 ─────────────────────────────────────────────────────────
+  // 闸门位置:转写之后、打标+复盘之前。判定非面试 → 快速 failed(failed_at_stage=transcribing)、
+  // 不扣点、不写 ai_usage(失败不计费),用户可在失败态删除/重新上传。
+
+  // (a) 结构闸:段数过少(<3)→ 快速 failed,且未进入昂贵的打标(label_speakers 未被调用)。
+  it('结构闸:段数过少(2 段)→ 快速 failed「内容过短」,不扣点、未调用打标', async () => {
+    const email = `gate-fewseg-${Date.now()}@coach.dev`;
+    const token = await registerUser(app, email, '段数过少');
+    const interviewId = await createInterview(app, token);
+
+    const user = await userRepo.findOneByOrFail({ email });
+    const beforeBalance = user.credit_balance;
+    const beforeUsage = await aiUsageRepo.count({ where: { user_id: user.id } });
+    const labelCallsBefore = (mockAiService.completeStructured as jest.Mock).mock.calls.filter(
+      ([p]) => (p as { toolName?: string }).toolName === 'label_speakers',
+    ).length;
+
+    // ASR 只回 2 段(< 3),正文足够长——只触发段数闸,不触发字数闸。
+    asrSegmentsOverride = [
+      { text: '你好,先做个自我介绍吧,讲讲你的项目经历和技术栈都有哪些。', startMs: 0, endMs: 4000 },
+      { text: '我叫小明,本科计算机专业,做过两个全栈项目,主要用 React 和 NestJS。', startMs: 4000, endMs: 9000 },
+    ];
+
+    const post = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewId}/transcribe`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('consent', 'true')
+      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
+    expect(post.status).toBe(202);
+
+    const done = await pollStatus(app, token, interviewId, (s) => s === 'failed' || s === 'awaiting_confirm');
+    expect(done.status).toBe('failed');
+    expect(done.errorMessage).toContain('录音内容过短或无人声');
+    expect(done.segmentsJson).toBeNull();
+
+    // 闸门挡在打标之前:label_speakers 未被新增调用。
+    const labelCallsAfter = (mockAiService.completeStructured as jest.Mock).mock.calls.filter(
+      ([p]) => (p as { toolName?: string }).toolName === 'label_speakers',
+    ).length;
+    expect(labelCallsAfter).toBe(labelCallsBefore);
+
+    // 失败不计费:余额不变、无新增 ai_usage。
+    await new Promise((r) => setTimeout(r, 200));
+    const afterUsage = await aiUsageRepo.count({ where: { user_id: user.id } });
+    expect(afterUsage - beforeUsage).toBe(0);
+    const refreshed = await userRepo.findOneByOrFail({ id: user.id });
+    expect(refreshed.credit_balance).toBe(beforeBalance);
+  }, 30000);
+
+  // (a) 结构闸:合并正文过短(<50 字)→ 快速 failed,即便段数 ≥3。
+  it('结构闸:合并正文过短(<50 字)→ 快速 failed「内容过短」,不扣点', async () => {
+    const email = `gate-shorttext-${Date.now()}@coach.dev`;
+    const token = await registerUser(app, email, '正文过短');
+    const interviewId = await createInterview(app, token);
+
+    const user = await userRepo.findOneByOrFail({ email });
+    const beforeBalance = user.credit_balance;
+
+    // 4 段但每段极短,合并不足 50 字(无人声/几声咳嗽量级)。
+    asrSegmentsOverride = [
+      { text: '喂', startMs: 0, endMs: 500 },
+      { text: '嗯', startMs: 500, endMs: 900 },
+      { text: '啊', startMs: 900, endMs: 1200 },
+      { text: '在吗', startMs: 1200, endMs: 1800 },
+    ];
+
+    const post = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewId}/transcribe`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('consent', 'true')
+      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
+    expect(post.status).toBe(202);
+
+    const done = await pollStatus(app, token, interviewId, (s) => s === 'failed' || s === 'awaiting_confirm');
+    expect(done.status).toBe('failed');
+    expect(done.errorMessage).toContain('录音内容过短或无人声');
+
+    const refreshed = await userRepo.findOneByOrFail({ id: user.id });
+    expect(refreshed.credit_balance).toBe(beforeBalance);
+  }, 30000);
+
+  // (b) 主题闸:内容够长但 LLM 判「否」(非面试)→ 快速 failed「不像面试内容」,不扣点、未调用打标。
+  it('主题闸:LLM 判「否」(非面试)→ 快速 failed「不像面试内容」,不扣点、未调用打标', async () => {
+    const email = `gate-notinterview-${Date.now()}@coach.dev`;
+    const token = await registerUser(app, email, '非面试内容');
+    const interviewId = await createInterview(app, token);
+
+    const user = await userRepo.findOneByOrFail({ email });
+    const beforeBalance = user.credit_balance;
+    const beforeUsage = await aiUsageRepo.count({ where: { user_id: user.id } });
+    const labelCallsBefore = (mockAiService.completeStructured as jest.Mock).mock.calls.filter(
+      ([p]) => (p as { toolName?: string }).toolName === 'label_speakers',
+    ).length;
+
+    // 段数/字数都过结构闸(用默认 FAKE_SEGMENTS),但主题闸的 LLM 回「否」。
+    gateAnswer = '否';
+
+    const post = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewId}/transcribe`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('consent', 'true')
+      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
+    expect(post.status).toBe(202);
+
+    const done = await pollStatus(app, token, interviewId, (s) => s === 'failed' || s === 'awaiting_confirm');
+    expect(done.status).toBe('failed');
+    expect(done.errorMessage).toContain('不像面试内容');
+
+    // 闸门挡在打标之前:label_speakers 未被新增调用。
+    const labelCallsAfter = (mockAiService.completeStructured as jest.Mock).mock.calls.filter(
+      ([p]) => (p as { toolName?: string }).toolName === 'label_speakers',
+    ).length;
+    expect(labelCallsAfter).toBe(labelCallsBefore);
+
+    await new Promise((r) => setTimeout(r, 200));
+    const afterUsage = await aiUsageRepo.count({ where: { user_id: user.id } });
+    expect(afterUsage - beforeUsage).toBe(0);
+    const refreshed = await userRepo.findOneByOrFail({ id: user.id });
+    expect(refreshed.credit_balance).toBe(beforeBalance);
+  }, 30000);
+
+  // (b) 反向:真实面试(够长 + LLM 判「是」)→ 闸门放行,正常推进到 awaiting_confirm 并扣 7 点。
+  it('真实面试(够长 + LLM 判「是」)→ 闸门放行,正常落 awaiting_confirm 并扣 7 点', async () => {
+    const email = `gate-real-${Date.now()}@coach.dev`;
+    const token = await registerUser(app, email, '真实面试');
+    const interviewId = await createInterview(app, token);
+
+    const user = await userRepo.findOneByOrFail({ email });
+    const beforeBalance = user.credit_balance;
+
+    // 默认 FAKE_SEGMENTS(4 段、够长)+ gateAnswer='是'(beforeEach 已重置)。
+    const post = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewId}/transcribe`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('consent', 'true')
+      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
+    expect(post.status).toBe(202);
+
+    const done = await pollStatus(app, token, interviewId, (s) => s === 'awaiting_confirm' || s === 'failed');
+    expect(done.status).toBe('awaiting_confirm');
+    const segs = done.segmentsJson as Array<{ idx: number; speaker: string }>;
+    expect(segs).toHaveLength(4);
+
+    const refreshed = await userRepo.findOneByOrFail({ id: user.id });
+    expect(refreshed.credit_balance).toBe(beforeBalance - 7);
+  }, 30000);
+
+  // (b) 含糊放行:LLM 回空串/含糊(非明确「否」)→ 视作「是」,不误杀真实面试。
+  it('含糊放行:LLM 回空串(非明确否)→ 视作是,正常落 awaiting_confirm', async () => {
+    const email = `gate-ambiguous-${Date.now()}@coach.dev`;
+    const token = await registerUser(app, email, '含糊放行');
+    const interviewId = await createInterview(app, token);
+
+    gateAnswer = ''; // 空回复:含糊,按「是」放行。
+
+    const post = await request(app.getHttpServer())
+      .post(`/api/interviews/${interviewId}/transcribe`)
+      .set('Authorization', `Bearer ${token}`)
+      .field('consent', 'true')
+      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
+    expect(post.status).toBe(202);
+
+    const done = await pollStatus(app, token, interviewId, (s) => s === 'awaiting_confirm' || s === 'failed');
+    expect(done.status).toBe('awaiting_confirm');
   }, 30000);
 });

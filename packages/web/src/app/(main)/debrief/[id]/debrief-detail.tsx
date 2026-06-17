@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, use } from 'react';
+import { useState, useEffect, useRef, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -10,6 +10,7 @@ import { QuestionCard } from '@/components/interview/question-card';
 import { PredictionCard } from '@/components/interview/prediction-card';
 import { AudioUploader } from '@/components/interview/audio-uploader';
 import { TranscriptProgress } from '@/components/interview/transcript-progress';
+import { useTranscribeStatusPolling } from '@/components/interview/use-transcribe-status-polling';
 import { SpeakerLabelSection } from '@/components/interview/speaker-label-section';
 import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic, Zap, Info, Trash2, AlertTriangle } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -86,21 +87,27 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
       });
   }, [id]);
 
-  // 恢复进行中的转写任务:进入页面时若已有未完成/待确认任务,接续轮询(避免刷新后丢进度)。
-  useEffect(() => {
-    api
-      .get<TranscribeStatusResponse>(`/interviews/${id}/transcribe/status`)
-      .then((data) => {
-        if (data.status === 'completed') return; // 已完成:走 interview.scores 渲染,不再轮询。
-        setTaskId(data.taskId);
-        setTranscribeStatus(data);
-        if (data.status === 'awaiting_confirm' && data.segmentsJson) {
-          setSegments(data.segmentsJson);
-        }
-      })
-      // 无转写任务(404)或网络异常:静默,落入普通"手动分析/上传录音"入口。
-      .catch(() => {});
-  }, [id]);
+  // 页面级「守望轮询」:从挂载起持续轮询转写状态,使桌面端无需手动刷新即可自动推进
+  //   待上传 → 已收到/转写中 → 待确认/完成/失败。
+  // 既覆盖「进入页面时已有进行中/待确认任务」(首拍即拿到,避免刷新丢进度),也覆盖
+  //   「进入时尚无任务、随后手机扫码上传」(持续轮询直到任务出现)。
+  // 所有权交接:一旦发现进行中任务并 setTaskId,本钩子即 enabled=false 停轮询,改由
+  //   TranscriptProgress 自身轮询接管(详见下方渲染),避免同一端点被并发重复轮询。
+  // 安全阀(在钩子内):连续 404 熔断 + 总墙钟上限,杜绝用户始终不传时的无谓长轮询。
+  const handleWatchStatus = useCallback((data: TranscribeStatusResponse) => {
+    if (data.status === 'completed') return; // 已完成:走 interview.scores 渲染,不接管轮询。
+    setTaskId(data.taskId);
+    setTranscribeStatus(data);
+    if (data.status === 'awaiting_confirm' && data.segmentsJson) {
+      setSegments(data.segmentsJson);
+    }
+  }, []);
+  useTranscribeStatusPolling({
+    interviewId: id,
+    // 仅在「尚无活动任务」时由页面级守望;一旦 taskId 落定即交接给 TranscriptProgress,防并发重复轮询。
+    enabled: !taskId,
+    onStatus: handleWatchStatus,
+  });
 
   // ?upload=1 直达:从列表页主入口或首页发现卡跳来时,interview 加载完成后自动弹上传框,
   // 让"点一下就能传录音"对用户透明。仅在无活动转写任务时触发一次,避免打断进行中的转写。

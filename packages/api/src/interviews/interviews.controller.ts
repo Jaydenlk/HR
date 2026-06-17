@@ -90,7 +90,7 @@ export class InterviewsController {
   }
 
   // ── 扫码上传(手机端录音直传)──────────────────────────────────────────────────
-  // 电脑端已登录用户为自己的某个 interview 签发 scoped 一次性令牌(60s),返回 token + /upload/<token>
+  // 电脑端已登录用户为自己的某个 interview 签发 scoped 一次性令牌(10 分钟),返回 token + /upload/<token>
   // 链接;前端编成二维码,手机扫码打开豁免页直传音频。归属校验在 service(findOne)兜住:
   // 非本人 / 不存在的 interview → 404,绝不为越权请求发令牌。
   // IMPORTANT: 必须定义在通用 /:id 路由之前。

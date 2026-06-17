@@ -352,7 +352,7 @@ export interface LabeledSegment {
 
 // POST /interviews/:id/upload-token 响应:扫码上传的 scoped 一次性令牌 + 手机端直传相对路径。
 // 与后端 QrUploadTokenResponse 形状一致。前端把 uploadPath 拼上站点 origin 编成二维码;
-// 令牌 60s 过期,前端按 expiresInSec 在过期前自动重签并刷新二维码。
+// 令牌 10 分钟过期且一次性;前端按固定节奏(约 2 分钟)轮换二维码,旧码在有效期内仍可用。
 export interface QrUploadTokenResponse {
   token: string;
   uploadPath: string;

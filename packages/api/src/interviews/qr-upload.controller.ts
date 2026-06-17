@@ -42,7 +42,7 @@ function audioFileFilter(
  * 归属红线(绝不放宽):令牌只能传它绑定的 interview/user —— interviewId/userId 一律取自服务端映射,
  * 不接受请求体里的任何归属字段;service.transcribe 内部还会再 findOne(interviewId, userId) 兜一层。
  *
- * 一次性:上传「真实成功(已建 task)」后才烧令牌(burn)—— 失败不烧,允许用户在 60s 内重试同一令牌。
+ * 一次性:上传「真实成功(已建 task)」后才烧令牌(burn)—— 失败不烧,允许用户在有效期内重试同一令牌。
  */
 @Controller('upload')
 export class QrUploadController {
@@ -95,7 +95,7 @@ export class QrUploadController {
     );
 
     // 3) 上传真实成功(已建 task)→ 此刻才烧令牌(用后即焚)。
-    //    校验/建任务失败会在上面抛出、不会走到这里,故失败不烧,允许 60s 内重试。
+    //    校验/建任务失败会在上面抛出、不会走到这里,故失败不烧,允许有效期内重试。
     this.qrToken.burn(verified.tokenId);
 
     return result;

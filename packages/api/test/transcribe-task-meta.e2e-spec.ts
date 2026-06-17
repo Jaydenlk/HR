@@ -25,9 +25,12 @@ import type {
 } from '../src/speech/providers/speech.provider';
 import { request } from './test-utils';
 
+// 真实面试量级:≥3 段、合并正文 ≥50 字(过非面试闸门);complete mock 默认回非「否」→ 主题闸放行。
 const FAKE_SEGMENTS: TranscriptSegment[] = [
   { text: '你好,先做个自我介绍吧。', startMs: 0, endMs: 2000 },
-  { text: '我叫小明,本科计算机专业。', startMs: 2000, endMs: 6000 },
+  { text: '我叫小明,本科计算机专业,做过两个全栈项目,主要用 React 和 NestJS。', startMs: 2000, endMs: 6000 },
+  { text: '能讲讲你在第二个项目里负责的核心模块吗?', startMs: 6000, endMs: 9000 },
+  { text: '我主要负责支付链路的对账服务,从设计到上线都参与了。', startMs: 9000, endMs: 13000 },
 ];
 
 const fakeSpeechProvider: SpeechProvider = {
@@ -41,6 +44,8 @@ const LABEL_RESULT = {
   segments: [
     { idx: 0, speaker: 'interviewer' },
     { idx: 1, speaker: 'candidate' },
+    { idx: 2, speaker: 'interviewer' },
+    { idx: 3, speaker: 'candidate' },
   ],
 };
 
