@@ -64,6 +64,11 @@ function buildOptions(): DataSourceOptions {
     migrations,
     // gen_random_uuid() 走 pgcrypto:与初始迁移内写死的 uuid 默认值保持一致。
     uuidExtension: 'pgcrypto',
+    // 单语句超时(毫秒):与运行期(app.module.ts)一致,防 CLI 迁移/失控查询长期独占连接。
+    // 默认 30s,经 DB_STATEMENT_TIMEOUT_MS 覆盖。
+    extra: {
+      statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT_MS ?? '30000', 10),
+    },
     synchronize: false,
     migrationsRun: false,
     logging: false,

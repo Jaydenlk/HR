@@ -40,6 +40,9 @@ RUN pnpm install --frozen-lockfile --prod --filter @coach/api
 FROM node:22-alpine AS runner
 WORKDIR /repo/packages/api
 ENV NODE_ENV=production
+# V8 老生代堆上限 400M:容器仅 512M,Node 默认堆上限会按宿主物理内存估算而远超容器配额,
+# 触发 cgroup OOM kill(无 JS 异常,直接被杀)。钳到 400M 给 ffmpeg/原生缓冲与运行时留余量。
+ENV NODE_OPTIONS="--max-old-space-size=400"
 # ffmpeg:面试录音转码必需(任意上传格式 → StepFun 接受的 ogg/opus 单声道 16k)。
 # StepFun ASR 拒收浏览器默认的 webm/amr,不转码真实用户几乎必失败;alpine 的 ffmpeg 自带 libopus。
 # 须在 USER node(降权)之前装,apk 需 root。

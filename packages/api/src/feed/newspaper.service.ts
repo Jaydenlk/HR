@@ -17,6 +17,10 @@ import {
 } from './radar-helpers';
 import { EXTERNAL_SOURCE_KINDS } from './types/feed.types';
 
+// Radar 分页 limit 默认/上限:service 层兜底强制 clamp,无论入参如何都不越界(防 .take(limit) 拉爆内存)。
+const RADAR_DEFAULT_LIMIT = 20;
+const RADAR_MAX_LIMIT = 100;
+
 // --- Response interfaces ---
 
 export interface HeadlineObservation {
@@ -724,7 +728,7 @@ export class NewspaperService {
 
   async getRadar(query: RadarQuery): Promise<RadarResult> {
     const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
+    const limit = this.clampRadarLimit(query.limit);
     const offset = (page - 1) * limit;
 
     // Issue 9: Build where clause once, reuse for items + stats
@@ -833,5 +837,11 @@ export class NewspaperService {
         { keyword: `%${query.keyword}%` },
       );
     }
+  }
+
+  /** Radar 分页 limit 钳制:未传/NaN → 20;否则向下取整后钳到 [1, 100],防 .take(limit) 无上限拉爆内存。 */
+  private clampRadarLimit(limit?: number): number {
+    if (limit === undefined || Number.isNaN(limit)) return RADAR_DEFAULT_LIMIT;
+    return Math.min(Math.max(Math.trunc(limit), 1), RADAR_MAX_LIMIT);
   }
 }
