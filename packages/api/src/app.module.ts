@@ -38,6 +38,7 @@ import { HealthModule } from './health/health.module';
 import { OpsEventsModule } from './ops/ops-events.module';
 import { CoachHandoffsModule } from './coach-handoffs/coach-handoffs.module';
 import { SpeechModule } from './speech/speech.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
 
 @Module({
   imports: [
@@ -120,6 +121,8 @@ import { SpeechModule } from './speech/speech.module';
     CoachHandoffsModule,
     // 语音转写(StepFun ASR + LLM 角色打标);InterviewsModule import 之以编排 transcribe 流程。
     SpeechModule,
+    // 站内公告:公开端 GET /announcements(只返 active)+ 管理端 /admin/announcements(JwtAuthGuard+AdminGuard)。
+    AnnouncementsModule,
   ],
   // 全局限流守卫:与 ThrottlerModule.forRoot 配合,对所有路由生效。
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
