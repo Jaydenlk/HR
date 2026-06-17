@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import type { TranscribeStatus, TranscribeStatusResponse } from '@/lib/types';
+import { useTranscribeStatusPolling } from './use-transcribe-status-polling';
 import { Loader2, CheckCircle2, AlertCircle, Clock, FileAudio, Upload, Trash2 } from 'lucide-react';
 
 export interface TranscriptProgressProps {
@@ -19,8 +20,6 @@ export interface TranscriptProgressProps {
   // Failed-state recovery: after the failed task is deleted, reset UI to the pre-upload state.
   onDeleteTask?: () => void;
 }
-
-const POLL_INTERVAL_MS = 3000;
 
 const STEPS: Array<{ status: TranscribeStatus; label: string }> = [
   { status: 'submitted', label: '排队中' },
@@ -120,25 +119,19 @@ export function TranscriptProgress({
   const [receipt, setReceipt] = useState<UploadReceipt | null>(null);
   // 失败态恢复动作(重新上传/删除记录)进行中标记,避免重复点击。
   const [recovering, setRecovering] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (pollRef.current) clearTimeout(pollRef.current);
     };
   }, []);
 
+  // 新任务到来时重置展示态。Deferred 到微任务(非同步 effect 体),避免 react-hooks/set-state-in-effect
+  // 级联渲染——与全站既有写法一致(cover-letter / mock / diagnoses 等)。
   useEffect(() => {
     if (!taskId) return;
-
-    if (pollRef.current) clearTimeout(pollRef.current);
-
-    // Reset display state on new task. Deferred to a microtask (not the synchronous effect
-    // body) to avoid react-hooks/set-state-in-effect cascading renders — same convention as
-    // the rest of the app (see cover-letter / mock / diagnoses pages).
     void Promise.resolve().then(() => {
       if (mountedRef.current) {
         setStatus('submitted');
@@ -146,51 +139,35 @@ export function TranscriptProgress({
         setReceipt(null);
       }
     });
+  }, [taskId]);
 
-    async function fetchStatus() {
-      try {
-        const data = await api.get<TranscribeStatusResponse>(
-          `/interviews/${interviewId}/transcribe/status`,
-        );
-        if (!mountedRef.current) return;
-
-        setStatus(data.status);
-        setErrorMessage(data.errorMessage ?? null);
-        // 一旦后端回传上传元数据(收到上传),立即据此渲染「已收到上传」回执卡(非音频内容)。
-        if (data.originalFilename) {
-          setReceipt({
-            filename: data.originalFilename,
-            sizeBytes: data.fileSizeBytes ?? null,
-            uploadedAt: data.uploadedAt ?? null,
-          });
-        }
-        onStatusUpdate(data);
-
-        if (TERMINAL_STATUSES.includes(data.status)) {
-          onStop?.();
-          return;
-        }
-
-        // Schedule next poll
-        pollRef.current = setTimeout(() => {
-          if (mountedRef.current) void fetchStatus();
-        }, POLL_INTERVAL_MS);
-      } catch {
-        if (!mountedRef.current) return;
-        // Network error: retry after interval, don't surface transient errors
-        pollRef.current = setTimeout(() => {
-          if (mountedRef.current) void fetchStatus();
-        }, POLL_INTERVAL_MS);
+  // 每次轮询拿到状态:更新展示态 + 元数据回执 + 透传父层;到达终态由钩子停轮询,这里额外触发 onStop。
+  const handlePoll = useCallback(
+    (data: TranscribeStatusResponse) => {
+      setStatus(data.status);
+      setErrorMessage(data.errorMessage ?? null);
+      // 一旦后端回传上传元数据(收到上传),立即据此渲染「已收到上传」回执卡(非音频内容)。
+      if (data.originalFilename) {
+        setReceipt({
+          filename: data.originalFilename,
+          sizeBytes: data.fileSizeBytes ?? null,
+          uploadedAt: data.uploadedAt ?? null,
+        });
       }
-    }
+      onStatusUpdate(data);
+      if (TERMINAL_STATUSES.includes(data.status)) {
+        onStop?.();
+      }
+    },
+    [onStatusUpdate, onStop],
+  );
 
-    void fetchStatus();
-
-    return () => {
-      if (pollRef.current) clearTimeout(pollRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskId, interviewId]);
+  // 复用页面级同一轮询钩子:有 taskId 即轮询,终态自动停(钩子内),并发由父层 enabled 交接避免重复。
+  useTranscribeStatusPolling({
+    interviewId,
+    enabled: !!taskId,
+    onStatus: handlePoll,
+  });
 
   // 清掉当前(失败)任务,再交给父层切 UI。音频不落盘 → 服务端无法重转写,故「重新上传」= 清任务 + 重开上传。
   async function clearTaskThen(after?: () => void) {

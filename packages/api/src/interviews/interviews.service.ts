@@ -24,6 +24,8 @@ import { CreditService } from '../credit/credit.service';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { QrUploadTokenService } from './qr-upload-token.service';
 import { OpsEventsService } from '../ops/ops-events.service';
+import { AiService } from '../ai/ai.service';
+import type { TranscriptSegment } from '../speech/providers/speech.provider';
 
 // 转写扣点端点标识:写入 credit_transactions.endpoint / ai_usage.endpoint(与控制器路由模板同口径)。
 const TRANSCRIBE_ENDPOINT = '/api/interviews/:id/transcribe';
@@ -32,6 +34,14 @@ const TRANSCRIBE_ENDPOINT = '/api/interviews/:id/transcribe';
 // 计费铁律:整条复盘链路只在「转写+打标真实成功」(落 awaiting_confirm)那一刻一次性扣满 7 点;
 // 后续 confirm/analyze 段不再额外扣点(避免双扣),故用户一次完整复盘恰好扣 7 点,不多不少。
 const TRANSCRIBE_DEBRIEF_CREDIT_COST = 7;
+
+// 非面试内容闸门(放在转写之后、昂贵的打标/复盘之前,省额度):
+//  - 段数下限:真实面试至少多句问答;不足此数大概率是空录音/误传/几秒杂音。
+const MIN_INTERVIEW_SEGMENTS = 3;
+//  - 合并正文字数下限:不足此数说明几乎无可分析内容(无人声/极短)。
+const MIN_INTERVIEW_TRANSCRIPT_CHARS = 50;
+// 送给"是否面试"廉价判别的转写摘录上限:只取开头若干字够判主题,避免把长面试整篇塞进去烧 token。
+const INTERVIEW_GATE_EXCERPT_CHARS = 600;
 
 /** POST /interviews/:id/transcribe 的 202 响应:仅回 taskId,前端据此轮询 status。 */
 export interface TranscribeStartedResponse {
@@ -53,7 +63,7 @@ export interface UploadMeta {
  * 前端把 uploadPath 拼上站点 origin 编成二维码;手机扫码打开豁免页(无需登录)直传音频。
  */
 export interface QrUploadTokenResponse {
-  /** scoped 短令牌(不透明随机 id,服务端映射绑定 interviewId+user,60s 过期,一次性)。 */
+  /** scoped 短令牌(不透明随机 id,服务端映射绑定 interviewId+user,10 分钟过期,一次性)。 */
   token: string;
   /** 手机端上传页相对路径(/upload/<token>);前端拼 origin 后生成二维码。 */
   uploadPath: string;
@@ -107,6 +117,7 @@ export class InterviewsService {
     private readonly credit: CreditService,
     private readonly qrToken: QrUploadTokenService,
     private readonly opsEvents: OpsEventsService,
+    private readonly ai: AiService,
   ) {}
 
   async create(userId: string, dto: CreateInterviewDto): Promise<Interview> {
@@ -225,7 +236,7 @@ export class InterviewsService {
    * 调用前置(由 controller 完成):QrUploadTokenService.verify 已校验令牌命中映射 + 未过期 + 未用过,
    * 并取出绑定的 interviewId+userId。这里复用 transcribe()——其内部仍会 findOne(interviewId, userId)
    * 再做一次归属校验(双保险:即便归属不匹配,也会在此 404)+ 余额 ≥7 预检 + 建任务。
-   * 任务建成后由 controller 烧令牌(失败不烧,允许 60s 内重试)。
+   * 任务建成后由 controller 烧令牌(失败不烧,允许有效期内重试)。
    */
   async transcribeViaQrToken(
     interviewId: string,
@@ -318,6 +329,11 @@ export class InterviewsService {
       await this.setTaskStatus(task, 'transcribing');
       const segments = await this.speech.transcribeFile(audio, mimeType, hotwords);
 
+      // 1.5) 非面试内容闸门:转写已得、打标/复盘未起,此处快闸把空录音/误传/非面试录音挡在
+      //      昂贵的 LLM 打标 + 复盘之前,省用户额度。判定为非面试 → 抛友好错(走 catch → failed),
+      //      用户可在失败态删除/重新上传。失败不计费(扣点在落 awaiting_confirm 时才发生)。
+      await this.assertLooksLikeInterview(segments);
+
       // 2) 角色打标:LLM 判 interviewer|candidate,失败/漂移在 LabelService 内抛错。
       await this.setTaskStatus(task, 'labeling');
       const labeled = await this.label.label(segments);
@@ -353,6 +369,59 @@ export class InterviewsService {
         error: reason,
         stage: 'transcribe',
       });
+    }
+  }
+
+  /**
+   * 非面试内容闸门:在转写之后、昂贵的打标+复盘之前,用两道廉价检查挡掉空录音/误传/非面试录音,
+   * 省用户额度。不通过 → 抛友好中文错(由 runTranscribe 的 catch 标 task=failed,失败不计费)。
+   *
+   * 两道闸:
+   *  (a) 结构闸(零成本):段数 < MIN_INTERVIEW_SEGMENTS 或合并正文 < MIN_INTERVIEW_TRANSCRIPT_CHARS
+   *      → 直接判定内容过短/无人声,不必动用 LLM。
+   *  (b) 主题闸(一次最廉价的 flash 裸文本调用,非结构化工具、极少 token):问模型"是否面试对话,
+   *      只回 是/否"。明确回"否"才拦;空回复/异常/含糊一律放行(treat ambiguous as 是),
+   *      宁可放过个别非面试,也绝不误杀真实面试。
+   */
+  private async assertLooksLikeInterview(
+    segments: TranscriptSegment[],
+  ): Promise<void> {
+    // (a) 结构闸:段数 / 合并正文字数。
+    const mergedText = segments
+      .map((s) => s.text?.trim() ?? '')
+      .filter((t) => t.length > 0)
+      .join('');
+    if (
+      segments.length < MIN_INTERVIEW_SEGMENTS ||
+      mergedText.length < MIN_INTERVIEW_TRANSCRIPT_CHARS
+    ) {
+      throw new BadRequestException('录音内容过短或无人声，请上传完整的面试录音');
+    }
+
+    // (b) 主题闸:一次最廉价的裸文本 yes/no(flash 档,不走结构化工具,只回单字)。
+    //     仅取开头摘录够判主题,长面试不整篇塞进去。
+    const excerpt = mergedText.slice(0, INTERVIEW_GATE_EXCERPT_CHARS);
+    let answer: string;
+    try {
+      answer = await this.ai.complete({
+        system: '你是面试内容判别器。只输出一个汉字:是 或 否,不要任何解释或标点。',
+        prompt: `下面是否为一段求职面试对话?只回 是 或 否:\n${excerpt}`,
+        tier: 'flash',
+        maxTokens: 8,
+      });
+    } catch (err) {
+      // 判别调用本身失败(通道抖动/超时):不拦,放行让正常流程继续(避免因闸门误杀真实面试)。
+      this.logger.warn(
+        `非面试闸判别调用失败,放行继续:${err instanceof Error ? err.message : String(err)}`,
+      );
+      return;
+    }
+
+    // 只有明确以"否"开头才拦;含糊/空/带其他字一律视作"是"(放行),宁放过不误杀。
+    if (answer.trim().startsWith('否')) {
+      throw new BadRequestException(
+        '这段录音不像面试内容，已停止分析以免浪费额度，请上传面试录音',
+      );
     }
   }
 

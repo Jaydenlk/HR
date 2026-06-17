@@ -46,9 +46,12 @@ import { request } from './test-utils';
 // 与 transcribe-async.e2e 同款假 ASR:可控延迟,默认成功(本套件不测失败路径)。
 let asrDelayMs = 0;
 
+// 真实面试量级:≥3 段、合并正文 ≥50 字(过非面试闸门);complete mock 默认回非「否」→ 主题闸放行。
 const FAKE_SEGMENTS: TranscriptSegment[] = [
   { text: '你好,先做个自我介绍吧。', startMs: 0, endMs: 2000 },
-  { text: '我叫小明,本科计算机专业,做过两个全栈项目。', startMs: 2000, endMs: 6000 },
+  { text: '我叫小明,本科计算机专业,做过两个全栈项目,主要用 React 和 NestJS。', startMs: 2000, endMs: 6000 },
+  { text: '能讲讲你在第二个项目里负责的核心模块吗?', startMs: 6000, endMs: 9000 },
+  { text: '我主要负责支付链路的对账服务,从设计到上线都参与了。', startMs: 9000, endMs: 13000 },
 ];
 
 const fakeSpeechProvider: SpeechProvider = {
@@ -63,6 +66,8 @@ const LABEL_RESULT = {
   segments: [
     { idx: 0, speaker: 'interviewer' },
     { idx: 1, speaker: 'candidate' },
+    { idx: 2, speaker: 'interviewer' },
+    { idx: 3, speaker: 'candidate' },
   ],
 };
 const DEBRIEF_RESULT = {
@@ -186,7 +191,7 @@ describe('扫码上传 scoped 一次性短令牌 (e2e)', () => {
     expect(res.body.token).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(res.body.token.length).toBeLessThanOrEqual(24);
     expect(res.body.uploadPath).toBe(`/upload/${res.body.token}`);
-    expect(res.body.expiresInSec).toBe(60);
+    expect(res.body.expiresInSec).toBe(600);
     return {
       uploadToken: res.body.token,
       uploadPath: res.body.uploadPath,
@@ -228,7 +233,7 @@ describe('扫码上传 scoped 一次性短令牌 (e2e)', () => {
     expect(done.taskId).toBe(up.body.taskId);
     const segs = done.segmentsJson as Array<{ idx: number; speaker: string }>;
     expect(Array.isArray(segs)).toBe(true);
-    expect(segs).toHaveLength(2);
+    expect(segs).toHaveLength(4);
   }, 30000);
 
   // ── ② 一次性:同令牌第二次上传 → 401,且不重复建任务 ──────────────────────────────

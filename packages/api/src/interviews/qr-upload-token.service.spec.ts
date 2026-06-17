@@ -13,7 +13,7 @@ describe('QrUploadTokenService', () => {
     const svc = makeService();
     const { token, expiresInSec } = svc.sign('iv-1', 'user-1');
 
-    expect(expiresInSec).toBe(60);
+    expect(expiresInSec).toBe(600);
     // 短令牌:url-safe、远短于 JWT(此前数百字符),足以塞进低版本二维码。
     expect(typeof token).toBe('string');
     expect(token).toMatch(/^[A-Za-z0-9_-]+$/);
@@ -51,14 +51,46 @@ describe('QrUploadTokenService', () => {
     expect(() => svc.verify(fakeJwt)).toThrow(UnauthorizedException);
   });
 
-  it('过期红线:超过 TTL 后校验 → 401(用 fake timers 推进 61s)', () => {
+  it('10 分钟有效窗口:9 分钟时仍可校验,10 分 1 秒后过期 → 401(fake timers)', () => {
     jest.useFakeTimers();
     try {
       const svc = makeService();
       const { token } = svc.sign('iv-1', 'user-1');
-      // 推进到 TTL(60s)之后,令牌应已过期。
+
+      // 9 分钟(540s)< 10 分钟 TTL:令牌仍有效,可正常校验。
+      jest.advanceTimersByTime(540_000);
+      const verified = svc.verify(token);
+      expect(verified.interviewId).toBe('iv-1');
+      expect(verified.userId).toBe('user-1');
+
+      // 再推进到 10 分 1 秒(总 601s)> 600s TTL:令牌已过期 → 401。
       jest.advanceTimersByTime(61_000);
       expect(() => svc.verify(token)).toThrow(UnauthorizedException);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('并发有效:先后签发的多枚未用、未过期令牌可同时校验(2 分钟前那张码仍能上传)', () => {
+    jest.useFakeTimers();
+    try {
+      const svc = makeService();
+      // t=0 签发第一张码(模拟"2 分钟前扫的码")。
+      const { token: tokenA } = svc.sign('iv-1', 'user-1');
+
+      // 2 分钟后前端轮换二维码,签发第二张(模拟"刚换的新码")。
+      jest.advanceTimersByTime(120_000);
+      const { token: tokenB } = svc.sign('iv-1', 'user-1');
+
+      // 两张码此刻都未用、未过期(均在 10 分钟窗口内)→ 均可校验。
+      // 关键:换码不会让旧码失效,2 分钟前扫的那张码照样能上传。
+      expect(svc.verify(tokenA).interviewId).toBe('iv-1');
+      expect(svc.verify(tokenB).interviewId).toBe('iv-1');
+
+      // 一次性仍守:烧掉 A 后 A 失效,但 B 不受影响(各自独立)。
+      svc.burn(tokenA);
+      expect(() => svc.verify(tokenA)).toThrow(UnauthorizedException);
+      expect(svc.verify(tokenB).interviewId).toBe('iv-1');
     } finally {
       jest.useRealTimers();
     }
