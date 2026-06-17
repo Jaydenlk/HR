@@ -71,6 +71,11 @@ import { AnnouncementsModule } from './announcements/announcements.module';
           password: config.get('DB_PASS', 'coach'),
           database: config.get('DB_NAME', 'coach'),
           autoLoadEntities: true,
+          // 单语句超时(毫秒):防单条失控查询长期独占池化连接拖垮 2C/1.6G 小机。
+          // 默认 30s,经 DB_STATEMENT_TIMEOUT_MS 覆盖;由 pg 驱动在每条连接上设 statement_timeout。
+          extra: {
+            statement_timeout: parseInt(config.get('DB_STATEMENT_TIMEOUT_MS', '30000'), 10),
+          },
           // 生产数据安全红线:postgres 永不 synchronize,所有 schema 变更只走迁移文件
           // (CLI 经 src/database/data-source.ts 显式 migration:run)。dev 走 sqlite synchronize。
           synchronize: false,

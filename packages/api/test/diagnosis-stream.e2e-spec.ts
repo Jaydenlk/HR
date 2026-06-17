@@ -669,4 +669,56 @@ describe('Diagnosis SSE stream — invariants (service-level, mocked AiService +
     expect(analyzeSpy).toHaveBeenCalledTimes(1);
     expect(rewriteSpy).toHaveBeenCalledTimes(1);
   });
+
+  // ── 不变量 7:整体墙钟超时护栏。某阶段永久挂起 → 超时后推 error(中文)、无 done,且事件流关闭
+  // (消费循环正常结束,不永挂)。证明单 AI 超时之外还有总上限,防后台任务永挂占住并发槽/连接。
+  it('[INV-7][timeout] 分析阶段永久挂起 → 墙钟超时:error 事件(指定中文) + 无 done + 流已关闭', async () => {
+    const user = await newUser('inv7-timeout@diag.dev', 7);
+    const resume = await newResume(user.id);
+
+    // 让 profession_standard_review 阶段返回永不 resolve 的 promise → analyzer 永久 await → 流水线挂起。
+    structuredImpl = (toolName) => {
+      if (toolName === 'profession_standard_review') {
+        return new Promise(() => {
+          /* 永不 resolve:模拟某 AI 调用彻底卡死 */
+        });
+      }
+      return defaultStructured(toolName);
+    };
+
+    // 把墙钟超时调到极小值(150ms),让用例无需真等 10 分钟即可触发。finally 复原原值。
+    const saved = process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS;
+    process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS = '150';
+
+    const before = await usageCount(user.id);
+    let events: DiagnosisStreamEvent[];
+    let streamClosed = false;
+    try {
+      // drain 会一直迭代到流 close 才返回;能返回本身即证明流已关闭(否则此处永挂、用例超时失败)。
+      events = await drain(
+        service.streamCreateProfessionStandard(
+          user.id,
+          { resume_id: resume.id, profession: '互联网产品经理' },
+          '/api/diagnoses/campus/stream',
+        ),
+      );
+      streamClosed = true;
+    } finally {
+      if (saved === undefined) delete process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS;
+      else process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS = saved;
+    }
+
+    // 流已关闭(drain 返回)。
+    expect(streamClosed).toBe(true);
+    // 推了 error 事件,且文案正是超时护栏的中文。
+    const err = find(events, 'error');
+    expect(err).toBeDefined();
+    expect(err!.message).toBe('诊断流水线超时,已中止以保护服务器资源');
+    // 没有 done(流水线未成功)。
+    expect(find(events, 'done')).toBeUndefined();
+    // 失败路径不计费、不记 ai_usage(与 INV-2b 同构)。
+    expect(await usageCount(user.id)).toBe(before);
+    const after = await userRepo.findOneByOrFail({ id: user.id });
+    expect(after.credit_balance).toBe(7);
+  }, 15_000);
 });
