@@ -101,11 +101,16 @@ describe('Auth dev-login (e2e)', () => {
         DEV_LOGIN: '1',
         NODE_ENV: 'production',
         JWT_SECRET: 'x'.repeat(48),
+        // 波0 安全:production 下 env.validation 还强制 PROVIDER_ENC_KEY 须为合法 32 字节主密钥
+        // (64 位 hex 或 base64),否则加密的 AI 通道密钥无法解密 → ConfigModule 校验即抛错。
+        // 本用例只验 dev-login 端点 production 404,与主密钥无关,故注入 64 位 hex 占位让 app 起来。
+        PROVIDER_ENC_KEY: 'a'.repeat(64),
       });
     });
     afterAll(async () => {
       await app.close();
       delete process.env.NODE_ENV;
+      delete process.env.PROVIDER_ENC_KEY;
       // 还原全局弱密钥基线(供后续非生产分组使用)。
       process.env.JWT_SECRET = 'test-secret';
     });

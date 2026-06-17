@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { AiService } from '../src/ai/ai.service';
 import { ConcurrencyLimiter } from '../src/ai/concurrency-limiter';
-import type { AiConfig } from '../src/config/ai.config';
+import { AiProviderService, LoadedProvider } from '../src/ai/ai-provider.service';
 
 // 模块级 mock @anthropic-ai/sdk:每个 Anthropic 实例的 messages.create / messages.stream 指向
 // 按 baseURL 分流的可控 mock,从而断言"哪个通道(deepseek 直连 / relay 中转)被调用 + 用了哪个型号"。
@@ -83,30 +83,71 @@ function streamYieldsThenThrows(texts: string[], msg: string): () => AsyncIterab
     })();
 }
 
-async function buildService(opts: {
-  primaryProvider: AiConfig['primaryProvider'];
+// 新架构:AiService 从 ai_providers 池(LoadedProvider[],已解密、已排序)取通道。
+// 通道型号/baseURL/密钥不再来自 ConfigService,而来自池里的 LoadedProvider;
+// mock 的 @anthropic-ai/sdk 按 baseURL 子串(deepseek/clouddreamai)把调用归属到通道。
+const PROVIDER_DEFS: Record<'deepseek' | 'relay' | 'glm', Omit<LoadedProvider, 'id' | 'name' | 'apiKey'>> = {
+  deepseek: {
+    protocol: 'anthropic-compat',
+    baseURL: 'https://api.deepseek.com/anthropic',
+    modelPro: 'deepseek-v4-pro',
+    modelFlash: 'deepseek-v4-flash',
+    timeoutMs: 120000,
+    maxRetries: 3,
+  },
+  relay: {
+    protocol: 'anthropic-compat',
+    baseURL: 'https://api.tutorial.clouddreamai.com',
+    modelPro: 'auto-v2',
+    modelFlash: 'auto-v2',
+    timeoutMs: 60000,
+    maxRetries: 0,
+  },
+  glm: {
+    protocol: 'anthropic-compat',
+    baseURL: 'https://open.bigmodel.cn/api/anthropic',
+    modelPro: 'glm-4.6',
+    modelFlash: 'glm-4.5-air',
+    timeoutMs: 120000,
+    maxRetries: 3,
+  },
+};
+
+function lp(name: 'deepseek' | 'relay' | 'glm', apiKey: string): LoadedProvider {
+  return { id: `id-${name}`, name, apiKey, ...PROVIDER_DEFS[name] };
+}
+
+// fake provider service:loadPool() 返回预置池(按顺序消费,[0] 为主)。
+function fakeProviders(pool: LoadedProvider[]): AiProviderService {
+  return { loadPool: () => Promise.resolve(pool) } as unknown as AiProviderService;
+}
+
+// 把旧版「primaryProvider + 各通道 key」语义翻译成新架构的「有序 LoadedProvider 池」:
+// 主通道(primaryProvider)排 [0],其余有 key 的通道按 deepseek→relay→glm 顺序补后。
+function poolFor(opts: {
+  primaryProvider: 'deepseek' | 'relay' | 'glm';
   deepseekKey?: string;
   relayKey?: string;
-}): Promise<AiService> {
-  const aiCfg: AiConfig = {
-    primaryProvider: opts.primaryProvider,
-    deepseek: {
-      apiKey: opts.deepseekKey,
-      modelPro: 'deepseek-v4-pro',
-      modelFlash: 'deepseek-v4-flash',
-      baseURL: 'https://api.deepseek.com/anthropic',
-      timeoutMs: 120000,
-      maxRetries: 3,
-    },
-    relay: {
-      apiKey: opts.relayKey ?? '',
-      model: 'auto-v2',
-      baseURL: 'https://api.tutorial.clouddreamai.com',
-      timeoutMs: 60000,
-      maxRetries: 0,
-    },
-    concurrency: { max: 2, queue: 8 },
+  glmKey?: string;
+}): LoadedProvider[] {
+  const keys: Record<'deepseek' | 'relay' | 'glm', string | undefined> = {
+    deepseek: opts.deepseekKey,
+    relay: opts.relayKey,
+    glm: opts.glmKey,
   };
+  const order: Array<'deepseek' | 'relay' | 'glm'> = [
+    opts.primaryProvider,
+    ...(['deepseek', 'relay', 'glm'] as const).filter((n) => n !== opts.primaryProvider),
+  ];
+  return order.filter((n) => !!keys[n]).map((n) => lp(n, keys[n]!));
+}
+
+async function buildService(opts: {
+  primaryProvider: 'deepseek' | 'relay' | 'glm';
+  deepseekKey?: string;
+  relayKey?: string;
+  glmKey?: string;
+}): Promise<AiService> {
   const module = await Test.createTestingModule({
     providers: [
       AiService,
@@ -115,12 +156,13 @@ async function buildService(opts: {
         provide: ConfigService,
         useValue: {
           get: (key: string) => {
-            if (key === 'ai') return aiCfg;
-            if (key === 'ai.concurrency') return aiCfg.concurrency;
+            if (key === 'ai.concurrency') return { max: 2, queue: 8 };
+            if (key === 'ai') return { concurrency: { max: 2, queue: 8 } };
             return undefined;
           },
         },
       },
+      { provide: AiProviderService, useValue: fakeProviders(poolFor(opts)) },
     ],
   }).compile();
   return module.get(AiService);

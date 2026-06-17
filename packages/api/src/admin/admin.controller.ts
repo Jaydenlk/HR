@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -12,6 +14,7 @@ import {
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AdminService } from './admin.service';
+import { AdminDetailService } from './admin-detail.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GrantCreditsDto } from './dto/grant-credits.dto';
 import { CreateInviteDto } from './dto/create-invite.dto';
@@ -20,16 +23,39 @@ import { OpsEventsQueryDto } from './dto/ops-events-query.dto';
 import { StatsQueryDto } from './dto/stats-query.dto';
 import { UserActivityQueryDto } from './dto/user-activity-query.dto';
 import { ErrorStreamQueryDto } from './dto/error-stream-query.dto';
+import { CreditHistoryQueryDto } from './dto/credit-history-query.dto';
+import { CreateAiProviderDto } from './dto/create-ai-provider.dto';
+import { UpdateAiProviderDto } from './dto/update-ai-provider.dto';
+import { TestAiProviderDraftDto } from './dto/test-ai-provider.dto';
 
 // 管理后台:全部端点经 JwtAuthGuard(认证)+ AdminGuard(role==='admin')。
 @Controller('admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly detail: AdminDetailService,
+  ) {}
 
   @Get('users')
   listUsers() {
     return this.admin.listUsers();
+  }
+
+  // 用户详情:实体投影 + 今日/累计调用 + 近 7 日趋势(出站 DTO 白名单,无 PII/token)。
+  // ':id' 经 ParseUUIDPipe,畸形 id → 400 不穿 DB。声明在 'users'(GET)之后,Nest 按声明匹配。
+  @Get('users/:id')
+  userDetail(@Param('id', ParseUUIDPipe) id: string) {
+    return this.detail.userDetail(id);
+  }
+
+  // 用户充值/消耗流水分页(倒序;limit 缺省 50、硬上限 200;出站 DTO 仅账务字段无正文)。
+  @Get('users/:id/credit-history')
+  creditHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: CreditHistoryQueryDto,
+  ) {
+    return this.detail.creditHistory(id, query.limit, query.offset);
   }
 
   @Patch('users/:id')
@@ -107,5 +133,54 @@ export class AdminController {
   @Get('success-stats')
   successStats(@Query() query: StatsQueryDto) {
     return this.admin.successStats(query.days);
+  }
+
+  // ===== API 管理:AI provider 通道 CRUD(出站只回打码密钥,绝不回明文/密文)=====
+
+  // 全部 AI 通道列表(密钥打码末 4 位)。
+  @Get('ai-providers')
+  listAiProviders() {
+    return this.admin.listAiProviders();
+  }
+
+  // 新建通道:apiKey 加密落库;即时生效,免重启。
+  @Post('ai-providers')
+  createAiProvider(
+    @Request() req: { user: { id: string } },
+    @Body() dto: CreateAiProviderDto,
+  ) {
+    return this.admin.createAiProvider(req.user.id, dto);
+  }
+
+  // 连通性测试(未保存草稿):用入站明文 key 发一次最小请求,不落库。
+  // 声明在 ':id/test' 之前,避免 'test' 被 ParseUUIDPipe 当 id 拒绝。
+  @Post('ai-providers/test')
+  testAiProviderDraft(@Body() dto: TestAiProviderDraftDto) {
+    return this.admin.testAiProviderDraft(dto);
+  }
+
+  // 连通性测试(已保存通道):解密 key 发一次最小请求,返回 {ok, latencyMs, error}。
+  @Post('ai-providers/:id/test')
+  testAiProvider(@Param('id', ParseUUIDPipe) id: string) {
+    return this.admin.testAiProvider(id);
+  }
+
+  // 改通道:apiKey 不传则不改(write-only);即时生效,免重启。
+  @Patch('ai-providers/:id')
+  updateAiProvider(
+    @Request() req: { user: { id: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateAiProviderDto,
+  ) {
+    return this.admin.updateAiProvider(req.user.id, id, dto);
+  }
+
+  // 删通道。
+  @Delete('ai-providers/:id')
+  deleteAiProvider(
+    @Request() req: { user: { id: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.admin.deleteAiProvider(req.user.id, id);
   }
 }

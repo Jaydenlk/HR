@@ -1568,3 +1568,94 @@ export interface Announcement {
   created_at: string;
   published_at: string | null;
 }
+
+// AI 通道协议:Anthropic 兼容 / OpenAI 兼容。
+export type AdminAiProviderProtocol = 'anthropic-compat' | 'openai-compat';
+
+// AI 通道角色:主力 / 备用 / 停用。
+export type AdminAiProviderRole = 'primary' | 'backup' | 'disabled';
+
+// GET /api/admin/ai-providers 列表元素 + POST/PATCH 响应。
+// 与后端 AdminAiProviderResponseDto 字段一一对应。
+// 安全红线:apiKeyMasked 只回打码末 4 位,绝不含明文/密文 key。
+export interface AdminAiProvider {
+  id: string;
+  name: string;
+  protocol: AdminAiProviderProtocol;
+  baseURL: string;
+  // 密钥打码(如 "****abcd");从不回明文。
+  apiKeyMasked: string;
+  modelPro: string;
+  modelFlash: string;
+  role: AdminAiProviderRole;
+  sortOrder: number;
+  timeoutMs: number;
+  maxRetries: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// POST /api/admin/ai-providers 入参(apiKey write-only)。
+export interface CreateAiProviderPayload {
+  name: string;
+  protocol: AdminAiProviderProtocol;
+  baseURL: string;
+  apiKey: string;
+  modelPro: string;
+  modelFlash: string;
+  role: AdminAiProviderRole;
+  sortOrder?: number;
+  timeoutMs?: number;
+  maxRetries?: number;
+}
+
+// PATCH /api/admin/ai-providers/:id 入参(全可选;apiKey 不传则不改)。
+export type UpdateAiProviderPayload = Partial<CreateAiProviderPayload>;
+
+// POST /api/admin/ai-providers/:id/test 与 /test 草稿 的响应。
+export interface AdminAiProviderTestResult {
+  ok: boolean;
+  latencyMs: number;
+  error?: string;
+}
+
+// ─── 管理后台 波3 用户管理类型 ─────────────────────────────────────────────────
+
+// GET /api/admin/users/:id:单用户详情。
+// 与后端 AdminUserDetailResponseDto 字段一一对应(白名单投影,无 PII 无关字段)。
+export interface AdminUserDetail {
+  id: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+  status: 'active' | 'banned';
+  credit_balance: number;
+  created_at: string;
+  last_login_ip: string | null;
+  last_login_province: string | null;
+  last_login_city: string | null;
+  last_login_at: string | null;
+  usage_today: number;
+  usage_total: number;
+  // 近 7 日按日 UTC 调用数。
+  daily_usage: { date: string; count: number }[];
+}
+
+// GET /api/admin/users/:id/credit-history 单条积分流水。
+// 与后端 AdminCreditTxResponseDto 字段一一对应(仅账务字段,无正文)。
+export interface AdminCreditTransaction {
+  id: string;
+  delta: number;
+  type: string;
+  balance_after: number;
+  note: string | null;
+  created_by: string | null;
+  endpoint: string | null;
+  created_at: string; // ISO 8601
+}
+
+// GET /api/admin/users/:id/credit-history 分页响应。
+export interface AdminCreditHistory {
+  items: AdminCreditTransaction[];
+  total: number;
+}

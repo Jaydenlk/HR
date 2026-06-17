@@ -22,6 +22,7 @@
 import { test, expect, Page } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 const BASE_URL = 'http://localhost:3001';
 const API_URL = 'http://localhost:3002';
@@ -104,7 +105,7 @@ test.describe('/me 页 credit 验收', () => {
 
     // 制造 >2MB 的假图片文件(超过前端 2MB 校验)
     const bigBuffer = Buffer.alloc(2 * 1024 * 1024 + 100, 0);
-    const tmpFile = path.join(require('os').tmpdir(), 'big-test.jpg');
+    const tmpFile = path.join(os.tmpdir(), 'big-test.jpg');
     fs.writeFileSync(tmpFile, bigBuffer);
 
     // 触发文件选择
@@ -124,7 +125,7 @@ test.describe('/me 页 credit 验收', () => {
     await page.goto(`${BASE_URL}/me`);
     await page.waitForTimeout(1500);
 
-    const tmpFile = path.join(require('os').tmpdir(), 'test-avatar.txt');
+    const tmpFile = path.join(os.tmpdir(), 'test-avatar.txt');
     fs.writeFileSync(tmpFile, 'not an image');
 
     const fileInput = page.locator('input[type="file"]');

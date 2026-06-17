@@ -34,14 +34,20 @@ export class InvitesService implements OnModuleInit {
     return this.repo.find({ order: { created_at: 'DESC' } });
   }
 
-  // 管理后台:创建邀请码。code 不传则生成随机 8 位(大写字母+数字)。
-  async create(code: string | undefined, maxUses: number): Promise<InviteCode> {
+  // 管理后台:创建邀请码。code 不传则生成随机 8 位(大写字母+数字);note 可选(发码用途/批次)。
+  async create(
+    code: string | undefined,
+    maxUses: number,
+    note?: string,
+  ): Promise<InviteCode> {
     const finalCode = code?.trim() ? code.trim().toUpperCase() : this.randomCode();
     const existing = await this.repo.findOneBy({ code: finalCode });
     if (existing) {
       throw new ConflictException('邀请码已存在');
     }
-    return this.repo.save(this.repo.create({ code: finalCode, max_uses: maxUses }));
+    return this.repo.save(
+      this.repo.create({ code: finalCode, max_uses: maxUses, note: note?.trim() || null }),
+    );
   }
 
   // 管理后台:停用/启用邀请码。

@@ -1,5 +1,6 @@
 import { IsIn, IsNotEmpty, IsNumberString, IsOptional, IsString, validateSync } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
+import { resolveMasterKey } from '../common/secret-crypto';
 
 export class EnvironmentVariables {
   // ── AI 大模型主通道密钥 ────────────────────────────────────────────
@@ -20,9 +21,18 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   JWT_SECRET!: string;
 
-  // ── AI 通道顺序(可选):测试期默认 deepseek 主力,relay 备份。 ──
+  // ── AI 通道密钥加密主密钥(可选声明,production 跨字段强制) ──────────────
+  // AES-256-GCM 主密钥:64 位 hex(=32 字节)或 base64 解出 32 字节。
+  // 缺失时:生产由 AiModule onModuleInit 拒绝启动;dev/test 降级只读(provider CRUD 被拒)。
+  // 真值永不入库:.env.production 由运维写入,.env.production.example 仅占位。
   @IsOptional()
-  @IsIn(['deepseek', 'relay'])
+  @IsString()
+  @IsNotEmpty()
+  PROVIDER_ENC_KEY?: string;
+
+  // ── AI 通道顺序(可选):测试期默认 deepseek 主力,relay 备份,glm 可选第三通道。 ──
+  @IsOptional()
+  @IsIn(['deepseek', 'relay', 'glm'])
   AI_PRIMARY_PROVIDER?: string;
 
   // ── AI DeepSeek 直连(可选,字符串):分档型号 + 直连端点。旧名 DEEPSEEK_*/AI_FALLBACK_* 兜底。──
@@ -56,6 +66,24 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsString()
   AI_RELAY_BASE_URL?: string;
+
+  // ── AI GLM 智谱直连(可选,字符串):Anthropic 兼容端点。缺 AI_GLM_API_KEY 时该通道不可用、不可设主力。──
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  AI_GLM_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_GLM_MODEL_PRO?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_GLM_MODEL_FLASH?: string;
+
+  @IsOptional()
+  @IsString()
+  AI_GLM_BASE_URL?: string;
 
   // ── AI 大模型(可选,字符串):新名 AI_PRIMARY_*/AI_FALLBACK_* + 旧名兜底 ──
   @IsOptional()
@@ -130,6 +158,14 @@ export class EnvironmentVariables {
   @IsOptional()
   @IsNumberString()
   AI_RELAY_MAX_RETRIES?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AI_GLM_TIMEOUT_MS?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  AI_GLM_MAX_RETRIES?: string;
 
   @IsOptional()
   @IsNumberString()
@@ -323,6 +359,14 @@ export function validate(config: Record<string, unknown>): Record<string, unknow
     if (jwtSecret === 'dev-secret' || jwtSecret.length < 32) {
       throw new Error(
         'Environment validation failed:\nproduction 环境 JWT_SECRET 必须为强随机值(长度 ≥32 且非占位 dev-secret),否则可被猜测密钥自签 admin token 越权。',
+      );
+    }
+    // PROVIDER_ENC_KEY 强约束:production 必须为合法 32 字节主密钥(hex 64 位或 base64),
+    // 否则 ai_providers 表里加密的通道密钥无法解密 → AI 全线不可用且静默降级风险高。
+    // 与 AiModule onModuleInit 的 fail-fast 双重防护(任一拦下即拒启)。
+    if (!resolveMasterKey(validated.PROVIDER_ENC_KEY)) {
+      throw new Error(
+        'Environment validation failed:\nproduction 环境必须配置合法 PROVIDER_ENC_KEY(64 位 hex 或 base64 解出 32 字节),否则加密的 AI 通道密钥无法解密。',
       );
     }
   }

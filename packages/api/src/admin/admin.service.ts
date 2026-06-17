@@ -5,6 +5,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, DataSource, MoreThanOrEqual, Repository } from 'typeorm';
+import { AiProviderService } from '../ai/ai-provider.service';
+import { AiService } from '../ai/ai.service';
+import { CreateAiProviderDto } from './dto/create-ai-provider.dto';
+import { UpdateAiProviderDto } from './dto/update-ai-provider.dto';
+import { TestAiProviderDraftDto } from './dto/test-ai-provider.dto';
+import {
+  AdminAiProviderResponseDto,
+  AdminAiProviderTestResponseDto,
+} from './dto/admin-ai-provider-response.dto';
 import { UsersService } from '../users/users.service';
 import { InvitesService } from '../invites/invites.service';
 import { CreditService } from '../credit/credit.service';
@@ -74,6 +83,8 @@ export class AdminService {
     private readonly health: HealthService,
     private readonly concurrency: ConcurrencyLimiter,
     private readonly dataSource: DataSource,
+    private readonly aiProviders: AiProviderService,
+    private readonly aiService: AiService,
     @InjectRepository(AiUsage) private readonly usageRepo: Repository<AiUsage>,
     @InjectRepository(CreditTransaction)
     private readonly creditTxRepo: Repository<CreditTransaction>,
@@ -166,7 +177,7 @@ export class AdminService {
   }
 
   createInvite(dto: CreateInviteDto): Promise<InviteCode> {
-    return this.invites.create(dto.code, dto.max_uses);
+    return this.invites.create(dto.code, dto.max_uses, dto.note);
   }
 
   async updateInvite(id: string, disabled: boolean): Promise<InviteCode> {
@@ -398,6 +409,104 @@ export class AdminService {
       });
     }
     return rows;
+  }
+
+  // ============================================================
+  // API 管理:AI provider 通道 CRUD(GET/POST/PATCH/DELETE /admin/ai-providers + 连通性测试)
+  // 安全红线:出站只投影打码密钥(apiKeyMasked 末 4 位),绝不回明文/密文;
+  //   密钥 write-only(PATCH 不传则不改);所有改动 invalidate 缓存,下次 AI 调用即时生效,免重启。
+  // ============================================================
+
+  // 全部 AI 通道列表(密钥打码)。
+  async listAiProviders(): Promise<AdminAiProviderResponseDto[]> {
+    const views = await this.aiProviders.list();
+    return AdminAiProviderResponseDto.fromMany(views);
+  }
+
+  // 新建通道:apiKey 加密落库;记审计事件。
+  async createAiProvider(
+    actingUserId: string,
+    dto: CreateAiProviderDto,
+  ): Promise<AdminAiProviderResponseDto> {
+    const view = await this.aiProviders.create({
+      name: dto.name,
+      protocol: dto.protocol,
+      baseURL: dto.baseURL,
+      apiKey: dto.apiKey,
+      modelPro: dto.modelPro,
+      modelFlash: dto.modelFlash,
+      role: dto.role,
+      sortOrder: dto.sortOrder,
+      timeoutMs: dto.timeoutMs,
+      maxRetries: dto.maxRetries,
+    });
+    void this.opsEvents.record('ADMIN_ACTION', {
+      actor: actingUserId,
+      op: 'createAiProvider',
+      provider: view.name,
+      role: view.role,
+    });
+    return AdminAiProviderResponseDto.from(view);
+  }
+
+  // 改通道:apiKey 不传则不改(write-only);记审计事件(不含密钥)。
+  async updateAiProvider(
+    actingUserId: string,
+    id: string,
+    dto: UpdateAiProviderDto,
+  ): Promise<AdminAiProviderResponseDto> {
+    const view = await this.aiProviders.update(id, {
+      name: dto.name,
+      protocol: dto.protocol,
+      baseURL: dto.baseURL,
+      apiKey: dto.apiKey,
+      modelPro: dto.modelPro,
+      modelFlash: dto.modelFlash,
+      role: dto.role,
+      sortOrder: dto.sortOrder,
+      timeoutMs: dto.timeoutMs,
+      maxRetries: dto.maxRetries,
+    });
+    void this.opsEvents.record('ADMIN_ACTION', {
+      actor: actingUserId,
+      op: 'updateAiProvider',
+      provider: view.name,
+      role: view.role,
+      keyChanged: dto.apiKey !== undefined && dto.apiKey.trim().length > 0,
+    });
+    return AdminAiProviderResponseDto.from(view);
+  }
+
+  // 删通道:记审计事件。
+  async deleteAiProvider(actingUserId: string, id: string): Promise<{ deleted: true }> {
+    await this.aiProviders.remove(id);
+    void this.opsEvents.record('ADMIN_ACTION', {
+      actor: actingUserId,
+      op: 'deleteAiProvider',
+      providerId: id,
+    });
+    return { deleted: true };
+  }
+
+  // 连通性测试(已保存通道):解密 key 发一次最小请求,返回 {ok, latencyMs, error}(error 无 key)。
+  async testAiProvider(id: string): Promise<AdminAiProviderTestResponseDto> {
+    const loaded = await this.aiProviders.getDecrypted(id);
+    return this.aiService.testConnection(loaded);
+  }
+
+  // 连通性测试(未保存草稿):用入站明文 key 发一次最小请求,不落库。
+  async testAiProviderDraft(dto: TestAiProviderDraftDto): Promise<AdminAiProviderTestResponseDto> {
+    return this.aiService.testConnection({
+      id: 'draft',
+      name: 'draft',
+      protocol: dto.protocol,
+      baseURL: dto.baseURL,
+      apiKey: dto.apiKey,
+      modelPro: dto.modelFlash,
+      modelFlash: dto.modelFlash,
+      timeoutMs: dto.timeoutMs ?? 30000,
+      maxRetries: 0,
+    });
   }
 
   // ---- 波2A 私有助手 ----

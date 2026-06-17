@@ -66,7 +66,7 @@ const FIXED_EMAILS = {
   mock: 'pw2-mock-user@coach.dev',
 };
 
-let tokens: Record<string, string> = {};
+const tokens: Record<string, string> = {};
 
 test.beforeAll(async () => {
   // 批量登录固定用户(已存在用户不会触发注册流程,仅签发token)

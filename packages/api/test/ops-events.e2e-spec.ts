@@ -24,6 +24,7 @@ import { OpsEventsService } from '../src/ops/ops-events.service';
 import { OpsEvent } from '../src/ops/entities/ops-event.entity';
 import { AiService } from '../src/ai/ai.service';
 import { ConcurrencyLimiter } from '../src/ai/concurrency-limiter';
+import type { AiProviderService, LoadedProvider } from '../src/ai/ai-provider.service';
 import type { AiConfig } from '../src/config/ai.config';
 
 // ── SDK mock:与 ai-service-structured.spec.ts 保持相同手法 ──────────────────
@@ -74,6 +75,15 @@ const aiCfg: AiConfig = {
     timeoutMs: 60000,
     maxRetries: 0,
   },
+  // glm 可选第三通道(无 key → 不构造 Provider);AiConfig.glm 为必填字段,fixture 须补齐。
+  glm: {
+    apiKey: undefined,
+    modelPro: 'glm-4.6',
+    modelFlash: 'glm-4.5-air',
+    baseURL: 'https://open.bigmodel.cn/api/anthropic',
+    timeoutMs: 120000,
+    maxRetries: 3,
+  },
   concurrency: { max: 2, queue: 8 },
 };
 
@@ -85,6 +95,35 @@ function makeConfigStub(cfg = aiCfg): ConfigService {
       return undefined;
     },
   } as ConfigService;
+}
+
+// 通道池 stub:relay 主(池[0])→ deepseek 备(池[1]),验证 AI_FAILOVER 降级链按 provider 名记录。
+function makeProvidersStub(): AiProviderService {
+  const pool: LoadedProvider[] = [
+    {
+      id: 'id-relay',
+      name: 'relay',
+      protocol: 'anthropic-compat',
+      baseURL: 'https://api.tutorial.clouddreamai.com',
+      apiKey: 'relay-key',
+      modelPro: 'auto-v2',
+      modelFlash: 'auto-v2',
+      timeoutMs: 60000,
+      maxRetries: 0,
+    },
+    {
+      id: 'id-deepseek',
+      name: 'deepseek',
+      protocol: 'anthropic-compat',
+      baseURL: 'https://api.deepseek.com/anthropic',
+      apiKey: 'deepseek-key',
+      modelPro: 'deepseek-v4-pro',
+      modelFlash: 'deepseek-v4-flash',
+      timeoutMs: 120000,
+      maxRetries: 0,
+    },
+  ];
+  return { loadPool: () => Promise.resolve(pool) } as unknown as AiProviderService;
 }
 
 // ── 构建轻量 ORM 模块(只含 OpsEvent 实体)──────────────────────────────────
@@ -185,7 +224,7 @@ describe('OpsEvents: AI_FAILOVER 钩子(AiService 集成)', () => {
 
     // 直接构造 AiService,将真实 OpsEventsService 注入
     const limiter = new ConcurrencyLimiter(makeConfigStub(), opsEvents);
-    const aiService = new AiService(limiter, opsEvents, makeConfigStub());
+    const aiService = new AiService(limiter, opsEvents, makeProvidersStub());
 
     await aiService.complete({ system: '你是助手', prompt: '测试' });
 
@@ -216,7 +255,7 @@ describe('OpsEvents: AI_FAILOVER 钩子(AiService 集成)', () => {
     createMock.mockRejectedValue(new Error('both down'));
 
     const limiter = new ConcurrencyLimiter(makeConfigStub(), opsEvents);
-    const aiService = new AiService(limiter, opsEvents, makeConfigStub());
+    const aiService = new AiService(limiter, opsEvents, makeProvidersStub());
 
     await expect(aiService.complete({ system: '你是助手', prompt: '测试' })).rejects.toThrow(
       ServiceUnavailableException,

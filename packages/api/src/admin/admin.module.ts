@@ -10,6 +10,7 @@ import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { CreditTransaction } from '../credit/entities/credit-transaction.entity';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { AdminDetailService } from './admin-detail.service';
 import { AdminGuard } from '../common/guards/admin.guard';
 
 @Module({
@@ -23,6 +24,6 @@ import { AdminGuard } from '../common/guards/admin.guard';
     HealthModule,
   ],
   controllers: [AdminController],
-  providers: [AdminService, AdminGuard],
+  providers: [AdminService, AdminDetailService, AdminGuard],
 })
 export class AdminModule {}

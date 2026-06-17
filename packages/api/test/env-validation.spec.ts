@@ -177,6 +177,7 @@ describe('EnvironmentVariables validate()', () => {
   // 防被人猜中密钥自签 admin token 越权。非生产放行(开发/测试常用短密钥)。
   describe('波0:production JWT_SECRET 强度', () => {
     const STRONG = 'x'.repeat(32); // 恰好 32 位强随机占位
+    const ENC = 'a'.repeat(64); // 合法 PROVIDER_ENC_KEY(64 位 hex = 32 字节),production 必填
 
     it('②production + JWT_SECRET=dev-secret → 抛错(占位密钥拒启)', () => {
       expect(() =>
@@ -196,9 +197,31 @@ describe('EnvironmentVariables validate()', () => {
       ).toThrow(/JWT_SECRET/);
     });
 
-    it('production + JWT_SECRET 恰好 32 位强随机 → 通过(边界:=32 放行)', () => {
-      const result = validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: STRONG, NODE_ENV: 'production' });
+    it('production + JWT_SECRET 恰好 32 位强随机 + 合法 PROVIDER_ENC_KEY → 通过(边界:=32 放行)', () => {
+      const result = validate({
+        AI_PRIMARY_API_KEY: 'key',
+        JWT_SECRET: STRONG,
+        PROVIDER_ENC_KEY: ENC,
+        NODE_ENV: 'production',
+      });
       expect(result.JWT_SECRET).toBe(STRONG);
+    });
+
+    it('production + 缺 PROVIDER_ENC_KEY → 抛错(加密主密钥强约束)', () => {
+      expect(() =>
+        validate({ AI_PRIMARY_API_KEY: 'key', JWT_SECRET: STRONG, NODE_ENV: 'production' }),
+      ).toThrow(/PROVIDER_ENC_KEY/);
+    });
+
+    it('production + PROVIDER_ENC_KEY 非 32 字节(63 位 hex)→ 抛错', () => {
+      expect(() =>
+        validate({
+          AI_PRIMARY_API_KEY: 'key',
+          JWT_SECRET: STRONG,
+          PROVIDER_ENC_KEY: 'a'.repeat(63),
+          NODE_ENV: 'production',
+        }),
+      ).toThrow(/PROVIDER_ENC_KEY/);
     });
 
     it('非 production + JWT_SECRET=dev-secret → 通过(开发态放行)', () => {
