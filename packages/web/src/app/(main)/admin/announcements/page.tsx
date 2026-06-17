@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import type { User, Announcement, AnnouncementKind } from '@/lib/types';
+import type { User, Announcement, AnnouncementKind, AnnouncementDisplayType } from '@/lib/types';
 import {
   Loader2,
   Shield,
@@ -14,6 +14,8 @@ import {
   Sparkles,
   Wrench,
   AlertTriangle,
+  AlignJustify,
+  MonitorPlay,
 } from 'lucide-react';
 
 // ─── 公告种类元信息(图标 + 中文标签 + 主题色),与后端 AnnouncementKind 一致 ───
@@ -27,6 +29,24 @@ const KIND_META: Record<
 };
 
 const KINDS: AnnouncementKind[] = ['feature', 'fix', 'maintenance'];
+
+// ─── 展示形态元信息 ───────────────────────────────────────────────────────────
+const DISPLAY_TYPE_META: Record<
+  AnnouncementDisplayType,
+  { label: string; icon: typeof AlignJustify; desc: string }
+> = {
+  banner: { label: '横条', icon: AlignJustify, desc: '主区顶部内联横幅,可关闭' },
+  modal: { label: '登录大公告', icon: MonitorPlay, desc: '用户登录后首次弹出' },
+};
+const DISPLAY_TYPES: AnnouncementDisplayType[] = ['banner', 'modal'];
+
+// 3 天可见窗口(毫秒),与后端 VISIBLE_WINDOW_MS 保持一致。
+const VISIBLE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+function isWithinWindow(published_at: string | null): boolean {
+  if (!published_at) return false;
+  return Date.now() - new Date(published_at).getTime() <= VISIBLE_WINDOW_MS;
+}
 
 // ─── 共享样式(沿用 admin/page.tsx 既有约定:玻璃卡用 .lg,样式只留内边距/排版)───
 const cardStyle: React.CSSProperties = { padding: '20px 22px' };
@@ -116,6 +136,7 @@ interface Draft {
   title: string;
   body: string;
   kind: AnnouncementKind;
+  display_type: AnnouncementDisplayType;
   active: boolean;
 }
 
@@ -124,6 +145,7 @@ const EMPTY_DRAFT: Draft = {
   title: '',
   body: '',
   kind: 'feature',
+  display_type: 'banner',
   active: true,
 };
 
@@ -189,6 +211,7 @@ export default function AnnouncementsAdminPage() {
           title,
           body,
           kind: draft.kind,
+          display_type: draft.display_type,
           active: draft.active,
         });
       } else {
@@ -196,6 +219,7 @@ export default function AnnouncementsAdminPage() {
           title,
           body,
           kind: draft.kind,
+          display_type: draft.display_type,
           active: draft.active,
         });
       }
@@ -411,6 +435,48 @@ export default function AnnouncementsAdminPage() {
                         >
                           {item.active ? '已上架' : '已下架'}
                         </span>
+                        {/* 展示类型徽章 */}
+                        {(() => {
+                          const dtMeta = DISPLAY_TYPE_META[item.display_type];
+                          const DtIcon = dtMeta.icon;
+                          return (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '1px 7px',
+                                borderRadius: '999px',
+                                color: 'var(--color-brand)',
+                                background: 'var(--color-brand-soft)',
+                              }}
+                            >
+                              <DtIcon size={11} />
+                              {dtMeta.label}
+                            </span>
+                          );
+                        })()}
+                        {/* 3 天窗口状态:仅上架公告显示 */}
+                        {item.active && (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              padding: '1px 7px',
+                              borderRadius: '999px',
+                              color: isWithinWindow(item.published_at)
+                                ? 'var(--color-warn)'
+                                : 'var(--color-ink-4)',
+                              background: isWithinWindow(item.published_at)
+                                ? 'var(--color-warn-soft)'
+                                : 'var(--color-line)',
+                            }}
+                          >
+                            {isWithinWindow(item.published_at) ? '窗口内可见' : '窗口已过期'}
+                          </span>
+                        )}
                       </div>
                       <div
                         style={{
@@ -460,6 +526,7 @@ export default function AnnouncementsAdminPage() {
                             title: item.title,
                             body: item.body,
                             kind: item.kind,
+                            display_type: item.display_type,
                             active: item.active,
                           });
                         }}
@@ -620,6 +687,51 @@ export default function AnnouncementsAdminPage() {
                       </button>
                     );
                   })}
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>展示类型</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {DISPLAY_TYPES.map((dt) => {
+                    const dtMeta = DISPLAY_TYPE_META[dt];
+                    const DtIcon = dtMeta.icon;
+                    const selected = draft.display_type === dt;
+                    return (
+                      <button
+                        key={dt}
+                        type="button"
+                        onClick={() => setDraft({ ...draft, display_type: dt })}
+                        title={dtMeta.desc}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '7px 12px',
+                          borderRadius: '999px',
+                          border: selected
+                            ? '1px solid var(--color-brand)'
+                            : '1px solid var(--color-line)',
+                          background: selected ? 'var(--color-brand-soft)' : 'transparent',
+                          color: selected ? 'var(--color-brand)' : 'var(--color-ink-3)',
+                          fontSize: '12.5px',
+                          fontWeight: selected ? 700 : 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <DtIcon size={13} /> {dtMeta.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div
+                  style={{
+                    fontSize: '11.5px',
+                    color: 'var(--color-ink-4)',
+                    marginTop: '6px',
+                  }}
+                >
+                  {DISPLAY_TYPE_META[draft.display_type].desc}
                 </div>
               </div>
 

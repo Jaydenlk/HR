@@ -1,13 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Announcement } from './entities/announcement.entity';
+import { MoreThanOrEqual, Repository } from 'typeorm';
+import {
+  Announcement,
+  AnnouncementDisplayType,
+} from './entities/announcement.entity';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 
 // 分页默认/上限:与 AnnouncementQueryDto 的 @Max 一致,service 层兜底强制 clamp。
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
+
+// 公开端可见窗口:发布后 3 天。计算式过滤(now ≤ published_at + 3 天),不落 expires 列。
+const VISIBLE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class AnnouncementsService {
@@ -16,13 +22,24 @@ export class AnnouncementsService {
     private readonly repo: Repository<Announcement>,
   ) {}
 
-  // 公开端:仅 active 公告,发布时间倒序(空发布时间退化到创建时间排序由 created_at 兜底)。
+  // 公开端:仅 active 且发布后 ≤3 天的公告,发布时间倒序。
+  // 3 天窗口为计算式:published_at ≥ now - 3 天。published_at 为空(从未上架)的不返。
+  // 可选 placement 过滤(banner/modal);不传则返全部,前端按 display_type 自行分流。
   // limit/offset 在此 clamp,无论入参如何都不越界。
-  findActive(limit?: number, offset?: number): Promise<Announcement[]> {
+  findActive(
+    limit?: number,
+    offset?: number,
+    placement?: AnnouncementDisplayType,
+  ): Promise<Announcement[]> {
     const take = this.clampLimit(limit);
     const skip = this.clampOffset(offset);
+    const since = new Date(Date.now() - VISIBLE_WINDOW_MS);
     return this.repo.find({
-      where: { active: true },
+      where: {
+        active: true,
+        published_at: MoreThanOrEqual(since),
+        ...(placement ? { display_type: placement } : {}),
+      },
       order: { published_at: 'DESC', created_at: 'DESC' },
       take,
       skip,
@@ -34,20 +51,23 @@ export class AnnouncementsService {
     return this.repo.find({ order: { created_at: 'DESC' } });
   }
 
-  // 管理后台:发布公告。active 默认 true;active 为 true 时 published_at 取当前时间。
+  // 管理后台:发布公告。active 默认 true;active 为 true 时 published_at 取当前时间(3 天窗口起点)。
   create(dto: CreateAnnouncementDto): Promise<Announcement> {
     const active = dto.active ?? true;
     const entity = this.repo.create({
       title: dto.title,
       body: dto.body,
       kind: dto.kind ?? 'feature',
+      display_type: dto.display_type ?? 'banner',
       active,
       published_at: active ? new Date() : null,
     });
     return this.repo.save(entity);
   }
 
-  // 管理后台:改公告。只更新传入字段;active 由 false→true 时补 published_at(首次/再次上架记发布点)。
+  // 管理后台:改公告。只更新传入字段。
+  // published_at 刷新时机:更新后处于 active 状态即刷新(再发布/编辑视为重新开始 3 天窗口);
+  // 下架(active=false)不动 published_at(保留历史发布点)。
   async update(id: string, dto: UpdateAnnouncementDto): Promise<Announcement> {
     const existing = await this.repo.findOneBy({ id });
     if (!existing) {
@@ -56,11 +76,11 @@ export class AnnouncementsService {
     if (dto.title !== undefined) existing.title = dto.title;
     if (dto.body !== undefined) existing.body = dto.body;
     if (dto.kind !== undefined) existing.kind = dto.kind;
-    if (dto.active !== undefined) {
-      if (dto.active && !existing.active) {
-        existing.published_at = new Date();
-      }
-      existing.active = dto.active;
+    if (dto.display_type !== undefined) existing.display_type = dto.display_type;
+    if (dto.active !== undefined) existing.active = dto.active;
+    // 更新后仍上架 → 刷新发布点,重新计 3 天窗口;已下架则保留旧 published_at。
+    if (existing.active) {
+      existing.published_at = new Date();
     }
     return this.repo.save(existing);
   }

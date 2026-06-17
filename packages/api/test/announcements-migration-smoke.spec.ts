@@ -45,6 +45,8 @@ describe('CreateAnnouncements1781500000000 迁移结构', () => {
     expect(d).toMatch(/"title" character varying NOT NULL/);
     expect(d).toMatch(/"body" text NOT NULL/);
     expect(d).toMatch(/"kind" character varying NOT NULL DEFAULT 'feature'/);
+    // display_type:banner/modal 分流列，默认 banner。
+    expect(d).toMatch(/"display_type" character varying NOT NULL DEFAULT 'banner'/);
     expect(d).toMatch(/"active" boolean NOT NULL DEFAULT true/);
     expect(d).toMatch(/"created_at" TIMESTAMP NOT NULL DEFAULT now\(\)/);
     expect(d).toMatch(/"published_at" TIMESTAMP/);

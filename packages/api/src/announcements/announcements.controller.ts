@@ -10,7 +10,11 @@ export class AnnouncementsController {
 
   @Get()
   async list(@Query() query: AnnouncementQueryDto): Promise<AnnouncementResponseDto[]> {
-    const items = await this.announcements.findActive(query.limit, query.offset);
+    const items = await this.announcements.findActive(
+      query.limit,
+      query.offset,
+      query.placement,
+    );
     return items.map(AnnouncementResponseDto.from);
   }
 }

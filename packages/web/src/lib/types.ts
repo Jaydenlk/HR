@@ -1544,6 +1544,9 @@ export interface AdminOpsDailyStats {
 // 公告种类:功能上新 / 修复 / 维护。与后端 AnnouncementKind 一致。
 export type AnnouncementKind = 'feature' | 'fix' | 'maintenance';
 
+// 公告展示形态:横幅 / 弹窗。与后端 AnnouncementDisplayType 一致。
+export type AnnouncementDisplayType = 'banner' | 'modal';
+
 // 公告记录,镜像后端 AnnouncementResponseDto(/api/admin/announcements 与 /api/announcements)。
 // created_at/published_at 经 JSON 序列化为 ISO 字符串。
 export interface Announcement {
@@ -1551,6 +1554,7 @@ export interface Announcement {
   title: string;
   body: string;
   kind: AnnouncementKind;
+  display_type: AnnouncementDisplayType;
   active: boolean;
   created_at: string;
   published_at: string | null;

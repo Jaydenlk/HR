@@ -11,6 +11,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Tooltip } from '@/components/ui/tooltip';
 import { NAV_HINTS } from '@/components/onboarding/nav-hints';
 import { AnnouncementBanner } from '@/components/ui/announcement-banner';
+import { AnnouncementModal } from '@/components/ui/announcement-modal';
 import { api } from '@/lib/api';
 import type { User, Conversation, Interview, Application, MeProfile } from '@/lib/types';
 import {
@@ -1061,6 +1062,10 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           {children}
         </div>
       </main>
+
+      {/* 登录大公告弹窗:接 GET /announcements?placement=modal,登录后/进 App 时弹出 modal 类型公告。
+          只在 (main) 布局(已过 /auth/me 守卫=已登录)挂载,已读按 id 存 localStorage(3 天窗口内新公告仍弹)。 */}
+      <AnnouncementModal />
 
       {/* 新手导览:首次使用引导。桌面聚光灯 / 移动端居中卡降级,由组件内部按 isMobile 决定形态(完成标记在 localStorage) */}
       <OnboardingTour />

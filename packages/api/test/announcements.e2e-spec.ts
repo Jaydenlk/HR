@@ -24,11 +24,13 @@ const mockAiService = {
 };
 
 // DTO 白名单:AnnouncementResponseDto 暴露的全部字段（出站契约）。
+// 含 display_type(banner/modal)——前端按此分流横幅/弹窗。
 const DTO_FIELDS = [
   'id',
   'title',
   'body',
   'kind',
+  'display_type',
   'active',
   'created_at',
   'published_at',
@@ -228,6 +230,185 @@ describe('Announcements (e2e)', () => {
       const res = await request(app.getHttpServer()).get('/api/announcements');
       const ids = (res.body as { id: string }[]).map((r) => r.id);
       expect(ids).not.toContain(activeId);
+    });
+  });
+
+  // ─── 3 天可见窗口:published_at ≤3 天显示，>3 天不显示 ──────────────────────────
+  // 公开端 findActive 用计算式 published_at ≥ now - 3 天过滤；造数据后直接改 published_at 列验证。
+  describe('GET /api/announcements 3 天可见窗口', () => {
+    let freshId: string; // 刚发布（窗口内）
+    let staleId: string; // 发布已 4 天（窗口外）
+    let edgeInId: string; // 距今 2 天 23 小时（窗口内边界）
+    let edgeOutId: string; // 距今 3 天 1 分钟（窗口外边界）
+
+    beforeAll(async () => {
+      const mk = async (title: string): Promise<string> => {
+        const r = await request(app.getHttpServer())
+          .post('/api/admin/announcements')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ title, body: '窗口测试', kind: 'feature', active: true });
+        expect(r.status).toBe(201);
+        return r.body.id as string;
+      };
+      freshId = await mk('窗口内-刚发布');
+      staleId = await mk('窗口外-4天前');
+      edgeInId = await mk('窗口内边界-2天23小时');
+      edgeOutId = await mk('窗口外边界-3天零1分');
+
+      const now = Date.now();
+      const DAY = 24 * 60 * 60 * 1000;
+      // 直接改 published_at 列模拟历史发布点（create 写的是 now）。
+      await annRepo.update({ id: staleId }, { published_at: new Date(now - 4 * DAY) });
+      await annRepo.update(
+        { id: edgeInId },
+        { published_at: new Date(now - (3 * DAY - 60 * 60 * 1000)) }, // 2天23小时前
+      );
+      await annRepo.update(
+        { id: edgeOutId },
+        { published_at: new Date(now - (3 * DAY + 60 * 1000)) }, // 3天零1分前
+      );
+    }, 30000);
+
+    it('发布 <3 天 → 公开端返回', async () => {
+      const res = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      const ids = (res.body as { id: string }[]).map((r) => r.id);
+      expect(ids).toContain(freshId);
+      expect(ids).toContain(edgeInId);
+    });
+
+    it('发布 >3 天 → 公开端不返回', async () => {
+      const res = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      const ids = (res.body as { id: string }[]).map((r) => r.id);
+      expect(ids).not.toContain(staleId);
+      expect(ids).not.toContain(edgeOutId);
+    });
+
+    it('窗口内每条 published_at 距今均 ≤3 天', async () => {
+      const res = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      const now = Date.now();
+      const WINDOW = 3 * 24 * 60 * 60 * 1000;
+      for (const item of res.body as { published_at: string | null }[]) {
+        expect(item.published_at).not.toBeNull();
+        const age = now - new Date(item.published_at as string).getTime();
+        expect(age).toBeLessThanOrEqual(WINDOW + 5_000); // 5s 容差(执行耗时)
+      }
+    });
+
+    it('窗口外公告管理后台仍可见(findAll 不受窗口限制)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`);
+      const ids = (res.body as { id: string }[]).map((r) => r.id);
+      expect(ids).toContain(staleId);
+      expect(ids).toContain(edgeOutId);
+    });
+  });
+
+  // ─── 类型路由:banner 只进横条通道、modal 只进弹窗通道，不串 ───────────────────
+  describe('GET /api/announcements 类型路由 (placement 过滤)', () => {
+    let bannerId: string;
+    let modalId: string;
+
+    beforeAll(async () => {
+      const b = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '横幅公告', body: '走横条', display_type: 'banner', active: true });
+      expect(b.status).toBe(201);
+      expect(b.body.display_type).toBe('banner');
+      bannerId = b.body.id;
+
+      const m = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '弹窗公告', body: '走弹窗', display_type: 'modal', active: true });
+      expect(m.status).toBe(201);
+      expect(m.body.display_type).toBe('modal');
+      modalId = m.body.id;
+    }, 30000);
+
+    it('placement=banner → 只返 banner，绝不含 modal', async () => {
+      const res = await request(app.getHttpServer()).get(
+        '/api/announcements?placement=banner&limit=50',
+      );
+      expect(res.status).toBe(200);
+      const items = res.body as { id: string; display_type: string }[];
+      expect(items.map((r) => r.id)).toContain(bannerId);
+      expect(items.map((r) => r.id)).not.toContain(modalId);
+      // 通道纯净:返回项全部 display_type=banner。
+      for (const it of items) expect(it.display_type).toBe('banner');
+    });
+
+    it('placement=modal → 只返 modal，绝不含 banner', async () => {
+      const res = await request(app.getHttpServer()).get(
+        '/api/announcements?placement=modal&limit=50',
+      );
+      expect(res.status).toBe(200);
+      const items = res.body as { id: string; display_type: string }[];
+      expect(items.map((r) => r.id)).toContain(modalId);
+      expect(items.map((r) => r.id)).not.toContain(bannerId);
+      for (const it of items) expect(it.display_type).toBe('modal');
+    });
+
+    it('不传 placement → 两类都返(前端自行分流)', async () => {
+      const res = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      const ids = (res.body as { id: string }[]).map((r) => r.id);
+      expect(ids).toContain(bannerId);
+      expect(ids).toContain(modalId);
+    });
+
+    it('placement 非法值 → 400(DTO @IsIn 拦截)', async () => {
+      const res = await request(app.getHttpServer()).get('/api/announcements?placement=popup');
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── admin 发布带 display_type 正确落库 + 默认值 ──────────────────────────────
+  describe('POST /api/admin/announcements display_type 落库', () => {
+    it('显式 display_type=modal → 落库为 modal', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '落库modal', body: 'x', display_type: 'modal' });
+      expect(res.status).toBe(201);
+      expect(res.body.display_type).toBe('modal');
+      const inDb = await annRepo.findOneBy({ id: res.body.id });
+      expect(inDb!.display_type).toBe('modal');
+    });
+
+    it('不传 display_type → 默认 banner 落库', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '默认banner', body: 'x' });
+      expect(res.status).toBe(201);
+      expect(res.body.display_type).toBe('banner');
+      const inDb = await annRepo.findOneBy({ id: res.body.id });
+      expect(inDb!.display_type).toBe('banner');
+    });
+
+    it('display_type 非法值 → 400(DTO @IsIn 拦截)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '非法类型', body: 'x', display_type: 'toast' });
+      expect(res.status).toBe(400);
+    });
+
+    it('PATCH 改 display_type banner→modal 正确落库', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '待改类型', body: 'x', display_type: 'banner' });
+      expect(created.body.display_type).toBe('banner');
+      const patch = await request(app.getHttpServer())
+        .patch(`/api/admin/announcements/${created.body.id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ display_type: 'modal' });
+      expect(patch.status).toBe(200);
+      expect(patch.body.display_type).toBe('modal');
+      const inDb = await annRepo.findOneBy({ id: created.body.id });
+      expect(inDb!.display_type).toBe('modal');
     });
   });
 

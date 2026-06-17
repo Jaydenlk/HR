@@ -1,7 +1,9 @@
 'use client';
 
 // ── 公告横幅 ─────────────────────────────────────────────────────────────────
-// 挂在 (main)/layout.tsx 主区顶部(侧栏下方),展示 GET /announcements 返回的 active 公告。
+// 挂在 (main)/layout.tsx 主区顶部(侧栏下方),展示 GET /announcements?placement=banner 返回的 active 公告。
+// 只渲染 display_type='banner' 且 published_at 在 3 天窗口内的公告(后端已过滤,前端双保险)。
+// modal 类型不在此渲染——由登录弹窗组件另行处理,两者互不干扰。
 // 已读记录存 localStorage key = "coach_announce_dismissed"(Set 序列化为 JSON 数组)。
 // 按 kind 配色:feature=品牌蓝 / fix=成功绿 / maintenance=警告橙;沿用玻璃风格。
 // 静默降级:API 失败或无公告时不渲染任何内容。
@@ -10,6 +12,14 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import type { Announcement, AnnouncementKind } from '@/lib/types';
 import { X, Sparkles, Wrench, AlertTriangle } from 'lucide-react';
+
+// 3 天可见窗口(毫秒)——与后端 VISIBLE_WINDOW_MS 保持一致,前端二次过滤防脏数据。
+const VISIBLE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+function isWithinWindow(published_at: string | null): boolean {
+  if (!published_at) return false;
+  return Date.now() - new Date(published_at).getTime() <= VISIBLE_WINDOW_MS;
+}
 
 // ── 按 kind 的视觉配置 ──────────────────────────────────────────────────────
 const KIND_META: Record<
@@ -181,12 +191,17 @@ export function AnnouncementBanner() {
   const [dismissed, setDismissed] = useState<Set<string>>(readDismissed);
   const [loaded, setLoaded] = useState(false);
 
-  // 初始加载:拉接口
+  // 初始加载:拉接口,传 placement=banner 让后端只返横幅类型,前端再双保险过滤。
   useEffect(() => {
     api
-      .get<Announcement[]>('/announcements')
+      .get<Announcement[]>('/announcements?placement=banner')
       .then((data) => {
-        setItems(data.filter((a) => a.active));
+        // 仅展示 display_type='banner' 且在 3 天窗口内的——后端已过滤,前端二次保险。
+        setItems(
+          data.filter(
+            (a) => a.active && a.display_type === 'banner' && isWithinWindow(a.published_at),
+          ),
+        );
         setLoaded(true);
       })
       .catch(() => {
