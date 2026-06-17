@@ -1,17 +1,20 @@
 /**
- * 扫码上传(QR scoped 一次性令牌)端到端 e2e。
+ * 扫码上传(QR scoped 一次性短令牌)端到端 e2e。
  *
  * 走真实 HTTP 链路(supertest),验证 /upload/:token 豁免控制器的安全语义,均以"找茬"为目标:
- *  ① 正常闭环:电脑端登录用户 POST :id/upload-token 拿令牌 → 凭令牌 POST /upload/:token 上传
+ *  ① 正常闭环:电脑端登录用户 POST :id/upload-token 拿短令牌 → 凭令牌 POST /upload/:token 上传
  *     成功(202 + taskId)→ 后台跑完 → 电脑端 GET :id/transcribe/status 见 awaiting_confirm,
  *     证明令牌真的建起了绑定 interview 的转写任务。
  *  ② 一次性:同一令牌第二次上传 → 拒(401),且不重复建任务。
- *  ③ 过期:伪造一个已过期(exp 在过去)的合法签名令牌 → 拒(401),不建任务。
+ *  ③ 不可伪造 / 不命中映射:乱码、未签发的随机串、主登录令牌(Bearer 用)拿来当上传令牌 → 一律 401,
+ *     不建任务。短令牌是服务端发的不透明随机 id,任何不在内存映射里的字符串都进不来——这取代了
+ *     旧 JWT 版的"签名/过期/用途"伪造测试(攻击者已无从伪造一个"碰巧存在"的令牌)。
+ *     (过期路径在 qr-upload-token.service.spec.ts 用 fake timers 覆盖,e2e 层不便快进 60s TTL。)
  *  ④ scoped 归属红线(双保险):
- *     - 伪造一个签名正确、但 interviewId 指向"他人 interview"的令牌 → 上传被 service.findOne
- *       兜住 404(令牌持有的 userId 与目标 interview 物主不符,即跨 user/跨 interview)。
- *     - 用 A 用户为自己 interview 签的真实令牌,其解出的归属恒为 A+A 的 interview,无法被请求体
- *       覆写去传 B 的 interview(归属一律取自令牌)。
+ *     - 归属一律取自服务端映射(签发时绑定的 interviewId/userId),无法被请求体里的 interviewId/userId
+ *       覆写去传别人的 interview。
+ *     - service.transcribe 内部仍 findOne(interviewId, userId) 再兜一层(即便归属错配也会 404),
+ *       此兜底由 qr-upload-token.service.spec / interviews 单测覆盖,e2e 无从构造错配输入(令牌不可伪造)。
  *  ⑤ mobile-gate 只豁免 /upload/[token]:前端 client 组件,无法在后端 e2e 跑;静态核实见下方注释。
  *
  * ASR 与 LLM 全部 mock(不触真实 StepFun/中转),复用 transcribe-async.e2e-spec 同款假 provider。
@@ -28,7 +31,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
@@ -85,8 +87,6 @@ const mockAiService = {
 // 同 transcribe-async：1x1 极小"音频"buffer;mimetype 必须 audio/* 才过 multer fileFilter。
 const FAKE_AUDIO = Buffer.from('fake-audio-bytes');
 
-// e2e 里 JWT_SECRET=test-secret(setupFiles 默认)。我们用同 secret 的独立 JwtService 伪造
-// "签名正确但语义恶意"的令牌(过期 / 跨归属),以验证 service 兜底。
 const JWT_SECRET = 'test-secret';
 
 async function registerUser(app: INestApplication, email: string, name: string): Promise<string> {
@@ -132,11 +132,10 @@ async function pollStatus(
   }
 }
 
-describe('扫码上传 scoped 一次性令牌 (e2e)', () => {
+describe('扫码上传 scoped 一次性短令牌 (e2e)', () => {
   let app: INestApplication;
   let userRepo: Repository<User>;
   let taskRepo: Repository<InterviewTranscribeTask>;
-  let jwt: JwtService;
 
   beforeAll(async () => {
     process.env.DB_TYPE = 'sqlite';
@@ -163,7 +162,6 @@ describe('扫码上传 scoped 一次性令牌 (e2e)', () => {
     taskRepo = moduleRef.get<Repository<InterviewTranscribeTask>>(
       getRepositoryToken(InterviewTranscribeTask),
     );
-    jwt = new JwtService({ secret: JWT_SECRET });
   }, 30000);
 
   afterAll(async () => {
@@ -184,6 +182,9 @@ describe('扫码上传 scoped 一次性令牌 (e2e)', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(201);
     expect(typeof res.body.token).toBe('string');
+    // 短令牌契约:url-safe 短 id,远短于 JWT(此前数百字符),保证拼成 URL 后能塞进低版本二维码。
+    expect(res.body.token).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(res.body.token.length).toBeLessThanOrEqual(24);
     expect(res.body.uploadPath).toBe(`/upload/${res.body.token}`);
     expect(res.body.expiresInSec).toBe(60);
     return {
@@ -244,7 +245,7 @@ describe('扫码上传 scoped 一次性令牌 (e2e)', () => {
     expect(first.status).toBe(202);
     expect(first.body.taskId).toBeTruthy();
 
-    // 同一令牌再传一次:jti 已烧 → 401。
+    // 同一令牌再传一次:已烧 → 401。
     const second = await request(app.getHttpServer())
       .post(`/api/upload/${uploadToken}`)
       .field('consent', 'true')
@@ -256,47 +257,15 @@ describe('扫码上传 scoped 一次性令牌 (e2e)', () => {
     expect(count).toBe(1);
   }, 30000);
 
-  // ── ③ 过期:伪造一个 exp 在过去、签名正确的令牌 → 401,不建任务 ───────────────────
-  it('③ 过期:已过期(exp 在过去)的合法签名令牌 → 401,不建任务', async () => {
-    const email = `qr-expired-${Date.now()}@coach.dev`;
-    const accessToken = await registerUser(app, email, '过期');
+  // ── ③ 不命中映射:未签发的随机串 → 401,不建任务 ────────────────────────────────
+  it('③ 未签发的随机串(不命中服务端映射)→ 401,不建任务', async () => {
+    const email = `qr-unknown-${Date.now()}@coach.dev`;
+    const accessToken = await registerUser(app, email, '未签发');
     const interviewId = await createInterview(app, accessToken);
-    const user = await userRepo.findOneByOrFail({ email });
 
-    // 用同 secret 签一个立即过期的合法 payload(expiresIn 负值)。
-    const expired = jwt.sign(
-      { purpose: 'audio_upload', interviewId, sub: user.id, jti: 'expired-jti-1' },
-      { expiresIn: -10 },
-    );
-
+    // 攻击者随手编一个 url-safe 串(从未由后端签发)→ 不在映射里 → 401。
     const up = await request(app.getHttpServer())
-      .post(`/api/upload/${expired}`)
-      .field('consent', 'true')
-      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
-    expect(up.status).toBe(401);
-
-    // 过期令牌挡在 verify,未建任务。
-    const count = await taskRepo.count({ where: { interview_id: interviewId } });
-    expect(count).toBe(0);
-  }, 30000);
-
-  // ── ③b 篡改签名:用错误 secret 签的令牌 → 401(签名红线) ─────────────────────────
-  it('③b 错误 secret 签的令牌 → 401(签名校验)', async () => {
-    const email = `qr-forged-${Date.now()}@coach.dev`;
-    const accessToken = await registerUser(app, email, '伪签');
-    const interviewId = await createInterview(app, accessToken);
-    const user = await userRepo.findOneByOrFail({ email });
-
-    const forge = new JwtService({ secret: 'attacker-secret' });
-    const forged = forge.sign({
-      purpose: 'audio_upload',
-      interviewId,
-      sub: user.id,
-      jti: 'forged-jti-1',
-    });
-
-    const up = await request(app.getHttpServer())
-      .post(`/api/upload/${forged}`)
+      .post(`/api/upload/AbCdEf0123456789xyzXYZ`)
       .field('consent', 'true')
       .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
     expect(up.status).toBe(401);
@@ -305,66 +274,22 @@ describe('扫码上传 scoped 一次性令牌 (e2e)', () => {
     expect(count).toBe(0);
   }, 30000);
 
-  // ── ④ scoped 归属:令牌绑定 A 的 interview;伪造令牌指向 B 的 interview / 跨 user → 拒 ──
-  it('④ 跨 user/跨 interview:令牌的 userId 与目标 interview 物主不符 → 404(service findOne 兜底),不建任务', async () => {
-    // A 拥有 interviewA;B 拥有 interviewB。
-    const aToken = await registerUser(app, `qr-A-${Date.now()}@coach.dev`, '甲');
-    const bToken = await registerUser(app, `qr-B-${Date.now()}@coach.dev`, '乙');
-    const interviewA = await createInterview(app, aToken);
-    void interviewA;
-    const interviewB = await createInterview(app, bToken);
-
-    // 攻击者持有 A 的 userId,却把令牌 interviewId 指向 B 的 interview(跨 interview/跨 user)。
-    // 签名正确,但 service.findOne(interviewB, A) 查不到属于 A 的 interviewB → 404。
-    const userA = await userRepo.findOneByOrFail({ name: '甲' });
-
-    const crossToken = jwt.sign({
-      purpose: 'audio_upload',
-      interviewId: interviewB, // 指向 B 的面试
-      sub: userA.id, // 持令牌人是 A
-      jti: `cross-jti-${Date.now()}`,
-    });
-
-    const up = await request(app.getHttpServer())
-      .post(`/api/upload/${crossToken}`)
-      .field('consent', 'true')
-      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
-    // 令牌签名/用途/jti 都过,但归属在 service.findOne(interviewB, A) 兜底 → 404。
-    expect(up.status).toBe(404);
-
-    // B 的 interview 未被建任务(归属红线守住:A 的令牌传不进 B 的 interview)。
-    const count = await taskRepo.count({ where: { interview_id: interviewB } });
-    expect(count).toBe(0);
-
-    // 反证:同样持 A 的 sub、但指向"压根不存在的 interview"→ 同样 404,不建任务。
-    const ghostToken = jwt.sign({
-      purpose: 'audio_upload',
-      interviewId: 'non-existent-interview-id',
-      sub: userA.id,
-      jti: `ghost-jti-${Date.now()}`,
-    });
-    const up2 = await request(app.getHttpServer())
-      .post(`/api/upload/${ghostToken}`)
-      .field('consent', 'true')
-      .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
-    expect(up2.status).toBe(404);
-  }, 30000);
-
-  // ── ④b 用途红线:主登录令牌(无 purpose)拿来当上传令牌 → 401 ─────────────────────
-  it('④b 主登录令牌(Bearer 用)拿来当 /upload 令牌 → 401(用途校验)', async () => {
+  // ── ③b 用途红线:主登录令牌(Bearer 用)拿来当 /upload 令牌 → 401(不命中映射) ──────
+  it('③b 主登录令牌(Bearer 用)拿来当 /upload 令牌 → 401', async () => {
     const email = `qr-misuse-${Date.now()}@coach.dev`;
     const accessToken = await registerUser(app, email, '冒用');
 
-    // 直接把登录 access_token 塞进 /upload/:token(它形如 {sub,email},无 purpose/interviewId)。
+    // 直接把登录 access_token(长 JWT)塞进 /upload/:token:它从未由 QrUploadTokenService 签发,
+    // 不命中映射 → 401(顺带证明:长 JWT 即便被拿来当 token 也无效,正是本次改短令牌的初衷)。
     const up = await request(app.getHttpServer())
-      .post(`/api/upload/${accessToken}`)
+      .post(`/api/upload/${encodeURIComponent(accessToken)}`)
       .field('consent', 'true')
       .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
     expect(up.status).toBe(401);
   }, 30000);
 
-  // ── ④c 归属取自令牌、不可被请求体覆写:body 里塞 interviewId/userId 无效 ────────────
-  it('④c 归属一律取自令牌,请求体里的 interviewId/userId 字段被忽略', async () => {
+  // ── ④ 归属取自令牌、不可被请求体覆写:body 里塞 interviewId/userId 无效 ────────────
+  it('④ 归属一律取自令牌,请求体里的 interviewId/userId 字段被忽略', async () => {
     const aToken = await registerUser(app, `qr-bind-A-${Date.now()}@coach.dev`, '绑定甲');
     const bToken = await registerUser(app, `qr-bind-B-${Date.now()}@coach.dev`, '绑定乙');
     const interviewA = await createInterview(app, aToken);
@@ -379,7 +304,7 @@ describe('扫码上传 scoped 一次性令牌 (e2e)', () => {
       .field('userId', 'someone-else') // 恶意覆写尝试
       .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
 
-    // 归属取自令牌(interviewA + A),body 覆写无效 → 任务落在 A 的 interviewA、不落 B。
+    // 归属取自令牌映射(interviewA + A),body 覆写无效 → 任务落在 A 的 interviewA、不落 B。
     expect(up.status).toBe(202);
     const task = await taskRepo.findOneByOrFail({ id: up.body.taskId });
     expect(task.interview_id).toBe(interviewA);
@@ -396,7 +321,7 @@ describe('扫码上传 scoped 一次性令牌 (e2e)', () => {
   // ── 结构红线:乱码 token → 401,不建任务 ─────────────────────────────────────────
   it('乱码 token → 401', async () => {
     const up = await request(app.getHttpServer())
-      .post('/api/upload/not-a-jwt')
+      .post('/api/upload/not-a-real-token')
       .field('consent', 'true')
       .attach('file', FAKE_AUDIO, { filename: 'a.mp3', contentType: 'audio/mpeg' });
     expect(up.status).toBe(401);

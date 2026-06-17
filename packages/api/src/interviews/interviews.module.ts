@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { Interview } from './entities/interview.entity';
 import { InterviewsController } from './interviews.controller';
 import { QrUploadController } from './qr-upload.controller';
@@ -24,15 +22,6 @@ import { InterviewTranscribeTask } from '../speech/entities/transcribe-task.enti
     QuotaModule,
     CreditModule,
     SpeechModule,
-    // 本模块需要 JwtService 签发/校验扫码上传 scoped 令牌。auth.module 里的 JwtModule 不被
-    // 本模块继承,故在本作用域独立注册同口径 JwtModule(secret=JWT_SECRET,默认 dev-secret),
-    // 与主登录令牌共用同一 secret(校验签名一致);本令牌用途/时效在 QrUploadTokenService 内单独控制。
-    JwtModule.registerAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET', 'dev-secret'),
-      }),
-    }),
   ],
   controllers: [InterviewsController, QrUploadController],
   providers: [InterviewsService, QrUploadTokenService, DebriefService],

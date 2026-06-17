@@ -1,51 +1,60 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'crypto';
+import { randomBytes } from 'crypto';
 
 /**
  * 扫码上传 scoped 令牌(QR 一次性令牌)的签发与校验。
  *
- * 设计依据(handoff §令牌机制):复用现有 JwtModule(secret=JWT_SECRET)签发一种「窄权限、
- * 短时效、一次性」的令牌,专供手机端在「未登录」状态下,把音频直传到电脑端用户指定的某个 interview。
+ * 设计依据(handoff §令牌机制):手机端在「未登录」状态下,把音频直传到电脑端用户指定的某个 interview。
+ * 鉴权完全靠 URL 路径里的这枚 scoped 令牌:它窄权限(只能传它绑定的那一个 interview)、短时效(60s)、
+ * 一次性(成功即焚)。
+ *
+ * 为什么用「短随机不透明 id + 内存映射」而不是 JWT:
+ *  - 令牌进的是二维码,而二维码内容越长所需版本越高。JWT(header.payload.signature,内含
+ *    purpose/interviewId/sub/jti/iat/exp 多个 UUID 字段)动辄 200–300+ 字符,加上站点 origin 拼成
+ *    完整 URL 后,超出轻量二维码生成器(lib/qrcode.ts 版本 1–10)的容量,直接编码失败。
+ *  - 改成 24 字符以内的 url-safe 短 id,绑定关系(interviewId/userId/过期/是否用过)全部存在服务端内存,
+ *    URL 极短,二维码用最低版本即可编码,且令牌本身不携带任何归属信息(更不可被伪造/篡改)。
  *
  * 与主登录令牌的本质区别(故绝不复用 passport JwtStrategy / JwtAuthGuard):
- *  - payload 形状不同:主令牌 {sub,email};本令牌 {purpose,interviewId,sub,jti}。
  *  - 取值位置不同:主令牌走 Authorization Bearer 头;本令牌在 URL 路径参数里(/upload/:token)。
- *  - 校验语义不同:主令牌查 users 表认人;本令牌只认「purpose + 绑定的 interviewId + 拥有者 sub +
- *    未过期 + jti 未用过」,不需要也不应该当作登录态。
- * 故本服务用 jwt.verify 显式校验签名+exp,再断言业务字段,完全独立于 passport 链路。
+ *  - 校验语义不同:主令牌查 users 表认人;本令牌只认「服务端映射里存在 + 未过期 + 未用过」,
+ *    再由映射取出它在签发时绑定的 interviewId/userId,不需要也不应该当作登录态。
  *
- * 一次性保证(无迁移):
- *  - 短 TTL(60s):令牌出生即将死,扫码窗口极短。
- *  - jti 内存黑名单:首次成功上传即把 jti 烧入内存 Map,后续携同 jti 的请求直接拒(用后即焚)。
- *    单机部署可接受内存态(重启/多实例失效仅意味着「已烧的 jti 在重启后短暂可复用至其自然过期」,
- *    而 60s TTL 把这个窗口压到极小,且配合上传端点的「该 interview 无进行中任务」检查兜底)。
- *    若未来要强持久化 burn,再加 1 张表(届时才有 migration),当前不引入。
+ * 安全属性(全部保留,与旧 JWT 版等价):
+ *  - 不可伪造:16 字节随机 id(128 bit 熵),且必须命中服务端映射才有效——攻击者无法构造一个
+ *    「碰巧存在」的 id,更无法塞进自定义归属(归属只来自签发时服务端写入的映射,不来自 URL/请求体)。
+ *  - 短 TTL(60s):令牌出生即将死,扫码窗口极短;过期项惰性清理。
+ *  - 一次性:首次成功上传即把映射项 used=true(用后即焚),后续携同 id 的请求直接拒。
+ *
+ * 单机内存映射的取舍(无迁移,同旧版 jti 黑名单的取舍):
+ *  - 单实例部署可接受内存态;重启会丢失未用尽的令牌(只意味着「重启前已发的码失效」,用户重生成即可,
+ *    无安全风险)。60s TTL 把窗口压到极小。若未来要强持久化/多实例,再加 1 张表(届时才有 migration)。
  */
-
-/** scoped 令牌固定用途标识;校验时硬断言,杜绝主登录令牌被拿来当上传令牌用。 */
-const QR_UPLOAD_PURPOSE = 'audio_upload' as const;
 
 /** 令牌有效期(秒)。出生即将死:60s 足够扫码打开页面并直传,过期窗口极短。 */
 const QR_UPLOAD_TTL_SECONDS = 60;
 
-/** scoped 令牌 payload 形状(签发时写入,校验时逐字段断言)。 */
-export interface QrUploadTokenPayload {
-  /** 用途标识,恒为 'audio_upload';非此值一律拒(防主令牌冒用)。 */
-  purpose: typeof QR_UPLOAD_PURPOSE;
-  /** 令牌绑定的面试 ID;校验时必须与路由真实操作的 interview 一致(绝不放宽归属)。 */
+/** 短 id 随机字节数。16 字节 = 128 bit 熵,base64url 后 22 字符;碰撞与暴力枚举均不可行。 */
+const QR_TOKEN_RANDOM_BYTES = 16;
+
+/** 服务端为每枚短令牌保存的绑定关系(签发时写入,校验时读出,URL/请求体均不可影响)。 */
+interface UploadTokenEntry {
+  /** 令牌绑定的面试 ID;校验时由此取出,绝不来自请求方。 */
   interviewId: string;
-  /** 令牌签发者(电脑端已登录用户)ID;上传落库 user_id 以此为准(绝不放宽归属)。 */
-  sub: string;
-  /** 一次性标识;首次成功上传即烧入黑名单,复用即拒。 */
-  jti: string;
+  /** 令牌签发者(电脑端已登录用户)ID;上传落库 user_id 以此为准,绝不来自请求方。 */
+  userId: string;
+  /** 自然过期时间戳(ms);超过即视为无效并可清理。 */
+  expiresAt: number;
+  /** 一次性标识;首次成功上传后置 true(用后即焚),为 true 时再校验即拒。 */
+  used: boolean;
 }
 
-/** 校验通过后回给上传端点的最小上下文(均来自令牌,不可被请求体篡改)。 */
+/** 校验通过后回给上传端点的最小上下文(均来自服务端映射,不可被请求体篡改)。 */
 export interface VerifiedQrUploadToken {
   interviewId: string;
   userId: string;
-  jti: string;
+  /** 短令牌 id;上传真实成功后由调用方据此 burn(用后即焚)。 */
+  tokenId: string;
 }
 
 @Injectable()
@@ -53,85 +62,78 @@ export class QrUploadTokenService {
   private readonly logger = new Logger(QrUploadTokenService.name);
 
   /**
-   * 已烧 jti → 该 jti 自然过期的时间戳(ms)。仅在过期后才可清理,清理前都视为已用。
-   * 单机内存态;定期惰性清理过期项,避免无界增长。
+   * 短令牌 id → 绑定关系。单机内存态;每次签发/校验惰性清理已过期项,避免无界增长。
    */
-  private readonly burnedJti = new Map<string, number>();
-
-  constructor(private readonly jwt: JwtService) {}
+  private readonly tokens = new Map<string, UploadTokenEntry>();
 
   /**
    * 为「已登录用户的某个 interview」签发一次性上传令牌。
-   * 调用方(controller)必须已用 JwtAuthGuard 鉴权,且已校验 interview 归属该 user(service 层 findOne)。
-   * 这里只负责把 {purpose,interviewId,sub,jti} 签成 60s 短令牌。
+   * 调用方(service.issueUploadToken)必须已校验 interview 归属该 user(findOne)。
+   * 这里只负责生成短 id 并把绑定关系写入服务端映射,返回不透明的短 id。
    */
   sign(interviewId: string, userId: string): { token: string; expiresInSec: number } {
-    const payload: QrUploadTokenPayload = {
-      purpose: QR_UPLOAD_PURPOSE,
+    this.sweepExpired();
+
+    // url-safe(base64url)短 id;命中映射才有效,故无需在 id 内携带任何归属/签名字段。
+    const token = randomBytes(QR_TOKEN_RANDOM_BYTES).toString('base64url');
+    this.tokens.set(token, {
       interviewId,
-      sub: userId,
-      jti: randomUUID(),
-    };
-    // expiresIn 覆盖 JwtModule 默认 7d:本令牌专用 60s 短时效。
-    const token = this.jwt.sign(payload, { expiresIn: QR_UPLOAD_TTL_SECONDS });
+      userId,
+      expiresAt: Date.now() + QR_UPLOAD_TTL_SECONDS * 1000,
+      used: false,
+    });
     return { token, expiresInSec: QR_UPLOAD_TTL_SECONDS };
   }
 
   /**
-   * 校验 URL 里的 scoped 令牌:签名+exp(jwt.verify)→ purpose → jti 未烧 → 字段完整。
-   * 任一不满足 → 401(不泄露细节)。注意:此处不烧 jti,成功上传后由 burn() 烧。
+   * 校验 URL 里的短令牌:命中服务端映射 → 未过期 → 未用过 → 取出绑定的 interviewId/userId。
+   * 任一不满足 → 401(不泄露细节)。注意:此处不烧令牌,成功上传后由 burn() 烧。
    *
-   * 绝不复用 JwtAuthGuard:本令牌不在 Bearer 头、payload 形状不同、不代表登录态。
+   * 绝不复用 JwtAuthGuard:本令牌不在 Bearer 头、不代表登录态。
    */
   verify(token: string): VerifiedQrUploadToken {
     this.sweepExpired();
 
-    let payload: QrUploadTokenPayload;
-    try {
-      // verify 同时校验 HMAC 签名 + exp(过期即抛);用 JwtModule 注入的同一 secret。
-      payload = this.jwt.verify<QrUploadTokenPayload>(token);
-    } catch {
-      // 签名错 / 已过期 / 结构非法 → 统一 401,不区分原因(不给攻击者反馈)。
+    const entry = this.tokens.get(token);
+
+    // 不存在(乱码 / 从未签发 / 已被清理 / 主登录令牌冒用):统一 401,不区分原因(不给攻击者反馈)。
+    if (!entry) {
       throw new UnauthorizedException('上传链接无效或已过期，请在电脑端重新生成二维码');
     }
 
-    // 业务字段硬断言:用途、归属字段必须齐全且类型正确,杜绝主登录令牌(无 purpose/interviewId)冒用。
-    if (
-      payload.purpose !== QR_UPLOAD_PURPOSE ||
-      typeof payload.interviewId !== 'string' ||
-      typeof payload.sub !== 'string' ||
-      typeof payload.jti !== 'string'
-    ) {
-      throw new UnauthorizedException('上传链接无效，请在电脑端重新生成二维码');
+    // 已过期(sweep 之外的二次兜底,防边界竞态)。
+    if (entry.expiresAt <= Date.now()) {
+      this.tokens.delete(token);
+      throw new UnauthorizedException('上传链接已过期，请在电脑端重新生成二维码');
     }
 
-    // 一次性:jti 已烧(且未到自然过期)→ 拒(用后即焚)。
-    if (this.burnedJti.has(payload.jti)) {
+    // 一次性:已烧 → 拒(用后即焚)。
+    if (entry.used) {
       throw new UnauthorizedException('该上传链接已使用，请在电脑端重新生成二维码');
     }
 
     return {
-      interviewId: payload.interviewId,
-      userId: payload.sub,
-      jti: payload.jti,
+      interviewId: entry.interviewId,
+      userId: entry.userId,
+      tokenId: token,
     };
   }
 
   /**
-   * 烧掉 jti(首次成功上传后调用):记到黑名单直至其自然过期。
+   * 烧掉短令牌(首次成功上传后调用):置 used=true,直至其自然过期被清理。
    * 由调用方在「上传真实成功(已建 transcribe task)」后调用,确保失败不烧(允许用户在 60s 内重试)。
    */
-  burn(jti: string): void {
-    // 记录到「现在 + TTL」即可:超过该时刻令牌本身也已过期,清理掉不影响安全。
-    this.burnedJti.set(jti, Date.now() + QR_UPLOAD_TTL_SECONDS * 1000);
+  burn(tokenId: string): void {
+    const entry = this.tokens.get(tokenId);
+    if (entry) entry.used = true;
   }
 
-  /** 惰性清理已自然过期的 jti,避免内存无界增长(每次 verify 触发一次,成本 O(已烧条数))。 */
+  /** 惰性清理已自然过期的令牌,避免内存无界增长(签发/校验各触发一次,成本 O(在册条数))。 */
   private sweepExpired(): void {
     const now = Date.now();
-    for (const [jti, expireAt] of this.burnedJti) {
-      if (expireAt <= now) {
-        this.burnedJti.delete(jti);
+    for (const [token, entry] of this.tokens) {
+      if (entry.expiresAt <= now) {
+        this.tokens.delete(token);
       }
     }
   }
