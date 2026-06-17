@@ -7,6 +7,7 @@ import {
   SynthesizedAudio,
   TranscriptSegment,
 } from './speech.provider';
+import { TRANSCODED_FORMAT, transcodeToOggOpus } from './audio-transcode';
 
 // SSE delta 事件:增量句子 + 句级毫秒时间戳(实测 probe.py 跑通的字段形态)。
 interface StepFunDeltaEvent {
@@ -30,6 +31,9 @@ type StepFunEvent =
   | StepFunErrorEvent
   | { type?: string };
 
+/** 标记「瞬时可重试」失败(HTTP 429 限流);区别于确定性失败,供退避重试逻辑识别。 */
+class RetryableStepFunError extends Error {}
+
 /**
  * StepFun ASR 供应商:SSE base64 内联转写(stepaudio-2.5-asr,enable_itn + enable_timestamp)。
  * 音频字节始终在 后端↔StepFun 的 HTTPS 加密信道,不落任何公网 URL;供应商不持有 fs。
@@ -46,6 +50,15 @@ export class StepFunProvider implements SpeechProvider {
 
   // TTS 输入上限(StepFun /audio/speech 单次最大 1000 字符);超长在 synthesize 前截断保护。
   private static readonly TTS_MAX_CHARS = 1000;
+
+  // StepFun ASR 硬上限:base64 音频 > 10485760 字节(10MB)→ SSE "exceeds maximum allowed size"(线上实测)。
+  // 转码后超此值即抛用户可读错误,不发请求(避免必败的大请求白占并发/超时)。
+  private static readonly MAX_BASE64_BYTES = 10 * 1024 * 1024;
+
+  // 可重试的瞬时错误(StepFun 偶发抖动 / 限流):仅这两类退避重试,确定性失败(格式/超限/空)不重试。
+  private static readonly RETRYABLE_SSE_FRAGMENT = 'internal error';
+  // 重试基线退避(ms):第 n 次重试前等 RETRY_BASE_DELAY_MS × 2^(n-1)(指数退避)。
+  private static readonly RETRY_BASE_DELAY_MS = 800;
 
   readonly capabilities: SpeechCapabilities = {
     diarization: false,
@@ -71,9 +84,23 @@ export class StepFunProvider implements SpeechProvider {
       throw new Error('音频内容为空,无法转写');
     }
 
+    // 1) 转码:任意上传格式(webm/amr/mp4/…)→ StepFun 接受的 ogg/opus 单声道 16kHz。
+    //    StepFun ASR 只认 wav/mp3/m4a/ogg,浏览器默认录 webm → 不转码真实用户几乎必失败。
+    //    mimeType 在此后不再决定 format.type(产出恒为 ogg),仅保留入参兼容接口签名。
+    void mimeType;
+    const transcoded = await transcodeToOggOpus(audio, this.cfg.timeoutMs);
+
+    // 2) 体积闸:StepFun base64 ≤ 10MB 硬上限,超限发了也必败 → 提前抛用户可读错误,不占并发。
+    const base64 = transcoded.toString('base64');
+    if (base64.length > StepFunProvider.MAX_BASE64_BYTES) {
+      throw new Error(
+        '录音过长,请控制在约 40 分钟以内(更长时段的分段转写正在开发中)',
+      );
+    }
+
     const body = JSON.stringify({
       audio: {
-        data: audio.toString('base64'),
+        data: base64,
         input: {
           transcription: {
             language: 'zh',
@@ -82,11 +109,18 @@ export class StepFunProvider implements SpeechProvider {
             enable_timestamp: true,
             hotwords,
           },
-          format: { type: this.formatFromMime(mimeType) },
+          format: { type: TRANSCODED_FORMAT.stepfunType },
         },
       },
     });
 
+    // 3) 带退避重试:仅对瞬时失败(SSE "internal error" / HTTP 429)重试,确定性失败不重试。
+    //    总尝试次数 = 1 + maxRetries,钳到 [1, 3](避免配置异常导致过量重试拖垮 2C2G)。
+    return this.transcribeWithRetry(body);
+  }
+
+  /** 单次 HTTP+SSE 转写尝试;瞬时失败(429 / "internal error")抛 RetryableStepFunError。 */
+  private async attemptTranscribe(body: string): Promise<TranscriptSegment[]> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.cfg.timeoutMs);
     let response: Response;
@@ -103,20 +137,65 @@ export class StepFunProvider implements SpeechProvider {
       });
     } catch (err) {
       // fetch 阶段失败(连接错误 / 超时 abort)。
-      throw new Error(`StepFun ASR 请求失败:${this.describeFetchError(err)}`);
-    } finally {
       clearTimeout(timer);
+      throw new Error(`StepFun ASR 请求失败:${this.describeFetchError(err)}`);
     }
 
     if (!response.ok) {
+      clearTimeout(timer);
       const detail = await this.safeReadText(response);
-      throw new Error(`StepFun ASR 返回非 2xx(${response.status}):${detail}`);
+      const msg = `StepFun ASR 返回非 2xx(${response.status}):${detail}`;
+      // 429 限流是瞬时的(快速连发命中):标记可重试。其余非 2xx 为确定性失败,不重试。
+      if (response.status === 429) {
+        throw new RetryableStepFunError(msg);
+      }
+      throw new Error(msg);
     }
     if (!response.body) {
+      clearTimeout(timer);
       throw new Error('StepFun ASR 响应无流体(response.body 为空)');
     }
 
     return this.consumeSse(response.body, controller, timer);
+  }
+
+  /**
+   * 退避重试包装。仅 RetryableStepFunError(429 / SSE "internal error")触发重试;
+   * 其它错误(格式不支持 / 超限 / 空转写 / 缺 key)立即上抛,不重试。
+   * 退避:第 n 次重试前 sleep RETRY_BASE_DELAY_MS × 2^(n-1)(指数退避,缓解限流/抖动)。
+   */
+  private async transcribeWithRetry(body: string): Promise<TranscriptSegment[]> {
+    const totalAttempts = Math.min(3, Math.max(1, 1 + this.cfg.maxRetries));
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= totalAttempts; attempt++) {
+      try {
+        return await this.attemptTranscribe(body);
+      } catch (err) {
+        lastErr = err;
+        const retryable = this.isRetryable(err);
+        if (!retryable || attempt === totalAttempts) {
+          throw err;
+        }
+        const delay = StepFunProvider.RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+        this.logger.warn(
+          `StepFun ASR 瞬时失败,第 ${attempt}/${totalAttempts - 1} 次重试前退避 ${delay}ms:${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+    // 理论不达(循环要么 return 要么 throw);兜底抛最后一个错误。
+    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+  }
+
+  /** 判定错误是否瞬时可重试:RetryableStepFunError(429),或 SSE error 消息含 "internal error"。 */
+  private isRetryable(err: unknown): boolean {
+    if (err instanceof RetryableStepFunError) return true;
+    if (err instanceof Error) {
+      return err.message.toLowerCase().includes(StepFunProvider.RETRYABLE_SSE_FRAGMENT);
+    }
+    return false;
   }
 
   /**
@@ -326,37 +405,6 @@ export class StepFunProvider implements SpeechProvider {
       return { error: (ev as StepFunErrorEvent).message ?? '未知错误' };
     }
     return {};
-  }
-
-  /** 由 mimeType 推 StepFun format.type;未知类型回退 mp3(最常见上传格式)。 */
-  private formatFromMime(mimeType: string): string {
-    const mt = mimeType.toLowerCase().split(';')[0].trim();
-    switch (mt) {
-      case 'audio/mpeg':
-      case 'audio/mp3':
-        return 'mp3';
-      case 'audio/wav':
-      case 'audio/x-wav':
-      case 'audio/wave':
-        return 'wav';
-      case 'audio/ogg':
-      case 'audio/opus':
-        return 'ogg';
-      case 'audio/webm':
-        return 'webm';
-      case 'audio/mp4':
-      case 'audio/m4a':
-      case 'audio/x-m4a':
-        return 'm4a';
-      case 'audio/aac':
-        return 'aac';
-      case 'audio/flac':
-      case 'audio/x-flac':
-        return 'flac';
-      default:
-        this.logger.warn(`未识别音频 mimeType "${mimeType}",回退 format=mp3`);
-        return 'mp3';
-    }
   }
 
   /** 区分 abort(超时)与一般错误,给出可读信息。 */

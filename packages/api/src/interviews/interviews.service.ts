@@ -23,6 +23,7 @@ import { LabelCorrectionDto } from '../speech/dto/confirm-labels.dto';
 import { CreditService } from '../credit/credit.service';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { QrUploadTokenService } from './qr-upload-token.service';
+import { OpsEventsService } from '../ops/ops-events.service';
 
 // 转写扣点端点标识:写入 credit_transactions.endpoint / ai_usage.endpoint(与控制器路由模板同口径)。
 const TRANSCRIBE_ENDPOINT = '/api/interviews/:id/transcribe';
@@ -80,6 +81,7 @@ export class InterviewsService {
     private readonly label: LabelService,
     private readonly credit: CreditService,
     private readonly qrToken: QrUploadTokenService,
+    private readonly opsEvents: OpsEventsService,
   ) {}
 
   async create(userId: string, dto: CreateInterviewDto): Promise<Interview> {
@@ -304,11 +306,17 @@ export class InterviewsService {
     } catch (err) {
       // 失败:标 task=failed + 记 failed_at_stage,不扣点;前端轮询看到 failed + errorMessage。
       await this.markTaskFailed(task, err);
+      const reason = err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `后台转写失败 taskId=${taskId} stage=${task.failed_at_stage}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `后台转写失败 taskId=${taskId} stage=${task.failed_at_stage}: ${reason}`,
       );
+      // 失败入运维流水(管理面板 AI 失败计数 + 排障可见);复用既有 AI_CALL_FAILED 类型,
+      // record 内部不抛错(写失败仅 warn),故 fire-and-forget,不影响失败态落库。
+      void this.opsEvents.record('AI_CALL_FAILED', {
+        stage: 'transcribe',
+        reason,
+        userId,
+      });
     }
   }
 
