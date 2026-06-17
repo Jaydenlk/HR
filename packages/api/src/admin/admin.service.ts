@@ -33,6 +33,7 @@ import {
   EndpointCreditCount,
 } from './dto/admin-activity-response.dto';
 import { AdminErrorEventResponseDto } from './dto/admin-error-event-response.dto';
+import { AdminRecentFailureResponseDto } from './dto/admin-recent-failure-response.dto';
 import { AdminHealthResponseDto } from './dto/admin-health-response.dto';
 
 // 管理后台返回的用户行:实体字段 + credit 余额 + 今日/累计 AI 调用次数 + 最近登录 IP/归属/时间。
@@ -366,6 +367,25 @@ export class AdminService {
 
     const events = await qb.getMany();
     return AdminErrorEventResponseDto.fromMany(events);
+  }
+
+  // 最近 AI 调用失败(GET /admin/recent-failures):只取 AI_CALL_FAILED 倒序前 N 条。
+  // 同时覆盖两类来源:AiUsageInterceptor 的 HTTP 失败 + interviews 转写失败(detail.stage='transcribe')。
+  // 隐私铁律:detail.user_id(UUID)经 users 映射解析为邮箱后【打码】输出(ab***@x.com),绝不回完整邮箱。
+  // 20 人规模:用 findAll 建 id→email 映射(与 usageOverview 同手法),避免按 id 逐条查库。
+  async recentFailures(limit?: number): Promise<AdminRecentFailureResponseDto[]> {
+    const take = this.clampPageSize(limit);
+    const events = await this.dataSource
+      .getRepository(OpsEvent)
+      .createQueryBuilder('e')
+      .where('e.type = :type', { type: 'AI_CALL_FAILED' })
+      .orderBy('e.created_at', 'DESC')
+      .take(take)
+      .getMany();
+
+    const allUsers = await this.users.findAll();
+    const emailById = new Map(allUsers.map((u) => [u.id, u.email]));
+    return AdminRecentFailureResponseDto.fromMany(events, emailById);
   }
 
   // 成功率趋势(GET /admin/success-stats):成功=ai_usage 按日,失败=ops_events AI 失败类按日。

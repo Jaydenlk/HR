@@ -1536,6 +1536,23 @@ export interface AdminSuccessStats {
   success_rate: number | null;
 }
 
+// GET /api/admin/recent-failures 单条。
+// 与后端 AdminRecentFailureResponseDto 字段一一对应:只含 AI_CALL_FAILED 类失败。
+// 隐私铁律:user 为打码后的标识(如 ab***@x.com),绝不含完整邮箱;无法解析则 null。
+export interface AdminRecentFailure {
+  id: string;
+  // 失败时间 ISO 8601。
+  created_at: string;
+  // 失败原因;无则 null。
+  reason: string | null;
+  // 触发失败的端点;无则 null。
+  endpoint: string | null;
+  // 失败阶段(如 transcribe);拦截器路径无此字段则 null。
+  stage: string | null;
+  // 打码用户标识;无法解析则 null。
+  user: string | null;
+}
+
 // GET /api/admin/ops-stats 单日行(后端返回数组,稀疏:仅含有事件的日期)。
 // 与后端 DailyStats(OpsEventsService)字段一一对应:按日各类 ops_events 计数。
 export interface AdminOpsDailyStats {

@@ -801,14 +801,14 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 padding: '8px 12px',
                 borderRadius: '10px',
                 fontSize: '13.5px',
-                color: (pathname?.startsWith('/admin') ?? false)
+                color: (pathname === '/admin')
                   ? 'var(--color-ink)'
                   : 'var(--color-ink-2)',
-                fontWeight: (pathname?.startsWith('/admin') ?? false) ? 600 : 500,
-                background: (pathname?.startsWith('/admin') ?? false)
+                fontWeight: (pathname === '/admin') ? 600 : 500,
+                background: (pathname === '/admin')
                   ? 'var(--color-surface)'
                   : 'transparent',
-                boxShadow: (pathname?.startsWith('/admin') ?? false)
+                boxShadow: (pathname === '/admin')
                   ? '0 1px 2px rgba(0,0,0,0.04)'
                   : 'none',
                 textDecoration: 'none',

@@ -129,6 +129,12 @@ export class AdminController {
     return this.admin.errorStream(query.limit, query.type, query.offset);
   }
 
+  // 最近 AI 调用失败:只取 AI_CALL_FAILED 倒序前 N 条(用户标识打码,绝不回完整邮箱)。
+  @Get('recent-failures')
+  recentFailures(@Query() query: OpsEventsQueryDto) {
+    return this.admin.recentFailures(query.limit);
+  }
+
   // 成功率趋势:成功=ai_usage 按日,失败=ops_events AI 失败类按日。
   @Get('success-stats')
   successStats(@Query() query: StatsQueryDto) {

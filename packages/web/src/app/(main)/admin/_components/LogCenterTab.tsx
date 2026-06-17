@@ -14,8 +14,20 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import type { AdminOpsEvent, AdminSuccessStats, OpsEventType } from '@/lib/types';
-import { AlertTriangle, ClipboardList, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import type {
+  AdminOpsEvent,
+  AdminRecentFailure,
+  AdminSuccessStats,
+  OpsEventType,
+} from '@/lib/types';
+import {
+  AlertTriangle,
+  ClipboardList,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  UserX,
+} from 'lucide-react';
 
 // ─── 共享样式(与 page.tsx 保持一致)────────────────────────────────────────────
 
@@ -277,6 +289,11 @@ function ErrorStreamTab(): React.ReactElement {
   const [errorStats, setErrorStats] = useState<string | null>(null);
   const [statsDays, setStatsDays] = useState(7);
 
+  // 最近 AI 调用失败(GET /admin/recent-failures):打码用户 + 原因 + 端点/阶段。
+  const [failures, setFailures] = useState<AdminRecentFailure[]>([]);
+  const [loadingFailures, setLoadingFailures] = useState(true);
+  const [errorFailures, setErrorFailures] = useState<string | null>(null);
+
   // 首次加载 + 过滤器/翻页变化时重新拉取
   const fetchEvents = useCallback(
     async (currentOffset: number, currentType: string) => {
@@ -328,6 +345,19 @@ function ErrorStreamTab(): React.ReactElement {
     }
   }, []);
 
+  const fetchFailures = useCallback(async () => {
+    setLoadingFailures(true);
+    setErrorFailures(null);
+    try {
+      const data = await api.get<AdminRecentFailure[]>('/admin/recent-failures?limit=10');
+      setFailures(data);
+    } catch (e) {
+      setErrorFailures(e instanceof Error ? e.message : '加载失败');
+    } finally {
+      setLoadingFailures(false);
+    }
+  }, []);
+
   // 翻页或过滤器变化时重新拉取;typeFilter 变化由 handleTypeChange 先 reset offset=0,
   // 统一由 (offset, typeFilter) 这一个 effect 驱动,避免双重触发
   useEffect(() => {
@@ -339,6 +369,11 @@ function ErrorStreamTab(): React.ReactElement {
     const run = async () => { await fetchStats(statsDays); };
     void run();
   }, [statsDays, fetchStats]);
+
+  useEffect(() => {
+    const run = async () => { await fetchFailures(); };
+    void run();
+  }, [fetchFailures]);
 
   function handleTypeChange(v: string) {
     // 先重置 offset 到 0,再更新 typeFilter;两者都是同步 setState,
@@ -354,6 +389,137 @@ function ErrorStreamTab(): React.ReactElement {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+      {/* ── 最近 AI 调用失败(打码用户 + 原因 + 端点/阶段)── */}
+      <div className="lg" style={cardStyle}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px',
+            marginBottom: '14px',
+          }}
+        >
+          <div style={{ ...sectionTitleStyle, marginBottom: 0 }}>
+            <UserX size={17} /> 最近 AI 调用失败
+          </div>
+          <button
+            type="button"
+            onClick={() => void fetchFailures()}
+            disabled={loadingFailures}
+            title="刷新"
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--hair)',
+              background: 'rgba(47,143,255,.05)',
+              color: 'var(--color-ink)',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              cursor: loadingFailures ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <RefreshCw size={13} className={loadingFailures ? 'animate-spin' : ''} />
+            刷新
+          </button>
+        </div>
+
+        {errorFailures && (
+          <div
+            role="alert"
+            style={{
+              background: 'var(--color-danger-soft)',
+              color: 'var(--color-danger)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '13px',
+              marginBottom: '12px',
+              fontWeight: 500,
+            }}
+          >
+            {errorFailures}
+          </div>
+        )}
+
+        {loadingFailures && failures.length === 0 ? (
+          <div style={{ padding: '24px', display: 'flex', justifyContent: 'center' }}>
+            <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-ink-3)' }} />
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '620px' }}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>时间</th>
+                  <th style={thStyle}>用户</th>
+                  <th style={thStyle}>端点 / 阶段</th>
+                  <th style={thStyle}>原因</th>
+                </tr>
+              </thead>
+              <tbody>
+                {failures.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      style={{ ...tdStyle, textAlign: 'center', color: 'var(--color-ink-4)', padding: '24px' }}
+                    >
+                      暂无 AI 调用失败记录
+                    </td>
+                  </tr>
+                ) : (
+                  failures.map((f) => (
+                    <tr key={f.id}>
+                      <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--color-ink)' }}>
+                          {new Date(f.created_at).toLocaleString('zh-CN', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--color-ink-4)', marginTop: '2px' }}>
+                          {relativeTime(f.created_at)}
+                        </div>
+                      </td>
+                      <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                        {f.user ?? <span style={{ color: 'var(--color-ink-4)' }}>—</span>}
+                      </td>
+                      <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                        {f.endpoint ?? <span style={{ color: 'var(--color-ink-4)' }}>—</span>}
+                        {f.stage && (
+                          <span
+                            style={{
+                              marginLeft: '6px',
+                              padding: '1px 6px',
+                              borderRadius: '5px',
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              background: 'rgba(255,160,0,.12)',
+                              color: '#e08800',
+                            }}
+                          >
+                            {f.stage}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ ...tdStyle, color: 'var(--color-danger)', maxWidth: '320px', wordBreak: 'break-all' }}>
+                        {f.reason ?? <span style={{ color: 'var(--color-ink-4)' }}>—</span>}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* ── 报错流水表 ── */}
       <div className="lg" style={cardStyle}>
