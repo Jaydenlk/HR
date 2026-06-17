@@ -39,6 +39,16 @@ export interface TranscribeStartedResponse {
 }
 
 /**
+ * 上传文件元数据:由 controller 从 multer 注入的 file 上取得(originalname/size/mimetype)。
+ * 仅元数据(非音频内容),用于桌面端「已收到上传」回执展示——不违反音频不落盘的隐私铁律。
+ */
+export interface UploadMeta {
+  originalFilename: string;
+  fileSizeBytes: number;
+  mimeType: string;
+}
+
+/**
  * POST /interviews/:id/upload-token 的响应:scoped 一次性令牌 + 手机端直传路径。
  * 前端把 uploadPath 拼上站点 origin 编成二维码;手机扫码打开豁免页(无需登录)直传音频。
  */
@@ -57,6 +67,11 @@ export interface TranscribeStatusResponse {
   status: TranscribeStatus;
   errorMessage: string | null;
   segmentsJson: LabeledSegment[] | null;
+  // 上传元数据回执(收到上传即非空;无元数据的旧任务为 null)。非音频内容。
+  originalFilename: string | null;
+  fileSizeBytes: number | null;
+  mimeType: string | null;
+  uploadedAt: string | null; // ISO 字符串
 }
 
 // 前端展示用角色前缀,组装喂给 DebriefService.analyze 的带角色 transcript。
@@ -64,6 +79,16 @@ const SPEAKER_PREFIX: Record<LabeledSegment['speaker'], string> = {
   interviewer: '面试官',
   candidate: '用户',
 };
+
+/**
+ * 把可空时间列安全转 ISO 字符串。双端驱动取出的列值类型不保证一致(postgres/sqlite 多为 Date,
+ * 但部分驱动/配置下可能已是字符串),故对 Date 调 toISOString(),已是 string 则原样回,避免强转穿透。
+ */
+function toIsoString(value: Date | string | null): string | null {
+  if (value == null) return null;
+  if (value instanceof Date) return value.toISOString();
+  return value;
+}
 
 @Injectable()
 export class InterviewsService {
@@ -207,8 +232,9 @@ export class InterviewsService {
     userId: string,
     audio: Buffer,
     mimeType: string,
+    meta?: UploadMeta,
   ): Promise<TranscribeStartedResponse> {
-    return this.transcribe(interviewId, userId, audio, mimeType);
+    return this.transcribe(interviewId, userId, audio, mimeType, meta);
   }
 
   /**
@@ -229,6 +255,7 @@ export class InterviewsService {
     userId: string,
     audio: Buffer,
     mimeType: string,
+    meta?: UploadMeta,
   ): Promise<TranscribeStartedResponse> {
     // 所有权校验:非本人面试 → 404(不泄露存在性)。建任务前先校验,不为越权请求建任务。
     const interview = await this.findOne(id, userId);
@@ -245,11 +272,17 @@ export class InterviewsService {
 
     const hotwords = this.buildHotwords(interview);
 
+    // 建任务时落上传元数据(仅文件名/字节数/MIME/收到时刻,非音频内容):桌面端「已收到上传」回执据此即时渲染。
+    // uploaded_at 始终记为「收到 multipart 那一刻」(meta 有无均记);三项文件元数据仅 meta 提供时落,否则 null。
     const task = await this.taskRepo.save(
       this.taskRepo.create({
         interview_id: interview.id,
         user_id: userId,
         status: 'submitted',
+        original_filename: meta?.originalFilename ?? null,
+        file_size_bytes: meta?.fileSizeBytes ?? null,
+        mime_type: meta?.mimeType ?? null,
+        uploaded_at: new Date(),
       }),
     );
 
@@ -367,7 +400,37 @@ export class InterviewsService {
       status: task.status,
       errorMessage: task.error_message,
       segmentsJson: task.segments_json,
+      // 上传元数据回执(非音频内容):桌面端据此即时渲染「已收到上传」。
+      originalFilename: task.original_filename,
+      fileSizeBytes: task.file_size_bytes,
+      mimeType: task.mime_type,
+      uploadedAt: toIsoString(task.uploaded_at),
     };
+  }
+
+  /**
+   * 删除某条转写任务(硬删)。严格双重所有权:任务须属于该面试,且该面试须属于当前用户,否则 404。
+   *
+   * 用途:失败态恢复——「重新上传」(清掉 failed task 后让用户重新上传一段录音,因音频已 GC、
+   * 无法服务端重转写)与「删除记录」(把失败任务清掉回到上传前态)。不限定 status:
+   * 删任意属于自己的任务(端点宽于「仅 failed」,前端只在 failed 分支暴露入口)。
+   * 隐私无涉:任务表本就不存音频,删行不触及任何音频(本就没有)。
+   */
+  async deleteTranscribeTask(
+    id: string,
+    taskId: string,
+    userId: string,
+  ): Promise<void> {
+    // 1) 面试所有权:非本人/不存在 → 404(不泄露存在性)。
+    await this.findOne(id, userId);
+
+    // 2) 任务须同时匹配 interview_id + user_id(双重所有权),否则 404。
+    const task = await this.taskRepo.findOne({
+      where: { id: taskId, interview_id: id, user_id: userId },
+    });
+    if (!task) throw new NotFoundException();
+
+    await this.taskRepo.remove(task);
   }
 
   /**

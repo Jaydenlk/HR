@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import type { TranscribeStatus, TranscribeStatusResponse } from '@/lib/types';
-import { Loader2, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Clock, FileAudio, Upload, Trash2 } from 'lucide-react';
 
 export interface TranscriptProgressProps {
   interviewId: string;
@@ -13,6 +13,11 @@ export interface TranscriptProgressProps {
   onStatusUpdate: (response: TranscribeStatusResponse) => void;
   // Called when polling has stopped (completed / failed)
   onStop?: () => void;
+  // Failed-state recovery: after the failed task is cleared, re-open the upload UI for a fresh upload.
+  // 音频不落盘,服务端无法重转写——「重新上传」= 清掉失败任务后让用户重新上传一段录音。
+  onRetryReupload?: () => void;
+  // Failed-state recovery: after the failed task is deleted, reset UI to the pre-upload state.
+  onDeleteTask?: () => void;
 }
 
 const POLL_INTERVAL_MS = 3000;
@@ -68,15 +73,53 @@ function friendlyError(raw: string | null): string {
   return msg;
 }
 
+// 上传元数据回执(从 status 回包提取的文件元数据,非音频内容)。
+interface UploadReceipt {
+  filename: string;
+  sizeBytes: number | null;
+  uploadedAt: string | null;
+}
+
+// 人类可读文件大小(与 audio-uploader 同口径:B / KB / MB)。
+function humanSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// 相对时间(中文,纯前端 Date 计算,不引库)。
+function relativeTime(iso: string | null): string {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const diffMs = Date.now() - then;
+  if (diffMs < 0) return '刚刚';
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return '刚刚';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} 分钟前`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} 小时前`;
+  // 超过一天:展示「M月D日 上传」。
+  const d = new Date(then);
+  return `${d.getMonth() + 1}月${d.getDate()}日 上传`;
+}
+
 export function TranscriptProgress({
   interviewId,
   taskId,
   onStatusUpdate,
   onStop,
+  onRetryReupload,
+  onDeleteTask,
 }: TranscriptProgressProps) {
   const [status, setStatus] = useState<TranscribeStatus>('submitted');
   // 后端 failed 时回传的具体原因(格式不支持 / 录音过长 / 服务繁忙…),失败时展示给用户排障。
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // 上传元数据回执:status 回包带回文件名/字节数/上传时刻(非音频内容);一旦非空即渲染「已收到上传」卡。
+  const [receipt, setReceipt] = useState<UploadReceipt | null>(null);
+  // 失败态恢复动作(重新上传/删除记录)进行中标记,避免重复点击。
+  const [recovering, setRecovering] = useState(false);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
@@ -100,6 +143,7 @@ export function TranscriptProgress({
       if (mountedRef.current) {
         setStatus('submitted');
         setErrorMessage(null);
+        setReceipt(null);
       }
     });
 
@@ -112,6 +156,14 @@ export function TranscriptProgress({
 
         setStatus(data.status);
         setErrorMessage(data.errorMessage ?? null);
+        // 一旦后端回传上传元数据(收到上传),立即据此渲染「已收到上传」回执卡(非音频内容)。
+        if (data.originalFilename) {
+          setReceipt({
+            filename: data.originalFilename,
+            sizeBytes: data.fileSizeBytes ?? null,
+            uploadedAt: data.uploadedAt ?? null,
+          });
+        }
         onStatusUpdate(data);
 
         if (TERMINAL_STATUSES.includes(data.status)) {
@@ -140,6 +192,20 @@ export function TranscriptProgress({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId, interviewId]);
 
+  // 清掉当前(失败)任务,再交给父层切 UI。音频不落盘 → 服务端无法重转写,故「重新上传」= 清任务 + 重开上传。
+  async function clearTaskThen(after?: () => void) {
+    if (!taskId || recovering) return;
+    setRecovering(true);
+    try {
+      await api.delete(`/interviews/${interviewId}/transcribe/${taskId}`);
+      after?.();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '操作失败，请稍后重试');
+    } finally {
+      if (mountedRef.current) setRecovering(false);
+    }
+  }
+
   // Render nothing if there is no active task
   if (!taskId) return null;
 
@@ -156,6 +222,44 @@ export function TranscriptProgress({
         gap: '16px',
       }}
     >
+      {/* 「已收到上传」回执卡:收到上传(后端回传文件元数据)即显示——即时视觉确认手机/电脑端上传已落地。
+          隐私铁律:这是元数据回执(✓ + 文件名 + 大小 + 相对时间),不是音频播放器(音频不落盘,无音频可播)。 */}
+      {receipt && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '11px 14px',
+            borderRadius: '10px',
+            background: 'var(--color-success-soft, rgba(34,197,94,.08))',
+            border: '1px solid var(--color-success)',
+          }}
+        >
+          <CheckCircle2 size={17} color="var(--color-success)" style={{ flexShrink: 0 }} />
+          <FileAudio size={15} color="var(--color-ink-3)" style={{ flexShrink: 0 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: 'var(--color-ink)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              已收到上传 · 《{receipt.filename}》
+            </div>
+            <div style={{ fontSize: '11.5px', color: 'var(--color-ink-4)', marginTop: '2px' }}>
+              {receipt.sizeBytes != null ? humanSize(receipt.sizeBytes) : ''}
+              {receipt.sizeBytes != null && receipt.uploadedAt ? ' · ' : ''}
+              {relativeTime(receipt.uploadedAt)}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {isFailed ? (
@@ -204,6 +308,64 @@ export function TranscriptProgress({
           }}
         >
           {friendlyError(errorMessage)}
+        </div>
+      )}
+
+      {/* 失败态恢复动作:重新上传(清失败任务 + 重开上传)/ 删除记录(清失败任务回到上传前态)。
+          诚实口径:音频不落盘,服务端无法重转写,故「重新上传」需用户重新上传一段录音。 */}
+      {isFailed && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              disabled={recovering}
+              onClick={() => void clearTaskThen(onRetryReupload)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '9px',
+                border: 'none',
+                background: recovering
+                  ? 'var(--color-line)'
+                  : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+                color: '#fff',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: recovering ? 'not-allowed' : 'pointer',
+                opacity: recovering ? 0.6 : 1,
+              }}
+            >
+              <Upload size={14} />
+              {recovering ? '处理中…' : '重新上传'}
+            </button>
+            <button
+              type="button"
+              disabled={recovering}
+              onClick={() => void clearTaskThen(onDeleteTask)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '9px',
+                border: '1.5px solid var(--color-line)',
+                background: 'transparent',
+                color: 'var(--color-ink-3)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: recovering ? 'not-allowed' : 'pointer',
+                opacity: recovering ? 0.6 : 1,
+              }}
+            >
+              <Trash2 size={14} />
+              删除记录
+            </button>
+          </div>
+          <span style={{ fontSize: '11.5px', color: 'var(--color-ink-4)' }}>
+            录音未保存(转写后即销毁),「重新上传」需重新上传一段录音。
+          </span>
         </div>
       )}
 

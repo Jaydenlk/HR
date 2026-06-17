@@ -127,13 +127,31 @@ export class InterviewsController {
     if (!file) {
       throw new BadRequestException('请上传音频文件');
     }
-    return this.interviews.transcribe(id, user.id, file.buffer, file.mimetype);
+    // 捕获上传元数据(文件名/字节数/MIME,非音频内容)供桌面端「已收到上传」回执展示。
+    return this.interviews.transcribe(id, user.id, file.buffer, file.mimetype, {
+      originalFilename: file.originalname,
+      fileSizeBytes: file.size,
+      mimeType: file.mimetype,
+    });
   }
 
   // 轮询任务状态 + 标注结果。只读不计费,仅 JwtAuthGuard。
   @Get(':id/transcribe/status')
   transcribeStatus(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.interviews.getTranscribeStatus(id, user.id);
+  }
+
+  // 删除某条转写任务(失败态恢复:重新上传/删除记录)。严格双重所有权(任务∈面试 ∧ 面试∈用户),
+  // 否则 404。硬删任务行;204 无响应体。类级 JwtAuthGuard 已兜鉴权(无 token → 401)。
+  // IMPORTANT: 必须定义在通用 @Delete(':id') 之前,否则 :id 会吞掉本路由(具体路由在前的既有约定)。
+  @Delete(':id/transcribe/:taskId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteTranscribeTask(
+    @Param('id') id: string,
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.interviews.deleteTranscribeTask(id, taskId, user.id);
   }
 
   // 提交纠正后的角色标注 → 触发 analyze。

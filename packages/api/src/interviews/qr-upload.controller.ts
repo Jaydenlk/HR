@@ -80,11 +80,18 @@ export class QrUploadController {
 
     // 2) 走与登录端点同款 pipeline。归属一律以令牌为准(verified.interviewId/userId),
     //    service 内部 findOne 再兜一层归属校验 + 余额预检 + 建任务。
+    //    捕获上传元数据(文件名/字节数/MIME,非音频内容)供桌面端「已收到上传」回执即时显示——
+    //    这是手机扫码传完、电脑端立刻看到回执的关键路径。
     const result = await this.interviews.transcribeViaQrToken(
       verified.interviewId,
       verified.userId,
       file.buffer,
       file.mimetype,
+      {
+        originalFilename: file.originalname,
+        fileSizeBytes: file.size,
+        mimeType: file.mimetype,
+      },
     );
 
     // 3) 上传真实成功(已建 task)→ 此刻才烧令牌(用后即焚)。
