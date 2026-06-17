@@ -22,6 +22,7 @@ import {
 import { LabelCorrectionDto } from '../speech/dto/confirm-labels.dto';
 import { CreditService } from '../credit/credit.service';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
+import { QrUploadTokenService } from './qr-upload-token.service';
 
 // 转写扣点端点标识:写入 credit_transactions.endpoint / ai_usage.endpoint(与控制器路由模板同口径)。
 const TRANSCRIBE_ENDPOINT = '/api/interviews/:id/transcribe';
@@ -34,6 +35,19 @@ const TRANSCRIBE_DEBRIEF_CREDIT_COST = 7;
 /** POST /interviews/:id/transcribe 的 202 响应:仅回 taskId,前端据此轮询 status。 */
 export interface TranscribeStartedResponse {
   taskId: string;
+}
+
+/**
+ * POST /interviews/:id/upload-token 的响应:scoped 一次性令牌 + 手机端直传路径。
+ * 前端把 uploadPath 拼上站点 origin 编成二维码;手机扫码打开豁免页(无需登录)直传音频。
+ */
+export interface QrUploadTokenResponse {
+  /** scoped JWT(purpose=audio_upload,绑定 interviewId+user,60s 过期,一次性)。 */
+  token: string;
+  /** 手机端上传页相对路径(/upload/<token>);前端拼 origin 后生成二维码。 */
+  uploadPath: string;
+  /** 令牌有效期(秒),供前端做倒计时/到期重新生成提示。 */
+  expiresInSec: number;
 }
 
 /** GET /interviews/:id/transcribe/status 的响应:任务态 + 标注结果(awaiting_confirm 起非空)。 */
@@ -65,6 +79,7 @@ export class InterviewsService {
     private readonly speech: SpeechService,
     private readonly label: LabelService,
     private readonly credit: CreditService,
+    private readonly qrToken: QrUploadTokenService,
   ) {}
 
   async create(userId: string, dto: CreateInterviewDto): Promise<Interview> {
@@ -157,6 +172,41 @@ export class InterviewsService {
   async remove(id: string, userId: string): Promise<void> {
     const interview = await this.findOne(id, userId);
     await this.repo.remove(interview);
+  }
+
+  /**
+   * 为「已登录用户的某个 interview」签发扫码上传的 scoped 一次性令牌。
+   *
+   * 归属红线:先 findOne(id, userId) —— 非本人 / 不存在的 interview 直接 404,绝不为越权请求发令牌。
+   * 校验通过后才把 {purpose:audio_upload, interviewId:id, sub:userId, jti} 签成 60s 短令牌,
+   * 令牌天然只能传它绑定的这一个 interview、且落库 user_id 恒为签发者本人。
+   */
+  async issueUploadToken(
+    id: string,
+    userId: string,
+  ): Promise<QrUploadTokenResponse> {
+    // 归属校验:非本人面试 → 404(不泄露存在性),不为越权请求签发令牌。
+    await this.findOne(id, userId);
+
+    const { token, expiresInSec } = this.qrToken.sign(id, userId);
+    return { token, uploadPath: `/upload/${token}`, expiresInSec };
+  }
+
+  /**
+   * 凭已校验的 scoped 令牌接收手机端音频:走与登录端点完全相同的转写 pipeline。
+   *
+   * 调用前置(由 controller 完成):QrUploadTokenService.verify 已校验签名+exp+purpose+jti 未用过,
+   * 并解出绑定的 interviewId+userId。这里复用 transcribe()——其内部仍会 findOne(interviewId, userId)
+   * 再做一次归属校验(双保险:即便令牌被伪造出不匹配的归属,也会在此 404)+ 余额 ≥7 预检 + 建任务。
+   * 任务建成后由 controller 烧 jti(失败不烧,允许 60s 内重试)。
+   */
+  async transcribeViaQrToken(
+    interviewId: string,
+    userId: string,
+    audio: Buffer,
+    mimeType: string,
+  ): Promise<TranscribeStartedResponse> {
+    return this.transcribe(interviewId, userId, audio, mimeType);
   }
 
   /**

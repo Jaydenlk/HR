@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import { Upload, Mic, X, Info, Zap, QrCode } from 'lucide-react';
+import { QrUploadPanel } from './qr-upload-panel';
 
 // Response shape from POST /interviews/:id/transcribe (202 Accepted)
 export interface TranscribeStarted {
@@ -32,7 +33,28 @@ export function AudioUploader({ interviewId, open, onClose, onStarted }: AudioUp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // 手机扫码二维码悬浮面板的显隐:鼠标移入「手机上传」按钮即展开。
+  const [showQr, setShowQr] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 悬停离开时延迟收起,避免鼠标从按钮挪到面板的途中面板瞬间消失。
+  const qrHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function openQr() {
+    if (qrHideTimer.current) clearTimeout(qrHideTimer.current);
+    setShowQr(true);
+  }
+
+  function scheduleHideQr() {
+    if (qrHideTimer.current) clearTimeout(qrHideTimer.current);
+    qrHideTimer.current = setTimeout(() => setShowQr(false), 200);
+  }
+
+  // 手机端传完(后端已建转写任务)→ 与电脑端上传同一路径:关弹层 + 让父层启动进度轮询。
+  function handlePhoneUploaded(taskId: string) {
+    setShowQr(false);
+    reset();
+    onStarted(taskId);
+  }
 
   function reset() {
     setFile(null);
@@ -277,49 +299,57 @@ export function AudioUploader({ interviewId, open, onClose, onStarted }: AudioUp
                 </>
               )}
             </button>
-            {/* Block F 占位: 手机扫码上传 — 主路径锚点，功能待 P1 专项实现 */}
-            <button
-              type="button"
-              disabled
-              title="该功能正在开发中，敬请期待"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '7px',
-                marginTop: '10px',
-                padding: '9px 16px',
-                width: '100%',
-                borderRadius: '9px',
-                border: '1.5px dashed var(--color-line-2)',
-                background: 'transparent',
-                color: 'var(--color-ink-4)',
-                fontSize: '12.5px',
-                cursor: 'not-allowed',
-                opacity: 0.65,
-              }}
+            {/* 手机扫码上传:悬停按钮展开二维码面板,手机扫码直传录音。 */}
+            <div
+              style={{ position: 'relative', marginTop: '10px' }}
+              onMouseEnter={openQr}
+              onMouseLeave={scheduleHideQr}
             >
-              <QrCode size={14} />
-              <span>录音在手机里?扫码用手机传</span>
-              <span
+              <button
+                type="button"
+                aria-expanded={showQr}
+                onClick={() => setShowQr((v) => !v)}
                 style={{
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  padding: '1px 7px',
-                  borderRadius: '999px',
-                  background: 'rgba(47,143,255,.08)',
-                  border: '1px solid rgba(47,143,255,.25)',
-                  fontSize: '10.5px',
+                  justifyContent: 'center',
+                  gap: '7px',
+                  padding: '9px 16px',
+                  width: '100%',
+                  borderRadius: '9px',
+                  border: `1.5px ${showQr ? 'solid' : 'dashed'} ${showQr ? 'var(--color-brand)' : 'var(--color-line-2)'}`,
+                  background: showQr ? 'var(--color-brand-soft)' : 'transparent',
+                  color: showQr ? 'var(--color-brand-ink)' : 'var(--color-ink-3)',
+                  fontSize: '12.5px',
                   fontWeight: 600,
-                  color: 'var(--color-brand)',
-                  letterSpacing: '0.03em',
-                  lineHeight: 1,
-                  marginLeft: '2px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
                 }}
               >
-                即将上线
-              </span>
-            </button>
+                <QrCode size={14} />
+                <span>录音在手机里？扫码用手机传</span>
+              </button>
+
+              {/* 悬浮二维码面板:玻璃风格,鼠标可移入(故面板也带 enter/leave 保活)。 */}
+              {showQr && (
+                <div
+                  className="lg"
+                  onMouseEnter={openQr}
+                  onMouseLeave={scheduleHideQr}
+                  style={{
+                    position: 'absolute',
+                    bottom: 'calc(100% + 10px)',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 10,
+                    borderRadius: '14px',
+                    boxShadow: '0 20px 50px -16px rgba(10,20,40,.4)',
+                  }}
+                >
+                  <QrUploadPanel interviewId={interviewId} onPhoneUploaded={handlePhoneUploaded} />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Privacy consent checkbox */}

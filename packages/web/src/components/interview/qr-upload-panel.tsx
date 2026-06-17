@@ -1,0 +1,262 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { api } from '@/lib/api';
+import { generateQrMatrix } from '@/lib/qrcode';
+import type { QrUploadTokenResponse, TranscribeStatusResponse } from '@/lib/types';
+import { Smartphone, RefreshCw, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+
+export interface QrUploadPanelProps {
+  interviewId: string;
+  // 手机端把音频传上来、后端建好转写任务后回调:父层据此关弹层 + 启动进度轮询。
+  onPhoneUploaded: (taskId: string) => void;
+}
+
+// 令牌 60s 过期;提前 ~10s(50s)重签,保证手机扫到的链接始终有效,不会扫了个刚过期的码。
+const REFRESH_BEFORE_EXPIRY_MS = 10_000;
+// 轮询手机是否传完的间隔。
+const POLL_STATUS_MS = 3000;
+
+// 把已存在的转写任务态视作「正在进行/已进行」——用于判断手机是否已经传上来。
+// submitted 起即代表后端已收到手机上传并建了任务(电脑端此前并未自己上传,故出现非 null 任务=手机传了)。
+const ACTIVE_STATUSES = new Set<TranscribeStatusResponse['status']>([
+  'submitted',
+  'transcribing',
+  'labeling',
+  'awaiting_confirm',
+  'analyzing',
+]);
+
+// 站点 origin(手机扫码后访问的地址)。优先用显式配置,回退当前页 origin。
+function siteOrigin(): string {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) return configured.replace(/\/$/, '');
+  if (typeof window !== 'undefined') return window.location.origin;
+  return '';
+}
+
+// 内联 SVG 渲染 QR 矩阵:每个深色模块一个 <rect>,白底由父容器给。
+function QrSvg({ matrix, size }: { matrix: boolean[][]; size: number }) {
+  const n = matrix.length;
+  const quiet = 2; // 静默区(规范要求 ≥4,这里取 2 个模块 + 容器留白,扫码足够)。
+  const dim = n + quiet * 2;
+  const rects: React.ReactElement[] = [];
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (matrix[r][c]) {
+        rects.push(
+          <rect key={`${r}-${c}`} x={c + quiet} y={r + quiet} width={1} height={1} fill="#0b1220" />,
+        );
+      }
+    }
+  }
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${dim} ${dim}`}
+      shapeRendering="crispEdges"
+      style={{ display: 'block', background: '#fff', borderRadius: '8px' }}
+      role="img"
+      aria-label="手机上传二维码"
+    >
+      <rect x={0} y={0} width={dim} height={dim} fill="#fff" />
+      {rects}
+    </svg>
+  );
+}
+
+export function QrUploadPanel({ interviewId, onPhoneUploaded }: QrUploadPanelProps) {
+  const [matrix, setMatrix] = useState<boolean[][] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [uploaded, setUploaded] = useState(false);
+
+  // onPhoneUploaded 通过 ref 进入 effect,避免父层每次渲染传新函数导致 effect 反复重建(进而重置轮询)。
+  const onUploadedRef = useRef(onPhoneUploaded);
+  useEffect(() => {
+    onUploadedRef.current = onPhoneUploaded;
+  }, [onPhoneUploaded]);
+
+  // 手动重试(错误态点「重试」)挂到 ref:effect 内部定义真正的 issueToken,这里只暴露一个稳定入口。
+  const retryRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    let mounted = true;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let done = false; // 手机已传完:停掉重签与轮询。
+    // 区分「手机这次新传的」与「进入面板前页面早就有的旧任务」,避免把旧任务误判成刚传完。
+    let baselineTaskId: string | null = null;
+    let baselineResolved = false;
+
+    // 签发/重签令牌 → 拼 origin → 生成二维码矩阵 → 安排下一次重签(过期前 10s)。
+    async function issueToken(): Promise<void> {
+      try {
+        const resp = await api.post<QrUploadTokenResponse>(
+          `/interviews/${interviewId}/upload-token`,
+          {},
+        );
+        if (!mounted) return;
+        const url = `${siteOrigin()}${resp.uploadPath}`;
+        setMatrix(generateQrMatrix(url));
+        setError(null);
+        setLoading(false);
+
+        // 过期前重签:60s 令牌,提前 10s,但至少 1s 后,防 expiresInSec 异常小导致空转。
+        const delay = Math.max(1000, resp.expiresInSec * 1000 - REFRESH_BEFORE_EXPIRY_MS);
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          if (mounted && !done) void issueToken();
+        }, delay);
+      } catch (err) {
+        if (!mounted) return;
+        setError(err instanceof Error ? err.message : '生成二维码失败，请重试');
+        setLoading(false);
+      }
+    }
+
+    // 轮询转写任务状态:出现「基线之外的新任务」即视作手机已传完 → 回调父层关弹层 + 启动进度。
+    async function pollPhoneUpload(): Promise<void> {
+      try {
+        const data = await api.get<TranscribeStatusResponse>(
+          `/interviews/${interviewId}/transcribe/status`,
+        );
+        if (!mounted) return;
+
+        if (!baselineResolved) {
+          baselineResolved = true;
+          if (data.taskId && ACTIVE_STATUSES.has(data.status)) {
+            baselineTaskId = data.taskId;
+          }
+        } else if (
+          data.taskId &&
+          data.taskId !== baselineTaskId &&
+          ACTIVE_STATUSES.has(data.status)
+        ) {
+          // 出现了一个不同于基线的活动任务 → 手机这次传上来了。
+          done = true;
+          setUploaded(true);
+          if (refreshTimer) clearTimeout(refreshTimer);
+          onUploadedRef.current(data.taskId);
+          return; // 停止轮询,交给父层的进度区接管。
+        }
+      } catch {
+        // 404(暂无任务)或网络抖动:静默,继续轮询。
+      }
+      if (mounted && !done) {
+        pollTimer = setTimeout(() => void pollPhoneUpload(), POLL_STATUS_MS);
+      }
+    }
+
+    retryRef.current = () => {
+      setLoading(true);
+      void issueToken();
+    };
+
+    void issueToken();
+    void pollPhoneUpload();
+
+    return () => {
+      mounted = false;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      if (pollTimer) clearTimeout(pollTimer);
+    };
+  }, [interviewId]);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '18px',
+        width: '240px',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <Smartphone size={15} color="var(--color-brand)" />
+        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-ink)' }}>
+          用手机扫码上传录音
+        </span>
+      </div>
+
+      {/* QR / 状态区 */}
+      <div
+        style={{
+          width: '168px',
+          height: '168px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '12px',
+          background: '#fff',
+          border: '1px solid var(--color-line)',
+          padding: '8px',
+        }}
+      >
+        {uploaded ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle2 size={36} color="var(--color-success)" />
+            <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--color-success)' }}>
+              已收到手机录音
+            </span>
+          </div>
+        ) : error ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '0 10px', textAlign: 'center' }}>
+            <AlertCircle size={28} color="var(--color-danger)" />
+            <span style={{ fontSize: '11.5px', color: 'var(--color-danger)', lineHeight: 1.4 }}>
+              {error}
+            </span>
+            <button
+              type="button"
+              onClick={() => retryRef.current()}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginTop: '2px',
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: '1px solid var(--color-line)',
+                background: 'transparent',
+                color: 'var(--color-ink-2)',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <RefreshCw size={11} />
+              重试
+            </button>
+          </div>
+        ) : loading || !matrix ? (
+          <Loader2 size={28} color="var(--color-brand)" style={{ animation: 'qr-spin 0.8s linear infinite' }} />
+        ) : (
+          <QrSvg matrix={matrix} size={150} />
+        )}
+      </div>
+
+      {!uploaded && !error && (
+        <div style={{ fontSize: '11.5px', color: 'var(--color-ink-3)', textAlign: 'center', lineHeight: 1.6 }}>
+          用手机相机或微信扫一扫，
+          <br />
+          在手机上选录音文件直传。
+          <span style={{ display: 'block', marginTop: '4px', color: 'var(--color-ink-4)' }}>
+            二维码每分钟自动刷新，保持本窗口打开
+          </span>
+        </div>
+      )}
+      {uploaded && (
+        <div style={{ fontSize: '11.5px', color: 'var(--color-ink-3)', textAlign: 'center', lineHeight: 1.6 }}>
+          正在转写，马上为你展示进度…
+        </div>
+      )}
+
+      <style>{`
+        @keyframes qr-spin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
