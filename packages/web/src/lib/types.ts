@@ -366,6 +366,11 @@ export interface TranscribeStatusResponse {
   errorMessage?: string | null;
   // awaiting_confirm 及之后非空;之前为 null。
   segmentsJson?: LabeledSegment[] | null;
+  // 上传元数据回执(收到上传即非空;无元数据的旧任务为 null)。仅文件元数据,非音频内容。
+  originalFilename?: string | null;
+  fileSizeBytes?: number | null;
+  mimeType?: string | null;
+  uploadedAt?: string | null; // ISO 字符串
 }
 
 export interface MockQuestion {

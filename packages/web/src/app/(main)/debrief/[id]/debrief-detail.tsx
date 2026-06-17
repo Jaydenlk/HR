@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Interview, LabeledSegment, TranscribeStatusResponse } from '@/lib/types';
 import { ScoreRadar } from '@/components/interview/score-radar';
@@ -11,7 +11,7 @@ import { PredictionCard } from '@/components/interview/prediction-card';
 import { AudioUploader } from '@/components/interview/audio-uploader';
 import { TranscriptProgress } from '@/components/interview/transcript-progress';
 import { SpeakerLabelSection } from '@/components/interview/speaker-label-section';
-import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic, Zap, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic, Zap, Info, Trash2, AlertTriangle } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 
 function gradeColors(grade: string | null): { bg: string; text: string } {
@@ -51,11 +51,15 @@ interface DebriefDetailProps {
 export function DebriefDetail({ params }: DebriefDetailProps) {
   const { id } = use(params);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  // 复盘记录删除:inline 两态确认(镜像 resume-detail 的删除模式)。
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // 录音转写态:taskId 为当前活动任务(轮询中);segments 为待确认标注。
   const [showUploader, setShowUploader] = useState(false);
@@ -152,6 +156,34 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
       setInterview(updated);
     } catch (err) {
       alert(err instanceof Error ? err.message : '刷新失败，请手动刷新页面');
+    }
+  }
+
+  // 失败态「重新上传」:任务已由 TranscriptProgress 清掉,这里清转写态并重开上传弹层。
+  function handleRetryReupload() {
+    setTaskId(null);
+    setTranscribeStatus(null);
+    setSegments(null);
+    setShowUploader(true);
+  }
+
+  // 失败态「删除记录」:任务已由 TranscriptProgress 清掉,这里回到上传前态。
+  function handleDeleteTask() {
+    setTaskId(null);
+    setTranscribeStatus(null);
+    setSegments(null);
+  }
+
+  // 删除整条复盘记录(镜像 resume-detail:两态确认 → DELETE → 跳回列表)。
+  async function handleDeleteInterview() {
+    setDeleting(true);
+    try {
+      await api.delete(`/interviews/${id}`);
+      router.push('/debrief');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '删除失败，请稍后重试');
+      setDeleting(false);
+      setDeleteConfirm(false);
     }
   }
 
@@ -354,6 +386,92 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
             )}
           </div>
         </div>
+
+        {/* Delete debrief record (镜像 resume-detail 的 inline 两态确认)。 */}
+        <div style={{ flexShrink: 0 }}>
+          {deleteConfirm ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '12.5px',
+                  color: 'var(--color-ink-3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  textAlign: 'right',
+                }}
+              >
+                <AlertTriangle size={13} color="var(--color-warn)" style={{ flexShrink: 0 }} />
+                删除此复盘记录？此操作不可撤销。
+              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  disabled={deleting}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '7px',
+                    border: '1.5px solid var(--color-line)',
+                    background: 'transparent',
+                    color: 'var(--color-ink-3)',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    cursor: deleting ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => void handleDeleteInterview()}
+                  disabled={deleting}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    background: 'var(--color-danger)',
+                    color: '#fff',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    cursor: deleting ? 'not-allowed' : 'pointer',
+                    opacity: deleting ? 0.6 : 1,
+                  }}
+                >
+                  {deleting ? '删除中…' : '确认删除'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              title="删除此复盘记录"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '9px',
+                border: '1.5px solid var(--color-line)',
+                background: 'transparent',
+                color: 'var(--color-ink-3)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-danger)';
+                e.currentTarget.style.color = 'var(--color-danger)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-line)';
+                e.currentTarget.style.color = 'var(--color-ink-3)';
+              }}
+            >
+              <Trash2 size={14} />
+              删除
+            </button>
+          )}
+        </div>
       </div>
 
       {/* AI overall note */}
@@ -424,6 +542,8 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
             interviewId={id}
             taskId={taskId}
             onStatusUpdate={handleStatusUpdate}
+            onRetryReupload={handleRetryReupload}
+            onDeleteTask={handleDeleteTask}
           />
         </div>
       )}

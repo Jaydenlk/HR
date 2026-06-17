@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { TIMESTAMP_COLUMN_TYPE } from '../../database/column-types';
 
 /**
  * interview_transcribe_tasks 表:面试录音转写任务的状态机。
@@ -107,6 +108,26 @@ export class InterviewTranscribeTask {
   /** 失败原因(仅 status=failed 时有值,不含敏感内部堆栈) */
   @Column({ type: 'text', nullable: true })
   error_message: string | null;
+
+  /**
+   * 上传元数据(filename/size/mime/uploaded_at):仅供桌面端「已收到上传」回执展示。
+   * 隐私铁律:这些是文件的元数据(原始文件名/字节数/MIME/上传时刻),不是音频内容本身;
+   * audio Buffer 仍全程只在内存、interview.audio_url 仍恒为 null,转写后即 GC。可空(旧任务为 null)。
+   */
+  @Column({ type: 'varchar', nullable: true })
+  original_filename: string | null;
+
+  /** 上传文件字节数(humansize 展示)。25MB 上限远在 int4 内,双端均返回 number。可空。 */
+  @Column({ type: 'int', nullable: true })
+  file_size_bytes: number | null;
+
+  /** 上传文件 MIME 类型。可空。 */
+  @Column({ type: 'varchar', nullable: true })
+  mime_type: string | null;
+
+  /** 收到 multipart 文件那一刻(服务端 new Date());可空时间列用双端兼容类型。 */
+  @Column({ type: TIMESTAMP_COLUMN_TYPE, nullable: true })
+  uploaded_at: Date | null;
 
   @CreateDateColumn()
   created_at: Date;
