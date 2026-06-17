@@ -10,6 +10,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { STARTER_ITEMS } from './starter-items';
+import {
+  LAUNCH_FEATURE_TOUR_EVENT,
+  type LaunchFeatureTourDetail,
+} from '@/lib/feature-tour';
+import { getFeatureUpdateByTourId } from '@/lib/feature-updates';
 
 const DONE_KEY = 'coach_tour_done';
 
@@ -18,6 +23,31 @@ interface TourStep {
   target: string | null;
   title: string;
   body: string;
+}
+
+// ── 功能 mini-tour:复用主导览同款聚光灯/气泡/居中卡机制,内容独立、按 feature 的 seenKey 持久化 ──
+// 由公告 CTA 派发 coach:launch-feature-tour 事件启动。目前仅一条:ASR 录音上传。
+// target 用 debrief 页录音上传入口的 data-tour 锚点;锚点不在(不在该页/未渲染)则自动退化为居中卡。
+interface FeatureTourDef {
+  tourId: string;
+  steps: TourStep[];
+}
+
+const FEATURE_TOURS: FeatureTourDef[] = [
+  {
+    tourId: 'asr-recording',
+    steps: [
+      {
+        target: 'asr-upload',
+        title: '把录音变成复盘',
+        body: '面完一场,把录音传到这儿。我帮你转成文字,再逐题告诉你哪答得好、哪能更好 —— 趁记忆新鲜,一次复盘到位。成功才扣 7 点。',
+      },
+    ],
+  },
+];
+
+function findFeatureTour(tourId: string): FeatureTourDef | undefined {
+  return FEATURE_TOURS.find((t) => t.tourId === tourId);
 }
 
 // welcome 卡 + 5 个价值步 + 末尾"启动清单"卡。严守 ≤5 价值步(>5 完成率断崖)。
@@ -192,16 +222,29 @@ export default function OnboardingTour() {
   const [stepIndex, setStepIndex] = useState(0);
   const [rect, setRect] = useState<HoleRect | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  // 非 null 即处于「功能 mini-tour」态(由公告 CTA 启动),走独立内容与 seenKey 持久化。
+  const [featureTour, setFeatureTour] = useState<FeatureTourDef | null>(null);
   const router = useRouter();
 
-  // 完成/跳过:写标记并关闭;goResumes=true 时跳转简历馆
+  // 当前导览的步骤源:功能 tour 用其自身 steps;否则主导览 STEPS。
+  const activeSteps = featureTour ? featureTour.steps : STEPS;
+
+  // 完成/跳过:主导览写 DONE_KEY;功能 tour 写其 seenKey(看完徽章消失)。
+  // goResumes=true(仅主导览启动清单 CTA)时跳转简历馆。
   const finish = useCallback(
     (goResumes: boolean) => {
-      localStorage.setItem(DONE_KEY, '1');
+      if (featureTour) {
+        const reg = getFeatureUpdateByTourId(featureTour.tourId);
+        if (reg) localStorage.setItem(reg.seenKey, '1');
+        setFeatureTour(null);
+      } else {
+        localStorage.setItem(DONE_KEY, '1');
+      }
       setActive(false);
+      setStepIndex(0);
       if (goResumes) router.push('/resumes');
     },
-    [router],
+    [router, featureTour],
   );
 
   // 视口宽度判定:与 layout 一致用 768 阈值。移动端走居中卡片降级。
@@ -223,11 +266,28 @@ export default function OnboardingTour() {
   // 对齐 layout 已有的 coach:credit-refresh 事件总线模式,比清 localStorage + reload 更顺。
   useEffect(() => {
     const onRestart = () => {
+      setFeatureTour(null);
       setStepIndex(0);
       setActive(true);
     };
     window.addEventListener('coach:restart-tour', onRestart);
     return () => window.removeEventListener('coach:restart-tour', onRestart);
+  }, []);
+
+  // 功能 mini-tour 启动:公告 CTA 点击派发 coach:launch-feature-tour { tourId }。
+  // CTA 已先 router.push 到目标页,此处延迟一拍等目标页 DOM(data-tour 锚点)渲染稳定再聚光;
+  // 锚点不在时测量返回 null,自动退化为居中卡。
+  useEffect(() => {
+    const onLaunch = (e: Event) => {
+      const detail = (e as CustomEvent<LaunchFeatureTourDetail>).detail;
+      const def = detail?.tourId ? findFeatureTour(detail.tourId) : undefined;
+      if (!def) return;
+      setFeatureTour(def);
+      setStepIndex(0);
+      window.setTimeout(() => setActive(true), 350);
+    };
+    window.addEventListener(LAUNCH_FEATURE_TOUR_EVENT, onLaunch);
+    return () => window.removeEventListener(LAUNCH_FEATURE_TOUR_EVENT, onLaunch);
   }, []);
 
   // 步骤变化/窗口缩放:重算目标位置(仅桌面聚光灯需要)。移动端不挖洞,跳过测量。
@@ -240,7 +300,7 @@ export default function OnboardingTour() {
         setRect(null);
         return;
       }
-      const step = STEPS[stepIndex];
+      const step = activeSteps[stepIndex];
       if (!step) return;
       if (step.target === null) {
         setRect(null);
@@ -257,7 +317,7 @@ export default function OnboardingTour() {
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [active, stepIndex, isMobile]);
+  }, [active, stepIndex, isMobile, activeSteps]);
 
   // Esc = 跳过并标记完成
   useEffect(() => {
@@ -271,9 +331,17 @@ export default function OnboardingTour() {
 
   if (!active) return null;
 
-  // stepIndex ∈ [0, STEPS.length]:最后一格(== STEPS.length)是启动清单卡。
-  const isChecklist = stepIndex === STEPS.length;
-  const step = isChecklist ? null : STEPS[stepIndex];
+  // 主导览:stepIndex ∈ [0, STEPS.length],最后一格(== STEPS.length)是启动清单卡。
+  // 功能 tour:无启动清单卡,stepIndex 落在其 steps 范围内。
+  const isChecklist = !featureTour && stepIndex === STEPS.length;
+  const step = isChecklist ? null : activeSteps[stepIndex];
+  // 功能 tour 的最后一步:「下一步」按钮文案改「完成」,点击即收尾(写 seenKey)。
+  const isLastFeatureStep = featureTour != null && stepIndex >= featureTour.steps.length - 1;
+  // 「下一步/完成」统一处理:功能 tour 末步即收尾,否则前进一格。
+  const advance = () => {
+    if (isLastFeatureStep) finish(false);
+    else setStepIndex((i) => i + 1);
+  };
   // welcome / 点数步 / 启动清单 / 移动端 / 锚点缺失 → 走居中卡片;否则聚光灯气泡。
   const useSpotlight = !isMobile && !isChecklist && step != null && step.target !== null && rect != null;
 
@@ -446,20 +514,17 @@ export default function OnboardingTour() {
               marginTop: '14px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: featureTour ? 'flex-end' : 'space-between',
             }}
           >
-            <Dots current={stepIndex} />
+            {/* 功能 tour 为单步,不显示进度点;主导览显示。 */}
+            {!featureTour && <Dots current={stepIndex} />}
             <span style={{ display: 'inline-flex', gap: '6px' }}>
               <button type="button" onClick={() => finish(false)} style={compactGhostBtnStyle}>
                 跳过
               </button>
-              <button
-                type="button"
-                onClick={() => setStepIndex((i) => i + 1)}
-                style={compactPrimaryBtnStyle}
-              >
-                下一步
+              <button type="button" onClick={advance} style={compactPrimaryBtnStyle}>
+                {isLastFeatureStep ? '知道了' : '下一步'}
               </button>
             </span>
           </div>
@@ -498,9 +563,12 @@ export default function OnboardingTour() {
           >
             {step?.body}
           </div>
-          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
-            <Dots current={stepIndex} />
-          </div>
+          {/* 功能 tour 为单步,不显示进度点;主导览显示。 */}
+          {!featureTour && (
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+              <Dots current={stepIndex} />
+            </div>
+          )}
           <div
             style={{
               marginTop: '18px',
@@ -513,12 +581,14 @@ export default function OnboardingTour() {
             <button type="button" onClick={() => finish(false)} style={ghostBtnStyle}>
               跳过
             </button>
-            <button
-              type="button"
-              onClick={() => setStepIndex((i) => i + 1)}
-              style={primaryBtnStyle}
-            >
-              {stepIndex === 0 ? '开始导览' : '下一步'}
+            <button type="button" onClick={advance} style={primaryBtnStyle}>
+              {featureTour
+                ? isLastFeatureStep
+                  ? '知道了'
+                  : '下一步'
+                : stepIndex === 0
+                  ? '开始导览'
+                  : '下一步'}
             </button>
           </div>
         </div>

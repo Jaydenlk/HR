@@ -13,7 +13,7 @@ import { request } from './test-utils';
 // 覆盖三条契约:
 //  ① 发布端点(POST /api/admin/announcements）AdminGuard 门控:无 token→401、普通用户→403、admin→成功。
 //  ② 公开端点(GET /api/announcements）只返 active=true，且出站为 DTO 白名单（无内部/未声明字段泄漏）。
-//  ③ 出站 DTO 字段集恰为白名单 7 字段。
+//  ③ 出站 DTO 字段集恰为白名单 13 字段(基础 8 + status + 4 个 cta 字段)。
 //
 // 复用 admin.e2e-spec 同款脚手架:AppModule + mock AiService(AppModule 校验 AI 配置存在）+
 // ADMIN_EMAILS 引导 admin。sqlite 由 jest-setup-env 强制 :memory:（不污染 dev 库）。
@@ -24,7 +24,7 @@ const mockAiService = {
 };
 
 // DTO 白名单:AnnouncementResponseDto 暴露的全部字段（出站契约）。
-// 含 display_type(banner/modal)——前端按此分流横幅/弹窗。
+// 含 display_type(banner/modal)——前端按此分流横幅/弹窗;status + 4 个 cta 字段为本期新增。
 const DTO_FIELDS = [
   'id',
   'title',
@@ -34,6 +34,11 @@ const DTO_FIELDS = [
   'active',
   'created_at',
   'published_at',
+  'status',
+  'cta_label',
+  'cta_href',
+  'cta_tour_id',
+  'feature_key',
 ] as const;
 
 async function registerUser(app: INestApplication, email: string, name: string): Promise<string> {
@@ -428,6 +433,292 @@ describe('Announcements (e2e)', () => {
       const res = await request(app.getHttpServer()).get('/api/announcements?limit=1');
       expect(res.status).toBe(200);
       expect(res.body.length).toBeLessThanOrEqual(1);
+    });
+  });
+
+  // ─── 【安全】草稿绝不从公开端泄漏 ─────────────────────────────────────────────
+  // 最高优先级:status='draft' 的公告即使 active=true、published_at 在窗口内,公开端也必须不返回。
+  // 直接落库一条「伪装成已发布」的草稿(active=true + 当前 published_at),证明 status 门是硬过滤。
+  describe('GET /api/announcements 草稿隔离(安全红线)', () => {
+    let draftId: string;
+    let publishedId: string;
+
+    beforeAll(async () => {
+      // 草稿但故意 active=true + 新鲜 published_at:唯一拦它的就是 status='draft'。
+      const draft = await annRepo.save(
+        annRepo.create({
+          title: '草稿不该外泄',
+          body: '这是一条 status=draft 的公告,即便 active 与窗口都满足也不能出现在公开端',
+          kind: 'feature',
+          display_type: 'banner',
+          active: true,
+          published_at: new Date(),
+          status: 'draft',
+        }),
+      );
+      draftId = draft.id;
+
+      // 对照组:正常已发布公告,公开端应可见。
+      const pub = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '已发布对照', body: '公开端应可见', active: true });
+      expect(pub.status).toBe(201);
+      publishedId = pub.body.id;
+    }, 30000);
+
+    it('草稿(active=true 也不行)绝不出现在公开端', async () => {
+      const res = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      expect(res.status).toBe(200);
+      const ids = (res.body as { id: string }[]).map((r) => r.id);
+      expect(ids).not.toContain(draftId);
+      expect(ids).toContain(publishedId);
+      // 公开端每条 status 必为 published。
+      for (const item of res.body as { status: string }[]) {
+        expect(item.status).toBe('published');
+      }
+    });
+
+    it('草稿在管理后台可见(findAll 不受 status 过滤)+ ?status=draft tab 命中', async () => {
+      const all = await request(app.getHttpServer())
+        .get('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect((all.body as { id: string }[]).map((r) => r.id)).toContain(draftId);
+
+      const drafts = await request(app.getHttpServer())
+        .get('/api/admin/announcements?status=draft')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(drafts.status).toBe(200);
+      const draftIds = (drafts.body as { id: string; status: string }[]).map((r) => r.id);
+      expect(draftIds).toContain(draftId);
+      for (const item of drafts.body as { status: string }[]) {
+        expect(item.status).toBe('draft');
+      }
+    });
+
+    it('?status=published tab 只返已发布', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/announcements?status=published')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(200);
+      const ids = (res.body as { id: string; status: string }[]).map((r) => r.id);
+      expect(ids).toContain(publishedId);
+      expect(ids).not.toContain(draftId);
+    });
+
+    it('?status 非法值 → 400', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/admin/announcements?status=garbage')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── AI 起草草稿(POST /generate,mock AiService)──────────────────────────────
+  // 注意:不在 beforeEach 排队 mockResolvedValueOnce —— 门控用例(401/403)不会触达 service,
+  // 排队的值会残留污染下一个真正触达的用例。故每个会调用 generate 的用例内单独 mock 一次。
+  describe('POST /api/admin/announcements/generate AI 起草', () => {
+    // 合法草稿形状(覆盖全局默认 {});在每个会触达 service 的用例里 mockResolvedValueOnce。
+    const DRAFT_SHAPE = {
+      title: '录音复盘已上线',
+      body: '现在可以把面试录音传上来,自动转文字再逐题复盘,帮你把刚结束的面试趁热复盘一遍。',
+      kind: 'feature' as const,
+      display_type: 'banner' as const,
+    };
+
+    it('门控:无 token → 401、普通用户 → 403', async () => {
+      const anon = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate')
+        .send({ source_content: '录音上传功能上线' });
+      expect(anon.status).toBe(401);
+
+      const normal = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ source_content: '录音上传功能上线' });
+      expect(normal.status).toBe(403);
+    });
+
+    it('admin → 201 生成草稿:status=draft、active=false、published_at=null,落库可查', async () => {
+      mockAiService.completeStructured.mockResolvedValueOnce(DRAFT_SHAPE);
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ source_content: '- 面试录音上传\n- 自动转写\n- 逐题复盘' });
+      expect(res.status).toBe(201);
+      expect(res.body.status).toBe('draft');
+      expect(res.body.active).toBe(false);
+      expect(res.body.published_at).toBeNull();
+      expect(res.body.title).toBe('录音复盘已上线');
+      expect(typeof res.body.id).toBe('string');
+      // AI 只写正文,CTA 留空。
+      expect(res.body.cta_label).toBeNull();
+      expect(res.body.cta_href).toBeNull();
+
+      const inDb = await annRepo.findOneBy({ id: res.body.id });
+      expect(inDb).not.toBeNull();
+      expect(inDb!.status).toBe('draft');
+      expect(inDb!.active).toBe(false);
+    });
+
+    it('生成的草稿不出现在公开端【安全】', async () => {
+      mockAiService.completeStructured.mockResolvedValueOnce(DRAFT_SHAPE);
+      const gen = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ source_content: '隐私测试草稿要点' });
+      expect(gen.status).toBe(201);
+      const draftId = gen.body.id as string;
+
+      const pub = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      const ids = (pub.body as { id: string }[]).map((r) => r.id);
+      expect(ids).not.toContain(draftId);
+    });
+
+    it('preferred_display_type=modal → 草稿 display_type=modal(管理员倾向优先)', async () => {
+      // 即便模型返回 display_type=banner,preferred_display_type 也应覆盖为 modal。
+      mockAiService.completeStructured.mockResolvedValueOnce(DRAFT_SHAPE);
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ source_content: '维护通知要点', preferred_display_type: 'modal' });
+      expect(res.status).toBe(201);
+      expect(res.body.display_type).toBe('modal');
+    });
+
+    it('source_content 为空 → 400(DTO 校验)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ source_content: '   ' });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── 草稿发布流转 + CTA 落库 ──────────────────────────────────────────────────
+  describe('PATCH status 发布流转 + CTA 字段', () => {
+    it('草稿 PATCH status=published → status 变、published_at 非空、active=true,随后出现在公开端', async () => {
+      // 经 generate 造一条草稿(mock 一次)。
+      mockAiService.completeStructured.mockResolvedValueOnce({
+        title: '发布流转测试草稿',
+        body: '这条草稿将被发布,验证 status/published_at/active 三者一致进入已发布态。',
+        kind: 'feature',
+        display_type: 'banner',
+      });
+      const gen = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ source_content: '发布流转要点' });
+      expect(gen.status).toBe(201);
+      const id = gen.body.id as string;
+      expect(gen.body.status).toBe('draft');
+      expect(gen.body.published_at).toBeNull();
+
+      const patch = await request(app.getHttpServer())
+        .patch(`/api/admin/announcements/${id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'published' });
+      expect(patch.status).toBe(200);
+      expect(patch.body.status).toBe('published');
+      expect(patch.body.active).toBe(true);
+      expect(patch.body.published_at).not.toBeNull();
+
+      // 已发布且在窗口内 → 公开端可见。
+      const pub = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      const ids = (pub.body as { id: string }[]).map((r) => r.id);
+      expect(ids).toContain(id);
+    });
+
+    it('草稿 PATCH active=true(编辑表单勾上架)→ 同步转为 published 并对公开端可见(不留误导态)', async () => {
+      mockAiService.completeStructured.mockResolvedValueOnce({
+        title: '勾上架即发布草稿',
+        body: '验证编辑表单勾上架时,草稿会同步转为已发布,不会停留在 active=true 但仍 draft 的误导态。',
+        kind: 'feature',
+        display_type: 'banner',
+      });
+      const gen = await request(app.getHttpServer())
+        .post('/api/admin/announcements/generate')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ source_content: '勾上架即发布要点' });
+      expect(gen.status).toBe(201);
+      const id = gen.body.id as string;
+      expect(gen.body.status).toBe('draft');
+
+      const patch = await request(app.getHttpServer())
+        .patch(`/api/admin/announcements/${id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ active: true });
+      expect(patch.status).toBe(200);
+      expect(patch.body.status).toBe('published');
+      expect(patch.body.active).toBe(true);
+      expect(patch.body.published_at).not.toBeNull();
+
+      const pub = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      expect((pub.body as { id: string }[]).map((r) => r.id)).toContain(id);
+    });
+
+    it('已发布 PATCH active=false 下架 → status 保留 published(下架的已发布公告),公开端消失', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '待下架', body: 'x', active: true });
+      expect(created.body.status).toBe('published');
+      const id = created.body.id as string;
+
+      const patch = await request(app.getHttpServer())
+        .patch(`/api/admin/announcements/${id}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ active: false });
+      expect(patch.status).toBe(200);
+      expect(patch.body.status).toBe('published');
+      expect(patch.body.active).toBe(false);
+
+      const pub = await request(app.getHttpServer()).get('/api/announcements?limit=50');
+      expect((pub.body as { id: string }[]).map((r) => r.id)).not.toContain(id);
+    });
+
+    it('创建时带 CTA 字段 → 落库且经公开端出参可读', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          title: '带引导按钮的公告',
+          body: '点下面的按钮去试录音复盘',
+          active: true,
+          cta_label: '去试试',
+          cta_href: '/debrief',
+          cta_tour_id: 'asr-recording',
+          feature_key: 'asr_recording',
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.cta_label).toBe('去试试');
+      expect(res.body.cta_href).toBe('/debrief');
+      expect(res.body.cta_tour_id).toBe('asr-recording');
+      expect(res.body.feature_key).toBe('asr_recording');
+
+      const inDb = await annRepo.findOneBy({ id: res.body.id });
+      expect(inDb!.cta_href).toBe('/debrief');
+    });
+
+    it('cta_href 非站内路径(http://evil)→ 400(防开放重定向)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          title: '恶意跳转',
+          body: 'x',
+          cta_label: '点我',
+          cta_href: 'http://evil.com',
+        });
+      expect(res.status).toBe(400);
+    });
+
+    it('cta_href 协议相对(//evil)→ 400', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/admin/announcements')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ title: '协议相对', body: 'x', cta_href: '//evil.com' });
+      expect(res.status).toBe(400);
     });
   });
 });

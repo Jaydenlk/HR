@@ -2,6 +2,7 @@ import {
   Announcement,
   AnnouncementDisplayType,
   AnnouncementKind,
+  AnnouncementStatus,
 } from '../entities/announcement.entity';
 
 // 出参:公开端公告记录(GET /announcements)。
@@ -15,6 +16,11 @@ export class AnnouncementResponseDto {
   active: boolean;
   created_at: Date;
   published_at: Date | null;
+  status: AnnouncementStatus;
+  cta_label: string | null;
+  cta_href: string | null;
+  cta_tour_id: string | null;
+  feature_key: string | null;
 
   static from(item: Announcement): AnnouncementResponseDto {
     const dto = new AnnouncementResponseDto();
@@ -26,6 +32,11 @@ export class AnnouncementResponseDto {
     dto.active = item.active;
     dto.created_at = item.created_at;
     dto.published_at = item.published_at ?? null;
+    dto.status = item.status;
+    dto.cta_label = item.cta_label ?? null;
+    dto.cta_href = item.cta_href ?? null;
+    dto.cta_tour_id = item.cta_tour_id ?? null;
+    dto.feature_key = item.feature_key ?? null;
     return dto;
   }
 }

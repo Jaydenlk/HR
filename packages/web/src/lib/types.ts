@@ -1556,6 +1556,9 @@ export type AnnouncementKind = 'feature' | 'fix' | 'maintenance';
 // 公告展示形态:横幅 / 弹窗。与后端 AnnouncementDisplayType 一致。
 export type AnnouncementDisplayType = 'banner' | 'modal';
 
+// 公告审核状态:草稿(公开端不可见) / 已发布。与后端 AnnouncementStatus 一致。
+export type AnnouncementStatus = 'draft' | 'published';
+
 // 公告记录,镜像后端 AnnouncementResponseDto(/api/admin/announcements 与 /api/announcements)。
 // created_at/published_at 经 JSON 序列化为 ISO 字符串。
 export interface Announcement {
@@ -1567,6 +1570,15 @@ export interface Announcement {
   active: boolean;
   created_at: string;
   published_at: string | null;
+  // 审核状态:草稿/已发布(公开端只返 published)。
+  status: AnnouncementStatus;
+  // 引导按钮(CTA):cta_label + cta_href 同时非空才渲染。cta_href 为站内路径(/ 开头)。
+  cta_label: string | null;
+  cta_href: string | null;
+  // 点击 CTA 后由目标页启动的功能导览 ID(配 'coach:launch-feature-tour' 事件)。
+  cta_tour_id: string | null;
+  // 关联功能键(feature-updates 注册表),用于「新」徽章/导览映射。
+  feature_key: string | null;
 }
 
 // AI 通道协议:Anthropic 兼容 / OpenAI 兼容。

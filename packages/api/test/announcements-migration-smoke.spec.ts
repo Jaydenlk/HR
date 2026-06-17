@@ -10,6 +10,7 @@
  */
 import { QueryRunner } from 'typeorm';
 import { CreateAnnouncements1781500000000 } from '../src/database/migrations/1781500000000-CreateAnnouncements';
+import { AddAnnouncementStatusAndCta1781550000000 } from '../src/database/migrations/1781550000000-AddAnnouncementStatusAndCta';
 
 type RecordingRunner = Pick<QueryRunner, 'query'>;
 
@@ -94,5 +95,67 @@ describe('CreateAnnouncements1781500000000 迁移结构', () => {
     const dropped = down.sql.some((q) => /DROP TABLE "announcements"/.test(q));
     expect(created).toBe(true);
     expect(dropped).toBe(true);
+  });
+});
+
+describe('AddAnnouncementStatusAndCta1781550000000 迁移结构', () => {
+  const migration = new AddAnnouncementStatusAndCta1781550000000();
+
+  it('类可实例化且 name 与文件时间戳一致', () => {
+    expect(migration.name).toBe('AddAnnouncementStatusAndCta1781550000000');
+  });
+
+  it('up() 在 announcements 上加 status(NOT NULL DEFAULT draft)+ 4 个可空 CTA 列', async () => {
+    const { runner, sql } = makeRecordingRunner();
+    await migration.up(runner);
+    const adds = sql.filter((q) => /ALTER TABLE "announcements" ADD/.test(q));
+    expect(
+      adds.some((q) =>
+        /ADD "status" character varying NOT NULL DEFAULT 'draft'/.test(q),
+      ),
+    ).toBe(true);
+    expect(adds.some((q) => /ADD "cta_label" character varying$/.test(q))).toBe(true);
+    expect(adds.some((q) => /ADD "cta_href" character varying$/.test(q))).toBe(true);
+    expect(adds.some((q) => /ADD "cta_tour_id" character varying$/.test(q))).toBe(true);
+    expect(adds.some((q) => /ADD "feature_key" character varying$/.test(q))).toBe(true);
+  });
+
+  it('up() 回填:active=true 或 published_at 非空的行置 status=published', async () => {
+    const { runner, sql } = makeRecordingRunner();
+    await migration.up(runner);
+    expect(
+      sql.some((q) =>
+        /UPDATE "announcements" SET "status" = 'published' WHERE "active" = true OR "published_at" IS NOT NULL/.test(
+          q,
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('纯加法:up() 只 ALTER announcements,无 DROP / 无建表', async () => {
+    const { runner, sql } = makeRecordingRunner();
+    await migration.up(runner);
+    for (const q of sql) {
+      expect(/DROP /.test(q)).toBe(false);
+      expect(/CREATE TABLE/.test(q)).toBe(false);
+      const alterMatch = q.match(/ALTER TABLE "([a-z_]+)"/);
+      if (alterMatch) expect(alterMatch[1]).toBe('announcements');
+    }
+  });
+
+  it('down() 删除全部 5 个新增列(逆序),不碰其它', async () => {
+    const { runner, sql } = makeRecordingRunner();
+    await migration.down(runner);
+    for (const col of ['status', 'cta_label', 'cta_href', 'cta_tour_id', 'feature_key']) {
+      expect(
+        sql.some((q) =>
+          new RegExp(`ALTER TABLE "announcements" DROP COLUMN "${col}"`).test(q),
+        ),
+      ).toBe(true);
+    }
+    // 末列(status)最后删:逆序回滚。
+    const statusIdx = sql.findIndex((q) => /DROP COLUMN "status"/.test(q));
+    const featureIdx = sql.findIndex((q) => /DROP COLUMN "feature_key"/.test(q));
+    expect(statusIdx).toBeGreaterThan(featureIdx);
   });
 });

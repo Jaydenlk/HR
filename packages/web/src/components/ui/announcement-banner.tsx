@@ -9,9 +9,11 @@
 // 静默降级:API 失败或无公告时不渲染任何内容。
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Announcement, AnnouncementKind } from '@/lib/types';
-import { X, Sparkles, Wrench, AlertTriangle } from 'lucide-react';
+import { launchFeatureTour } from '@/lib/feature-tour';
+import { X, Sparkles, Wrench, AlertTriangle, ArrowRight } from 'lucide-react';
 
 // 3 天可见窗口(毫秒)——与后端 VISIBLE_WINDOW_MS 保持一致,前端二次过滤防脏数据。
 const VISIBLE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
@@ -84,9 +86,11 @@ function writeDismissed(ids: Set<string>): void {
 function AnnouncementItem({
   item,
   onDismiss,
+  onCta,
 }: {
   item: Announcement;
   onDismiss: (id: string) => void;
+  onCta: (item: Announcement) => void;
 }) {
   const meta = KIND_META[item.kind];
 
@@ -149,6 +153,32 @@ function AnnouncementItem({
             {item.body}
           </span>
         )}
+        {/* CTA:紧凑内联链接(在正文之后)。仅 cta_label + cta_href 同时有值才渲染。 */}
+        {item.cta_label && item.cta_href && (
+          <button
+            type="button"
+            onClick={() => onCta(item)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              marginLeft: '8px',
+              padding: 0,
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              color: meta.color,
+              fontWeight: 600,
+              fontSize: '13px',
+              fontFamily: 'inherit',
+              letterSpacing: '-0.003em',
+              verticalAlign: 'baseline',
+            }}
+          >
+            {item.cta_label}
+            <ArrowRight size={13} />
+          </button>
+        )}
       </div>
 
       {/* 关闭按钮 */}
@@ -190,6 +220,7 @@ export function AnnouncementBanner() {
   // useState 惰性初始化:组件首次挂载时同步从 localStorage 读取,避免在 effect 里 setState。
   const [dismissed, setDismissed] = useState<Set<string>>(readDismissed);
   const [loaded, setLoaded] = useState(false);
+  const router = useRouter();
 
   // 初始加载:拉接口,传 placement=banner 让后端只返横幅类型,前端再双保险过滤。
   useEffect(() => {
@@ -219,6 +250,17 @@ export function AnnouncementBanner() {
     });
   }
 
+  // 点击 CTA:跳站内路径;有 cta_tour_id 则派发功能导览事件(目标页 onboarding-tour 监听启动)。
+  // 横幅不因点击 CTA 而消失(用户可能想保留可见),与 modal「点后关闭」语义不同。
+  function handleCta(item: Announcement) {
+    if (!item.cta_href) return;
+    // 防御兜底:仅放行站内相对路径(单个 / 开头,排除 // 协议相对与外链),与后端 DTO/admin 同口径。
+    // 不依赖写入时校验,杜绝任何未来未校验写入路径导致的开放跳转。
+    if (!/^\/(?!\/)/.test(item.cta_href)) return;
+    router.push(item.cta_href);
+    if (item.cta_tour_id) launchFeatureTour(item.cta_tour_id);
+  }
+
   // 未加载完或无可见公告:不占位
   const visible = items.filter((a) => !dismissed.has(a.id));
   if (!loaded || visible.length === 0) return null;
@@ -234,7 +276,12 @@ export function AnnouncementBanner() {
       aria-label="站内公告"
     >
       {visible.map((item) => (
-        <AnnouncementItem key={item.id} item={item} onDismiss={handleDismiss} />
+        <AnnouncementItem
+          key={item.id}
+          item={item}
+          onDismiss={handleDismiss}
+          onCta={handleCta}
+        />
       ))}
     </div>
   );
