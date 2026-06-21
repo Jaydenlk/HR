@@ -8,6 +8,7 @@ import { AiModule } from '../ai/ai.module';
 import { HealthModule } from '../health/health.module';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { CreditTransaction } from '../credit/entities/credit-transaction.entity';
+import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminDetailService } from './admin-detail.service';
@@ -15,7 +16,7 @@ import { AdminGuard } from '../common/guards/admin.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AiUsage, CreditTransaction]),
+    TypeOrmModule.forFeature([AiUsage, CreditTransaction, Diagnosis]),
     UsersModule,
     InvitesModule,
     CreditModule,

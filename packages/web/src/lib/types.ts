@@ -1541,6 +1541,25 @@ export interface AdminSuccessStats {
   success_rate: number | null;
 }
 
+// GET /api/admin/diagnosis-stats 单日行(后端返回数组)。与后端 AdminDiagnosisStatsRow 一一对应。
+// 注:这是【单次诊断成功率】,与上面的 AdminSuccessStats(AI 调用成功率)是两个独立指标,口径不同、互不并计。
+export interface AdminDiagnosisStats {
+  // UTC 日期键 YYYY-MM-DD。
+  date: string;
+  // 当日已记账(status 非空)的诊断总数;NULL 状态的历史行不计入。
+  total: number;
+  // 当日 status='success' 的诊断数。
+  success: number;
+  // 当日 status='failed' 的诊断数。
+  failed: number;
+  // 当日 status='partial'(分析成功、改写失败)的诊断数。
+  partial: number;
+  // 诊断成功率 = success/total;当日无已记账诊断时为 null。
+  success_rate: number | null;
+  // 当日各 failure_reason 计数(仅 failed/partial 行),供下钻。
+  failure_breakdown: Record<string, number>;
+}
+
 // GET /api/admin/recent-failures 单条。
 // 与后端 AdminRecentFailureResponseDto 字段一一对应:只含 AI_CALL_FAILED 类失败。
 // 隐私铁律:user 为打码后的标识(如 ab***@x.com),绝不含完整邮箱;无法解析则 null。

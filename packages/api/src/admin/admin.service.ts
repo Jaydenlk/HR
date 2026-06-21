@@ -23,6 +23,7 @@ import { HealthService } from '../health/health.service';
 import { ConcurrencyLimiter } from '../ai/concurrency-limiter';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { CreditTransaction } from '../credit/entities/credit-transaction.entity';
+import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { User } from '../users/entities/user.entity';
 import { InviteCode } from '../invites/entities/invite-code.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -72,6 +73,23 @@ export interface AdminSuccessStatsRow {
   success_rate: number | null;
 }
 
+// 诊断成功率趋势(GET /admin/diagnosis-stats):**与上面的 AI 成功率是两个独立指标,互不并计**。
+//   口径不同:本指标按 diagnoses.status 聚合(每【次诊断】一行),AI 成功率按 ai_usage/ops_events
+//   聚合(每【次 AI 调用】一条);一次诊断内含解析+分析+改写多次 AI 调用,故分母天然不同。
+//   - total:当日有 status(success/failed/partial)的诊断数。NULL(本特性上线前的存量行)不计入,不污染历史。
+//   - success:当日 status='success' 的诊断数。
+//   - success_rate:success/total;当日无任何已记账诊断时为 null。
+//   - failure_breakdown:当日各 failure_reason 计数(仅 failed/partial 行),供后台下钻定位。
+export interface AdminDiagnosisStatsRow {
+  date: string;
+  total: number;
+  success: number;
+  failed: number;
+  partial: number;
+  success_rate: number | null;
+  failure_breakdown: Record<string, number>;
+}
+
 @Injectable()
 export class AdminService {
   // SQLite(开发/测试)与 Postgres(生产)的按日聚合表达式不同,启动期定一次。
@@ -90,6 +108,8 @@ export class AdminService {
     @InjectRepository(AiUsage) private readonly usageRepo: Repository<AiUsage>,
     @InjectRepository(CreditTransaction)
     private readonly creditTxRepo: Repository<CreditTransaction>,
+    @InjectRepository(Diagnosis)
+    private readonly diagnosisRepo: Repository<Diagnosis>,
   ) {
     this.isPostgres = this.dataSource.options.type === 'postgres';
   }
@@ -435,6 +455,60 @@ export class AdminService {
     return rows;
   }
 
+  // 诊断成功率趋势(GET /admin/diagnosis-stats):**独立于上面的 AI 成功率,口径不同、互不并计**。
+  //   本指标:按 diagnoses.status 按日 GROUP BY(每次诊断一行;NULL 状态=本特性前存量行,排除在分母外)。
+  //   AI 成功率:按 ai_usage/ops_events(每次 AI 调用一条)。一次诊断含多次 AI 调用,故两者天然不同口径。
+  // DB 端 dialect-aware GROUP BY,避免把全表行拉进进程;日期键统一 UTC(与 successStats 同口径)。
+  async diagnosisStats(days?: number): Promise<AdminDiagnosisStatsRow[]> {
+    const window = days ?? 7;
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - window);
+    since.setUTCHours(0, 0, 0, 0);
+
+    // (date, status) → count:仅取已记账行(status 非空),NULL 存量行自然被 IS NOT NULL 排除。
+    const statusByDate = await this.countByUtcDateAndKey(
+      this.diagnosisRepo
+        .createQueryBuilder('d')
+        .where('d.status IS NOT NULL'),
+      'd.created_at',
+      'd.status',
+      since,
+    );
+    // (date, failure_reason) → count:仅失败/部分失败行有 failure_reason;供下钻。
+    const reasonByDate = await this.countByUtcDateAndKey(
+      this.diagnosisRepo
+        .createQueryBuilder('d')
+        .where('d.failure_reason IS NOT NULL'),
+      'd.created_at',
+      'd.failure_reason',
+      since,
+    );
+
+    // 连续填充窗口内每一天(含零值天),便于前端画趋势(口径与 successStats 一致)。
+    const rows: AdminDiagnosisStatsRow[] = [];
+    for (let i = window - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const byStatus = statusByDate.get(key) ?? new Map<string, number>();
+      const success = byStatus.get('success') ?? 0;
+      const failed = byStatus.get('failed') ?? 0;
+      const partial = byStatus.get('partial') ?? 0;
+      const total = success + failed + partial;
+      rows.push({
+        date: key,
+        total,
+        success,
+        failed,
+        partial,
+        // 成功率分母=当日已记账诊断总数(含 partial);partial 既非纯成功也非纯失败,计入分母不计入分子。
+        success_rate: total === 0 ? null : success / total,
+        failure_breakdown: Object.fromEntries(reasonByDate.get(key) ?? new Map<string, number>()),
+      });
+    }
+    return rows;
+  }
+
   // ============================================================
   // API 管理:AI provider 通道 CRUD(GET/POST/PATCH/DELETE /admin/ai-providers + 连通性测试)
   // 安全红线:出站只投影打码密钥(apiKeyMasked 末 4 位),绝不回明文/密文;
@@ -610,6 +684,39 @@ export class AdminService {
     const map = new Map<string, number>();
     for (const r of raw) {
       if (r.date) map.set(r.date, Number(r.count));
+    }
+    return map;
+  }
+
+  // DB 端按 (日期, 二级键) 分组计数:在 countByUtcDate 基础上多 GROUP BY 一列(status / failure_reason)。
+  // dialect-aware 日期表达式与 countByUtcDate 完全一致;keyCol 是固定实体列引用(非用户输入),无注入面。
+  // 返回 date(YYYY-MM-DD)→ (keyValue → count) 的嵌套 Map。
+  private async countByUtcDateAndKey<T extends import('typeorm').ObjectLiteral>(
+    qb: import('typeorm').SelectQueryBuilder<T>,
+    createdAtCol: string,
+    keyCol: string,
+    since: Date,
+  ): Promise<Map<string, Map<string, number>>> {
+    const dateExpr = this.isPostgres
+      ? `to_char(${createdAtCol}, 'YYYY-MM-DD')`
+      : `strftime('%Y-%m-%d', ${createdAtCol})`;
+    const raw = await qb
+      .andWhere(`${createdAtCol} >= :since`, { since })
+      .select(dateExpr, 'date')
+      .addSelect(keyCol, 'key')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy(dateExpr)
+      .addGroupBy(keyCol)
+      .getRawMany<{ date: string; key: string | null; count: string | number }>();
+    const map = new Map<string, Map<string, number>>();
+    for (const r of raw) {
+      if (!r.date || r.key === null || r.key === undefined) continue;
+      let inner = map.get(r.date);
+      if (!inner) {
+        inner = new Map<string, number>();
+        map.set(r.date, inner);
+      }
+      inner.set(String(r.key), Number(r.count));
     }
     return map;
   }

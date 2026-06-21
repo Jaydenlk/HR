@@ -141,6 +141,13 @@ export class AdminController {
     return this.admin.successStats(query.days);
   }
 
+  // 诊断成功率趋势:按 diagnoses.status 按日聚合 + failure_reason 下钻。
+  // 与上面的 success-stats(AI 调用成功率)是【两个独立指标,互不并计】——见 AdminDiagnosisStatsRow 注释。
+  @Get('diagnosis-stats')
+  diagnosisStats(@Query() query: StatsQueryDto) {
+    return this.admin.diagnosisStats(query.days);
+  }
+
   // ===== API 管理:AI provider 通道 CRUD(出站只回打码密钥,绝不回明文/密文)=====
 
   // 全部 AI 通道列表(密钥打码末 4 位)。
