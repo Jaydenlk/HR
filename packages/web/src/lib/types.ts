@@ -364,6 +364,8 @@ export interface TranscribeStatusResponse {
   taskId: string;
   status: TranscribeStatus;
   errorMessage?: string | null;
+  // 失败发生在哪个阶段(仅 status=failed 时有值):前端据此区分「分析失败可免重传重试」与「需重新上传」。
+  failedAtStage?: string | null;
   // awaiting_confirm 及之后非空;之前为 null。
   segmentsJson?: LabeledSegment[] | null;
   // 上传元数据回执(收到上传即非空;无元数据的旧任务为 null)。仅文件元数据,非音频内容。

@@ -60,7 +60,7 @@ export class MeService {
     };
   }
 
-  // 头像上传:限 2MB、仅 jpeg/png/webp;复用 FilesService.upload(file,'avatars'),更新 users.avatar_url。
+  // 头像上传:限 2MB、仅 jpeg/png/webp;复用 FilesService.upload(userId, file, 'avatars'),更新 users.avatar_url。
   // avatar_url 存上传返回的 key(对齐简历 file_url 现行模式),返回该 key。
   async updateAvatar(userId: string, file: Express.Multer.File | undefined): Promise<{ avatar_url: string }> {
     if (!file) {

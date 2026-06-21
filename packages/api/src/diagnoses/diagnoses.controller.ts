@@ -8,6 +8,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { DiagnosesService, DiagnosisStreamEvent } from './diagnoses.service';
 import { CreateDiagnosisDto } from './dto/create-diagnosis.dto';
 import { CreateCampusDiagnosisDto } from './dto/create-campus-diagnosis.dto';
+import { DiagnosisResponseDto } from './dto/diagnosis-response.dto';
 import {
   ProfessionPresetsService,
   ProfessionGroup,
@@ -109,12 +110,19 @@ export class DiagnosesController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: { id: string }) {
-    return this.diagnoses.findAllByUser(user.id);
+  async findAll(
+    @CurrentUser() user: { id: string },
+  ): Promise<DiagnosisResponseDto[]> {
+    const list = await this.diagnoses.findAllByUser(user.id);
+    return list.map(DiagnosisResponseDto.fromEntity);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @CurrentUser() user: { id: string }) {
-    return this.diagnoses.findOne(id, user.id);
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+  ): Promise<DiagnosisResponseDto> {
+    const diagnosis = await this.diagnoses.findOne(id, user.id);
+    return DiagnosisResponseDto.fromEntity(diagnosis);
   }
 }

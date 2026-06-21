@@ -19,6 +19,9 @@ export interface TranscriptProgressProps {
   onRetryReupload?: () => void;
   // Failed-state recovery: after the failed task is deleted, reset UI to the pre-upload state.
   onDeleteTask?: () => void;
+  // 分析阶段失败专用重试:转写结果仍存于服务端(segments_json),无需重传录音,直接重跑分析(不再重复扣转写费)。
+  // 仅当 failedAtStage==='analyzing' 时暴露入口;不删任务、不走 clearTaskThen。
+  onRetryAnalysis?: () => void;
 }
 
 const STEPS: Array<{ status: TranscribeStatus; label: string }> = [
@@ -111,10 +114,13 @@ export function TranscriptProgress({
   onStop,
   onRetryReupload,
   onDeleteTask,
+  onRetryAnalysis,
 }: TranscriptProgressProps) {
   const [status, setStatus] = useState<TranscribeStatus>('submitted');
   // 后端 failed 时回传的具体原因(格式不支持 / 录音过长 / 服务繁忙…),失败时展示给用户排障。
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // 失败发生在哪个阶段(后端 failedAtStage):'analyzing' → 转写已保存,可免重传重试分析;其余 → 需重新上传。
+  const [failedAtStage, setFailedAtStage] = useState<string | null>(null);
   // 上传元数据回执:status 回包带回文件名/字节数/上传时刻(非音频内容);一旦非空即渲染「已收到上传」卡。
   const [receipt, setReceipt] = useState<UploadReceipt | null>(null);
   // 失败态恢复动作(重新上传/删除记录)进行中标记,避免重复点击。
@@ -136,6 +142,7 @@ export function TranscriptProgress({
       if (mountedRef.current) {
         setStatus('submitted');
         setErrorMessage(null);
+        setFailedAtStage(null);
         setReceipt(null);
       }
     });
@@ -146,6 +153,7 @@ export function TranscriptProgress({
     (data: TranscribeStatusResponse) => {
       setStatus(data.status);
       setErrorMessage(data.errorMessage ?? null);
+      setFailedAtStage(data.failedAtStage ?? null);
       // 一旦后端回传上传元数据(收到上传),立即据此渲染「已收到上传」回执卡(非音频内容)。
       if (data.originalFilename) {
         setReceipt({
@@ -188,6 +196,9 @@ export function TranscriptProgress({
 
   const isFailed = status === 'failed';
   const isCompleted = status === 'completed';
+  // 分析阶段失败:转写结果仍在服务端,可免重传直接重试分析(不再重复扣转写费),且仅当父层接了 onRetryAnalysis。
+  const isAnalysisFailure =
+    isFailed && failedAtStage === 'analyzing' && !!onRetryAnalysis;
 
   return (
     <div
@@ -258,7 +269,9 @@ export function TranscriptProgress({
           }}
         >
           {isFailed
-            ? '转写失败，请重新上传'
+            ? isAnalysisFailure
+              ? '分析失败，可重试'
+              : '转写失败，请重新上传'
             : isCompleted
             ? '转写完成'
             : status === 'submitted'
@@ -288,35 +301,63 @@ export function TranscriptProgress({
         </div>
       )}
 
-      {/* 失败态恢复动作:重新上传(清失败任务 + 重开上传)/ 删除记录(清失败任务回到上传前态)。
-          诚实口径:音频不落盘,服务端无法重转写,故「重新上传」需用户重新上传一段录音。 */}
+      {/* 失败态恢复动作。分两路:
+          (1) 分析阶段失败(isAnalysisFailure):转写已存服务端,主按钮「重试分析」直接重跑分析(不删任务、不重传、不再扣转写费);删除记录保留。
+          (2) 其它失败(转写/打标):音频不落盘无法重转写,「重新上传」= 清失败任务 + 重开上传;删除记录保留。 */}
       {isFailed && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              disabled={recovering}
-              onClick={() => void clearTaskThen(onRetryReupload)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '9px',
-                border: 'none',
-                background: recovering
-                  ? 'var(--color-line)'
-                  : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-                color: '#fff',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: recovering ? 'not-allowed' : 'pointer',
-                opacity: recovering ? 0.6 : 1,
-              }}
-            >
-              <Upload size={14} />
-              {recovering ? '处理中…' : '重新上传'}
-            </button>
+            {isAnalysisFailure ? (
+              <button
+                type="button"
+                disabled={recovering}
+                onClick={() => onRetryAnalysis?.()}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: recovering
+                    ? 'var(--color-line)'
+                    : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+                  color: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: recovering ? 'not-allowed' : 'pointer',
+                  opacity: recovering ? 0.6 : 1,
+                }}
+              >
+                <Loader2 size={14} />
+                重试分析
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={recovering}
+                onClick={() => void clearTaskThen(onRetryReupload)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: recovering
+                    ? 'var(--color-line)'
+                    : 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+                  color: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: recovering ? 'not-allowed' : 'pointer',
+                  opacity: recovering ? 0.6 : 1,
+                }}
+              >
+                <Upload size={14} />
+                {recovering ? '处理中…' : '重新上传'}
+              </button>
+            )}
             <button
               type="button"
               disabled={recovering}
@@ -341,7 +382,9 @@ export function TranscriptProgress({
             </button>
           </div>
           <span style={{ fontSize: '11.5px', color: 'var(--color-ink-4)' }}>
-            录音未保存(转写后即销毁),「重新上传」需重新上传一段录音。
+            {isAnalysisFailure
+              ? '转写已保存,可直接重试分析(不再重复扣转写费)。'
+              : '录音未保存(转写后即销毁),「重新上传」需重新上传一段录音。'}
           </span>
         </div>
       )}

@@ -31,10 +31,17 @@ import type { TranscriptSegment } from '../speech/providers/speech.provider';
 // 转写扣点端点标识:写入 credit_transactions.endpoint / ai_usage.endpoint(与控制器路由模板同口径)。
 const TRANSCRIBE_ENDPOINT = '/api/interviews/:id/transcribe';
 
-// 「一次录音转写复盘」总成本 = 7 点。这是 ASR 转写 + LLM 角色打标 + LLM 复盘分析三段重活的合计定价。
-// 计费铁律:整条复盘链路只在「转写+打标真实成功」(落 awaiting_confirm)那一刻一次性扣满 7 点;
-// 后续 confirm/analyze 段不再额外扣点(避免双扣),故用户一次完整复盘恰好扣 7 点,不多不少。
-const TRANSCRIBE_DEBRIEF_CREDIT_COST = 7;
+// 「一次录音转写复盘」按进度分两段计费,总成本 = 7 点(ASR 转写 + LLM 角色打标 + LLM 复盘分析三段重活的合计定价)。
+// 计费铁律(按进度计费 + 幂等不双扣):
+//  - 转写费 1 点:在「转写+打标真实成功」(落 awaiting_confirm)那一刻扣(chargeTranscribe)。
+//  - 分析费 6 点:在 confirm「分析真实成功」(落 completed)那一刻扣(chargeAnalysis),且以 task.analysis_charged 幂等护栏保证最多扣一次。
+//  - 分析失败:止于已扣的 1 点(不扣 6);用户可在 failed/analyzing 态免重传重试,重试成功只补扣那一次 6,合计仍恰好 7,绝不双扣。
+//  - awaiting_confirm 后放弃(不 confirm):止于 1 点。
+// 故一次完整复盘恰好扣 7 点(1 + 6),按进度兑现、失败按已交付段计费、重试不双扣。
+const TRANSCRIPT_CREDIT_COST = 1; // 转写费(转写+打标成功扣)
+const ANALYSIS_CREDIT_COST = 6; // 分析费(confirm 分析成功扣,幂等)
+// 提交前足额预检仍按完整链路总额 7 校验(用户须付得起整条复盘),402 文案数字同源。
+const FULL_DEBRIEF_CREDIT_COST = TRANSCRIPT_CREDIT_COST + ANALYSIS_CREDIT_COST;
 
 // 非面试内容闸门(放在转写之后、昂贵的打标/复盘之前,省额度):
 //  - 段数下限:真实面试至少多句问答;不足此数大概率是空录音/误传/几秒杂音。
@@ -77,6 +84,8 @@ export interface TranscribeStatusResponse {
   taskId: string;
   status: TranscribeStatus;
   errorMessage: string | null;
+  // 失败发生在哪个阶段(仅 status=failed 时有值):前端据此区分「分析失败可免重传重试」与「需重新上传」。
+  failedAtStage: string | null;
   segmentsJson: LabeledSegment[] | null;
   // 上传元数据回执(收到上传即非空;无元数据的旧任务为 null)。非音频内容。
   originalFilename: string | null;
@@ -272,12 +281,12 @@ export class InterviewsService {
     // 所有权校验:非本人面试 → 404(不泄露存在性)。建任务前先校验,不为越权请求建任务。
     const interview = await this.findOne(id, userId);
 
-    // 余额预检:整条复盘链路总成本 7 点,接活前校验余额 ≥ 7,不足 → 402 且不建任务。
+    // 余额预检:整条复盘链路总成本 7 点(转写 1 + 分析 6),接活前校验余额 ≥ 7,不足 → 402 且不建任务。
     // CreditGuard 只保证 ≥ 1(够付不代表够付 7),故重端点的足额预检放在 service 内由本方法兜住。
-    const enough = await this.credit.hasBalance(userId, TRANSCRIBE_DEBRIEF_CREDIT_COST);
+    const enough = await this.credit.hasBalance(userId, FULL_DEBRIEF_CREDIT_COST);
     if (!enough) {
       throw new HttpException(
-        { message: `点数不足，本次录音转写复盘需 ${TRANSCRIBE_DEBRIEF_CREDIT_COST} 点，请联系管理员充值` },
+        { message: `点数不足，本次录音转写复盘需 ${FULL_DEBRIEF_CREDIT_COST} 点，请联系管理员充值` },
         HttpStatus.PAYMENT_REQUIRED,
       );
     }
@@ -308,8 +317,8 @@ export class InterviewsService {
   /**
    * 后台转写+打标 runner。由 transcribe() fire-and-forget 调起,不向调用方抛错。
    *
-   * 成功(落 awaiting_confirm)时调 chargeTranscribe 扣 1 点 + 记 ai_usage(真实成功才计费);
-   * 任一阶段失败 → 标 task=failed + 记 failed_at_stage,不扣点(失败不计费)。
+   * 成功(落 awaiting_confirm)时调 chargeTranscribe 扣转写费 1 点 + 记 ai_usage(真实成功才计费);
+   * 任一阶段失败 → 标 task=failed + 记 failed_at_stage,不扣点(失败不计费)。分析费 6 点不在此扣,见 chargeAnalysis。
    */
   private async runTranscribe(
     taskId: string,
@@ -351,7 +360,7 @@ export class InterviewsService {
       task.status = 'awaiting_confirm';
       await this.taskRepo.save(task);
 
-      // 转写+打标"真实成功" → 此刻扣 1 点 + 记 ai_usage(失败不会走到这里,故失败不计费)。
+      // 转写+打标"真实成功" → 此刻扣转写费 1 点 + 记 ai_usage(失败不会走到这里,故失败不计费)。
       await this.chargeTranscribe(userId);
     } catch (err) {
       // 失败:标 task=failed + 记 failed_at_stage,不扣点;前端轮询看到 failed + errorMessage。
@@ -433,14 +442,14 @@ export class InterviewsService {
   }
 
   /**
-   * 转写"真实成功"后一次性扣满 7 点(整条复盘链路总成本)+ 记一条 ai_usage(双轨计账,与
-   * CreditInterceptor/AiUsageInterceptor 同口径:credit 账务、ai_usage 运营)。
-   * 这是全链路唯一的扣点点——后续 confirm/analyze 段不再扣,故一次完整复盘恰好扣 7 点(不双扣)。
+   * 转写"真实成功"后扣转写费 1 点 + 记一条 ai_usage(双轨计账,与 CreditInterceptor/AiUsageInterceptor
+   * 同口径:credit 账务、ai_usage 运营)。这是转写段的唯一扣点;分析费 6 点由 chargeAnalysis 在 confirm
+   * 分析成功时另扣,故一次完整复盘恰好扣 7 点(1 + 6,不双扣)。
    * 扣点/记账失败均不抛错(不能让计账失败回滚已完成的转写)——仅记日志,与拦截器 fire-and-forget catch 同语义。
    */
   private async chargeTranscribe(userId: string): Promise<void> {
     try {
-      await this.credit.consume(userId, TRANSCRIBE_ENDPOINT, TRANSCRIBE_DEBRIEF_CREDIT_COST);
+      await this.credit.consume(userId, TRANSCRIBE_ENDPOINT, TRANSCRIPT_CREDIT_COST);
     } catch (err) {
       this.logger.error(
         `转写扣点失败 userId=${userId}: ${err instanceof Error ? err.message : String(err)}`,
@@ -453,6 +462,40 @@ export class InterviewsService {
         `转写 ai_usage 写入失败 userId=${userId}: ${
           err instanceof Error ? err.message : String(err)
         }`,
+      );
+    }
+  }
+
+  /**
+   * confirm 分析"真实成功"后扣分析费 6 点(幂等:仅 task.analysis_charged=false 时扣)。
+   *
+   * 幂等核心是 flag 不是 consume 成功与否:consume 与 chargeTranscribe 同语义包 try/catch 仅记日志、不抛错
+   * (不能让计账失败回滚已交付的分析结果),随后**无条件**置 analysis_charged=true 落库——保证同一 task 的 6 点
+   * 最多扣一次(consume 极罕见的 DB/用户行异常不在此重试,与「扣点失败不回滚转写」同哲学:计费尽力而为)。
+   * 不在此记 ai_usage:confirm 端点已挂 AiUsageInterceptor,运营计数由它负责(一次成功 confirm = 一条 ai_usage),
+   * 此处再插会破坏既有「confirm 共 2 条 ai_usage」断言,故仅扣 credit。
+   */
+  private async chargeAnalysis(
+    userId: string,
+    task: InterviewTranscribeTask,
+  ): Promise<void> {
+    if (task.analysis_charged) return; // 已扣过 6 点(重试不双扣):直接返回。
+    try {
+      await this.credit.consume(userId, TRANSCRIBE_ENDPOINT, ANALYSIS_CREDIT_COST);
+    } catch (err) {
+      this.logger.error(
+        `分析扣点失败 userId=${userId} taskId=${task.id}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    // 无条件置位(幂等护栏):代表「本 task 的 6 点已结算」,即便 consume 罕见异常也不重复尝试。
+    task.analysis_charged = true;
+    try {
+      await this.taskRepo.save(task);
+    } catch (saveErr) {
+      this.logger.error(
+        `分析计费幂等标记落库失败 taskId=${task.id}: ${String(saveErr)}`,
       );
     }
   }
@@ -478,6 +521,7 @@ export class InterviewsService {
       taskId: task.id,
       status: task.status,
       errorMessage: task.error_message,
+      failedAtStage: task.failed_at_stage,
       segmentsJson: task.segments_json,
       // 上传元数据回执(非音频内容):桌面端据此即时渲染「已收到上传」。
       originalFilename: task.original_filename,
@@ -537,7 +581,15 @@ export class InterviewsService {
     if (!stored || stored.length === 0) {
       throw new BadRequestException('该转写任务尚无可确认的标注内容');
     }
-    if (task.status !== 'awaiting_confirm') {
+    // 守卫放宽:允许两种状态进入 confirm/重试 ——
+    //  (1) awaiting_confirm:首次确认。
+    //  (2) failed 且 failed_at_stage==='analyzing':分析阶段失败的免重传重试(转写已存于 segments_json,可直接重跑)。
+    // 其它一律拒:特别地,failed 但 failed_at_stage 为 transcribing/labeling(或其它)的没有可用 transcript,
+    // 必须重新上传,不在此放行。
+    const isFirstConfirm = task.status === 'awaiting_confirm';
+    const isAnalysisRetry =
+      task.status === 'failed' && task.failed_at_stage === 'analyzing';
+    if (!isFirstConfirm && !isAnalysisRetry) {
       throw new BadRequestException('该转写任务当前状态不可确认');
     }
 
@@ -567,6 +619,9 @@ export class InterviewsService {
 
       task.status = 'completed';
       await this.taskRepo.save(task);
+
+      // 分析"真实成功"那一刻扣分析费 6 点(幂等:task.analysis_charged 护栏,重试不双扣)。
+      await this.chargeAnalysis(userId, task);
 
       return this.findOne(id, userId);
     } catch (err) {

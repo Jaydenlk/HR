@@ -90,6 +90,10 @@ export class InterviewTranscribeTask {
   @Column({ type: 'varchar', nullable: true })
   failed_at_stage: string | null;
 
+  /** 分析费(6 点)是否已扣:幂等护栏,confirm 分析成功后置 true,重试时据此不重扣。默认 false。 */
+  @Column({ type: 'boolean', default: false })
+  analysis_charged: boolean;
+
   /**
    * StepFun SSE 路线可空(base64 内联不产出 job_id);
    * 保留字段为 P1 文件识别路线或未来异步轮询方案预留。

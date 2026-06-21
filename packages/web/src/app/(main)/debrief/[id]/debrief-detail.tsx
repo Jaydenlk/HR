@@ -181,6 +181,22 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
     setSegments(null);
   }
 
+  // 失败态「重试分析」(仅分析阶段失败):转写结果仍存于服务端(transcribeStatus.segmentsJson),
+  // 以原样 speaker 重发 confirm 即可重跑分析(后端 applyCorrections 要求逐段一一对应,故原样回传)。
+  // 不删任务、不重传录音、不重复扣转写费;成功后复用 handleConfirmed 收尾(停轮询 + 重拉 interview)。
+  async function handleRetryAnalysis() {
+    const stored = transcribeStatus?.segmentsJson;
+    if (!taskId || !stored || stored.length === 0) return;
+    try {
+      await api.patch(`/interviews/${id}/transcribe/${taskId}/confirm`, {
+        segments: stored.map((s) => ({ idx: s.idx, speaker: s.speaker })),
+      });
+      await handleConfirmed();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '重试分析失败，请稍后重试');
+    }
+  }
+
   // 删除整条复盘记录(镜像 resume-detail:两态确认 → DELETE → 跳回列表)。
   async function handleDeleteInterview() {
     setDeleting(true);
@@ -551,6 +567,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
             onStatusUpdate={handleStatusUpdate}
             onRetryReupload={handleRetryReupload}
             onDeleteTask={handleDeleteTask}
+            onRetryAnalysis={() => void handleRetryAnalysis()}
           />
         </div>
       )}

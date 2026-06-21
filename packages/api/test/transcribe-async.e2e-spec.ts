@@ -250,29 +250,30 @@ describe('录音转写异步化 (e2e)', () => {
     expect(segs[0]).toMatchObject({ idx: 0, speaker: 'interviewer' });
     expect(segs[1]).toMatchObject({ idx: 1, speaker: 'candidate' });
 
-    // 验收 3:真实成功才计费 — 恰新增 1 条 consume(不拆多条小额)、ai_usage +1、余额一次性 -7。
+    // 验收 3(新计费模型):落 awaiting_confirm 扣转写费 1 点(不是 7)— 恰新增 1 条 consume、ai_usage +1、余额 -1。
+    // 分析费 6 点在用户 confirm 且分析成功后另扣,两段合计仍为 7。
     const afterCredit = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });
     const afterUsage = await aiUsageRepo.count({ where: { user_id: user.id } });
     expect(afterCredit - beforeCredit).toBe(1);
     expect(afterUsage - beforeUsage).toBe(1);
 
     const refreshed = await userRepo.findOneByOrFail({ id: user.id });
-    expect(refreshed.credit_balance).toBe(beforeBalance - 7);
+    expect(refreshed.credit_balance).toBe(beforeBalance - 1);
 
-    // 唯一一条转写 consume 流水:endpoint 落转写端点模板,delta=-7、balance_after 自洽(一条扣满 7,不双扣)。
+    // 唯一一条转写 consume 流水:endpoint 落转写端点模板,delta=-1(转写费,非整条 7)。
     const lastConsume = await txRepo.findOne({
       where: { user_id: user.id, type: 'consume' },
       order: { created_at: 'DESC' },
     });
     expect(lastConsume?.endpoint).toBe('/api/interviews/:id/transcribe');
-    expect(lastConsume?.delta).toBe(-7);
-    expect(lastConsume?.balance_after).toBe(beforeBalance - 7);
+    expect(lastConsume?.delta).toBe(-1);
+    expect(lastConsume?.balance_after).toBe(beforeBalance - 1);
   }, 30000);
 
   // ── 验收 3(全链路收口):一次完整复盘(transcribe → confirm)恰好扣 7 点,不双扣 ──────────
-  // transcribe 真实成功扣 7;confirm/analyze 段不再额外扣点(端点已移除 CreditInterceptor)。
-  // 故一条 consume(delta=-7)+ 两条 ai_usage(transcribe 1 + confirm 1),credit 总额恒为 7。
-  it('完整复盘 transcribe→confirm 总共恰扣 7 点(confirm 不再扣),ai_usage 计 2 条', async () => {
+  // 新计费模型:transcribe 落 awaiting_confirm 扣 1 点;confirm 分析成功扣 6 点;合计 7。
+  // 故两条 consume(delta=-1 和 -6)+ 两条 ai_usage(transcribe 1 + confirm 1),credit 总额恒为 7。
+  it('完整复盘 transcribe→confirm 总共恰扣 7 点(转写 1 + 分析 6),ai_usage 计 2 条', async () => {
     const email = `transcribe-full-${Date.now()}@coach.dev`;
     const token = await registerUser(app, email, '完整复盘');
     const interviewId = await createInterview(app, token);
@@ -312,9 +313,9 @@ describe('录音转写异步化 (e2e)', () => {
     // 等 confirm 端的 AiUsageInterceptor fire-and-forget 落库。
     await new Promise((r) => setTimeout(r, 200));
 
-    // 收口断言:credit 只新增 1 条 consume(transcribe 扣满 7,confirm 不扣)→ 余额恰好 -7。
+    // 收口断言(新计费模型):credit 新增 2 条 consume(转写 delta=-1 + 分析 delta=-6)→ 余额恰好 -7。
     const afterCredit = await txRepo.count({ where: { user_id: user.id, type: 'consume' } });
-    expect(afterCredit - beforeCredit).toBe(1);
+    expect(afterCredit - beforeCredit).toBe(2);
 
     const refreshed = await userRepo.findOneByOrFail({ id: user.id });
     expect(refreshed.credit_balance).toBe(beforeBalance - 7);
@@ -576,8 +577,8 @@ describe('录音转写异步化 (e2e)', () => {
     expect(refreshed.credit_balance).toBe(beforeBalance);
   }, 30000);
 
-  // (b) 反向:真实面试(够长 + LLM 判「是」)→ 闸门放行,正常推进到 awaiting_confirm 并扣 7 点。
-  it('真实面试(够长 + LLM 判「是」)→ 闸门放行,正常落 awaiting_confirm 并扣 7 点', async () => {
+  // (b) 反向:真实面试(够长 + LLM 判「是」)→ 闸门放行,正常推进到 awaiting_confirm 并扣 1 点(转写费)。
+  it('真实面试(够长 + LLM 判「是」)→ 闸门放行,正常落 awaiting_confirm 并扣 1 点(转写费,非 7)', async () => {
     const email = `gate-real-${Date.now()}@coach.dev`;
     const token = await registerUser(app, email, '真实面试');
     const interviewId = await createInterview(app, token);
@@ -598,8 +599,9 @@ describe('录音转写异步化 (e2e)', () => {
     const segs = done.segmentsJson as Array<{ idx: number; speaker: string }>;
     expect(segs).toHaveLength(4);
 
+    // 新计费模型:落 awaiting_confirm 只扣转写费 1 点(分析费 6 在 confirm 成功后另扣)。
     const refreshed = await userRepo.findOneByOrFail({ id: user.id });
-    expect(refreshed.credit_balance).toBe(beforeBalance - 7);
+    expect(refreshed.credit_balance).toBe(beforeBalance - 1);
   }, 30000);
 
   // (b) 含糊放行:LLM 回空串/含糊(非明确「否」)→ 视作「是」,不误杀真实面试。
