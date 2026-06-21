@@ -75,7 +75,7 @@ export class MeService {
     if (!hasValidImageMagicBytes(file.buffer)) {
       throw new BadRequestException('头像仅支持 JPEG / PNG / WebP');
     }
-    const key = await this.files.upload(file, 'avatars');
+    const key = await this.files.upload(userId, file, 'avatars');
     await this.users.updateAvatar(userId, key);
     return { avatar_url: key };
   }
