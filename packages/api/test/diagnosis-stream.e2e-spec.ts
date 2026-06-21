@@ -623,6 +623,129 @@ describe('Diagnosis SSE stream — invariants (service-level, mocked AiService +
     expect(done!.diagnosis.mode).toBe('profession_standard');
   });
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // 回归:校招诊断「填 JD」误报「简历内容过短」(线上 P0,07db654)
+  //
+  // 根因:PARSED_RESUME_SCHEMA 顶层 required 仅 ['basic_info'] 且内层不设 required,中转偶发返回
+  //   schema 合法但语义为空的 `{ basic_info: {} }`,normalizeResume 归一为「全空 ParsedResume」,
+  //   renderResumeForReview 渲染出仅 "姓名:"(3 字)→ analyzeAgainstPreset 抛
+  //   「简历内容过短，无法分析。」(把锅扣在用户没动过的简历上),且空解析被 updateParsedJson 落库
+  //   永久毒化该简历。填 JD 时 parse_resume 与 parse_jd 争用并发槽(流式后 pipeline 占 1/2),
+  //   小机上更易触发 parse_resume 退化,故「填 JD 必崩」。
+  // 修复:parser.parseResume 对空解析抛 503(不再静默返回/被缓存);diagnoses.resolveParsedResume
+  //   缓存命中也校验有效性,毒化缓存命中即重解析(自愈),有效后才落库。
+  // ════════════════════════════════════════════════════════════════════════════
+  describe('回归 — 校招诊断填 JD 不应误报简历过短', () => {
+    // (a) 用户实测场景:有效简历 + 填 ≥50 字 JD → 成功,绝不抛「简历内容过短」。
+    it('[REG-jd][campus] 有效简历 + 填 JD → done,无 error(不报「简历内容过短」)', async () => {
+      const user = await newUser('reg-jd-fill@diag.dev', 5);
+      const resume = await newResume(user.id);
+
+      const events = await drain(
+        service.streamCreateProfessionStandard(
+          user.id,
+          { resume_id: resume.id, profession: '互联网产品经理', jd_text: JD_TEXT },
+          '/api/diagnoses/campus/stream',
+        ),
+      );
+
+      const err = find(events, 'error');
+      expect(err).toBeUndefined();
+      expect(find(events, 'done')).toBeDefined();
+      // 落库携带 jd_text(确实走了填 JD 路径)。
+      const done = find(events, 'done');
+      expect(done!.diagnosis.jd_text).toBe(JD_TEXT);
+    });
+
+    // (b) 对照:不填 JD 也成功(两条路径都绿)。
+    it('[REG-nojd][campus] 有效简历 + 不填 JD → done,无 error', async () => {
+      const user = await newUser('reg-jd-nofill@diag.dev', 5);
+      const resume = await newResume(user.id);
+
+      const events = await drain(
+        service.streamCreateProfessionStandard(
+          user.id,
+          { resume_id: resume.id, profession: '互联网产品经理' },
+          '/api/diagnoses/campus/stream',
+        ),
+      );
+
+      expect(find(events, 'error')).toBeUndefined();
+      expect(find(events, 'done')).toBeDefined();
+    });
+
+    // (c) 根因守卫:parse_resume 返回 schema 合法但语义为空的 `{ basic_info: {} }` →
+    //     不再误报「简历内容过短」,而是抛诚实的解析失败错;且空解析【不】被缓存(不毒化简历)。
+    it('[REG-empty-parse][campus] 空解析 → 诚实错(非「简历内容过短」)+ 不缓存空解析', async () => {
+      const user = await newUser('reg-empty-parse@diag.dev', 5);
+      const resume = await newResume(user.id);
+
+      structuredImpl = (toolName) => {
+        if (toolName === 'parse_resume') return { basic_info: {} }; // schema 合法但语义为空
+        return defaultStructured(toolName);
+      };
+
+      const events = await drain(
+        service.streamCreateProfessionStandard(
+          user.id,
+          { resume_id: resume.id, profession: '互联网产品经理', jd_text: JD_TEXT },
+          '/api/diagnoses/campus/stream',
+        ),
+      );
+
+      const err = find(events, 'error');
+      expect(err).toBeDefined();
+      // 诚实错:是「解析失败」而非把锅扣在简历上。
+      expect(err!.message).not.toContain('简历内容过短');
+      expect(err!.message).toContain('简历解析未能提取到有效信息');
+      expect(find(events, 'done')).toBeUndefined();
+
+      // 空解析未被缓存(否则该简历被永久毒化)。
+      const after = await resumeRepo.findOneByOrFail({ id: resume.id });
+      expect(after.parsed_json ?? null).toBeNull();
+    });
+
+    // (d) 自愈:历史已被毒化的 parsed_json(全空)在下次诊断不被盲信 → 重新解析 → 成功。
+    it('[REG-heal][campus] 缓存命中但是全空毒化解析 → 重新解析(自愈)→ done', async () => {
+      const user = await newUser('reg-heal@diag.dev', 5);
+      // 预置一条「已被毒化」的简历:parsed_json 是全空退化对象(模拟线上旧毒数据)。
+      const poisoned = await resumeRepo.save(
+        resumeRepo.create({
+          user_id: user.id,
+          title: '已毒化简历',
+          raw_text: RESUME_TEXT,
+          is_primary: true,
+          parsed_json: {
+            basic_info: { name: '' },
+            work_experience: [],
+            education: [],
+            skills: { technical: [], soft: [], languages: [], certifications: [] },
+            projects: [],
+            links: [],
+            awards_honors: [],
+          },
+        }),
+      );
+
+      // 解析器此刻健康(默认 mock 返回有内容的解析)。
+      const events = await drain(
+        service.streamCreateProfessionStandard(
+          user.id,
+          { resume_id: poisoned.id, profession: '互联网产品经理' },
+          '/api/diagnoses/campus/stream',
+        ),
+      );
+
+      expect(find(events, 'error')).toBeUndefined();
+      expect(find(events, 'done')).toBeDefined();
+
+      // 毒化缓存被重新解析覆盖为有效解析(name 已填)。
+      const after = await resumeRepo.findOneByOrFail({ id: poisoned.id });
+      expect(after.parsed_json).toBeTruthy();
+      expect(after.parsed_json!.basic_info.name.length).toBeGreaterThan(0);
+    });
+  });
+
   it('[INV-6b][jd] payload=MatchDimensions(综合分在 overall.score)', async () => {
     const user = await newUser('inv6-jd@diag.dev', 5);
     const resume = await newResume(user.id);
