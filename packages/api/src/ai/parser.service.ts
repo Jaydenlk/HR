@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { SYSTEM as RESUME_SYSTEM, buildParseResumePrompt } from './prompts/parse-resume';
 import { SYSTEM as JD_SYSTEM, buildParseJDPrompt } from './prompts/parse-jd';
@@ -89,6 +89,35 @@ function strArray(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 }
 
+/**
+ * 简历解析是否「抽到了实质内容」。
+ *
+ * PARSED_RESUME_SCHEMA 顶层 required 仅 ['basic_info'] 且内层不设 required(主通道 deepseek-chat
+ * 漏字段易 503 的折中),故中转偶发返回 `{ basic_info: {} }` 这种 schema 合法但语义为空的退化产物会
+ * 通过 AiService 校验。normalizeResume 把它归一为「全空 ParsedResume」(name='' / 各数组 []),
+ * renderResumeForReview 渲染出仅 "姓名:"(3 字)→ analyzeAgainstPreset 误抛「简历内容过短」
+ * (把锅扣在用户没动过的简历上),且该空解析会被 updateParsedJson 落库,永久毒化该简历。
+ *
+ * 判据:渲染后能进入诊断的任一实质字段命中即视为有效——姓名/个人简介/工作/教育/项目/荣誉/任一技能。
+ * 仅当全部为空(真·没抽到东西)才判退化。绝不编造,只判定「这次解析是否成功」。
+ */
+export function isResumeParseMeaningful(r: ParsedResume): boolean {
+  const b = r.basic_info;
+  const s = r.skills;
+  return (
+    b.name.trim().length > 0 ||
+    (r.summary?.trim().length ?? 0) > 0 ||
+    r.work_experience.length > 0 ||
+    r.education.length > 0 ||
+    r.projects.length > 0 ||
+    (r.awards_honors?.length ?? 0) > 0 ||
+    s.technical.length > 0 ||
+    s.soft.length > 0 ||
+    s.languages.length > 0 ||
+    s.certifications.length > 0
+  );
+}
+
 @Injectable()
 export class ParserService {
   constructor(private readonly ai: AiService) {}
@@ -101,7 +130,16 @@ export class ParserService {
       toolDescription: '将简历文本解析为结构化 JSON 数据',
       schema: PARSED_RESUME_SCHEMA,
     });
-    return this.normalizeResume(raw);
+    const parsed = this.normalizeResume(raw);
+    // 退化解析(schema 合法但语义为空)= 解析失败,不可静默放行:否则下游渲染成 "姓名:" 误判
+    // 「简历内容过短」、并被调用方缓存毒化该简历。原文已在上游过 ≥30 字闸,空解析必是 AI 解析失败
+    // (中转返回空 tool_use),抛 503 走重试/降级,绝不返回空解析、绝不让调用方落库空结果。
+    if (!isResumeParseMeaningful(parsed)) {
+      throw new ServiceUnavailableException(
+        '简历解析未能提取到有效信息,请稍后重试。',
+      );
+    }
+    return parsed;
   }
 
   async parseJD(text: string): Promise<ParsedJD> {

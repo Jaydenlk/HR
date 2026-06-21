@@ -7,7 +7,7 @@ import { Diagnosis } from './entities/diagnosis.entity';
 import { CreateDiagnosisDto } from './dto/create-diagnosis.dto';
 import { CreateCampusDiagnosisDto } from './dto/create-campus-diagnosis.dto';
 import { ResumesService } from '../resumes/resumes.service';
-import { ParserService } from '../ai/parser.service';
+import { ParserService, isResumeParseMeaningful } from '../ai/parser.service';
 import { AnalyzerService } from '../ai/analyzer.service';
 import { RewriterService } from '../ai/rewriter.service';
 import { ProfessionPresetsService } from '../profession-presets/profession-presets.service';
@@ -19,6 +19,7 @@ import { DiagnosisEventStream } from './diagnosis-event-stream';
 import { DiagnosisResponseDto } from './dto/diagnosis-response.dto';
 import type {
   ParsedJD,
+  ParsedResume,
   MatchDimensions,
   ProfessionPreset,
   ProfessionStandardResult,
@@ -431,11 +432,7 @@ export class DiagnosesService {
       );
     }
 
-    let parsedResume = resume.parsed_json;
-    if (!parsedResume) {
-      parsedResume = await this.parser.parseResume(resume.raw_text);
-      await this.resumes.updateParsedJson(resume.id, parsedResume);
-    }
+    const parsedResume = await this.resolveParsedResume(resume);
 
     const jdHash = crypto.createHash('md5').update(dto.jd_text).digest('hex');
     let parsedJD = this.jdCache.get<ParsedJD>(jdHash);
@@ -469,6 +466,27 @@ export class DiagnosesService {
     });
   }
 
+  /**
+   * 解析简历(缓存优先 + 退化自愈),两条诊断路径共用。
+   *
+   * - 缓存命中且内容有效 → 直接复用(省一次 AI 调用)。
+   * - 缓存缺失,或缓存命中但是「全空退化解析」(历史毒化的 parsed_json,见 isResumeParseMeaningful)
+   *   → 重新解析。parser.parseResume 现已对空解析抛 503,故能返回到此处的必是有效解析;
+   *   有效后才落库,绝不把空解析写回缓存——既治新发(不再毒化)、又自愈旧毒(命中即重解)。
+   *
+   * 注:原文 ≥30 字闸由调用方在更早处校验,此处只负责「拿到一份可用的结构化简历」。
+   */
+  private async resolveParsedResume(
+    resume: { id: string; raw_text: string; parsed_json: ParsedResume | null },
+  ): Promise<ParsedResume> {
+    if (resume.parsed_json && isResumeParseMeaningful(resume.parsed_json)) {
+      return resume.parsed_json;
+    }
+    const parsed = await this.parser.parseResume(resume.raw_text);
+    await this.resumes.updateParsedJson(resume.id, parsed);
+    return parsed;
+  }
+
   private async prepareProfessionStandard(
     userId: string,
     dto: CreateCampusDiagnosisDto,
@@ -490,12 +508,7 @@ export class DiagnosesService {
     }
 
     const [parsedResume, jdJson] = await Promise.all([
-      (async () => {
-        if (resume.parsed_json) return resume.parsed_json;
-        const parsed = await this.parser.parseResume(resume.raw_text);
-        await this.resumes.updateParsedJson(resume.id, parsed);
-        return parsed;
-      })(),
+      this.resolveParsedResume(resume),
       dto.jd_text
         ? this.parser.parseJD(dto.jd_text).then((jd) => JSON.stringify(jd))
         : Promise.resolve(null),
