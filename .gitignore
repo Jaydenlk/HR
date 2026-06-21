@@ -12,6 +12,8 @@ out/
 *.db
 # 备份产物(packages/api/scripts/backup.sh 输出):pg 自定义格式 dump 与 sqlite gzip 备份,严禁入库。
 packages/api/backups/
+# 本地/测试上传产物(FilesService UPLOAD_DIR 默认 ./uploads):用户文件,严禁入库。
+packages/api/uploads/
 *.dump
 *.db.gz
 .worktrees/
