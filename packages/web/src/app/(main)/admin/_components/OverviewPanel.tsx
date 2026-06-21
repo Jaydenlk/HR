@@ -8,7 +8,8 @@
  *   KPI 今日活跃用户    GET /admin/usage
  *   KPI 邀请码使用率    GET /admin/invites
  *   KPI 平台健康 badge  GET /admin/health-snapshot
- *   KPI 今日成功率      GET /admin/success-stats?days=1
+ *   KPI 今日 AI 成功率  GET /admin/success-stats?days=1
+ *   KPI 今日诊断成功率  GET /admin/diagnosis-stats?days=1(单次诊断维度,独立于 AI 成功率)
  *   异常提醒条          GET /admin/success-stats?days=1 + GET /admin/error-stream?limit=1
  *   近 7 日趋势迷你图   GET /admin/usage (usage.daily)
  *
@@ -23,6 +24,7 @@ import type {
   AdminUsageOverview,
   AdminHealthSnapshot,
   AdminSuccessStats,
+  AdminDiagnosisStats,
   AdminOpsEvent,
 } from '@/lib/types';
 import {
@@ -52,6 +54,7 @@ interface OverviewData {
   usage: AdminUsageOverview;
   health: AdminHealthSnapshot;
   successStats: AdminSuccessStats[];        // days=1,取末行
+  diagnosisStats: AdminDiagnosisStats[];    // days=1,取末行(单次诊断成功率,独立于 AI 成功率)
   recentError: AdminOpsEvent | null;        // error-stream?limit=1
 }
 
@@ -193,13 +196,14 @@ export default function OverviewPanel({ onNavigate }: OverviewPanelProps) {
     async function run() {
       setError(null);
       try {
-        const [users, invites, usage, health, successStats, errorStream] =
+        const [users, invites, usage, health, successStats, diagnosisStats, errorStream] =
           await Promise.all([
             api.get<AdminUserRow[]>('/admin/users'),
             api.get<AdminInvite[]>('/admin/invites'),
             api.get<AdminUsageOverview>('/admin/usage'),
             api.get<AdminHealthSnapshot>('/admin/health-snapshot'),
             api.get<AdminSuccessStats[]>('/admin/success-stats?days=1'),
+            api.get<AdminDiagnosisStats[]>('/admin/diagnosis-stats?days=1'),
             api.get<AdminOpsEvent[]>('/admin/error-stream?limit=1'),
           ]);
         if (cancelled) return;
@@ -209,6 +213,7 @@ export default function OverviewPanel({ onNavigate }: OverviewPanelProps) {
           usage,
           health,
           successStats,
+          diagnosisStats,
           recentError: errorStream.length > 0 ? errorStream[0] : null,
         });
       } catch (err) {
@@ -295,6 +300,12 @@ export default function OverviewPanel({ onNavigate }: OverviewPanelProps) {
   const todayStat =
     data.successStats.length > 0
       ? data.successStats[data.successStats.length - 1]
+      : null;
+
+  // KPI:今日诊断成功率(取 days=1 末行)——单次诊断维度,独立于上面的 AI 调用成功率。
+  const todayDiagStat =
+    data.diagnosisStats.length > 0
+      ? data.diagnosisStats[data.diagnosisStats.length - 1]
       : null;
 
   // 异常提醒条:今日 failed>0 或近 24h 有 AI_BOTH_DOWN/AI_CALL_FAILED
@@ -423,16 +434,28 @@ export default function OverviewPanel({ onNavigate }: OverviewPanelProps) {
           }}
         />
 
-        {/* 今日成功率 */}
+        {/* 今日 AI 成功率(AI 调用维度:ai_usage vs ops 失败) */}
         <KpiCard
           icon={<TrendingUp size={13} />}
-          label="今日成功率"
+          label="今日 AI 成功率"
           value={
             todayStat === null || todayStat.success_rate === null
               ? '—'
               : `${(todayStat.success_rate * 100).toFixed(1)}%`
           }
           accentColor={rateColor(todayStat?.success_rate ?? null)}
+        />
+
+        {/* 今日诊断成功率(单次诊断维度:diagnoses.status;与 AI 成功率独立、不并计) */}
+        <KpiCard
+          icon={<Activity size={13} />}
+          label="今日诊断成功率"
+          value={
+            todayDiagStat === null || todayDiagStat.success_rate === null
+              ? '—'
+              : `${(todayDiagStat.success_rate * 100).toFixed(1)}%`
+          }
+          accentColor={rateColor(todayDiagStat?.success_rate ?? null)}
         />
       </div>
 

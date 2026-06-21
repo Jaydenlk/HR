@@ -41,6 +41,35 @@ export type DiagnosisStreamEvent =
   | { type: 'done'; diagnosisId: string; diagnosis: Diagnosis }
   | { type: 'error'; message: string };
 
+// 单次诊断失败归类(落 diagnoses.failure_reason)。按【流水线阶段】判定为主,辅以错误特征细分:
+//   input_validation —— 入参校验未过(JD/简历过短等 BadRequestException)。
+//   parser_error     —— 解析简历/JD 阶段抛错。
+//   analyzer_timeout —— 整体墙钟超时护栏触发(单次 AI 卡死)。
+//   analyzer_error   —— 分析阶段抛错(落库前)。
+//   rewriter_error   —— 改写阶段抛错(分析已落库 → status=partial)。
+//   client_disconnect—— 客户端断开导致中止(本架构后台不随断开中止,保留枚举以备扩展)。
+//   unknown          —— 未归类。
+export type DiagnosisFailureReason =
+  | 'input_validation'
+  | 'parser_error'
+  | 'analyzer_timeout'
+  | 'analyzer_error'
+  | 'rewriter_error'
+  | 'client_disconnect'
+  | 'unknown';
+
+// 流水线运行上下文:work() 边跑边填,供失败归类与「失败也记一行」使用。
+//   phase       —— 当前阶段;失败时据此归类 failure_reason。
+//   resumeId    —— 解析就绪后填入,使「落库前失败」也能记一行可归因的 failed 诊断。
+//   mode        —— 诊断形态,落库失败行时带上(默认值符合实体默认)。
+//   savedId     —— 分析行已落库后的诊断 id;改写阶段失败 → 据此把该行标 partial。
+interface PipelineContext {
+  phase: 'preparing' | 'analyzing' | 'suggesting';
+  resumeId?: string;
+  mode: 'jd_match' | 'profession_standard';
+  savedId?: string;
+}
+
 @Injectable()
 export class DiagnosesService {
   private readonly logger = new Logger(DiagnosesService.name);
@@ -108,8 +137,12 @@ export class DiagnosesService {
     dto: CreateCampusDiagnosisDto,
     endpoint: string,
   ): AsyncIterable<DiagnosisStreamEvent> {
-    return this.runPipeline(userId, endpoint, async (out) => {
+    return this.runPipeline(userId, endpoint, 'profession_standard', async (out, ctx) => {
+      // resumeId 先据 dto 预填,使「解析/校验阶段失败」(落库前)也能补记一行可归因的 failed 诊断。
+      ctx.resumeId = dto.resume_id;
       const prepared = await this.prepareProfessionStandard(userId, dto);
+      ctx.resumeId = prepared.resume.id;
+      ctx.phase = 'analyzing';
       out.push({ type: 'step', stage: 'analyzing', label: '正在按职业标尺逐维度诊断…' });
 
       const analysis = await this.analyzer.analyzeAgainstPreset(
@@ -123,6 +156,8 @@ export class DiagnosesService {
       // 不变量:analysis 事件发出前诊断行必须已落库(suggestions 暂空),diagnosisId 一到前端即可跳已存结果。
       const diagnosis = this.buildProfessionEntity(userId, prepared, dto, analysis, []);
       const saved = (await this.repo.save(diagnosis)) as Diagnosis;
+      ctx.savedId = saved.id;
+      ctx.phase = 'suggesting';
       out.push({ type: 'analysis', diagnosisId: saved.id, payload: analysis });
 
       out.push({ type: 'step', stage: 'suggesting', label: '正在生成针对性改写建议…' });
@@ -143,8 +178,12 @@ export class DiagnosesService {
     dto: CreateDiagnosisDto,
     endpoint: string,
   ): AsyncIterable<DiagnosisStreamEvent> {
-    return this.runPipeline(userId, endpoint, async (out) => {
+    return this.runPipeline(userId, endpoint, 'jd_match', async (out, ctx) => {
+      // resumeId 先据 dto 预填,使「解析/校验阶段失败」(落库前)也能补记一行可归因的 failed 诊断。
+      ctx.resumeId = dto.resume_id;
       const prepared = await this.prepareJdMatch(userId, dto);
+      ctx.resumeId = prepared.resume.id;
+      ctx.phase = 'analyzing';
       out.push({ type: 'step', stage: 'analyzing', label: '正在分析简历与 JD 的多维匹配…' });
 
       const matchResult = await this.analyzer.analyze(
@@ -154,6 +193,8 @@ export class DiagnosesService {
 
       const diagnosis = this.buildJdMatchEntity(userId, prepared, dto, matchResult, []);
       const saved = (await this.repo.save(diagnosis)) as Diagnosis;
+      ctx.savedId = saved.id;
+      ctx.phase = 'suggesting';
       out.push({ type: 'analysis', diagnosisId: saved.id, payload: matchResult.dimensions });
 
       out.push({ type: 'step', stage: 'suggesting', label: '正在生成针对性改写建议…' });
@@ -181,9 +222,15 @@ export class DiagnosesService {
   private runPipeline(
     userId: string,
     endpoint: string,
-    work: (out: DiagnosisEventStream<DiagnosisStreamEvent>) => Promise<Diagnosis>,
+    mode: 'jd_match' | 'profession_standard',
+    work: (
+      out: DiagnosisEventStream<DiagnosisStreamEvent>,
+      ctx: PipelineContext,
+    ) => Promise<Diagnosis>,
   ): AsyncIterable<DiagnosisStreamEvent> {
     const out = new DiagnosisEventStream<DiagnosisStreamEvent>();
+    // 成败记账上下文:phase 起于 preparing(解析阶段),work() 边跑边推进并填 resumeId/savedId。
+    const ctx: PipelineContext = { phase: 'preparing', mode };
 
     // 后台任务:独立于消费者运行,确保断开也跑完落库。不 await,异步推进。
     void (async () => {
@@ -196,7 +243,7 @@ export class DiagnosesService {
           this.limiter.runObservable<Diagnosis>(
             async () => {
               out.push({ type: 'step', stage: 'parsing', label: '正在解析简历与岗位信息…' });
-              return work(out);
+              return work(out, ctx);
             },
             (position) => {
               if (position > 0) out.push({ type: 'queue', position });
@@ -204,11 +251,18 @@ export class DiagnosesService {
           ),
         );
 
+        // 成功记账:整条流水线跑完 → 该行 status=success(与 happy path 行为无关,纯补记)。
+        await this.markSuccess(diagnosis.id);
+        diagnosis.status = 'success';
+
         out.push({ type: 'done', diagnosisId: diagnosis.id, diagnosis });
 
         // 成功后计费(扣点 + ai_usage),失败不阻断已交付的结果。
         await this.bill(userId, endpoint);
       } catch (err) {
+        // 失败记账:归类原因 + 把状态落到诊断行(已落库则更新,未落库则补记一行 failed),
+        // 与既有 error 事件/计费跳过行为同构,纯增量,不改 happy path。
+        await this.recordFailure(userId, endpoint, ctx, err);
         out.push({ type: 'error', message: this.readableError(err) });
       } finally {
         out.close();
@@ -216,6 +270,91 @@ export class DiagnosesService {
     })();
 
     return out;
+  }
+
+  // 成功记账:把该诊断行标 success(记账失败不抛,不污染已交付结果)。
+  private async markSuccess(diagnosisId: string): Promise<void> {
+    try {
+      await this.repo.update(diagnosisId, { status: 'success' });
+    } catch (err) {
+      this.logger.error(`诊断成败记账(success)写入失败 id=${diagnosisId}: ${String(err)}`);
+    }
+  }
+
+  /**
+   * 失败记账(纯增量,与计费跳过同构):
+   *  - 归类 failure_reason(按阶段 + 错误特征);
+   *  - 分析行已落库(ctx.savedId 有值)→ 视为 partial(分析成功、改写阶段失败),更新该行;
+   *  - 否则补记一行 failed(带 user_id / resume_id / mode,使诊断成功率分母完整、可下钻原因)。
+   * 端点入参仅用于记账失败时的日志定位,不进库。任何记账自身错误都吞掉并记日志,绝不二次抛错。
+   */
+  private async recordFailure(
+    userId: string,
+    endpoint: string,
+    ctx: PipelineContext,
+    err: unknown,
+  ): Promise<void> {
+    const reason = this.categorizeFailure(ctx, err);
+    const message = this.readableError(err).slice(0, 2000);
+    try {
+      if (ctx.savedId) {
+        // 分析已落库 → partial(分析有结果,改写失败)。
+        await this.repo.update(ctx.savedId, {
+          status: 'partial',
+          failure_reason: reason,
+          pipeline_error_message: message,
+        });
+      } else {
+        // 落库前失败 → 补记一行 failed(resume_id 缺失则不记,避免违反非空约束;归类仍进日志)。
+        if (!ctx.resumeId) {
+          this.logger.warn(
+            `诊断失败但无 resume_id,跳过 failed 记账 userId=${userId} endpoint=${endpoint} reason=${reason}`,
+          );
+          return;
+        }
+        await this.repo.insert({
+          user_id: userId,
+          resume_id: ctx.resumeId,
+          mode: ctx.mode,
+          status: 'failed',
+          failure_reason: reason,
+          pipeline_error_message: message,
+        });
+      }
+    } catch (writeErr) {
+      this.logger.error(
+        `诊断成败记账(failed/partial)写入失败 userId=${userId} endpoint=${endpoint} reason=${reason}: ${String(writeErr)}`,
+      );
+    }
+  }
+
+  /**
+   * 错误归类(按【流水线阶段】为主,辅以错误特征):
+   *  - 墙钟超时(特定中文错误)→ analyzer_timeout(无论卡在哪个阶段,语义都是「等待 AI 超时」)。
+   *  - BadRequestException(入参校验)→ input_validation。
+   *  - 否则按 ctx.phase:preparing → parser_error;analyzing → analyzer_error;suggesting → rewriter_error。
+   *  - 兜底 unknown。
+   */
+  private categorizeFailure(ctx: PipelineContext, err: unknown): DiagnosisFailureReason {
+    if (this.isPipelineTimeout(err)) return 'analyzer_timeout';
+    if (err instanceof BadRequestException) return 'input_validation';
+    switch (ctx.phase) {
+      case 'preparing':
+        return 'parser_error';
+      case 'analyzing':
+        return 'analyzer_error';
+      case 'suggesting':
+        return 'rewriter_error';
+      default:
+        return 'unknown';
+    }
+  }
+
+  // 墙钟超时识别:withPipelineTimeout 以固定中文错误 reject;据此与普通阶段错误区分。
+  private isPipelineTimeout(err: unknown): boolean {
+    return (
+      err instanceof Error && err.message === '诊断流水线超时,已中止以保护服务器资源'
+    );
   }
 
   /**

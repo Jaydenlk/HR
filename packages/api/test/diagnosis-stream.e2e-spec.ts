@@ -721,4 +721,166 @@ describe('Diagnosis SSE stream — invariants (service-level, mocked AiService +
     const after = await userRepo.findOneByOrFail({ id: user.id });
     expect(after.credit_balance).toBe(7);
   }, 15_000);
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // 单次诊断成败记账(diagnoses.status / failure_reason / pipeline_error_message)
+  //   设计:成功 → status='success';分析阶段失败 → status='failed' + 归类;
+  //         分析已落库但改写阶段失败 → status='partial' + 归类。记账在 catch 内 await(out.close 前),
+  //         故 drain 返回时状态已落库,无需轮询。这是与全局 AI 成功率【不同口径】的独立指标。
+  // ════════════════════════════════════════════════════════════════════════════
+  describe('诊断成败记账 — status/failure_reason 落库', () => {
+    // (a) happy path → status='success',无 failure_reason/error_message。
+    it('[STATUS-success][campus] 全流程成功 → 落库行 status=success,failure_reason 为空', async () => {
+      const user = await newUser('status-ok@diag.dev', 5);
+      const resume = await newResume(user.id);
+
+      const events = await drain(
+        service.streamCreateProfessionStandard(
+          user.id,
+          { resume_id: resume.id, profession: '互联网产品经理' },
+          '/api/diagnoses/campus/stream',
+        ),
+      );
+      const done = find(events, 'done');
+      expect(done).toBeDefined();
+      // done 事件携带的实体也带上 success 状态(供前端即时反映)。
+      expect(done!.diagnosis.status).toBe('success');
+
+      const row = await diagnosisRepo.findOneByOrFail({ id: done!.diagnosisId });
+      expect(row.status).toBe('success');
+      expect(row.failure_reason ?? null).toBeNull();
+      expect(row.pipeline_error_message ?? null).toBeNull();
+    });
+
+    // (b) 注入分析阶段错误 → status='failed' + failure_reason 已分类(analyzer_error),且记了一行。
+    it('[STATUS-failed][campus] 分析阶段抛错 → 补记一行 status=failed + failure_reason=analyzer_error + error_message 存档', async () => {
+      const user = await newUser('status-failed@diag.dev', 5);
+      const resume = await newResume(user.id);
+
+      const ERR = 'AI 服务暂时不可用,模拟分析阶段失败(STATUS-failed)';
+      structuredImpl = (toolName) => {
+        if (toolName === 'profession_standard_review') throw new Error(ERR);
+        return defaultStructured(toolName);
+      };
+
+      const before = await diagnosisRepo.count({ where: { user_id: user.id } });
+      const events = await drain(
+        service.streamCreateProfessionStandard(
+          user.id,
+          { resume_id: resume.id, profession: '互联网产品经理' },
+          '/api/diagnoses/campus/stream',
+        ),
+      );
+      expect(find(events, 'error')).toBeDefined();
+      expect(find(events, 'done')).toBeUndefined();
+
+      // 分析阶段失败(落库前)→ 补记恰一行 failed(分母完整)。
+      const rows = await diagnosisRepo.find({ where: { user_id: user.id } });
+      expect(rows.length).toBe(before + 1);
+      const failedRow = rows.find((r) => r.status === 'failed');
+      expect(failedRow).toBeDefined();
+      expect(failedRow!.failure_reason).toBe('analyzer_error');
+      expect(failedRow!.pipeline_error_message).toContain('模拟分析阶段失败');
+      // 失败行带 resume_id/mode(可归因);suggestions 未产出。
+      expect(failedRow!.resume_id).toBe(resume.id);
+      expect(failedRow!.mode).toBe('profession_standard');
+    });
+
+    // (c) 注入改写阶段错误(分析已落库)→ 同一行被标 status='partial' + failure_reason=rewriter_error。
+    it('[STATUS-partial][campus] 分析成功落库、改写阶段抛错 → 该行 status=partial + failure_reason=rewriter_error(不新增行)', async () => {
+      const user = await newUser('status-partial@diag.dev', 5);
+      const resume = await newResume(user.id);
+
+      const ERR = '改写阶段模拟失败(STATUS-partial)';
+      structuredImpl = (toolName) => {
+        if (toolName === 'suggest_rewrites') throw new Error(ERR);
+        return defaultStructured(toolName);
+      };
+
+      const before = await diagnosisRepo.count({ where: { user_id: user.id } });
+      let analysisId = '';
+      const events: DiagnosisStreamEvent[] = [];
+      for await (const e of service.streamCreateProfessionStandard(
+        user.id,
+        { resume_id: resume.id, profession: '互联网产品经理' },
+        '/api/diagnoses/campus/stream',
+      )) {
+        events.push(e);
+        if (e.type === 'analysis') analysisId = e.diagnosisId;
+      }
+      // 分析帧到达过(行已落库),最终改写失败 → error,无 done。
+      expect(analysisId).not.toBe('');
+      expect(find(events, 'error')).toBeDefined();
+      expect(find(events, 'done')).toBeUndefined();
+
+      // 不新增行:就是分析阶段落的那一行被升级为 partial。
+      const after = await diagnosisRepo.count({ where: { user_id: user.id } });
+      expect(after).toBe(before + 1); // 仅分析阶段那一行
+      const row = await diagnosisRepo.findOneByOrFail({ id: analysisId });
+      expect(row.status).toBe('partial');
+      expect(row.failure_reason).toBe('rewriter_error');
+      expect(row.pipeline_error_message).toContain('改写阶段模拟失败');
+      // partial:分析结果已落库(score 有值),仅 suggestions 为空。
+      expect(row.score).toBeGreaterThan(0);
+      expect(row.suggestions).toEqual([]);
+    });
+
+    // (d) 入参校验失败(JD 过短)→ failed + failure_reason=input_validation(落库前失败也补记一行)。
+    it('[STATUS-validation][jd] 输入校验失败(JD 过短)→ status=failed + failure_reason=input_validation', async () => {
+      const user = await newUser('status-validation@diag.dev', 5);
+      const resume = await newResume(user.id);
+
+      const events = await drain(
+        service.streamCreate(
+          user.id,
+          { resume_id: resume.id, jd_text: '太短' },
+          '/api/diagnoses/stream',
+        ),
+      );
+      expect(find(events, 'error')).toBeDefined();
+      expect(find(events, 'done')).toBeUndefined();
+
+      const row = await diagnosisRepo.findOne({ where: { user_id: user.id } });
+      expect(row).not.toBeNull();
+      expect(row!.status).toBe('failed');
+      expect(row!.failure_reason).toBe('input_validation');
+      // 校验阶段失败:resume_id 据 dto 预填,行可归因。
+      expect(row!.resume_id).toBe(resume.id);
+    });
+
+    // (e) 墙钟超时 → failure_reason=analyzer_timeout(区别于普通阶段错误)。
+    // 置于本块末尾:超时用例的底层 AI 调用永不 resolve,会持续占用一个并发槽(与既有 INV-7 同理),
+    // 故其后不能再排其它会争用并发槽的诊断用例,否则会被排队饿死(限流 max=2)。
+    it('[STATUS-timeout][campus] 墙钟超时 → 补记 status=failed + failure_reason=analyzer_timeout', async () => {
+      const user = await newUser('status-timeout@diag.dev', 5);
+      const resume = await newResume(user.id);
+
+      structuredImpl = (toolName) => {
+        if (toolName === 'profession_standard_review') {
+          return new Promise(() => {
+            /* 永不 resolve */
+          });
+        }
+        return defaultStructured(toolName);
+      };
+      const saved = process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS;
+      process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS = '150';
+      try {
+        await drain(
+          service.streamCreateProfessionStandard(
+            user.id,
+            { resume_id: resume.id, profession: '互联网产品经理' },
+            '/api/diagnoses/campus/stream',
+          ),
+        );
+      } finally {
+        if (saved === undefined) delete process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS;
+        else process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS = saved;
+      }
+
+      const row = await diagnosisRepo.findOneByOrFail({ user_id: user.id });
+      expect(row.status).toBe('failed');
+      expect(row.failure_reason).toBe('analyzer_timeout');
+    }, 15_000);
+  });
 });
