@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Logger,
@@ -467,11 +468,18 @@ export class InterviewsService {
   }
 
   /**
-   * confirm 分析"真实成功"后扣分析费 6 点(幂等:仅 task.analysis_charged=false 时扣)。
+   * confirm 分析"真实成功"后扣分析费 6 点(幂等 + 并发安全:同一 task 的 6 点最多扣一次)。
    *
-   * 幂等核心是 flag 不是 consume 成功与否:consume 与 chargeTranscribe 同语义包 try/catch 仅记日志、不抛错
-   * (不能让计账失败回滚已交付的分析结果),随后**无条件**置 analysis_charged=true 落库——保证同一 task 的 6 点
-   * 最多扣一次(consume 极罕见的 DB/用户行异常不在此重试,与「扣点失败不回滚转写」同哲学:计费尽力而为)。
+   * 幂等护栏改为 **DB 级原子 CAS**(compare-and-set)而非内存读 flag:并发 confirm/重试可能同时读到
+   * analysis_charged=false 都进来扣 6(双扣)。这里以 `UPDATE ... SET analysis_charged=true
+   * WHERE id=? AND analysis_charged=false` 的 affected 行数仲裁结算权:
+   *  - affected===1:本请求抢到「结算权」(由 false→true 那一手只可能有一个赢家)→ 扣 6。
+   *  - affected===0:已被另一个并发请求/此前重试结清(或被 B 迁移回填成 true)→ 不扣,直接返回。
+   * 这样无论多少个并发 confirm 同时跑,DB 原子条件更新保证只有一个赢家扣费,钱绝不双扣。
+   *
+   * consume 仍包 try/catch 仅记日志、不抛错(沿用「计费尽力而为、不回滚已交付的分析结果」哲学)。
+   * 注意:CAS 已先把 flag 置 true,consume 之后抛错的极罕见漏扣边角保持现状,不为它加复杂回滚。
+   * 内存 task.analysis_charged 同步置 true,保持调用方拿到的实体与库一致。
    * 不在此记 ai_usage:confirm 端点已挂 AiUsageInterceptor,运营计数由它负责(一次成功 confirm = 一条 ai_usage),
    * 此处再插会破坏既有「confirm 共 2 条 ai_usage」断言,故仅扣 credit。
    */
@@ -479,7 +487,31 @@ export class InterviewsService {
     userId: string,
     task: InterviewTranscribeTask,
   ): Promise<void> {
-    if (task.analysis_charged) return; // 已扣过 6 点(重试不双扣):直接返回。
+    // 原子领取结算权:仅当库中该行仍 analysis_charged=false 时置 true,affected 行数即仲裁结果。
+    let affected = 0;
+    try {
+      const result = await this.taskRepo.update(
+        { id: task.id, analysis_charged: false },
+        { analysis_charged: true },
+      );
+      affected = result.affected ?? 0;
+    } catch (casErr) {
+      // CAS 自身落库异常(极罕见):记日志并视为未抢到(不扣,避免在不确定是否置位时扣费)。
+      this.logger.error(
+        `分析计费 CAS 失败 taskId=${task.id}: ${String(casErr)}`,
+      );
+      return;
+    }
+
+    // 内存实体同步置 true,保持调用方拿到的 task 与库一致(无论是否本请求结清)。
+    task.analysis_charged = true;
+
+    if (affected !== 1) {
+      // 已被另一并发/重试结清(或迁移回填):不重复扣 6。
+      return;
+    }
+
+    // 本请求抢到结算权:扣分析费 6 点(失败仅记日志,不回滚已交付的分析结果)。
     try {
       await this.credit.consume(userId, TRANSCRIBE_ENDPOINT, ANALYSIS_CREDIT_COST);
     } catch (err) {
@@ -487,15 +519,6 @@ export class InterviewsService {
         `分析扣点失败 userId=${userId} taskId=${task.id}: ${
           err instanceof Error ? err.message : String(err)
         }`,
-      );
-    }
-    // 无条件置位(幂等护栏):代表「本 task 的 6 点已结算」,即便 consume 罕见异常也不重复尝试。
-    task.analysis_charged = true;
-    try {
-      await this.taskRepo.save(task);
-    } catch (saveErr) {
-      this.logger.error(
-        `分析计费幂等标记落库失败 taskId=${task.id}: ${String(saveErr)}`,
       );
     }
   }
@@ -596,9 +619,29 @@ export class InterviewsService {
     // 按 idx 覆盖 speaker:校验一一对应,越界/缺/多 → 400(防篡改:客户端不得改 text、不得伪造 idx)。
     const merged = this.applyCorrections(stored, corrections);
 
+    // 并发认领:原子地把该 task 从「可确认态」翻到 'analyzing',affected 仲裁唯一执行者。
+    // 两个并发 confirm(同 user 同 task)都会先读到同一可确认态,但只有一个的条件 UPDATE 能命中
+    // (status 由可确认态翻成 analyzing 后,另一个的 WHERE 不再匹配)→ affected≠1 直接 409 拒绝,
+    // 避免两路都跑一遍昂贵的 LLM analyze。WHERE 精确锁定本请求观察到的那一态(首次确认 awaiting_confirm,
+    // 或分析重试 failed@analyzing),防止误抢到中途被改成别的态的 task。
+    // 注:这步是省 token + 防态 churn;钱的不双扣由 chargeAnalysis 的 CAS 兜底,即便此处被绕过也不会多扣。
+    const claimWhere = isFirstConfirm
+      ? { id: task.id, status: 'awaiting_confirm' as TranscribeStatus }
+      : {
+          id: task.id,
+          status: 'failed' as TranscribeStatus,
+          failed_at_stage: 'analyzing',
+        };
+    const claim = await this.taskRepo.update(claimWhere, { status: 'analyzing' });
+    if ((claim.affected ?? 0) !== 1) {
+      throw new ConflictException('该任务正在分析中,请勿重复提交');
+    }
+    // 认领成功:内存实体同步到 analyzing(后续 markTaskFailed 据 task.status 记 failed_at_stage)。
+    task.status = 'analyzing';
+
     try {
       task.segments_json = merged;
-      await this.setTaskStatus(task, 'analyzing');
+      await this.taskRepo.save(task);
 
       // 组装带角色前缀的转写正文喂现有 analyze(text 以服务端 segments_json 为准)。
       const transcript = merged

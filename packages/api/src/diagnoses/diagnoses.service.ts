@@ -16,6 +16,7 @@ import { CreditService } from '../credit/credit.service';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { renderResumeForReview } from '../ai/prompts/analyze-profession-standard';
 import { DiagnosisEventStream } from './diagnosis-event-stream';
+import { DiagnosisResponseDto } from './dto/diagnosis-response.dto';
 import type {
   ParsedJD,
   MatchDimensions,
@@ -38,7 +39,9 @@ export type DiagnosisStreamEvent =
       diagnosisId: string;
       payload: ProfessionStandardResult | MatchDimensions;
     }
-  | { type: 'done'; diagnosisId: string; diagnosis: Diagnosis }
+  // done 携带的诊断走 DTO 白名单投影(与 GET/POST 同口径),不把 failure_reason/pipeline_error_message
+  // 随 SSE 帧泄露;前端 done 处理只读 diagnosisId(见 diagnoses/new|campus page),投影后契约不破。
+  | { type: 'done'; diagnosisId: string; diagnosis: DiagnosisResponseDto }
   | { type: 'error'; message: string };
 
 // 单次诊断失败归类(落 diagnoses.failure_reason)。按【流水线阶段】判定为主,辅以错误特征细分:
@@ -255,7 +258,12 @@ export class DiagnosesService {
         await this.markSuccess(diagnosis.id);
         diagnosis.status = 'success';
 
-        out.push({ type: 'done', diagnosisId: diagnosis.id, diagnosis });
+        // 投影脱敏后再推:剥掉 failure_reason/pipeline_error_message(成功路径恒 null,但白名单一律封全)。
+        out.push({
+          type: 'done',
+          diagnosisId: diagnosis.id,
+          diagnosis: DiagnosisResponseDto.fromEntity(diagnosis),
+        });
 
         // 成功后计费(扣点 + ai_usage),失败不阻断已交付的结果。
         await this.bill(userId, endpoint);

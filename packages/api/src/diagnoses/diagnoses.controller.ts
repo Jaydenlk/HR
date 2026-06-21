@@ -30,21 +30,24 @@ export class DiagnosesController {
   @Post()
   @UseGuards(CreditGuard)
   @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
-  create(
+  async create(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateDiagnosisDto,
-  ) {
-    return this.diagnoses.create(user.id, dto);
+  ): Promise<DiagnosisResponseDto> {
+    // 过 DTO 白名单投影:与 GET 同口径,不把 failure_reason/pipeline_error_message 随实体返裸。
+    const diagnosis = await this.diagnoses.create(user.id, dto);
+    return DiagnosisResponseDto.fromEntity(diagnosis);
   }
 
   @Post('campus')
   @UseGuards(CreditGuard)
   @UseInterceptors(AiUsageInterceptor, CreditInterceptor)
-  createCampus(
+  async createCampus(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateCampusDiagnosisDto,
-  ) {
-    return this.diagnoses.createProfessionStandard(user.id, dto);
+  ): Promise<DiagnosisResponseDto> {
+    const diagnosis = await this.diagnoses.createProfessionStandard(user.id, dto);
+    return DiagnosisResponseDto.fromEntity(diagnosis);
   }
 
   // SSE 流式诊断。CreditGuard 前置校验余额(<1 → 402);记账(扣点 + ai_usage)由 service 在流水线成功后

@@ -67,6 +67,8 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [transcribeStatus, setTranscribeStatus] = useState<TranscribeStatusResponse | null>(null);
   const [segments, setSegments] = useState<LabeledSegment[] | null>(null);
+  // 重试分析 inflight 守卫:同一次重试请求未回前再次触发直接忽略,杜绝并发 confirm(后端会双跑 analyze)。
+  const retryAnalysisInflightRef = useRef(false);
 
   useEffect(() => {
     api
@@ -187,6 +189,9 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
   async function handleRetryAnalysis() {
     const stored = transcribeStatus?.segmentsJson;
     if (!taskId || !stored || stored.length === 0) return;
+    // inflight 守卫:上一次重试请求未结束前再次触发直接忽略,防止用户连点发出并发 confirm。
+    if (retryAnalysisInflightRef.current) return;
+    retryAnalysisInflightRef.current = true;
     try {
       await api.patch(`/interviews/${id}/transcribe/${taskId}/confirm`, {
         segments: stored.map((s) => ({ idx: s.idx, speaker: s.speaker })),
@@ -194,6 +199,8 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
       await handleConfirmed();
     } catch (err) {
       alert(err instanceof Error ? err.message : '重试分析失败，请稍后重试');
+    } finally {
+      retryAnalysisInflightRef.current = false;
     }
   }
 
@@ -567,7 +574,7 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
             onStatusUpdate={handleStatusUpdate}
             onRetryReupload={handleRetryReupload}
             onDeleteTask={handleDeleteTask}
-            onRetryAnalysis={() => void handleRetryAnalysis()}
+            onRetryAnalysis={() => handleRetryAnalysis()}
           />
         </div>
       )}

@@ -105,9 +105,10 @@ export class InterviewsController {
   //
   // 计费不走 CreditInterceptor:本端点 fire-and-forget,handler 立即 resolve(202)→ 拦截器会
   // 在 ASR/LLM 真正完成前就扣点,违反"失败不计费"。故移除 CreditInterceptor/AiUsageInterceptor,
-  // 改由后台任务在转写+打标"真实成功"(落 awaiting_confirm)时由 service 内部一次性扣满 7 点 + 记 ai_usage
-  //(整条复盘链路总成本 7 点,confirm/analyze 段不再额外扣);任一阶段失败标 task=failed 且不扣点。
-  // 双重预检:CreditGuard 保留作 ≥1 廉价快路;service.transcribe 接活前再校验余额 ≥7(不足 402 且不建任务)。
+  // 改由后台任务在转写+打标"真实成功"(落 awaiting_confirm)时由 service 扣【转写费 1 点】+ 记 ai_usage
+  //(按进度分两段计费:转写 1 点在此扣,分析 6 点由 confirm 在 chargeAnalysis 扣,合计 7 点,不双扣);
+  // 任一阶段失败标 task=failed 且不扣对应点。
+  // 双重预检:CreditGuard 保留作 ≥1 廉价快路;service.transcribe 接活前再校验余额 ≥7(整条复盘付得起,不足 402 且不建任务)。
   @Post(':id/transcribe')
   @HttpCode(HttpStatus.ACCEPTED)
   @UseGuards(CreditGuard)
@@ -155,9 +156,10 @@ export class InterviewsController {
   }
 
   // 提交纠正后的角色标注 → 触发 analyze。
-  // 不计 credit:整条录音转写复盘链路总成本 7 点,已在 transcribe「真实成功」时一次性扣满;
-  // confirm/analyze 段是同一次复盘的后半程,不再额外扣点(避免双扣 → 一次复盘共 7 点)。故移除
-  // CreditGuard(用户付完 7 点余额可能为 0,不应被 ≥1 预检误挡)与 CreditInterceptor(避免双扣)。
+  // 计 credit 由 service 内 chargeAnalysis 处理(分析真实成功落 completed 时扣【分析费 6 点】,
+  // 幂等 CAS 防并发/重试双扣);转写费 1 点已在 transcribe 阶段扣过,一次复盘合计 7 点(1+6)。
+  // 故此处【不挂 CreditInterceptor】:拦截器会在 confirm 一律扣点,与 service 内的分析费叠加 → 真双扣;
+  // 也【不挂 CreditGuard】:用户付完转写费后余额可能为 0,不应被 ≥1 预检误挡(分析费允许临时负余额,充值即恢复)。
   // 保留 AiUsageInterceptor:ai_usage 仅作运营计数(不影响 credit 总额),analyze 成功记一条。
   @Patch(':id/transcribe/:taskId/confirm')
   @UseInterceptors(AiUsageInterceptor)

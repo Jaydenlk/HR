@@ -745,6 +745,12 @@ describe('Diagnosis SSE stream — invariants (service-level, mocked AiService +
       expect(done).toBeDefined();
       // done 事件携带的实体也带上 success 状态(供前端即时反映)。
       expect(done!.diagnosis.status).toBe('success');
+      // done.diagnosis 现为 DiagnosisResponseDto 投影:脱敏白名单封全 SSE 出口——不含两个内部字段,
+      // 且带 user_message(成功路径为 null),证明确实过了 fromEntity 而非裸返实体。
+      const doneKeys = Object.keys(done!.diagnosis as unknown as Record<string, unknown>);
+      expect(doneKeys).not.toContain('pipeline_error_message');
+      expect(doneKeys).not.toContain('failure_reason');
+      expect(done!.diagnosis.user_message).toBeNull();
 
       const row = await diagnosisRepo.findOneByOrFail({ id: done!.diagnosisId });
       expect(row.status).toBe('success');

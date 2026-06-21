@@ -20,8 +20,9 @@ export interface TranscriptProgressProps {
   // Failed-state recovery: after the failed task is deleted, reset UI to the pre-upload state.
   onDeleteTask?: () => void;
   // 分析阶段失败专用重试:转写结果仍存于服务端(segments_json),无需重传录音,直接重跑分析(不再重复扣转写费)。
-  // 仅当 failedAtStage==='analyzing' 时暴露入口;不删任务、不走 clearTaskThen。
-  onRetryAnalysis?: () => void;
+  // 仅当 failedAtStage==='analyzing' 时暴露入口;不删任务、不走 clearTaskThen。返回 Promise 以便本组件 await
+  // 整个重试请求做 inflight 锁(请求进行中按钮置灰,防连点触发并发 confirm)。
+  onRetryAnalysis?: () => void | Promise<void>;
 }
 
 const STEPS: Array<{ status: TranscribeStatus; label: string }> = [
@@ -191,6 +192,18 @@ export function TranscriptProgress({
     }
   }
 
+  // 重试分析:inflight 守卫 + 复用 recovering 让按钮在请求进行中置灰,防用户连点触发并发 confirm(后端会双跑 analyze)。
+  // 父层 onRetryAnalysis 内部已是 async 网络调用;这里 await 它直到完成再解锁,期间所有失败态按钮(重试/删除)统一禁用。
+  async function retryAnalysisThen() {
+    if (recovering) return;
+    setRecovering(true);
+    try {
+      await onRetryAnalysis?.();
+    } finally {
+      if (mountedRef.current) setRecovering(false);
+    }
+  }
+
   // Render nothing if there is no active task
   if (!taskId) return null;
 
@@ -311,7 +324,7 @@ export function TranscriptProgress({
               <button
                 type="button"
                 disabled={recovering}
-                onClick={() => onRetryAnalysis?.()}
+                onClick={() => void retryAnalysisThen()}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -330,7 +343,7 @@ export function TranscriptProgress({
                 }}
               >
                 <Loader2 size={14} />
-                重试分析
+                {recovering ? '重试中…' : '重试分析'}
               </button>
             ) : (
               <button

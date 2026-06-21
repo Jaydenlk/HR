@@ -1,6 +1,8 @@
 /**
  * AddTranscribeTaskAnalysisCharged 迁移结构冒烟(不依赖运行中的 Postgres,捕获迁移发出的 SQL 做结构断言)。
  *  - up() 对 interview_transcribe_tasks 发出 1 条 ADD COLUMN "analysis_charged" boolean NOT NULL DEFAULT false。
+ *  - up() 随后发出 1 条回填 UPDATE,把存量「已按旧 7 点模型结清且仍可走 confirm」的行标 analysis_charged=true
+ *    (覆盖 status ∈ awaiting_confirm/analyzing/completed,或 failed@analyzing),防部署后二次扣 6。
  *  - 纯加法:不 CREATE/DROP TABLE,不 ALTER 任何其它表(只动 interview_transcribe_tasks)。
  *  - down() 逆序回滚:1 条 DROP COLUMN "analysis_charged"。
  *  - up/down 对称:up ADD 的列 down 必 DROP。
@@ -51,6 +53,34 @@ describe('AddTranscribeTaskAnalysisCharged1782200000000 迁移结构', () => {
     // NOT NULL + DEFAULT false
     expect(/NOT NULL/.test(stmt)).toBe(true);
     expect(/DEFAULT false/.test(stmt)).toBe(true);
+  });
+
+  it('up() 发出回填 UPDATE:把存量可走 confirm 的行标 analysis_charged=true(防部署后二次扣 6)', async () => {
+    const { runner, sql } = makeRecordingRunner();
+    await migration.up(runner);
+
+    // 恰 1 条回填 UPDATE
+    const updateStmts = sql.filter((q) => /UPDATE/.test(q));
+    expect(updateStmts).toHaveLength(1);
+
+    const stmt = updateStmts[0];
+    // 目标表 + SET analysis_charged = true
+    expect(new RegExp(`UPDATE "${TABLE}"`).test(stmt)).toBe(true);
+    expect(new RegExp(`SET "${COLUMN}" = true`).test(stmt)).toBe(true);
+
+    // WHERE 覆盖那几个仍可走 confirm 的 status(转写费已按旧 7 点模型结清)。
+    expect(/awaiting_confirm/.test(stmt)).toBe(true);
+    expect(/analyzing/.test(stmt)).toBe(true);
+    expect(/completed/.test(stmt)).toBe(true);
+    // failed 仅限分析阶段失败(failed_at_stage='analyzing')才回填。
+    expect(/'failed'/.test(stmt)).toBe(true);
+    expect(/failed_at_stage/.test(stmt)).toBe(true);
+
+    // 回填发生在 ADD COLUMN 之后(先有列再写值)。
+    const addIdx = sql.findIndex((q) => /ADD COLUMN/.test(q));
+    const updIdx = sql.findIndex((q) => /UPDATE/.test(q));
+    expect(addIdx).toBeGreaterThanOrEqual(0);
+    expect(updIdx).toBeGreaterThan(addIdx);
   });
 
   it('纯加法:up() 不 CREATE/DROP TABLE,且只 ALTER interview_transcribe_tasks(不碰其它表)', async () => {
