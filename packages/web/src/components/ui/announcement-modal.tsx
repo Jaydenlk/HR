@@ -13,7 +13,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Announcement, AnnouncementKind } from '@/lib/types';
-import { launchFeatureTour } from '@/lib/feature-tour';
+import { launchFeatureTour, restartTour, RESTART_TOUR_SENTINEL } from '@/lib/feature-tour';
 import { X, Sparkles, Wrench, AlertTriangle, ArrowRight } from 'lucide-react';
 
 // ── 按 kind 的视觉配置(与横幅同源色板,弹窗用更大图标/更醒目的色块)──────────
@@ -131,7 +131,9 @@ export function AnnouncementModal() {
     if (!/^\/(?!\/)/.test(cta_href)) return;
     dismissCurrent();
     router.push(cta_href);
-    if (cta_tour_id) launchFeatureTour(cta_tour_id);
+    // 哨兵:新手引导按钮 → 重看完整首登引导;否则按既有逻辑启动功能 mini-tour。
+    if (cta_tour_id === RESTART_TOUR_SENTINEL) restartTour();
+    else if (cta_tour_id) launchFeatureTour(cta_tour_id);
   }
 
   // 队列空 / 已全部弹完:不占位。

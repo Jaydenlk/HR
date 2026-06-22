@@ -153,6 +153,42 @@ export default function CapabilityGuide({ open, onClose }: CapabilityGuideProps)
           不用记功能藏在哪,从这儿点一下就能去用。
         </div>
 
+        {/* 重看引导:放在最上面,常驻入口,任何时候都能重走一遍首次导览 */}
+        <button
+          type="button"
+          onClick={restartTour}
+          style={{
+            marginTop: '18px',
+            width: '100%',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            minHeight: '44px',
+            padding: '11px 16px',
+            borderRadius: '10px',
+            border: '1px solid var(--color-brand)',
+            background: 'var(--color-brand-soft)',
+            color: 'var(--color-brand)',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            transition: 'background 0.12s, border-color 0.12s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--color-brand)';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'var(--color-brand-soft)';
+            e.currentTarget.style.color = 'var(--color-brand)';
+          }}
+        >
+          <RotateCcw size={15} />
+          重看引导
+        </button>
+
         {/* 先做这几件 */}
         <GroupTitle>先做这几件</GroupTitle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -182,41 +218,6 @@ export default function CapabilityGuide({ open, onClose }: CapabilityGuideProps)
           ))}
         </div>
 
-        {/* 底部:重看新手引导 */}
-        <button
-          type="button"
-          onClick={restartTour}
-          style={{
-            marginTop: '20px',
-            width: '100%',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            minHeight: '44px',
-            padding: '11px 16px',
-            borderRadius: '10px',
-            border: '1px solid var(--color-line)',
-            background: 'transparent',
-            color: 'var(--color-ink-2)',
-            fontSize: '13.5px',
-            fontWeight: 600,
-            fontFamily: 'inherit',
-            cursor: 'pointer',
-            transition: 'background 0.12s, border-color 0.12s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--color-brand-soft)';
-            e.currentTarget.style.borderColor = 'var(--color-brand)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.borderColor = 'var(--color-line)';
-          }}
-        >
-          <RotateCcw size={15} />
-          重新看一遍新手引导
-        </button>
       </div>
     </div>
   );

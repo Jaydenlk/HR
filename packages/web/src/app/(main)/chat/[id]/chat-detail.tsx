@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, use } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { Conversation, ChatMessage } from '@/lib/types';
@@ -127,6 +128,8 @@ interface ChatDetailClientProps {
 
 export function ChatDetailClient({ params }: ChatDetailClientProps) {
   const { id } = use(params);
+  // 空态示例问句带入的预填文案:仅作为输入框初值,用户确认后才发送(不自动发起 AI 请求)。
+  const prefill = useSearchParams().get('prefill') ?? undefined;
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -583,7 +586,7 @@ export function ChatDetailClient({ params }: ChatDetailClientProps) {
 
       {/* Input */}
       <div style={{ flexShrink: 0 }}>
-        <ChatInput onSend={handleSend} loading={sending} />
+        <ChatInput onSend={handleSend} loading={sending} initialValue={prefill} />
       </div>
     </div>
   );

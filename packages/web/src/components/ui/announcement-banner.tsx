@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Announcement, AnnouncementKind } from '@/lib/types';
-import { launchFeatureTour } from '@/lib/feature-tour';
+import { launchFeatureTour, restartTour, RESTART_TOUR_SENTINEL } from '@/lib/feature-tour';
 import { X, Sparkles, Wrench, AlertTriangle, ArrowRight } from 'lucide-react';
 
 // 3 天可见窗口(毫秒)——与后端 VISIBLE_WINDOW_MS 保持一致,前端二次过滤防脏数据。
@@ -258,7 +258,9 @@ export function AnnouncementBanner() {
     // 不依赖写入时校验,杜绝任何未来未校验写入路径导致的开放跳转。
     if (!/^\/(?!\/)/.test(item.cta_href)) return;
     router.push(item.cta_href);
-    if (item.cta_tour_id) launchFeatureTour(item.cta_tour_id);
+    // 哨兵:新手引导按钮 → 重看完整首登引导;否则按既有逻辑启动功能 mini-tour。
+    if (item.cta_tour_id === RESTART_TOUR_SENTINEL) restartTour();
+    else if (item.cta_tour_id) launchFeatureTour(item.cta_tour_id);
   }
 
   // 未加载完或无可见公告:不占位

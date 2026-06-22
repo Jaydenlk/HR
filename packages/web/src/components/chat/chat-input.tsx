@@ -5,10 +5,12 @@ import { useState, useRef } from 'react';
 interface ChatInputProps {
   onSend: (content: string) => void;
   loading: boolean;
+  /** 首次进入时预填到输入框的内容(如从空态示例问句带入),用户确认后再发,不自动发送。 */
+  initialValue?: string;
 }
 
-export function ChatInput({ onSend, loading }: ChatInputProps) {
-  const [value, setValue] = useState('');
+export function ChatInput({ onSend, loading, initialValue }: ChatInputProps) {
+  const [value, setValue] = useState(initialValue ?? '');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   function handleSend() {
