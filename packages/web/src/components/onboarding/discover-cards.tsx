@@ -83,7 +83,7 @@ export default function DiscoverCards({ starterAllDone }: DiscoverCardsProps) {
               whiteSpace: 'nowrap',
             }}
           >
-            探索 Coach 能帮你做什么
+            探索 Coach 能做什么
           </span>
           {collapsed && (
             <span

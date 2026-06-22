@@ -41,7 +41,7 @@ export const DISCOVER_ITEMS: readonly DiscoverItem[] = [
   {
     id: 'campus',
     icon: GraduationCap,
-    title: '简历做体检',
+    title: '简历做诊断',
     desc: '按真实校招标准逐条诊断,不够格当场说',
     href: '/diagnoses/campus',
   },
@@ -49,7 +49,7 @@ export const DISCOVER_ITEMS: readonly DiscoverItem[] = [
     id: 'opp',
     icon: Target,
     title: '找对岗位',
-    desc: '按匹配度帮你筛机会,不用大海捞针',
+    desc: '按匹配度筛出机会,不用大海捞针',
     href: '/opportunities',
   },
   {
