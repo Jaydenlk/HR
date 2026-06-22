@@ -744,6 +744,42 @@ describe('Diagnosis SSE stream — invariants (service-level, mocked AiService +
       expect(after.parsed_json).toBeTruthy();
       expect(after.parsed_json!.basic_info.name.length).toBeGreaterThan(0);
     });
+
+    // (e) 自愈(畸形缺字段):比 (d) 更恶劣的遗留缓存——basic_info 在但 name 缺、skills 整体缺、
+    //     顶层数组缺(normalize 机制建立之前写入的形态)。改前 isResumeParseMeaningful 对其
+    //     `undefined.trim()` / `undefined.technical` 抛 TypeError(500),不自愈;改后判 false → 重解 → done。
+    it('[REG-heal-malformed][campus] 缓存命中但缺字段(name/skills/数组缺)→ 不抛 TypeError、重解(自愈)→ done', async () => {
+      const user = await newUser('reg-heal-malformed@diag.dev', 5);
+      // 预置畸形遗留缓存:仅有空 basic_info,name/skills/各顶层数组全缺(运行时真值畸形,
+      // 故用 as unknown 注入到 ParsedResume 列)。改前此缓存命中即 500。
+      const malformed = await resumeRepo.save(
+        resumeRepo.create({
+          user_id: user.id,
+          title: '畸形遗留简历',
+          raw_text: RESUME_TEXT,
+          is_primary: true,
+          parsed_json: { basic_info: {} } as unknown as Resume['parsed_json'],
+        }),
+      );
+
+      // 解析器此刻健康(默认 mock 返回有内容的解析)。
+      const events = await drain(
+        service.streamCreateProfessionStandard(
+          user.id,
+          { resume_id: malformed.id, profession: '互联网产品经理' },
+          '/api/diagnoses/campus/stream',
+        ),
+      );
+
+      // 不抛 TypeError(无 error 事件),走重解自愈到 done。
+      expect(find(events, 'error')).toBeUndefined();
+      expect(find(events, 'done')).toBeDefined();
+
+      // 畸形缓存被重新解析覆盖为有效解析(name 已填、shape 完整)。
+      const after = await resumeRepo.findOneByOrFail({ id: malformed.id });
+      expect(after.parsed_json).toBeTruthy();
+      expect(after.parsed_json!.basic_info.name.length).toBeGreaterThan(0);
+    });
   });
 
   it('[INV-6b][jd] payload=MatchDimensions(综合分在 overall.score)', async () => {

@@ -102,19 +102,23 @@ function strArray(v: unknown): string[] {
  * 仅当全部为空(真·没抽到东西)才判退化。绝不编造,只判定「这次解析是否成功」。
  */
 export function isResumeParseMeaningful(r: ParsedResume): boolean {
+  // 调用方 resolveParsedResume 会把 DB 缓存 parsed_json 直接传入:normalize 之后的新解析恒为
+  // 完整 shape,但 DB 里可能存在 normalize 机制建立之前写入的【畸形遗留行】(basic_info 在但 name
+  // 缺、skills 整体缺、顶层数组缺)。对这类缺字段一律按「空」处理(判 false 那一支)走重解自愈,
+  // 绝不抛 TypeError(否则 500、不自愈)。正常 normalize 行各字段必在,可选链全不短路 → 判定不变。
   const b = r.basic_info;
   const s = r.skills;
   return (
-    b.name.trim().length > 0 ||
+    (b?.name?.trim().length ?? 0) > 0 ||
     (r.summary?.trim().length ?? 0) > 0 ||
-    r.work_experience.length > 0 ||
-    r.education.length > 0 ||
-    r.projects.length > 0 ||
+    (r.work_experience?.length ?? 0) > 0 ||
+    (r.education?.length ?? 0) > 0 ||
+    (r.projects?.length ?? 0) > 0 ||
     (r.awards_honors?.length ?? 0) > 0 ||
-    s.technical.length > 0 ||
-    s.soft.length > 0 ||
-    s.languages.length > 0 ||
-    s.certifications.length > 0
+    (s?.technical?.length ?? 0) > 0 ||
+    (s?.soft?.length ?? 0) > 0 ||
+    (s?.languages?.length ?? 0) > 0 ||
+    (s?.certifications?.length ?? 0) > 0
   );
 }
 
