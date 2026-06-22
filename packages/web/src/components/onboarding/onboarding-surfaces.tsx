@@ -210,7 +210,7 @@ export function ResumesSurface({ phase = 'idle' }: { phase?: 'idle' | 'parsing' 
               <Ico name="upload" size={20} />
             </span>
             <div style={{ fontSize: 14, color: 'var(--color-ink)', fontWeight: 600 }}>把简历拖进来 · PDF / Word 都行</div>
-            <div style={{ fontSize: 12, color: 'var(--color-ink-3)' }}>它会成为你的底稿 —— 之后每次改写都能回溯、回滚。</div>
+            <div style={{ fontSize: 12, color: 'var(--color-ink-3)' }}>传进来就是你的底稿 —— 之后每次改写都从这份开始。</div>
           </>
         )}
         {phase !== 'idle' && (
