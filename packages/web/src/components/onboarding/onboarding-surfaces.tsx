@@ -324,6 +324,9 @@ export function ChatSurface({ demo = 2 }: { demo?: number }) {
           </div>
         )}
       </div>
+      <div style={{ marginTop: 16 }}>
+        <AITag />
+      </div>
       <div className="lg" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', marginTop: 16 }}>
         <span style={{ flex: 1, fontSize: 13.5, color: 'var(--color-ink-4)' }}>说说你卡在哪…</span>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--color-brand)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -338,7 +341,7 @@ export function ChatSurface({ demo = 2 }: { demo?: number }) {
 export function MockSurface() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px' }}>
-      <FeatureHead icon="mock" title="模拟面试 · 内容运营" sub="上场前先陪你练一轮,打字或开口都行。" />
+      <FeatureHead icon="mock" title="模拟面试 · 内容运营" sub="出题你答,打字或开口都行。" />
       <div className="lg" data-guide="mock-demo" style={{ padding: 22 }}>
         <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 11, background: 'var(--color-surface-3)', marginBottom: 18 }}>
           {([['type', '文字', false], ['voice', '语音', true]] as const).map(([ic, t, on]) => (

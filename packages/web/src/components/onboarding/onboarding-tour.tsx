@@ -188,8 +188,8 @@ const STEPS: CanvasStep[] = [
     auto: null,
     pulse: true,
     tag: '模拟面试',
-    title: '上场前先陪你练一轮',
-    body: '选语音,出题你答。',
+    title: '选语音,出题你答',
+    body: '挑文字或语音,逐题出,答完进复盘。',
     cta: '看复盘',
   },
 
@@ -260,7 +260,7 @@ const FEATURE_TOURS: FeatureTourDef[] = [
       {
         target: 'asr-upload',
         title: '把录音变复盘',
-        body: '面完一场,把录音传到这儿。我帮你转成文字,再逐题告诉你哪答得好、哪能更好。成功才扣 7 点。',
+        body: '面完一场,把录音传到这儿,自动转成文字,再逐题标出哪答得好、哪能更好。成功才扣 7 点。',
       },
     ],
   },

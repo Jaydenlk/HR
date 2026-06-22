@@ -32,7 +32,7 @@ interface FirstStep {
 const FIRST_STEPS: readonly FirstStep[] = [
   { icon: FileText, title: '传一份简历', desc: '把简历传进来,之后所有改写都从它开始', href: '/resumes' },
   { icon: GraduationCap, title: '跑一份诊断', desc: '按真实校招标准给简历逐条体检,不糊弄', href: '/diagnoses/campus' },
-  { icon: MessageSquare, title: '问 Coach 一句', desc: '把处境说给它听,它帮你配好下一步', href: '/chat' },
+  { icon: MessageSquare, title: '问 Coach 一句', desc: '把处境说给它听,排出你的下一步', href: '/chat' },
 ] as const;
 
 export default function CapabilityGuide({ open, onClose }: CapabilityGuideProps) {
@@ -140,7 +140,7 @@ export default function CapabilityGuide({ open, onClose }: CapabilityGuideProps)
             paddingRight: '36px',
           }}
         >
-          Coach 能帮你做什么
+          Coach 能做什么
         </div>
         <div
           style={{
