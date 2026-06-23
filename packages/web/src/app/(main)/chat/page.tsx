@@ -1,11 +1,39 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Conversation } from '@/lib/types';
 import { ConversationCard } from '@/components/chat/conversation-card';
-import { MessageSquare, Plus, Loader2 } from 'lucide-react';
+import {
+  MessageSquare,
+  Plus,
+  Loader2,
+  GraduationCap,
+  Mic,
+  FileText,
+  ArrowUpRight,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+// 空态示例问句(逐字定稿 copy 附 A):点击=新建对话并带话进去,落到输入框由用户确认后发。
+const STARTER_QUESTIONS: readonly string[] = [
+  '下周有内容运营面试,怎么准备',
+  '简历里实习经历太少,怎么补',
+  '拿了两个 offer,怎么选',
+] as const;
+
+// 空态行动卡(逐字定稿 copy 附 A):点击=直达对应功能页。
+interface StarterAction {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+}
+const STARTER_ACTIONS: readonly StarterAction[] = [
+  { icon: GraduationCap, label: '诊断简历', href: '/diagnoses/campus' },
+  { icon: Mic, label: '练一轮面试', href: '/mock' },
+  { icon: FileText, label: '改写简历', href: '/resumes' },
+] as const;
 
 export default function ChatListPage() {
   return (
@@ -37,6 +65,7 @@ function ChatListLoading() {
 }
 
 function ChatListInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const contextType = searchParams.get('context');
   const contextId = searchParams.get('id');
@@ -87,6 +116,19 @@ function ChatListInner() {
     try {
       const conv = await api.post<Conversation>('/conversations', { context_type: 'free' });
       window.location.href = `/chat/${conv.id}`;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '创建失败');
+      setCreating(false);
+    }
+  }
+
+  // 点示例问句:新建对话并把问句带进去(落到输入框,用户确认后再发)。
+  async function handleStarterQuestion(question: string) {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const conv = await api.post<Conversation>('/conversations', { context_type: 'free' });
+      router.push(`/chat/${conv.id}?prefill=${encodeURIComponent(question)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : '创建失败');
       setCreating(false);
@@ -237,7 +279,7 @@ function ChatListInner() {
           className="lg"
           style={{
             textAlign: 'center',
-            padding: '80px 40px',
+            padding: '56px 40px 44px',
           }}
         >
           <div
@@ -264,7 +306,7 @@ function ChatListInner() {
               margin: '0 0 8px',
             }}
           >
-            开始你的第一次对话
+            说你的情况
           </h2>
           <p
             style={{
@@ -275,8 +317,118 @@ function ChatListInner() {
               fontWeight: 500,
             }}
           >
-            向 Coach 提问，获得个性化的求职建议
+            排出你的下一步，不用想怎么问
           </p>
+
+          {/* 示例问句:点击=新建对话并带话进去 */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: '8px',
+              marginBottom: '24px',
+            }}
+          >
+            {STARTER_QUESTIONS.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => void handleStarterQuestion(q)}
+                disabled={creating}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: '1px solid var(--hair)',
+                  background: 'rgba(47,143,255,.05)',
+                  color: 'var(--color-ink-2)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  fontFamily: 'inherit',
+                  letterSpacing: '-0.003em',
+                  cursor: creating ? 'not-allowed' : 'pointer',
+                  opacity: creating ? 0.6 : 1,
+                  transition: 'border-color 0.15s, background 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  if (creating) return;
+                  e.currentTarget.style.borderColor = 'var(--color-brand)';
+                  e.currentTarget.style.background = 'var(--color-brand-soft)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--hair)';
+                  e.currentTarget.style.background = 'rgba(47,143,255,.05)';
+                }}
+              >
+                {q}
+                <ArrowUpRight size={13} style={{ color: 'var(--color-ink-4)', flexShrink: 0 }} />
+              </button>
+            ))}
+          </div>
+
+          {/* 行动卡:点击=直达对应功能页 */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: '10px',
+              marginBottom: '28px',
+            }}
+          >
+            {STARTER_ACTIONS.map((action) => (
+              <button
+                key={action.href}
+                type="button"
+                onClick={() => router.push(action.href)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 16px',
+                  borderRadius: 'var(--radius-default)',
+                  border: '1px solid var(--hair)',
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-ink)',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  letterSpacing: '-0.003em',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s, transform 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-brand)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--hair)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '26px',
+                    height: '26px',
+                    flexShrink: 0,
+                    borderRadius: '8px',
+                    background: 'var(--color-brand-soft)',
+                    color: 'var(--color-brand)',
+                  }}
+                >
+                  <action.icon size={15} />
+                </span>
+                {action.label}
+              </button>
+            ))}
+          </div>
+
           <button
             onClick={handleNewConversation}
             disabled={creating}

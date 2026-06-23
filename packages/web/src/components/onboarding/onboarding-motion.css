@@ -1,0 +1,407 @@
+/* onboarding-motion.css — 首登引导专用动效语汇(从 ver3.1 原型移植进真实 app)。
+ *
+ * 设计纪律:
+ *  - 颜色/玻璃/极光一律走线上 globals.css 的主题令牌(--color-* / --glass-* / --au-blue-glow /
+ *    --hair / --serif / --font-mono ...),双主题由 html[data-theme] 在 globals 里已切好。
+ *    本文件不写任何硬编码暗色,亮主题自动跟随——这是 ver3.1「硬编码暗色」问题的根治。
+ *  - 只补 ver3.1 引导独有、globals 没有的东西:① 引导节奏/缓动令牌 ② 一组镜头级动效 keyframes。
+ *  - 全部作用域收在 [data-onboarding] 之下,绝不泄漏到产品页面。
+ *  - prefers-reduced-motion 下整体降级为「无位移、直接显形」。
+ */
+
+[data-onboarding] {
+  /* 节奏:--ob-spd 统一缩放所有时长(调速旋钮);缓动三件套。 */
+  --ob-spd: 1;
+  --ob-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ob-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ob-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 聚光灯遮罩:压暗洞外、聚焦洞内,但不能盖到看不清内容(用户反馈「暗背景+灰遮罩看不清」)。
+     暗主题底色本就深,叠加要克制;亮主题更浅。 */
+  --ob-scrim: rgba(5, 6, 12, 0.44);
+}
+html[data-theme='light'] [data-onboarding] {
+  --ob-scrim: rgba(17, 19, 28, 0.22);
+}
+
+/* ── 开/关场:整层缓入 + 从小放大(治「刚打开/结束顿挫一下」)──────────────
+ * 只动 opacity + transform:scale(GPU 合成),挂载即播入场、关闭先播出场再卸载。
+ * 入场 ~310ms 减速曲线(从 0.96 放大到 1 + 淡入);出场反向、略快 ~220ms 加速曲线。
+ * 只作用于 [data-onboarding] 覆盖层根节点这一层,章节切换/聚光/气泡等不受影响。 */
+@keyframes ob-overlay-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes ob-overlay-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.97); }
+}
+[data-onboarding].ob-overlay-in {
+  animation: ob-overlay-in calc(0.31s * var(--ob-spd)) var(--ob-ease-out);
+  will-change: opacity, transform;
+}
+[data-onboarding].ob-overlay-out {
+  animation: ob-overlay-out calc(0.22s * var(--ob-spd)) cubic-bezier(0.4, 0, 1, 1) forwards;
+  will-change: opacity, transform;
+}
+
+/* ── 出场:气泡/卡片浮入 ─────────────────────────────────────────────── */
+@keyframes ob-pop {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ob-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ob-page-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+[data-onboarding] .ob-page-fade {
+  animation: ob-page-fade calc(0.5s * var(--ob-spd)) var(--ob-ease);
+}
+
+/* ── 跨章交叉过渡(外壳常驻,只换中央 stage 内容)──────────────────────
+ * 治「顿挫 / 不丝滑」:出场旧层与入场新层协调播放,只动 opacity + transform(GPU 合成),
+ * 大容器绝不动 layout 属性(height/top/margin)。出场 240ms 加速曲线、入场 320ms 减速曲线,
+ * 入场在出场开始后约 120ms 启动(由 JS enterDelay 控制)→ 略重叠总约 440ms。 */
+@keyframes ob-stage-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-12px); }
+}
+@keyframes ob-stage-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+[data-onboarding] .ob-stage-exit {
+  animation: ob-stage-exit calc(0.24s * var(--ob-spd)) cubic-bezier(0.4, 0, 1, 1) forwards;
+  will-change: opacity, transform;
+}
+[data-onboarding] .ob-stage-enter {
+  animation: ob-stage-enter calc(0.32s * var(--ob-spd)) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+/* ── reveal:错峰升起(glimpse / 逐条体检 / 行动卡) ──────────────────── */
+[data-onboarding] .ob-rv {
+  opacity: 0;
+  transition:
+    opacity calc(0.55s * var(--ob-spd)) var(--ob-ease-out),
+    transform calc(0.6s * var(--ob-spd)) var(--ob-ease-out),
+    filter calc(0.55s * var(--ob-spd)) var(--ob-ease-out);
+}
+[data-onboarding] .ob-rv.up { transform: translateY(16px); }
+[data-onboarding] .ob-rv.right { transform: translateX(20px); }
+[data-onboarding] .ob-rv.scale { transform: scale(0.96); }
+[data-onboarding] .ob-rv.in {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* ── 分数光爆(拍1 score) ───────────────────────────────────────────── */
+[data-onboarding] .ob-score-burst {
+  position: absolute;
+  inset: -34%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle, var(--au-blue-glow), transparent 60%);
+  opacity: 0;
+  animation: ob-score-burst calc(1.1s * var(--ob-spd)) var(--ob-ease-out) forwards;
+}
+@keyframes ob-score-burst {
+  0% { opacity: 0; transform: scale(0.4); }
+  42% { opacity: 0.85; }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+/* ── 压分抖动(拍2 cut) ─────────────────────────────────────────────── */
+[data-onboarding] .ob-ring-shake {
+  animation: ob-shake-x calc(0.5s * var(--ob-spd)) var(--ob-ease);
+}
+@keyframes ob-shake-x {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-5px); }
+  38% { transform: translateX(5px); }
+  58% { transform: translateX(-3px); }
+  78% { transform: translateX(2px); }
+}
+
+/* ── 护栏盖章(拍2 cut) ─────────────────────────────────────────────── */
+[data-onboarding] .ob-gr-stamp {
+  animation: ob-stamp-slam calc(0.55s * var(--ob-spd)) var(--ob-spring) forwards;
+}
+@keyframes ob-stamp-slam {
+  0% { opacity: 0; transform: scale(1.7) rotate(11deg); }
+  55% { opacity: 1; transform: scale(0.9) rotate(6deg); }
+  100% { opacity: 1; transform: scale(1) rotate(6deg); }
+}
+
+/* ── 原文划线(拍2 cut) ─────────────────────────────────────────────── */
+[data-onboarding] .ob-strike { position: relative; }
+[data-onboarding] .ob-strike::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 52%;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--color-danger);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: ob-strike-in calc(0.5s * var(--ob-spd)) var(--ob-ease-out) 0.1s forwards;
+}
+@keyframes ob-strike-in {
+  to { transform: scaleX(1); }
+}
+
+/* ── 原文浮卡(拍2 peek) ────────────────────────────────────────────── */
+[data-onboarding] .ob-peek {
+  position: absolute;
+  z-index: 5;
+  width: 248px;
+  border-radius: 14px;
+  padding: 14px 15px;
+  animation: ob-pop calc(0.4s * var(--ob-spd)) var(--ob-spring);
+}
+[data-onboarding] .ob-peek .ob-peek-lab {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+[data-onboarding] .ob-peek .ob-peek-line {
+  font-size: 13px;
+  color: var(--color-ink);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+/* ── 解析扫描条(简历馆上传) ───────────────────────────────────────── */
+[data-onboarding] .ob-parse-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-surface-3);
+  overflow: hidden;
+}
+[data-onboarding] .ob-parse-track .ob-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--color-brand), transparent);
+  animation: ob-parse-sweep calc(1.1s * var(--ob-spd)) linear infinite;
+}
+@keyframes ob-parse-sweep {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+
+/* ── 聚光灯:挖洞 + 描边 + 脉冲 ─────────────────────────────────────── */
+[data-onboarding] .ob-spot-hole {
+  position: fixed;
+  border-radius: 12px;
+  border: 2px solid var(--color-brand);
+  box-shadow: 0 0 0 9999px var(--ob-scrim), 0 0 22px 2px var(--au-blue-glow);
+  /* 聚光灯滑行不瞬移:跨章高亮框平滑滑到新位(治「聚光灯闪一下再就位」)。 */
+  transition:
+    top 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+[data-onboarding] .ob-spot-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--ob-scrim);
+  pointer-events: none;
+}
+/* 侧栏 part 高亮框(账户区 / 使用帮助 / 更多功能):描边 + 呼吸辉光,聚焦醒目但不挖全屏暗洞,
+   主区演示界面保持全亮、清晰可读(治「暗背景+灰遮罩看不清」)。 */
+[data-onboarding] .ob-spot-ring {
+  border-radius: 12px;
+  border: 2px solid var(--color-brand);
+  pointer-events: none;
+  box-shadow: 0 0 16px 1px var(--au-blue-glow), inset 0 0 0 1px var(--glass-rim);
+}
+[data-onboarding] .ob-spot-breathe {
+  animation: ob-spot-breathe calc(2.2s * var(--ob-spd)) var(--ob-ease) infinite;
+}
+@keyframes ob-spot-breathe {
+  0%, 100% { box-shadow: 0 0 14px 1px var(--au-blue-glow), inset 0 0 0 1px var(--glass-rim); }
+  50% { box-shadow: 0 0 26px 5px var(--au-blue-glow), inset 0 0 0 1px var(--glass-rim); }
+}
+/* 轻脉冲(演示「点这里」时给锚点呼吸感,不挖洞) */
+[data-onboarding] .ob-pulse {
+  position: fixed;
+  border-radius: 12px;
+  border: 2px solid var(--color-brand);
+  pointer-events: none;
+  animation: ob-pulse calc(1.6s * var(--ob-spd)) var(--ob-ease) infinite;
+}
+@keyframes ob-pulse {
+  0% { box-shadow: 0 0 0 0 var(--au-blue-glow); opacity: 1; }
+  70% { box-shadow: 0 0 0 14px rgba(47, 143, 255, 0); opacity: 0.7; }
+  100% { box-shadow: 0 0 0 0 rgba(47, 143, 255, 0); opacity: 1; }
+}
+
+/* ── 章节轨 / 气泡 入场 ─────────────────────────────────────────────── */
+[data-onboarding] .ob-rail {
+  animation: ob-pop 0.3s var(--ob-ease);
+}
+[data-onboarding] .ob-bubble {
+  animation: ob-pop 0.3s var(--ob-ease);
+}
+
+/* ── 舞台外壳工具类(侧栏导航 / 滚动 / 等宽数字) ──────────────────── */
+[data-onboarding] .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+[data-onboarding] .g-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+[data-onboarding] .g-scroll::-webkit-scrollbar { width: 8px; }
+[data-onboarding] .g-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-line-2);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+[data-onboarding] .nav-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--color-ink-2);
+  white-space: nowrap;
+  background: transparent;
+  /* 文字/图标颜色随高亮渐变;背景高亮交给下方滑动磨砂指示器(沿用真侧栏机制) */
+  transition: color calc(0.3s * var(--ob-spd)) var(--ob-ease), font-weight 0s;
+}
+[data-onboarding] .nav-item svg {
+  flex-shrink: 0;
+  color: var(--color-ink-3);
+  transition: color calc(0.3s * var(--ob-spd)) var(--ob-ease);
+}
+[data-onboarding] .nav-item.active { color: var(--color-ink); font-weight: 600; }
+[data-onboarding] .nav-item.active svg { color: var(--color-brand); }
+
+/* 浮动磨砂滑动指示器(从上一项平滑滑到当前项 + 轻微辉光吸睛):暗=磨砂玻璃,
+   亮=白色实体浮块(与真侧栏 .nav-indicator 亮色覆盖同策略),双主题对比都够。 */
+[data-onboarding] .ob-nav-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0;
+  border-radius: 10px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--glass-bd);
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 0 var(--au-blue-glow);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition:
+    transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
+    height 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.24s ease;
+}
+[data-onboarding] .ob-nav-indicator[data-active='true'] {
+  opacity: 1;
+  animation: ob-nav-glow calc(2.4s * var(--ob-spd)) var(--ob-ease) infinite;
+}
+@keyframes ob-nav-glow {
+  0%, 100% { box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 0 var(--au-blue-glow); }
+  50% { box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 14px 1px var(--au-blue-glow); }
+}
+html[data-theme='light'] [data-onboarding] .ob-nav-indicator {
+  background: #ffffff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 1px solid var(--color-line);
+  box-shadow: 0 2px 8px -1px rgba(20, 40, 90, 0.14), 0 1px 2px rgba(20, 40, 90, 0.1);
+}
+
+/* 问 Coach CTA:被选中(对话章)时轻脉冲,承接「nav 高亮滑到 Coach」的视线引导。 */
+[data-onboarding] .ob-nav-cta {
+  transition: box-shadow calc(0.3s * var(--ob-spd)) var(--ob-ease), transform calc(0.3s * var(--ob-spd)) var(--ob-ease);
+}
+[data-onboarding] .ob-nav-cta.active {
+  animation: ob-cta-pulse calc(1.8s * var(--ob-spd)) var(--ob-ease) infinite;
+}
+@keyframes ob-cta-pulse {
+  0%, 100% { box-shadow: 0 10px 30px -12px var(--au-blue-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 0 var(--au-blue-glow); transform: none; }
+  50% { box-shadow: 0 14px 34px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 4px rgba(47, 143, 255, 0.18); transform: translateY(-1px); }
+}
+[data-onboarding] .nav-sect {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-4);
+  padding: 0 12px;
+  margin: 14px 0 6px;
+}
+
+/* ── 无障碍:减弱动效 ───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-onboarding] .ob-pulse,
+  [data-onboarding] .ob-spot-breathe,
+  [data-onboarding] .ob-score-burst,
+  [data-onboarding] .ob-parse-track .ob-bar,
+  [data-onboarding] .ob-nav-indicator[data-active='true'],
+  [data-onboarding] .ob-nav-cta.active {
+    animation: none !important;
+  }
+  [data-onboarding] .ob-stage-exit,
+  [data-onboarding] .ob-stage-enter {
+    animation: none !important;
+  }
+  /* 开/关场降级:直接显隐,无位移、无缩放(关场仍需 forwards 隐藏交给 JS 直接卸载) */
+  [data-onboarding].ob-overlay-in,
+  [data-onboarding].ob-overlay-out {
+    animation: none !important;
+  }
+  [data-onboarding].ob-overlay-out {
+    opacity: 0 !important;
+  }
+  [data-onboarding] .ob-stage-exit {
+    opacity: 0 !important;
+  }
+  [data-onboarding] .ob-spot-hole {
+    transition: none !important;
+  }
+  [data-onboarding] .ob-nav-indicator {
+    transition: opacity 0.24s ease !important;
+  }
+  [data-onboarding] .nav-item,
+  [data-onboarding] .nav-item svg {
+    transition: none !important;
+  }
+  [data-onboarding] .ob-rv {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+}

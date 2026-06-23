@@ -498,6 +498,30 @@ html[data-theme="light"] .nav-indicator {
     0 1px 2px rgba(20, 40, 90, .10);
 }
 
+/* ── 引导期真侧栏吸睛(核心③) ───────────────────────────────────────────
+   引导用真侧栏本体高亮:滑动指示器照常滑到当前章节项,这里只在引导期给它叠一层呼吸辉光,
+   把视线吸到「左边任务栏正在讲哪一项」。仅当 body[data-onboarding-active] 存在时生效
+   (OnboardingTour 主导览期间打上),平时一切照旧、零回归。 */
+body[data-onboarding-active] .nav-indicator[data-active="true"] {
+  animation: coach-guide-nav-glow 2.4s cubic-bezier(.22,.61,.36,1) infinite;
+}
+@keyframes coach-guide-nav-glow {
+  0%, 100% { box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 0 var(--au-blue-glow); }
+  50% { box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 16px 1px var(--au-blue-glow); }
+}
+/* 「问 Coach」章:CTA 不在指示器组内,单独脉冲(高亮落到 CTA 上)。 */
+.coach-cta-guide-active {
+  animation: coach-cta-guide-pulse 1.8s cubic-bezier(.22,.61,.36,1) infinite;
+}
+@keyframes coach-cta-guide-pulse {
+  0%, 100% { box-shadow: 0 8px 22px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 0 var(--au-blue-glow); transform: none; }
+  50% { box-shadow: 0 14px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 4px rgba(47,143,255,.20); transform: translateY(-1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-onboarding-active] .nav-indicator[data-active="true"],
+  .coach-cta-guide-active { animation: none; }
+}
+
 /* ── 极光背景 .atmos(全量复刻落地页 Night Atelier) ─────────────────────────
    用法:在 (main) 布局根放一个 <div className="atmos" aria-hidden> 含 .au 光斑 + .grid + .grain,
    它 position:fixed inset:0 z-index:0,挂在侧栏与主区之下;内容/侧栏须 position:relative z-index:≥1。

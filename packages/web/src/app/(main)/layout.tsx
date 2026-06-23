@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import OnboardingTour from '@/components/onboarding/onboarding-tour';
 import CapabilityGuide from '@/components/onboarding/capability-guide';
+import { OnboardingNavProvider, useOnboardingNav } from '@/components/onboarding/onboarding-nav-context';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Tooltip } from '@/components/ui/tooltip';
 import { NAV_HINTS } from '@/components/onboarding/nav-hints';
@@ -120,6 +121,16 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
+  // 引导期「真侧栏高亮覆盖」provider 包在最外:让 OnboardingTour(本布局子树)能临时把视觉激活项
+  // 落到对应导航项,供下方 isActive / 滑动指示器读取。默认 null = 不覆盖,行为与改前逐字一致。
+  return (
+    <OnboardingNavProvider>
+      <ShellLayoutInner>{children}</ShellLayoutInner>
+    </OnboardingNavProvider>
+  );
+}
+
+function ShellLayoutInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -131,6 +142,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [showCapabilityGuide, setShowCapabilityGuide] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  // 引导期视觉激活覆盖:非 null 时,导航高亮按引导给的 href 落位(不导航);null 时走 pathname 原逻辑。
+  const { guideActiveHref } = useOnboardingNav();
 
   function handleLogout() {
     if (typeof window !== 'undefined') localStorage.removeItem('token');
@@ -223,6 +236,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const initial = user?.name?.[0]?.toUpperCase() ?? '…';
 
   function isActive(item: NavItem): boolean {
+    // 引导期覆盖:仅高亮引导指定的那一项(精确匹配 href),其余全灭,聚光只落一处。
+    // guideActiveHref 为 null 时(常态)完全走原 pathname 逻辑,零回归。
+    if (guideActiveHref != null) return item.href === guideActiveHref;
     if (item.href === '/today') return pathname === '/today' || pathname === '/';
     return pathname?.startsWith(item.href) ?? false;
   }
@@ -288,9 +304,10 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-    // pathname 变(切页)、showMore 变(折叠/展开重排)、badge 数变(项高度可能微调)时重算。
+    // pathname 变(切页)、showMore 变(折叠/展开重排)、badge 数变(项高度可能微调)、
+    // guideActiveHref 变(引导切章)时重算落位——指示器平滑滑到新激活项(核心②③)。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, showMore, interviewCount, applicationCount]);
+  }, [pathname, showMore, interviewCount, applicationCount, guideActiveHref]);
 
   return (
     <div
@@ -413,6 +430,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             切换钮是独立 <button>,不能嵌进 <Link>(交互元素嵌套+点击会误触跳转),故与 Link 平铺为兄弟。
             flexShrink:0 让账户区固定在顶部,不被下方可滚动区挤掉。 */}
         <div
+          data-guide-real="account"
           style={{
             display: 'flex',
             alignItems: 'stretch',
@@ -531,6 +549,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           <Link
             href="/chat"
             data-tour="chat"
+            // 引导「问 Coach」章:CTA 不在两组滑动指示器内,故由本类做脉冲吸睛(核心③·Coach 章高亮落 CTA)。
+            className={guideActiveHref === '/chat' ? 'coach-cta-guide-active' : undefined}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -721,6 +741,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 <div ref={toolIndicatorRef} className="nav-indicator" data-active="false" aria-hidden="true" />
                 {core.map(renderTool)}
                 <button
+                  data-guide-real="more"
                   onClick={() => setShowMore((v) => !v)}
                   style={{
                     position: 'relative',
@@ -973,6 +994,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             </span>
             <button
               type="button"
+              data-guide-real="help"
               onClick={() => setShowCapabilityGuide(true)}
               aria-label="使用帮助"
               style={{

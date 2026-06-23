@@ -9,6 +9,7 @@ import type {
   AnnouncementDisplayType,
 } from '@/lib/types';
 import { FEATURE_UPDATES } from '@/lib/feature-updates';
+import { RESTART_TOUR_SENTINEL } from '@/lib/feature-tour';
 import {
   Loader2,
   Shield,
@@ -178,6 +179,11 @@ const EMPTY_DRAFT: Draft = {
   cta_tour_id: '',
   feature_key: '',
 };
+
+// 「新手引导按钮」的默认文案/落点(copy 附 C 定稿):勾选时若 label/href 为空则填这两个默认值,
+// 已有值则尊重管理员手填不覆盖。cta_tour_id 固定为哨兵,前端 CTA 点击识别后派 coach:restart-tour。
+const RESTART_TOUR_DEFAULT_LABEL = '看看怎么用';
+const RESTART_TOUR_DEFAULT_HREF = '/today';
 
 // 把后端公告映射成编辑态草稿(编辑/重新生成共用)。
 function toDraft(item: Announcement): Draft {
@@ -1188,6 +1194,42 @@ export default function AnnouncementsAdminPage() {
                 <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-ink-2)' }}>
                   引导按钮(可选)
                 </div>
+
+                {/* 新手引导按钮(无迁移哨兵):勾选即把 cta_tour_id 设为哨兵,用户点击后重看完整引导。
+                    勾选时自动补默认文案/落点(已填则不覆盖),并锁定下方「引导教程 ID」为哨兵。 */}
+                <label
+                  title="新功能上了,带你走一遍"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    fontSize: '13px',
+                    color: 'var(--color-ink-2)',
+                    cursor: 'pointer',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={draft.cta_tour_id === RESTART_TOUR_SENTINEL}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setDraft({
+                          ...draft,
+                          cta_tour_id: RESTART_TOUR_SENTINEL,
+                          cta_label: draft.cta_label.trim() || RESTART_TOUR_DEFAULT_LABEL,
+                          cta_href: draft.cta_href.trim() || RESTART_TOUR_DEFAULT_HREF,
+                        });
+                      } else {
+                        // 仅清掉哨兵值,保留管理员已填的 label/href(可能想改成普通 CTA)。
+                        setDraft({ ...draft, cta_tour_id: '' });
+                      }
+                    }}
+                    style={{ width: '16px', height: '16px', marginTop: '1px', cursor: 'pointer' }}
+                  />
+                  这是新手引导按钮(用户点击后重看引导)
+                </label>
+
                 <div>
                   <label style={labelStyle}>引导按钮文案</label>
                   <input
@@ -1214,8 +1256,14 @@ export default function AnnouncementsAdminPage() {
                     type="text"
                     value={draft.cta_tour_id}
                     onChange={(e) => setDraft({ ...draft, cta_tour_id: e.target.value })}
+                    disabled={draft.cta_tour_id === RESTART_TOUR_SENTINEL}
                     placeholder="例如：asr-recording(点击后在目标页启动该导览)"
-                    style={inputStyle}
+                    style={{
+                      ...inputStyle,
+                      ...(draft.cta_tour_id === RESTART_TOUR_SENTINEL
+                        ? { opacity: 0.6, cursor: 'not-allowed' }
+                        : null),
+                    }}
                   />
                 </div>
                 <div>

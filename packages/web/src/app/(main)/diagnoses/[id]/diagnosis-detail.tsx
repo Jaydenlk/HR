@@ -50,7 +50,7 @@ function LoadingState() {
   );
 }
 
-function ScoreBadge({ score, tooltipText }: { score: number; tooltipText?: string }) {
+export function ScoreBadge({ score, tooltipText }: { score: number; tooltipText?: string }) {
   const { color, bg } = getScoreColor(score);
   const badge = (
     <span
@@ -122,7 +122,7 @@ function DimensionRow({ label, score, max }: { label: string; score: number; max
 // ── 职业标尺模式专用组件 ──────────────────────────────────────────
 
 // 单个能力维度卡片:维度名 + 得分条 + why(必显) + 命中证据(弱化) + 缺口
-function ProfessionDimensionCard({ dim }: { dim: ProfessionStandardDimension }) {
+export function ProfessionDimensionCard({ dim }: { dim: ProfessionStandardDimension }) {
   const pct = dim.max > 0 ? Math.round((dim.score / dim.max) * 100) : 0;
   const { color } = getScoreColor(pct);
   return (
@@ -234,7 +234,7 @@ function ProfessionDimensionCard({ dim }: { dim: ProfessionStandardDimension }) 
 }
 
 // 本土核查行:status 用 图标 + 文字 + 颜色 三者表达(不只靠颜色)
-function ConventionCheckRow({ check }: { check: ConventionCheck }) {
+export function ConventionCheckRow({ check }: { check: ConventionCheck }) {
   const config =
     check.status === 'ok'
       ? { icon: <Check size={15} />, color: 'var(--color-success)', bg: 'var(--color-success-soft)', label: '符合' }

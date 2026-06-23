@@ -12,6 +12,7 @@ import {
   ReturnToCoachBanner,
 } from '@/components/chat/handoff-reception';
 import { Plus, FileText } from 'lucide-react';
+import { ResumeHandoffHint } from '@/components/onboarding/resume-handoff-hint';
 
 function LoadingSkeleton() {
   return (
@@ -97,6 +98,8 @@ function ResumesPageInner() {
 
   return (
     <>
+      {/* 首登导览收尾接力:高亮真实上传锚点 + 指向气泡(治 finish 撒手) */}
+      <ResumeHandoffHint />
       {handoffState === 'confirming' && handoffData && (
         <HandoffConfirmDialog
           target={handoffData.target}
@@ -177,6 +180,7 @@ function ResumesPageInner() {
             </p>
           </div>
           <button
+            data-tour="resume-upload"
             onClick={() => setUploaderOpen(true)}
             style={{
               display: 'inline-flex',

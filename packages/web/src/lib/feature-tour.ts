@@ -17,3 +17,16 @@ export function launchFeatureTour(tourId: string): void {
     }),
   );
 }
+
+// ── 重看完整首登引导 ─────────────────────────────────────────────────────────
+// 公告「新手引导按钮」走无迁移哨兵:把 cta_tour_id 设为此哨兵值,前端 CTA 点击时识别后
+// 派发 coach:restart-tour(由 onboarding-tour 监听,从头重播完整导览),而非功能 mini-tour。
+// 哨兵复用既有 cta_tour_id 自由字符串字段,不需新增数据库列。
+export const RESTART_TOUR_SENTINEL = 'restart-tour';
+export const RESTART_TOUR_EVENT = 'coach:restart-tour';
+
+// 派发完整引导重看事件。SSR 安全:无 window 时静默跳过。
+export function restartTour(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(RESTART_TOUR_EVENT));
+}
