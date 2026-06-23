@@ -9,7 +9,16 @@
 //
 // 文案逐字取自定稿 onboarding-v31-copy.md 附 D「虚构演示数据完整清单」,不得改动。
 
-import type { ReactNode } from 'react';
+import type {
+  ProfessionStandardDimension,
+  ConventionCheck,
+  RewriteSuggestion,
+  ChatMessage,
+  MockQuestion,
+  MockAnswer,
+  InterviewQuestion,
+  InterviewScore,
+} from '@/lib/types';
 
 /** 虚构 persona(陈思宁 / 北辰文化 / 内容运营 / 新闻传播 2026 届)。 */
 export const DEMO_PERSONA = {
@@ -21,92 +30,7 @@ export const DEMO_PERSONA = {
   initial: '宁',
 } as const;
 
-/** 诊断分数:初始 82 → 压分后 64(幅度 -18)。 */
-export const DEMO_SCORE = { base: 82, after: 64, cut: 18 } as const;
-
-/** 逐条体检(3 条),顺序对齐 copy 屏 3:已核实 / 需确认 / 无依据。 */
-export interface DemoCheck {
-  kind: 'ok' | 'warn' | 'cut';
-  label: string;
-  line: ReactNode;
-  note: string;
-  src: string;
-}
-
-export const DEMO_CHECKS: readonly DemoCheck[] = [
-  {
-    kind: 'ok',
-    label: '已核实',
-    line: <>「北辰校园大使 / 3 场百人宣讲」</>,
-    note: '有场次有规模,数字对得上。',
-    src: '原文 / 校园经历',
-  },
-  {
-    kind: 'warn',
-    label: '需确认',
-    line: (
-      <>
-        「<b>负责</b>」社团新媒体日常运营
-      </>
-    ),
-    note: '简历写「负责」,原文是「参与」,需要你确认。',
-    src: '原文 / 第 2 段',
-  },
-  {
-    kind: 'cut',
-    label: '无依据 · 压分',
-    line: (
-      <>
-        社群用户活跃度提升 <b>200%</b>
-      </>
-    ),
-    note: '没有基数,从多少涨到多少没写 —— 这条直接扣掉。',
-    src: '找不到出处',
-  },
-] as const;
-
-/** 压分浮卡(拍2 peek):原文出处 + 划掉的数字。 */
-export const DEMO_PEEK = {
-  src: '原文 / 校园经历',
-  prefix: '…社群用户活跃度提升 ',
-  cut: '200%',
-  note: '护栏 · 没有基数 → 压分',
-} as const;
-
-/** AI 改写演示:before 红删除线 → after 绿浮现。after 只重组已有事实。 */
-export const DEMO_REWRITE = {
-  before: '负责社团新媒体日常运营',
-  after: '参与社团新媒体运营,配合团队完成 3 场校园大使宣讲的线上宣发',
-  guardrail: '只用了你写过的内容',
-} as const;
-
-/** 问 Coach 演示对话。 */
-export const DEMO_CHAT = {
-  user: '下周有北辰文化内容运营面试',
-  reply: '你简历里有一条标黄的,可以先改掉。面试前还能练一轮模拟,入口在侧栏「模拟面试」。',
-} as const;
-
-/** 行动卡(3 张可点),copy 屏 7。 */
-export const DEMO_ACTCARDS: readonly { id: string; icon: string; label: string }[] = [
-  { id: 'diagnose', icon: 'campus', label: '诊断简历' },
-  { id: 'mock', icon: 'mock', label: '模拟一轮' },
-  { id: 'rewrite', icon: 'spark', label: '改一版简历' },
-] as const;
-
-/** 模拟面试演示。 */
-export const DEMO_MOCK = {
-  question: '说一个你主导过的运营项目,你具体做了什么?',
-} as const;
-
-/** 面试复盘演示。 */
-export const DEMO_DEBRIEF = {
-  file: '北辰文化_一面_录音.m4a',
-  dur: '21:38',
-  good: 'Q2 项目经历答得清楚,有数据有细节',
-  warn: 'Q4 说「带 3 人」时分工没展开,被追问停了 8 秒',
-} as const;
-
-/** 赠品宫格 3×2(copy 屏 10),文案逐字用。 */
+/** 辅助功能宫格 3×2(copy 屏 10),文案逐字用。 */
 export const DEMO_AUX: readonly { id: string; icon: string; title: string; desc: string }[] = [
   { id: 'opp', icon: 'opportunities', title: '找对岗位', desc: '按匹配度筛,不用大海捞针' },
   { id: 'cover', icon: 'coverLetter', title: '写求职信', desc: '按岗位生成,顺手写内推话术' },
@@ -114,4 +38,117 @@ export const DEMO_AUX: readonly { id: string; icon: string; title: string; desc:
   { id: 'monthly', icon: 'monthly', title: '看月刊面经', desc: '每月行情 + 真实面经,面试前翻翻有底' },
   { id: 'salary', icon: 'salary', title: '查薪资', desc: '这个岗大概给多少,谈薪有数' },
   { id: 'route', icon: 'route', title: '学习路线', desc: '目标岗要补什么,排一条清单' },
+] as const;
+
+// ────────────────────────────────────────────────────────────────────────────
+// 以下为「复用真组件」演示数据:形状逐一对齐线上真实组件的 props 契约
+// (@/lib/types),让引导直接渲染产品里真正在用的组件,形式 100% 是真的。
+// 仍是同一虚构 persona(陈思宁 / 北辰文化),仍带 AITag 合规标注;精选片段由
+// surface 层用聚光/裁剪只露要讲的部分,不倾倒整份结果。
+// ────────────────────────────────────────────────────────────────────────────
+
+/** 校招诊断总分(喂真实 ScoreBadge):压分后的 64。 */
+export const DEMO_DIAG_TOTAL = 64;
+
+/** 校招诊断维度(喂真实 ProfessionDimensionCard):精选 2 条,1 强 1 缺。 */
+export const DEMO_DIM: readonly ProfessionStandardDimension[] = [
+  {
+    key: 'content_ops',
+    name: '内容运营能力',
+    score: 16,
+    max: 20,
+    why: '有「北辰校园大使 / 3 场百人宣讲」的真实场次与规模,内容落地能力可验证。',
+    evidenceFound: ['北辰校园大使', '3 场百人宣讲'],
+    gap: '',
+  },
+  {
+    key: 'data_driven',
+    name: '数据驱动',
+    score: 6,
+    max: 20,
+    why: '「活跃度提升 200%」无基数、无从多少到多少,无法核实,按校招标准压分。',
+    evidenceFound: [],
+    gap: '补一个可核实的真实数字:基期、口径、统计周期任取其一写清。',
+  },
+] as const;
+
+/** 本土核查(喂真实 ConventionCheckRow):精选 1 条 warn。 */
+export const DEMO_CONVENTION: readonly ConventionCheck[] = [
+  {
+    key: 'verb_accuracy',
+    status: 'warn',
+    note: '「负责社团新媒体日常运营」—— 简历写「负责」,原文是「参与」,口径需你确认。',
+  },
+] as const;
+
+/** AI 改写示范(喂真实 SuggestionCard):before/after 只重组已有事实,不补新数字。 */
+export const DEMO_SUGGESTION: RewriteSuggestion = {
+  section: '校园经历',
+  type: 'rewrite',
+  priority: 'high',
+  original: '负责社团新媒体日常运营',
+  suggested: '参与社团新媒体运营,配合团队完成 3 场校园大使宣讲的线上宣发',
+  reason: '只用了你写过的内容:把「负责」校正为原文的「参与」,并接上已核实的「3 场宣讲」,不新增任何数字。',
+} as const;
+
+/** 问 Coach 对话(喂真实 MessageBubble):一问一答,精选 2 条。 */
+export const DEMO_CHAT_MESSAGES: readonly ChatMessage[] = [
+  {
+    id: 'demo-msg-1',
+    conversation_id: 'demo',
+    role: 'user',
+    content: '下周有北辰文化内容运营面试',
+    rich_card: null,
+    tool_used: null,
+    created_at: '2026-06-22T09:00:00.000Z',
+  },
+  {
+    id: 'demo-msg-2',
+    conversation_id: 'demo',
+    role: 'assistant',
+    content:
+      '你简历里有一条标黄的,可以先改掉。面试前还能练一轮模拟,入口在侧栏「模拟面试」。',
+    rich_card: { handoff_id: 'demo-handoff', target: 'mock', payload: { company: '北辰文化', role: '内容运营' }, status: 'proposed' },
+    tool_used: null,
+    created_at: '2026-06-22T09:00:04.000Z',
+  },
+] as const;
+
+/** 模拟面试(喂真实 MockStage):1 道题,文字挡,未作答。 */
+export const DEMO_MOCK_QUESTIONS: readonly MockQuestion[] = [
+  {
+    n: 1,
+    type: '行为面',
+    topic: '项目经历',
+    difficulty: 'medium',
+    question: '说一个你主导过的运营项目,你具体做了什么?',
+    hint: '用 STAR 讲清楚:背景、你的任务、你做的动作、可核实的结果。',
+  },
+] as const;
+
+export const DEMO_MOCK_ANSWERS: readonly MockAnswer[] = [] as const;
+
+/** 面试复盘逐题(喂真实 QuestionCard):精选 2 题,1 亮点 1 可改。 */
+export const DEMO_DEBRIEF_QUESTIONS: readonly InterviewQuestion[] = [
+  {
+    question: '介绍一下你做过的内容运营项目',
+    tone: 'good',
+    coach_assessment: 'Q2 项目经历答得清楚,有数据有细节,场次和规模都说到位了。',
+    better_answer: '',
+    knowledge_gaps: [],
+  },
+  {
+    question: '你说「带 3 人」,具体怎么分工的?',
+    tone: 'warn',
+    coach_assessment: 'Q4 说「带 3 人」时分工没展开,被追问停了 8 秒,显得准备不足。',
+    better_answer: '先一句话说清各自负责什么,再举一个你具体协调的瞬间,把「带」落到动作上。',
+    knowledge_gaps: [],
+  },
+] as const;
+
+/** 面试复盘能力分布(喂真实 ScoreRadar):精选 3 维。 */
+export const DEMO_DEBRIEF_SCORES: readonly InterviewScore[] = [
+  { name: '项目深度', score: 78 },
+  { name: '表达条理', score: 64 },
+  { name: '临场应变', score: 52 },
 ] as const;

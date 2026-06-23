@@ -15,11 +15,33 @@
   --ob-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ob-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ob-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* 聚光灯遮罩:暗/亮各取干净值(亮底要更浅,否则挖洞过黑突兀)。 */
-  --ob-scrim: rgba(5, 6, 12, 0.62);
+  /* 聚光灯遮罩:压暗洞外、聚焦洞内,但不能盖到看不清内容(用户反馈「暗背景+灰遮罩看不清」)。
+     暗主题底色本就深,叠加要克制;亮主题更浅。 */
+  --ob-scrim: rgba(5, 6, 12, 0.44);
 }
 html[data-theme='light'] [data-onboarding] {
-  --ob-scrim: rgba(17, 19, 28, 0.32);
+  --ob-scrim: rgba(17, 19, 28, 0.22);
+}
+
+/* ── 开/关场:整层缓入 + 从小放大(治「刚打开/结束顿挫一下」)──────────────
+ * 只动 opacity + transform:scale(GPU 合成),挂载即播入场、关闭先播出场再卸载。
+ * 入场 ~310ms 减速曲线(从 0.96 放大到 1 + 淡入);出场反向、略快 ~220ms 加速曲线。
+ * 只作用于 [data-onboarding] 覆盖层根节点这一层,章节切换/聚光/气泡等不受影响。 */
+@keyframes ob-overlay-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes ob-overlay-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.97); }
+}
+[data-onboarding].ob-overlay-in {
+  animation: ob-overlay-in calc(0.31s * var(--ob-spd)) var(--ob-ease-out);
+  will-change: opacity, transform;
+}
+[data-onboarding].ob-overlay-out {
+  animation: ob-overlay-out calc(0.22s * var(--ob-spd)) cubic-bezier(0.4, 0, 1, 1) forwards;
+  will-change: opacity, transform;
 }
 
 /* ── 出场:气泡/卡片浮入 ─────────────────────────────────────────────── */
@@ -37,6 +59,27 @@ html[data-theme='light'] [data-onboarding] {
 }
 [data-onboarding] .ob-page-fade {
   animation: ob-page-fade calc(0.5s * var(--ob-spd)) var(--ob-ease);
+}
+
+/* ── 跨章交叉过渡(外壳常驻,只换中央 stage 内容)──────────────────────
+ * 治「顿挫 / 不丝滑」:出场旧层与入场新层协调播放,只动 opacity + transform(GPU 合成),
+ * 大容器绝不动 layout 属性(height/top/margin)。出场 240ms 加速曲线、入场 320ms 减速曲线,
+ * 入场在出场开始后约 120ms 启动(由 JS enterDelay 控制)→ 略重叠总约 440ms。 */
+@keyframes ob-stage-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-12px); }
+}
+@keyframes ob-stage-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+[data-onboarding] .ob-stage-exit {
+  animation: ob-stage-exit calc(0.24s * var(--ob-spd)) cubic-bezier(0.4, 0, 1, 1) forwards;
+  will-change: opacity, transform;
+}
+[data-onboarding] .ob-stage-enter {
+  animation: ob-stage-enter calc(0.32s * var(--ob-spd)) cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
 /* ── reveal:错峰升起(glimpse / 逐条体检 / 行动卡) ──────────────────── */
@@ -169,11 +212,12 @@ html[data-theme='light'] [data-onboarding] {
   border-radius: 12px;
   border: 2px solid var(--color-brand);
   box-shadow: 0 0 0 9999px var(--ob-scrim), 0 0 22px 2px var(--au-blue-glow);
+  /* 聚光灯滑行不瞬移:跨章高亮框平滑滑到新位(治「聚光灯闪一下再就位」)。 */
   transition:
-    top 0.34s var(--ob-ease),
-    left 0.34s var(--ob-ease),
-    width 0.34s var(--ob-ease),
-    height 0.34s var(--ob-ease);
+    top 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
 }
 [data-onboarding] .ob-spot-scrim {
@@ -181,6 +225,21 @@ html[data-theme='light'] [data-onboarding] {
   inset: 0;
   background: var(--ob-scrim);
   pointer-events: none;
+}
+/* 侧栏 part 高亮框(账户区 / 使用帮助 / 更多功能):描边 + 呼吸辉光,聚焦醒目但不挖全屏暗洞,
+   主区演示界面保持全亮、清晰可读(治「暗背景+灰遮罩看不清」)。 */
+[data-onboarding] .ob-spot-ring {
+  border-radius: 12px;
+  border: 2px solid var(--color-brand);
+  pointer-events: none;
+  box-shadow: 0 0 16px 1px var(--au-blue-glow), inset 0 0 0 1px var(--glass-rim);
+}
+[data-onboarding] .ob-spot-breathe {
+  animation: ob-spot-breathe calc(2.2s * var(--ob-spd)) var(--ob-ease) infinite;
+}
+@keyframes ob-spot-breathe {
+  0%, 100% { box-shadow: 0 0 14px 1px var(--au-blue-glow), inset 0 0 0 1px var(--glass-rim); }
+  50% { box-shadow: 0 0 26px 5px var(--au-blue-glow), inset 0 0 0 1px var(--glass-rim); }
 }
 /* 轻脉冲(演示「点这里」时给锚点呼吸感,不挖洞) */
 [data-onboarding] .ob-pulse {
@@ -223,6 +282,7 @@ html[data-theme='light'] [data-onboarding] {
 }
 [data-onboarding] .nav-item {
   position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -232,11 +292,67 @@ html[data-theme='light'] [data-onboarding] {
   font-weight: 500;
   color: var(--color-ink-2);
   white-space: nowrap;
+  background: transparent;
+  /* 文字/图标颜色随高亮渐变;背景高亮交给下方滑动磨砂指示器(沿用真侧栏机制) */
+  transition: color calc(0.3s * var(--ob-spd)) var(--ob-ease), font-weight 0s;
 }
-[data-onboarding] .nav-item svg { flex-shrink: 0; color: var(--color-ink-3); }
-[data-onboarding] .nav-item.active { background: var(--color-brand-soft); color: var(--color-brand-ink); }
+[data-onboarding] .nav-item svg {
+  flex-shrink: 0;
+  color: var(--color-ink-3);
+  transition: color calc(0.3s * var(--ob-spd)) var(--ob-ease);
+}
+[data-onboarding] .nav-item.active { color: var(--color-ink); font-weight: 600; }
 [data-onboarding] .nav-item.active svg { color: var(--color-brand); }
-html[data-theme='dark'] [data-onboarding] .nav-item.active { color: #fff; }
+
+/* 浮动磨砂滑动指示器(从上一项平滑滑到当前项 + 轻微辉光吸睛):暗=磨砂玻璃,
+   亮=白色实体浮块(与真侧栏 .nav-indicator 亮色覆盖同策略),双主题对比都够。 */
+[data-onboarding] .ob-nav-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0;
+  border-radius: 10px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--glass-bd);
+  box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 0 var(--au-blue-glow);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition:
+    transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
+    height 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.24s ease;
+}
+[data-onboarding] .ob-nav-indicator[data-active='true'] {
+  opacity: 1;
+  animation: ob-nav-glow calc(2.4s * var(--ob-spd)) var(--ob-ease) infinite;
+}
+@keyframes ob-nav-glow {
+  0%, 100% { box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 0 0 var(--au-blue-glow); }
+  50% { box-shadow: var(--glass-sh), inset 0 1px 0 var(--glass-rim), 0 0 14px 1px var(--au-blue-glow); }
+}
+html[data-theme='light'] [data-onboarding] .ob-nav-indicator {
+  background: #ffffff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 1px solid var(--color-line);
+  box-shadow: 0 2px 8px -1px rgba(20, 40, 90, 0.14), 0 1px 2px rgba(20, 40, 90, 0.1);
+}
+
+/* 问 Coach CTA:被选中(对话章)时轻脉冲,承接「nav 高亮滑到 Coach」的视线引导。 */
+[data-onboarding] .ob-nav-cta {
+  transition: box-shadow calc(0.3s * var(--ob-spd)) var(--ob-ease), transform calc(0.3s * var(--ob-spd)) var(--ob-ease);
+}
+[data-onboarding] .ob-nav-cta.active {
+  animation: ob-cta-pulse calc(1.8s * var(--ob-spd)) var(--ob-ease) infinite;
+}
+@keyframes ob-cta-pulse {
+  0%, 100% { box-shadow: 0 10px 30px -12px var(--au-blue-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 0 var(--au-blue-glow); transform: none; }
+  50% { box-shadow: 0 14px 34px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 4px rgba(47, 143, 255, 0.18); transform: translateY(-1px); }
+}
 [data-onboarding] .nav-sect {
   font-size: 10.5px;
   font-weight: 600;
@@ -250,9 +366,37 @@ html[data-theme='dark'] [data-onboarding] .nav-item.active { color: #fff; }
 /* ── 无障碍:减弱动效 ───────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   [data-onboarding] .ob-pulse,
+  [data-onboarding] .ob-spot-breathe,
   [data-onboarding] .ob-score-burst,
-  [data-onboarding] .ob-parse-track .ob-bar {
+  [data-onboarding] .ob-parse-track .ob-bar,
+  [data-onboarding] .ob-nav-indicator[data-active='true'],
+  [data-onboarding] .ob-nav-cta.active {
     animation: none !important;
+  }
+  [data-onboarding] .ob-stage-exit,
+  [data-onboarding] .ob-stage-enter {
+    animation: none !important;
+  }
+  /* 开/关场降级:直接显隐,无位移、无缩放(关场仍需 forwards 隐藏交给 JS 直接卸载) */
+  [data-onboarding].ob-overlay-in,
+  [data-onboarding].ob-overlay-out {
+    animation: none !important;
+  }
+  [data-onboarding].ob-overlay-out {
+    opacity: 0 !important;
+  }
+  [data-onboarding] .ob-stage-exit {
+    opacity: 0 !important;
+  }
+  [data-onboarding] .ob-spot-hole {
+    transition: none !important;
+  }
+  [data-onboarding] .ob-nav-indicator {
+    transition: opacity 0.24s ease !important;
+  }
+  [data-onboarding] .nav-item,
+  [data-onboarding] .nav-item svg {
+    transition: none !important;
   }
   [data-onboarding] .ob-rv {
     opacity: 1 !important;

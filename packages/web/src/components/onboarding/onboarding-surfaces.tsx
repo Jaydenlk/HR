@@ -1,29 +1,54 @@
 'use client';
 
-// onboarding-surfaces.tsx — 引导演示的「假应用页面」(渲染在聚光灯之下,真实壳之内)。
-// 每个 surface 对应一个主/次功能;由 demo 编号驱动多拍演示。颜色走主题令牌,双主题跟随。
+// onboarding-surfaces.tsx — 引导演示 surface(渲染在聚光灯之下,真实壳之内)。
 //
-// 与 ver3.1 原型的差异:
-//  - window 全局 → 真 TSX 组件 + props。
-//  - 硬编码颜色(#fbfcfe / rgba(20,40,90,..) / #0a0a0c)→ var(--color-*),亮主题自动正确。
-//  - 内联 lucide 图标 → onboarding-icons 的 lucide-react。
+// 核心(用户拍板「A 复用真组件 + 精选演示」):每个 surface 直接渲染**产品里真正在用的
+// 功能组件**,喂以虚构 persona(陈思宁 / 北辰文化)的精选演示数据 —— 形式 100% 是真的,
+// 因为就是真组件本身。复用清单:
+//   · 校招诊断 = 真实 ScoreBadge + ProfessionDimensionCard + ConventionCheckRow
+//               (export 自 diagnoses/[id]/diagnosis-detail.tsx)
+//   · AI 改写 = 真实 SuggestionCard(components/diagnosis/suggestion-card)
+//   · 问 Coach = 真实 MessageBubble + HandoffCard(components/chat)
+//   · 模拟面试 = 真实 MockStage(components/mock/mock-stage),mode='type' 不触发 TTS,
+//               onAnswer/onComplete 传 no-op,绝不触发真实 API / 扣点
+//   · 面试复盘 = 真实 QuestionCard + ScoreRadar(components/interview)
+//
+// 真组件常带数据请求/context 依赖 → 这里一律以纯展示态渲染:静态 props,api 只在点击时触发
+// (演示态下用户不点 / 点了也只是路由,不消费),不 mount 任何拉数据的 useEffect。
+//
+// 精选演示:不倾倒整份结果。每屏只放 1-2 个真组件实例(已是精选数据),配「怎么用」浮层,
+// 聚光灯由 tour 层只突出该屏要讲的片段。诊断屏保留 wow 连播节奏(评分→压分→依据)。
+//
+// 双主题:复用真组件天然主题正确(组件本身用 var(--color-*) 令牌),省去重画。
 
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import { Ico } from './onboarding-icons';
-import { AITag, CoachMark, ScoreRing, Reveal } from './onboarding-atoms';
+import { AITag } from './onboarding-atoms';
 import {
   DEMO_PERSONA,
-  DEMO_SCORE,
-  DEMO_CHECKS,
-  DEMO_PEEK,
-  DEMO_REWRITE,
-  DEMO_CHAT,
-  DEMO_ACTCARDS,
-  DEMO_MOCK,
-  DEMO_DEBRIEF,
+  DEMO_DIAG_TOTAL,
+  DEMO_DIM,
+  DEMO_CONVENTION,
+  DEMO_SUGGESTION,
+  DEMO_CHAT_MESSAGES,
+  DEMO_MOCK_QUESTIONS,
+  DEMO_MOCK_ANSWERS,
+  DEMO_DEBRIEF_QUESTIONS,
+  DEMO_DEBRIEF_SCORES,
   DEMO_AUX,
-  type DemoCheck,
 } from './onboarding-data';
+import {
+  ScoreBadge,
+  ProfessionDimensionCard,
+  ConventionCheckRow,
+} from '@/app/(main)/diagnoses/[id]/diagnosis-detail';
+import { SuggestionCard } from '@/components/diagnosis/suggestion-card';
+import { MessageBubble } from '@/components/chat/message-bubble';
+import { MockStage } from '@/components/mock/mock-stage';
+import { QuestionCard } from '@/components/interview/question-card';
+import { ScoreRadar } from '@/components/interview/score-radar';
+
+const NOOP_ASYNC = async () => {};
 
 const brandBtn: CSSProperties = {
   display: 'inline-flex',
@@ -36,32 +61,40 @@ const brandBtn: CSSProperties = {
   fontSize: 13.5,
   fontWeight: 600,
   fontFamily: 'inherit',
+  padding: '8px 14px',
   cursor: 'pointer',
   boxShadow: '0 10px 30px -12px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
 };
 
-const sectionCard: CSSProperties = { padding: 22, marginBottom: 16 };
+const sectionTitle: CSSProperties = {
+  fontFamily: 'var(--serif)',
+  fontSize: 15,
+  fontWeight: 600,
+  color: 'var(--color-ink)',
+  margin: '0 0 14px',
+};
 
-function Section({ title, count, guide, children, style }: { title: string; count?: number; guide?: string; children: ReactNode; style?: CSSProperties }) {
-  return (
-    <div className="lg" data-guide={guide} style={{ ...sectionCard, ...style }}>
-      <h2 style={{ fontFamily: 'var(--serif)', fontSize: 15, fontWeight: 600, color: 'var(--color-ink)', margin: '0 0 14px' }}>
-        {title}
-        {count != null && <span style={{ color: 'var(--color-ink-4)', fontWeight: 500 }}>（{count}）</span>}
-      </h2>
-      {children}
-    </div>
-  );
-}
-
-function FeatureHead({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
+function PageHead({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--color-brand-soft)', color: 'var(--color-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            background: 'var(--color-brand-soft)',
+            color: 'var(--color-brand)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Ico name={icon} size={18} />
         </span>
-        <h1 style={{ fontFamily: 'var(--serif)', fontSize: 21, fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-.4px', margin: 0 }}>{title}</h1>
+        <h1 style={{ fontFamily: 'var(--serif)', fontSize: 21, fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-.4px', margin: 0 }}>
+          {title}
+        </h1>
       </div>
       {sub && <p style={{ fontSize: 13, color: 'var(--color-ink-3)', margin: '8px 0 0' }}>{sub}</p>}
     </div>
@@ -69,65 +102,45 @@ function FeatureHead({ icon, title, sub }: { icon: string; title: string; sub?: 
 }
 
 /* ── 校招诊断 result ──────────────────────────────────────────────────
-   demo: 1 score82(+burst) · 2 压分64(shake+stamp+peek+strike) · 3 checks(逐条 reveal) */
-function CheckRow({ c, show, delay }: { c: DemoCheck; show: boolean; delay: number }) {
-  const cfg =
-    c.kind === 'ok'
-      ? { icon: 'check', col: 'var(--color-success)', bg: 'var(--color-success-soft)' }
-      : c.kind === 'warn'
-        ? { icon: 'alert', col: 'var(--color-warn)', bg: 'var(--color-warn-soft)' }
-        : { icon: 'x', col: 'var(--color-danger)', bg: 'var(--color-danger-soft)' };
-  return (
-    <Reveal
-      show={show}
-      delay={delay}
-      dir="up"
-      style={{
-        display: 'flex',
-        gap: 12,
-        alignItems: 'flex-start',
-        padding: '13px 15px',
-        borderRadius: 12,
-        background: c.kind === 'cut' ? 'var(--color-danger-soft)' : 'var(--color-surface-3)',
-        border: `1px solid ${c.kind === 'cut' ? 'var(--color-danger)' : 'var(--hair)'}`,
-      }}
-    >
-      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 7, background: cfg.bg, color: cfg.col, flexShrink: 0, marginTop: 1 }}>
-        <Ico name={cfg.icon} size={15} />
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'inline-flex', fontSize: 10.5, fontWeight: 700, color: cfg.col, background: cfg.bg, borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap', marginBottom: 8 }}>{c.label}</span>
-        <div style={{ fontSize: 13.5, color: 'var(--color-ink)', lineHeight: 1.55 }}>{c.line}</div>
-        <div style={{ fontSize: 12.5, color: 'var(--color-ink-2)', lineHeight: 1.55, marginTop: 5 }}>{c.note}</div>
-        <span className="mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: 'var(--color-ink-3)', marginTop: 8, background: 'var(--color-surface-3)', borderRadius: 6, padding: '3px 8px', fontFamily: 'var(--font-mono)' }}>
-          <Ico name="search" size={12} />
-          {c.src}
-        </span>
-      </div>
-    </Reveal>
-  );
-}
-
+   复用真实 ScoreBadge + ProfessionDimensionCard + ConventionCheckRow。
+   wow 连播节奏照旧:demo 1 评分浮现(光爆) · 2 压分(抖+盖章) · 3 依据(逐条 reveal)。
+   精选:只露 评分环 + 2 维度 + 1 本土核查 + 1 句护栏总结,不摆整份诊断。 */
 export function ResultSurface({ demo = 3 }: { demo?: number }) {
-  const target = demo >= 2 ? DEMO_SCORE.after : DEMO_SCORE.base;
   return (
-    <div className="g-scroll" style={{ maxWidth: 780, margin: '0 auto', padding: '34px 32px 120px', height: '100%' }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 0', color: 'var(--color-ink-3)', fontSize: 13.5, marginBottom: 16 }}>
+    <div style={{ maxWidth: 780, margin: '0 auto', padding: 'clamp(16px, 3vh, 24px) clamp(20px, 3vw, 32px)' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 0', color: 'var(--color-ink-3)', fontSize: 13.5, marginBottom: 10 }}>
         <Ico name="arrowL" size={15} />
         返回简历
       </span>
 
-      {/* 概览 + 分数环 */}
-      <div className="lg" data-guide="scorering" style={{ padding: 26, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 26, flexWrap: 'wrap', position: 'relative' }}>
+      {/* L0 概览:真实 ScoreBadge + 职业镜头(压分时抖动 + 盖章) */}
+      <div
+        className="lg"
+        data-guide="scorering"
+        style={{ padding: 18, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', position: 'relative' }}
+      >
         <div className={demo === 2 ? 'ob-ring-shake' : ''} style={{ position: 'relative' }}>
           {demo === 1 && <div className="ob-score-burst" />}
-          <ScoreRing target={target} show={demo >= 1} />
+          <ScoreBadge score={DEMO_DIAG_TOTAL} />
           {demo >= 2 && (
             <div
               className="ob-gr-stamp"
-              style={{ position: 'absolute', top: -8, right: -16, fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#fff', background: 'var(--color-danger)', padding: '4px 8px', borderRadius: 7, letterSpacing: '.03em', boxShadow: '0 8px 20px -6px var(--color-danger)' }}
+              style={{
+                position: 'absolute',
+                top: -14,
+                right: -18,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 700,
+                color: '#fff',
+                background: 'var(--color-danger)',
+                padding: '4px 8px',
+                borderRadius: 7,
+                letterSpacing: '.03em',
+                boxShadow: '0 8px 20px -6px var(--color-danger)',
+              }}
             >
-              压分 −{DEMO_SCORE.cut}
+              护栏压分
             </div>
           )}
         </div>
@@ -136,7 +149,9 @@ export function ResultSurface({ demo = 3 }: { demo?: number }) {
             <span style={{ color: 'var(--color-brand)', display: 'flex' }}>
               <Ico name="campus" size={18} />
             </span>
-            <h1 style={{ fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-.3px', margin: 0, whiteSpace: 'nowrap' }}>{DEMO_PERSONA.job}</h1>
+            <h1 style={{ fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-.3px', margin: 0, whiteSpace: 'nowrap' }}>
+              {DEMO_PERSONA.job}
+            </h1>
           </div>
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: 'var(--color-ink-3)' }}>
             <Ico name="calendar" size={13} />
@@ -146,40 +161,29 @@ export function ResultSurface({ demo = 3 }: { demo?: number }) {
             <AITag />
           </div>
         </div>
-
-        {/* 原文 peek — 压分依据从哪来(拍2) */}
-        {demo === 2 && (
-          <div className="ob-peek lg" style={{ right: 18, bottom: -58 }}>
-            <div className="ob-peek-lab">
-              <Ico name="search" size={11} /> {DEMO_PEEK.src}
-            </div>
-            <div className="ob-peek-line">
-              {DEMO_PEEK.prefix}
-              <span className="ob-strike" style={{ color: 'var(--color-danger)', fontWeight: 600 }}>{DEMO_PEEK.cut}</span>
-            </div>
-            <div className="mono" style={{ fontSize: 10, color: 'var(--color-danger)', marginTop: 8, fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{DEMO_PEEK.note}</div>
-          </div>
-        )}
       </div>
 
-      {/* 逐条核查 */}
-      <Section title="逐条核查 · 每条都给依据" count={DEMO_CHECKS.length} guide="checks">
+      {/* L1 依据:真实维度卡 + 本土核查(demo 3 逐条升起) */}
+      <div className="lg" data-guide="checks" style={{ padding: 18, opacity: demo >= 3 ? 1 : 0, transform: demo >= 3 ? 'none' : 'translateY(16px)', transition: 'opacity .55s var(--ob-ease-out), transform .6s var(--ob-ease-out)' }}>
+        <h2 style={{ ...sectionTitle, margin: '0 0 10px' }}>各维度评估 · 每条都给依据</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <CheckRow c={DEMO_CHECKS[2]} show={demo >= 3} delay={0.05} />
-          <CheckRow c={DEMO_CHECKS[0]} show={demo >= 3} delay={0.16} />
-          <CheckRow c={DEMO_CHECKS[1]} show={demo >= 3} delay={0.27} />
+          {DEMO_DIM.map((dim) => (
+            <ProfessionDimensionCard key={dim.key} dim={dim} />
+          ))}
         </div>
-        <Reveal
-          show={demo >= 3}
-          delay={0.42}
-          style={{ display: 'flex', gap: 9, alignItems: 'flex-start', marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--hair)', fontSize: 12.5, color: 'var(--color-ink-2)', lineHeight: 1.55 }}
-        >
+        <h2 style={{ ...sectionTitle, margin: '14px 0 10px' }}>本土简历核查</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {DEMO_CONVENTION.map((check) => (
+            <ConventionCheckRow key={check.key} check={check} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--hair)', fontSize: 12.5, color: 'var(--color-ink-2)', lineHeight: 1.55 }}>
           <span style={{ color: 'var(--color-brand)', flexShrink: 0, marginTop: 1 }}>
             <Ico name="bolt" size={14} />
           </span>
           <span>没依据的内容当场压分或扣掉,每条结论都能追溯到你的原文。</span>
-        </Reveal>
-      </Section>
+        </div>
+      </div>
     </div>
   );
 }
@@ -195,7 +199,7 @@ export function ResumesSurface({ phase = 'idle' }: { phase?: 'idle' | 'parsing' 
     </span>
   );
   return (
-    <div style={{ maxWidth: 780, margin: '0 auto', padding: '40px 32px' }}>
+    <div style={{ maxWidth: 780, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
       <h1 style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-.4px', margin: '0 0 4px' }}>简历馆</h1>
       <p style={{ fontSize: 13, color: 'var(--color-ink-3)', margin: '0 0 24px' }}>传一份进来,以后所有改写都从这儿开始。</p>
 
@@ -254,41 +258,34 @@ export function ResumesSurface({ phase = 'idle' }: { phase?: 'idle' | 'parsing' 
 }
 
 /* ── AI 改写 ──────────────────────────────────────────────────────────
-   demo: 1 仅 before(红删除线) · 2 点改写脉冲→after 浮现(绿)+护栏标签 */
+   复用真实 SuggestionCard(原文/建议改为 双栏 + 复制/采纳)。
+   demo: 1 仅头部「点改写」按钮提示 · 2 真实改写卡浮入 + 护栏说明。
+   精选:只放 1 张改写卡(这屏要讲的就是「改一条」)。 */
 export function RewriteSurface({ demo = 2 }: { demo?: number }) {
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px' }}>
-      <FeatureHead icon="spark" title="AI 改写 · 内容运营" sub="把话说到位,没做过不编。" />
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
+      <PageHead icon="spark" title="AI 改写 · 内容运营" sub="把话说到位,没做过不编。" />
       <div className="lg" data-guide="rewrite-demo" style={{ padding: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-brand)', background: 'var(--color-brand-soft)', borderRadius: 6, padding: '3px 9px' }}>防编造护栏</span>
           <span style={{ fontSize: 12.5, color: 'var(--color-ink-3)' }}>新增的每个数字,必须能在你原文找到出处</span>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--color-ink-4)', marginBottom: 6 }}>你的原文</div>
-        <div style={{ fontSize: 13, color: 'var(--color-danger)', background: 'var(--color-danger-soft)', borderRadius: 10, padding: '11px 13px', textDecoration: 'line-through', opacity: 0.85, marginBottom: 14 }}>{DEMO_REWRITE.before}</div>
 
-        {/* 改写按钮(拍2 聚光灯点这里) */}
-        <button
-          data-guide="rewrite-run"
-          style={{ ...brandBtn, padding: '8px 14px', marginBottom: 14 }}
-        >
+        {/* 改写按钮(demo 1/2 都在;demo 2 聚光灯点这里) */}
+        <button data-guide="rewrite-run" type="button" style={brandBtn}>
           <Ico name="spark" size={14} />
-          改写
+          改写这一条
         </button>
 
         {demo >= 2 && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-ink-4)', margin: '0 0 6px', fontSize: 11 }}>
-              改写后 <Ico name="arrow" size={13} />
-            </div>
-            <Reveal show dir="up" style={{ fontSize: 13.5, color: 'var(--color-ink)', background: 'var(--color-success-soft)', borderRadius: 10, padding: '11px 13px', lineHeight: 1.6 }}>
-              {DEMO_REWRITE.after}
-            </Reveal>
-            <Reveal show delay={0.25} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 11.5, fontWeight: 600, color: 'var(--color-success)', background: 'var(--color-success-soft)', borderRadius: 999, padding: '5px 11px' }}>
+          <div className="ob-page-fade" style={{ marginTop: 16 }}>
+            {/* 真实改写卡(精选 1 张) */}
+            <SuggestionCard suggestion={DEMO_SUGGESTION} resumeId="demo" index={0} />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, fontSize: 11.5, fontWeight: 600, color: 'var(--color-success)', background: 'var(--color-success-soft)', borderRadius: 999, padding: '5px 11px' }}>
               <Ico name="check" size={13} />
-              {DEMO_REWRITE.guardrail}
-            </Reveal>
-          </>
+              只用了你写过的内容
+            </div>
+          </div>
         )}
         <div style={{ marginTop: 16 }}>
           <AITag />
@@ -299,30 +296,19 @@ export function RewriteSurface({ demo = 2 }: { demo?: number }) {
 }
 
 /* ── 问 Coach ─────────────────────────────────────────────────────────
-   demo: 1 用户气泡 + 回复 · 2 + 行动卡(可点) */
+   复用真实 MessageBubble(含 assistant 行动卡 HandoffCard)。
+   demo: 1 一问一答(用户气泡 + 回复) · 2 + assistant 的行动卡浮现。
+   精选:只放这一轮对话,讲「说处境→排下一步」。 */
 export function ChatSurface({ demo = 2 }: { demo?: number }) {
+  const messages = demo >= 2 ? DEMO_CHAT_MESSAGES : DEMO_CHAT_MESSAGES.slice(0, 1).concat({ ...DEMO_CHAT_MESSAGES[1], rich_card: null });
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)', display: 'flex', flexDirection: 'column' }}>
       <h1 style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-.4px', margin: '0 0 4px' }}>问 Coach</h1>
       <p style={{ fontSize: 13, color: 'var(--color-ink-3)', margin: '0 0 22px' }}>说你的情况,排出你的下一步,不用想怎么问。</p>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, justifyContent: 'center' }}>
-        <div style={{ alignSelf: 'flex-end', maxWidth: '82%', background: 'linear-gradient(135deg,var(--color-brand),var(--color-brand-deep))', color: '#fff', borderRadius: '16px 16px 5px 16px', padding: '11px 15px', fontSize: 14, lineHeight: 1.55 }}>{DEMO_CHAT.user}</div>
-        <Reveal show dir="up" style={{ display: 'flex', gap: 10, alignItems: 'flex-end', maxWidth: '88%' }}>
-          <CoachMark size={30} />
-          <div className="lg" style={{ borderRadius: '16px 16px 16px 5px', padding: '12px 15px', fontSize: 14, lineHeight: 1.6, color: 'var(--color-ink)' }}>{DEMO_CHAT.reply}</div>
-        </Reveal>
-        {demo >= 2 && (
-          <div style={{ display: 'flex', gap: 9, paddingLeft: 40 }} data-guide="actcards">
-            {DEMO_ACTCARDS.map((a, i) => (
-              <Reveal key={a.id} show delay={0.1 + i * 0.1} className="lg" style={{ flex: 1, padding: 12, borderRadius: 12, cursor: 'pointer' }}>
-                <span style={{ display: 'inline-flex', width: 26, height: 26, borderRadius: 8, background: 'var(--color-brand-soft)', color: 'var(--color-brand)', alignItems: 'center', justifyContent: 'center' }}>
-                  <Ico name={a.icon} size={15} />
-                </span>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--color-ink)', marginTop: 8 }}>{a.label}</div>
-              </Reveal>
-            ))}
-          </div>
-        )}
+      <div data-guide="actcards" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {messages.map((m) => (
+          <MessageBubble key={m.id} message={m} />
+        ))}
       </div>
       <div style={{ marginTop: 16 }}>
         <AITag />
@@ -337,17 +323,18 @@ export function ChatSurface({ demo = 2 }: { demo?: number }) {
   );
 }
 
-/* ── 模拟面试(次线 1 拍) ─────────────────────────────────────────────── */
+/* ── 模拟面试 ──────────────────────────────────────────────────────────
+   复用真实 MockStage:mode='type'(不触发 TTS),onAnswer/onComplete 为 no-op,
+   不触发真实 API / 扣点。精选:1 道题的题卡 + 作答区。聚光灯点「也能开口说」。 */
 export function MockSurface() {
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px' }}>
-      <FeatureHead icon="mock" title="模拟面试 · 内容运营" sub="出题你答,打字或开口都行。" />
-      <div className="lg" data-guide="mock-demo" style={{ padding: 22 }}>
-        <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 11, background: 'var(--color-surface-3)', marginBottom: 18 }}>
-          {([['type', '文字', false], ['voice', '语音', true]] as const).map(([ic, t, on]) => (
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
+      <PageHead icon="mock" title="模拟面试 · 内容运营" sub="出题你答,打字或开口都行。" />
+      <div data-guide="mock-demo" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+        <div data-guide="mock-voice" style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 11, background: 'var(--color-surface-3)' }}>
+          {([['type', '文字', true], ['voice', '语音', false]] as const).map(([ic, t, on]) => (
             <span
               key={t}
-              data-guide={ic === 'voice' ? 'mock-voice' : undefined}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, background: on ? 'var(--color-surface)' : 'transparent', color: on ? 'var(--color-ink)' : 'var(--color-ink-3)', boxShadow: on ? '0 1px 3px rgba(0,0,0,.15)' : 'none' }}
             >
               <Ico name={ic} size={14} />
@@ -355,16 +342,104 @@ export function MockSurface() {
             </span>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', marginBottom: 14 }}>
-          <CoachMark size={32} />
-          <div className="lg" style={{ borderRadius: '6px 16px 16px 16px', padding: '12px 15px', fontSize: 14, color: 'var(--color-ink)', lineHeight: 1.6 }}>{DEMO_MOCK.question}</div>
-        </div>
-        <div style={{ border: '1px solid var(--hair)', borderRadius: 12, padding: '13px 15px', color: 'var(--color-ink-4)', fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>把你的回答打在这儿…</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--color-brand)', fontWeight: 600, fontSize: 12.5 }}>
-            <Ico name="voice" size={14} />
-            也能开口说
+        <span style={{ fontSize: 12, color: 'var(--color-ink-3)' }}>语音挡能开口说,系统读题你答</span>
+      </div>
+
+      {/* 真实 MockStage(文字挡,不扣点) */}
+      <MockStage
+        sessionId="demo"
+        mode="type"
+        questions={[...DEMO_MOCK_QUESTIONS]}
+        answers={[...DEMO_MOCK_ANSWERS]}
+        onAnswer={NOOP_ASYNC}
+        onComplete={NOOP_ASYNC}
+        submitting={false}
+        completing={false}
+      />
+      <div style={{ marginTop: 14 }}>
+        <AITag />
+      </div>
+    </div>
+  );
+}
+
+/* ── 面试复盘 ──────────────────────────────────────────────────────────
+   复用真实 ScoreRadar(能力分布) + QuestionCard(逐题点评)。
+   精选:转写完成头 + 3 维能力条 + 2 道逐题(1 亮点 1 可改),不摆整份复盘。 */
+export function DebriefSurface() {
+  return (
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
+      <PageHead icon="debrief" title="面试复盘" sub="面完传录音,逐题给你盘。" />
+      <div className="lg" data-guide="debrief-demo" style={{ padding: 22, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <span style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--color-brand-soft)', color: 'var(--color-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Ico name="debrief" size={16} />
           </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--color-ink)' }}>北辰文化_一面_录音.m4a</div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>转写完成 ✓ · 21:38</div>
+          </div>
+        </div>
+        {/* 真实能力分布 */}
+        <div style={{ fontFamily: 'var(--serif)', fontSize: 13.5, fontWeight: 700, color: 'var(--color-ink)', marginBottom: 14 }}>能力分布 · {DEMO_DEBRIEF_SCORES.length} 个维度</div>
+        <ScoreRadar scores={[...DEMO_DEBRIEF_SCORES]} />
+      </div>
+
+      {/* 真实逐题卡(精选 2 题) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {DEMO_DEBRIEF_QUESTIONS.map((q, i) => (
+          <QuestionCard key={i} question={q} index={i} />
+        ))}
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <AITag />
+      </div>
+    </div>
+  );
+}
+
+/* ── 账户 · 点数(Part A「看点数」主区:呼应聚光左上账户区) ────────────────────
+   用户反馈:讲点数时主区应是「用户界面」而非辅助功能宫格。这里以演示态呈现账户区
+   (头像 / 名字 / 余额)+ 点数计费规则,与侧栏聚光的账户区对应。
+   计费数字依据已确认机制:多数功能每次 1 点,面试复盘(转写+分析)成功才扣 7 点、失败不扣。 */
+const CREDIT_RULES: readonly { label: string; cost: string; note?: string }[] = [
+  { label: '简历诊断 / AI 改写 / 问 Coach', cost: '1 点 / 次' },
+  { label: '模拟面试 / 求职信 / 找岗位', cost: '1 点 / 次' },
+  { label: '面试复盘(转写 + 分析)', cost: '7 点 / 次', note: '成功才扣,失败不扣' },
+];
+export function AccountSurface() {
+  return (
+    <div style={{ maxWidth: 560, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
+      <PageHead icon="overview" title="我的账户" sub="头像、名字、点数余额都在这儿,点数用多少扣多少。" />
+
+      {/* 账户卡:头像 + 名字 + 余额(呼应侧栏左上账户区) */}
+      <div className="lg" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+        <span style={{ width: 52, height: 52, borderRadius: 14, background: 'linear-gradient(135deg,var(--color-brand),var(--color-brand-deep))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, fontFamily: 'var(--serif)', flexShrink: 0 }}>
+          {DEMO_PERSONA.initial}
+        </span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-ink)' }}>{DEMO_PERSONA.name}</div>
+          <div style={{ fontSize: 12.5, color: 'var(--color-ink-3)', marginTop: 2 }}>{DEMO_PERSONA.meta}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div className="mono" style={{ fontSize: 24, fontWeight: 700, color: 'var(--color-brand)', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>50</div>
+          <div style={{ fontSize: 11.5, color: 'var(--color-ink-3)', marginTop: 4 }}>剩余点数</div>
+        </div>
+      </div>
+
+      {/* 点数计费规则 */}
+      <div className="lg" style={{ padding: 18 }}>
+        <h2 style={{ ...sectionTitle, margin: '0 0 12px' }}>点数怎么算</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {CREDIT_RULES.map((r) => (
+            <div key={r.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingBottom: 10, borderBottom: '1px solid var(--hair)' }}>
+              <div style={{ fontSize: 13, color: 'var(--color-ink-2)', lineHeight: 1.4 }}>
+                {r.label}
+                {r.note && <span style={{ display: 'block', fontSize: 11, color: 'var(--color-success)', marginTop: 2 }}>{r.note}</span>}
+              </div>
+              <span className="mono" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--color-ink)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>{r.cost}</span>
+            </div>
+          ))}
         </div>
         <div style={{ marginTop: 14 }}>
           <AITag />
@@ -374,36 +449,37 @@ export function MockSurface() {
   );
 }
 
-/* ── 面试复盘(次线 1 拍 + 扫码一瞥) ──────────────────────────────────── */
-export function DebriefSurface() {
+/* ── 使用帮助 · 能力速览(Part B「使用帮助」主区:呼应聚光左下) ────────────────
+   help 拍主区应呼应「使用帮助 / 能力速览」,而非辅助功能宫格(画面与主题不符)。
+   文案照搬既有产品常量(capability-guide.tsx 的 FIRST_STEPS + 标题/副标题),不新写句子。
+   纯展示静态卡片:不可点、不拉数据。图标走本文件的 Ico 字符串 key(FileText/GraduationCap
+   /MessageSquare → resumes/campus/chat),与 surface 图标体系一致。 */
+const HELP_FIRST_STEPS: readonly { icon: string; title: string; desc: string }[] = [
+  { icon: 'resumes', title: '传一份简历', desc: '把简历传进来,之后所有改写都从它开始' },
+  { icon: 'campus', title: '跑一份诊断', desc: '按真实校招标准给简历逐条诊断,不糊弄' },
+  { icon: 'chat', title: '问 Coach 一句', desc: '说清你的处境,排出你的下一步' },
+];
+export function HelpSurface() {
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 32px' }}>
-      <FeatureHead icon="debrief" title="面试复盘" sub="面完传录音,逐题给你盘。" />
-      <div className="lg" data-guide="debrief-demo" style={{ padding: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: 'var(--color-surface-3)', marginBottom: 16 }}>
-          <span style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--color-brand-soft)', color: 'var(--color-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Ico name="debrief" size={16} />
-          </span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--color-ink)' }}>{DEMO_DEBRIEF.file}</div>
-            <div className="mono" style={{ fontSize: 11, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>转写完成 ✓ · {DEMO_DEBRIEF.dur}</div>
-          </div>
-        </div>
+    <div style={{ maxWidth: 560, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
+      <PageHead icon="overview" title="Coach 能做什么" sub="不用记功能藏在哪,从这儿点一下就能去用。" />
+
+      <div className="lg" style={{ padding: 18 }}>
+        <h2 style={{ ...sectionTitle, margin: '0 0 12px' }}>先做这几件</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'var(--color-success-soft)' }}>
-            <span style={{ color: 'var(--color-success)', flexShrink: 0, marginTop: 1 }}>
-              <Ico name="check" size={15} />
-            </span>
-            <span style={{ fontSize: 13, color: 'var(--color-ink)', lineHeight: 1.55 }}>{DEMO_DEBRIEF.good}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 12, background: 'var(--color-warn-soft)' }}>
-            <span style={{ color: 'var(--color-warn)', flexShrink: 0, marginTop: 1 }}>
-              <Ico name="alert" size={15} />
-            </span>
-            <span style={{ fontSize: 13, color: 'var(--color-ink)', lineHeight: 1.55 }}>{DEMO_DEBRIEF.warn}</span>
-          </div>
+          {HELP_FIRST_STEPS.map((item) => (
+            <div key={item.title} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 'var(--radius-default)', border: '1px solid var(--hair)', background: 'rgba(47,143,255,.05)' }}>
+              <span style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 'var(--radius-default)', background: 'var(--color-brand-soft)', color: 'var(--color-brand)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Ico name={item.icon} size={17} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-.005em' }}>{item.title}</span>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--color-ink-3)', lineHeight: 1.45, marginTop: 2 }}>{item.desc}</span>
+              </span>
+            </div>
+          ))}
         </div>
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 14 }}>
           <AITag />
         </div>
       </div>
@@ -411,22 +487,25 @@ export function DebriefSurface() {
   );
 }
 
-/* ── 赠品宫格(辅,一屏带过,钻石标分主次) ──────────────────────────── */
+/* ── 辅助功能宫格(辅,一屏带过,角标标分主次) ──────────────────────────── */
 export function AuxOverview() {
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 32px' }}>
-      <FeatureHead icon="overview" title="还有这些,一直在" sub="这些用到再说,点开就能用。" />
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
+      <PageHead icon="overview" title="还有这些,一直在" sub="还有这些功能可以选择使用哦~" />
       <div data-guide="aux-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
-        {DEMO_AUX.map((a, i) => (
-          <Reveal key={a.id} show delay={0.05 + i * 0.05} className="lg" style={{ padding: 16, position: 'relative' }}>
-            <span style={{ position: 'absolute', top: 12, right: 12, fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '.04em', color: 'var(--color-ink-3)', background: 'var(--color-surface-3)', padding: '2px 6px', borderRadius: 5 }}>赠品</span>
+        {DEMO_AUX.map((a) => (
+          <div key={a.id} className="lg" style={{ padding: 16, position: 'relative' }}>
+            <span style={{ position: 'absolute', top: 12, right: 12, fontSize: 9, fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '.04em', color: 'var(--color-ink-3)', background: 'var(--color-surface-3)', padding: '2px 6px', borderRadius: 5 }}>辅助功能</span>
             <span style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--color-surface-3)', color: 'var(--color-ink-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
               <Ico name={a.icon} size={16} />
             </span>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--color-ink)' }}>{a.title}</div>
             <div style={{ fontSize: 11.5, color: 'var(--color-ink-3)', marginTop: 3, lineHeight: 1.45 }}>{a.desc}</div>
-          </Reveal>
+          </div>
         ))}
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <AITag />
       </div>
     </div>
   );

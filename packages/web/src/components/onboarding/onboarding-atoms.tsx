@@ -26,7 +26,7 @@ export function AITag({ style }: { style?: React.CSSProperties }) {
       }}
     >
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-warn)' }} />
-      AI 生成 / 仅供演示 / 非真实参考案例
+      AI 生成·仅供演示·非真实参考案例
     </span>
   );
 }
