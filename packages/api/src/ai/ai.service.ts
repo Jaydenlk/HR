@@ -35,12 +35,69 @@ interface ChatParams {
   signal?: AbortSignal;
 }
 
-// 通道:封装 SDK client + 按 tier 选型号的 modelFor。型号/baseURL/密钥均来自 DB 配置(运行时解密)。
+// 通道:封装 SDK client + 按 tier 选型号的 modelFor + 协议(anthropic-compat / openai-compat)。
+// 型号/baseURL/密钥/协议均来自 DB 配置(运行时解密)。openai-compat 通道(如 GLM coding 端点)
+// 不经 Anthropic SDK,而用原生 fetch 直打 OpenAI Chat Completions 端点;client 字段仍保留(缓存一致)
+// 但 openai 路径不使用它。
 interface Provider {
   name: string;
   client: Anthropic;
+  protocol: string;
+  baseURL: string;
+  apiKey: string;
+  timeoutMs: number;
   modelFor: (tier: AiTier) => string;
 }
+
+// OpenAI Chat Completions 最小请求/响应类型(原生 fetch,不引入 openai 依赖)。
+// 仅声明本服务实际读写的字段;GLM coding 端点(glm-5.1)为 OpenAI 兼容,推理模型额外返回 reasoning_content。
+interface OpenAiMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+interface OpenAiTool {
+  type: 'function';
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+}
+interface OpenAiChatRequest {
+  model: string;
+  messages: OpenAiMessage[];
+  max_tokens: number;
+  temperature?: number;
+  stream?: boolean;
+  tools?: OpenAiTool[];
+  tool_choice?: { type: 'function'; function: { name: string } };
+  // GLM coding 端点认 Anthropic 风格 thinking 开关(实测 thinking:{type:'disabled'} 令 reasoning_tokens=0):
+  // 结构化输出关思考,既对齐现有 anthropic 路径语义,又避免推理 token 吃光 max_tokens 致正文/工具调用空。
+  thinking?: { type: 'disabled' };
+}
+interface OpenAiToolCall {
+  function?: { name?: string; arguments?: string };
+}
+interface OpenAiChoice {
+  finish_reason?: string;
+  message?: {
+    content?: string | null;
+    reasoning_content?: string | null;
+    tool_calls?: OpenAiToolCall[];
+  };
+}
+interface OpenAiChatResponse {
+  choices?: OpenAiChoice[];
+}
+// 流式 chunk:delta 携带增量 content / reasoning_content(推理增量,跳过不外吐)。
+interface OpenAiStreamChunk {
+  choices?: Array<{
+    finish_reason?: string | null;
+    delta?: { content?: string | null; reasoning_content?: string | null };
+  }>;
+}
+
+// openai-compat 协议标识:与 ai-provider.entity.ts / VALID_PROTOCOLS 保持一致。
+const PROTOCOL_OPENAI = 'openai-compat';
+// 推理模型(GLM coding 端点 glm-5.1)非结构化产出(complete/chat)保留思考能力,但思考占 token——
+// 给一个输出预算下限,防止调用方传入的极小 maxTokens(如判别器 maxTokens:8)被 reasoning 吃光致正文空。
+const OPENAI_REASONING_MIN_MAX_TOKENS = 8192;
 
 @Injectable()
 export class AiService {
@@ -72,11 +129,15 @@ export class AiService {
     return client;
   }
 
-  /** LoadedProvider → 运行期 Provider(含 client + tier 选型)。 */
+  /** LoadedProvider → 运行期 Provider(含 client + 协议/连接信息 + tier 选型)。 */
   private toProvider(p: LoadedProvider): Provider {
     return {
       name: p.name,
       client: this.clientFor(p),
+      protocol: p.protocol,
+      baseURL: p.baseURL,
+      apiKey: p.apiKey,
+      timeoutMs: p.timeoutMs,
       modelFor: (tier) => (tier === 'pro' ? p.modelPro : p.modelFlash),
     };
   }
@@ -107,6 +168,10 @@ export class AiService {
     };
 
     return this.withFailover('complete', async (provider) => {
+      if (provider.protocol === PROTOCOL_OPENAI) {
+        // openai-compat:推理模型保留思考(不关 thinking),但抬高 max_tokens 下限确保正文不被 reasoning 吃空。
+        return this.openaiComplete(provider, provider.modelFor(tier), system, prompt, maxTokens);
+      }
       const response = await this.limiter.run(() =>
         provider.client.messages.create(build(provider.modelFor(tier))),
       );
@@ -144,15 +209,35 @@ export class AiService {
       thinking: { type: 'disabled' },
     });
 
-    return this.withFailover('completeStructured', (provider) =>
-      this.attemptStructured<T>(provider, build(provider.modelFor(tier)), toolName, schema),
-    );
+    return this.withFailover('completeStructured', (provider) => {
+      if (provider.protocol === PROTOCOL_OPENAI) {
+        // openai-compat:OpenAI function-calling(强制 tool_choice)+ 关思考(thinking:disabled,
+        // 实测 GLM coding 端点令 reasoning_tokens=0,与 anthropic 路径关思考语义一致);从 tool_calls 解析。
+        return this.attemptStructuredOpenAi<T>(
+          provider,
+          provider.modelFor(tier),
+          system,
+          prompt,
+          toolName,
+          toolDescription,
+          schema,
+          maxTokens,
+        );
+      }
+      return this.attemptStructured<T>(provider, build(provider.modelFor(tier)), toolName, schema);
+    });
   }
 
   /**
    * 多轮对话(流式)。返回增量文本的 async iterable:逐 chunk 交付,供上层(B2 SSE)推送给前端。
    * 降级语义:**首 token 之前**任一通道失败 → 切下一通道重试;**首 token 之后**通道失败 → 直接上抛
    * 明确错误(不静默换通道重发——否则用户会看到前半段重复)。所有通道在首 token 前皆失败 → 503。
+   *
+   * "干净结束但零正文"也算首 token 前失败:GLM-5.1 默认开思考,chat 不关思考,整段只产
+   * reasoning_content(被静默跳过、不置位 emitted)+ 干净 [DONE] 时,流正常结束但用户一个字都没收到。
+   * 此前无条件 return 会把它当成功返回空回复(用户收到空白)。现按首 token 前失败处理:切下一通道;
+   * 所有通道都零正文 → 抛 503(与非流式 complete 空内容即抛错语义对齐;503 不进 CreditInterceptor 的
+   * tap.next,故不扣点)。不关 chat 的思考(保留质量),靠 failover 兜底。
    */
   async *chat(params: ChatParams): AsyncGenerator<string, void, void> {
     const { system, messages, maxTokens = 4096, tier = 'flash', signal } = params;
@@ -171,15 +256,21 @@ export class AiService {
       let emitted = false;
       try {
         // 流式调用仍占并发槽:runStreaming 在整段流消费完毕(或抛错/提前关闭)后才释放槽位,
-        // 避免后半段流脱离并发护栏。
+        // 避免后半段流脱离并发护栏。按 protocol 分流:anthropic 走 SDK,openai 走原生 fetch SSE。
+        const model = provider.modelFor(tier);
         const chunks = this.limiter.runStreaming(() =>
-          this.streamProvider(provider, build(provider.modelFor(tier)), signal),
+          provider.protocol === PROTOCOL_OPENAI
+            ? this.streamProviderOpenAi(provider, model, system, messages, maxTokens, signal)
+            : this.streamProvider(provider, build(model), signal),
         );
         for await (const text of chunks) {
           emitted = true;
           yield text;
         }
-        return;
+        // 流干净结束:有正文(emitted)→ 正常完成;零正文 → 视为首 token 前失败,落到 catch 走 failover。
+        // (GLM-5.1 整段只产 reasoning_content + 干净 [DONE] 的"静默空回复"由此被切通道兜底,绝不静默成功。)
+        if (emitted) return;
+        throw new Error(`通道 ${provider.name} 流式干净结束但零正文(纯思考无正文),视为首 token 前失败`);
       } catch (err) {
         lastErr = err;
         if (emitted) {
@@ -240,6 +331,230 @@ export class AiService {
       //      → 可安全切备通道重发。用户不会看到重复内容(思考从未到达前端)。
       //   代价:pro 档在纯思考阶段挂掉会触发备通道重发,比 flash 额外增加一次完整延迟,
       //   属有意取舍——防止用户看到半截重复内容的代价高于偶发额外延迟。
+    }
+  }
+
+  // ============================================================
+  // openai-compat 协议运行时(原生 fetch,不引入 openai 依赖)。
+  // GLM coding 端点(glm-5.1)为 OpenAI Chat Completions 兼容的推理模型:
+  //   - 非流式答案在 choices[0].message.content;思考在 reasoning_content,绝不混入正文;
+  //   - 结构化走 OpenAI function-calling(强制 tool_choice)+ 关思考,从 tool_calls.arguments 解析;
+  //   - 流式为标准 SSE(data: {...} / [DONE]),delta.content 外吐、delta.reasoning_content 跳过。
+  // ============================================================
+
+  /** 推理模型非结构化产出(complete/chat)的 max_tokens:抬到下限,防极小预算被 reasoning 吃光致正文空。 */
+  private openaiMaxTokens(requested: number): number {
+    return Math.max(requested, OPENAI_REASONING_MIN_MAX_TOKENS);
+  }
+
+  /** Anthropic 多轮消息(content 为 string 或 block 数组)→ OpenAI messages(role + 纯文本 content)。 */
+  private toOpenAiMessages(messages: Anthropic.MessageParam[]): OpenAiMessage[] {
+    return messages.map((m) => {
+      const role = m.role === 'assistant' ? 'assistant' : 'user';
+      const content =
+        typeof m.content === 'string'
+          ? m.content
+          : m.content
+              .map((block) => (block.type === 'text' ? block.text : ''))
+              .filter((t) => t.length > 0)
+              .join('\n');
+      return { role, content };
+    });
+  }
+
+  /** 原生 fetch POST {baseURL}/chat/completions(Bearer 鉴权 + 超时)。非 2xx 抛错交 withFailover 降级。 */
+  private async openaiFetch(
+    provider: Provider,
+    body: OpenAiChatRequest,
+    signal?: AbortSignal,
+  ): Promise<Response> {
+    const url = `${provider.baseURL.replace(/\/+$/, '')}/chat/completions`;
+    // 自带超时控制器:与外部 signal(客户端断连)合并——任一触发即中止。
+    const timeoutCtrl = new AbortController();
+    const timer = setTimeout(() => timeoutCtrl.abort(), provider.timeoutMs);
+    const onExternalAbort = (): void => timeoutCtrl.abort();
+    if (signal) {
+      if (signal.aborted) timeoutCtrl.abort();
+      else signal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${provider.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: timeoutCtrl.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`通道 ${provider.name} HTTP ${res.status}:${text.slice(0, 300)}`);
+      }
+      return res;
+    } finally {
+      clearTimeout(timer);
+      if (signal) signal.removeEventListener('abort', onExternalAbort);
+    }
+  }
+
+  /** openai-compat 非流式文本生成:取 content 作正文,reasoning_content 不混入;空 content 抛错触发降级。 */
+  private async openaiComplete(
+    provider: Provider,
+    model: string,
+    system: string,
+    prompt: string,
+    maxTokens: number,
+  ): Promise<string> {
+    const body: OpenAiChatRequest = {
+      model,
+      max_tokens: this.openaiMaxTokens(maxTokens),
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: prompt },
+      ],
+    };
+    const text = await this.limiter.run(async () => {
+      const res = await this.openaiFetch(provider, body);
+      const data = (await res.json()) as OpenAiChatResponse;
+      return data.choices?.[0]?.message?.content ?? '';
+    });
+    if (text.length > 0) return text;
+    // 空 content(推理模型把预算耗在思考 / 端点偶发空):绝不静默返回 '',抛错交 withFailover 降级。
+    throw new Error(`通道 ${provider.name} 返回无文本内容,无法生成结果`);
+  }
+
+  /**
+   * openai-compat 结构化输出:OpenAI function-calling + 强制 tool_choice + 关思考(thinking:disabled)。
+   * 与 anthropic 路径同构的重试/校验语义:空 tool_call / 缺字段 / 非法枚举 → 重试;
+   * 连续 ATTEMPTS 次失败 → 抛错交 withFailover 降级。绝不把残缺结果当成功返回(防编造红线)。
+   */
+  private async attemptStructuredOpenAi<T>(
+    provider: Provider,
+    model: string,
+    system: string,
+    prompt: string,
+    toolName: string,
+    toolDescription: string,
+    schema: Record<string, unknown>,
+    maxTokens: number,
+  ): Promise<T> {
+    const tool: OpenAiTool = {
+      type: 'function',
+      function: { name: toolName, description: toolDescription, parameters: schema },
+    };
+    const ATTEMPTS = 4;
+    for (let i = 0; i < ATTEMPTS; i++) {
+      const userText =
+        i === 0
+          ? prompt
+          : `${prompt}\n\n[系统提示] 上一次未能通过工具 "${toolName}" 返回完整结果(空调用或字段残缺)。请立即且只能调用该工具,把所有字段填满后返回,不要输出任何正文。`;
+      const body: OpenAiChatRequest = {
+        model,
+        // 结构化关思考,无需大预算;沿用调用方上限即可。
+        max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: userText },
+        ],
+        tools: [tool],
+        tool_choice: { type: 'function', function: { name: toolName } },
+        thinking: { type: 'disabled' },
+        ...(i > 0 ? { temperature: Math.min(0.4 + (i - 1) * 0.3, 1) } : {}),
+      };
+      const data = await this.limiter.run(async () => {
+        const res = await this.openaiFetch(provider, body);
+        return (await res.json()) as OpenAiChatResponse;
+      });
+      const choice = data.choices?.[0];
+      // 截断检测:length 截断的 arguments 是残缺 JSON,继续用会静默落库不完整数据,当失败处理。
+      if (choice?.finish_reason === 'length') {
+        throw new Error(
+          `通道 ${provider.name} 工具 "${toolName}" 输出在 max_tokens 处被截断,结构化结果不完整`,
+        );
+      }
+      const input = this.extractOpenAiToolInput<T>(choice, toolName);
+      if (input !== null && this.validateAgainstSchema(input, schema)) {
+        return input;
+      }
+    }
+    throw new Error(`通道 ${provider.name} 对工具 "${toolName}" 连续 ${ATTEMPTS} 次返回空/不完整结果`);
+  }
+
+  /** 从 OpenAI 响应的 tool_calls 解析目标工具的入参(JSON.parse arguments);空/缺/解析失败 → null。 */
+  private extractOpenAiToolInput<T>(choice: OpenAiChoice | undefined, toolName: string): T | null {
+    const calls = choice?.message?.tool_calls;
+    if (!Array.isArray(calls)) return null;
+    for (const call of calls) {
+      if (call.function?.name === toolName && call.function.arguments) {
+        try {
+          const parsed = JSON.parse(call.function.arguments) as unknown;
+          if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length > 0) {
+            return parsed as T;
+          }
+        } catch {
+          return null;
+        }
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * openai-compat 流式(原生 fetch + 标准 OpenAI SSE)。逐 delta.content 产出增量文本;
+   * delta.reasoning_content(思考增量)静默跳过——类比 anthropic 路径跳过 thinking_delta:
+   *   不外吐、不置位 emitted,故主通道纯思考阶段挂掉仍被上层 chat() 视为"首 token 前失败"可切通道。
+   * 首次 yield 即"首 token 到达";其前抛错代表首 token 前失败(可切通道)。
+   */
+  private async *streamProviderOpenAi(
+    provider: Provider,
+    model: string,
+    system: string,
+    messages: Anthropic.MessageParam[],
+    maxTokens: number,
+    signal?: AbortSignal,
+  ): AsyncGenerator<string, void, void> {
+    const body: OpenAiChatRequest = {
+      model,
+      max_tokens: this.openaiMaxTokens(maxTokens),
+      stream: true,
+      messages: [{ role: 'system', content: system }, ...this.toOpenAiMessages(messages)],
+    };
+    const res = await this.openaiFetch(provider, body, signal);
+    if (!res.body) throw new Error(`通道 ${provider.name} 流式响应无 body`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        // SSE 以 \n 分行;data: 行携带 JSON chunk,[DONE] 收尾。跨 chunk 半行留 buffer 下轮拼接。
+        let idx: number;
+        while ((idx = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.slice(0, idx).replace(/\r$/, '');
+          buffer = buffer.slice(idx + 1);
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload.length === 0 || payload === '[DONE]') continue;
+          let chunk: OpenAiStreamChunk;
+          try {
+            chunk = JSON.parse(payload) as OpenAiStreamChunk;
+          } catch {
+            continue; // 半行/噪声行跳过,后续 chunk 补齐。
+          }
+          const text = chunk.choices?.[0]?.delta?.content;
+          if (typeof text === 'string' && text.length > 0) {
+            yield text;
+          }
+          // delta.reasoning_content(思考增量)静默跳过(见方法注释)。
+        }
+      }
+    } finally {
+      // 释放底层流(提前关闭 / 异常退出时归还连接)。
+      void reader.cancel().catch(() => undefined);
     }
   }
 

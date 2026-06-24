@@ -147,7 +147,8 @@ export class AiProviderService {
       out.push({
         id: 'env:glm',
         name: 'glm',
-        protocol: 'anthropic-compat',
+        // GLM coding 端点为 OpenAI 兼容,运行期走原生 fetch(ai.service.ts openai 路径)。
+        protocol: 'openai-compat',
         baseURL: ai.glm.baseURL,
         apiKey: ai.glm.apiKey,
         modelPro: ai.glm.modelPro,
@@ -271,7 +272,8 @@ export class AiProviderService {
         hasKey: !!ai.glm.apiKey,
         row: {
           name: 'glm',
-          protocol: 'anthropic-compat',
+          // GLM coding 端点为 OpenAI 兼容,种入时即标 openai-compat。
+          protocol: 'openai-compat',
           base_url: ai.glm.baseURL,
           api_key_enc: ai.glm.apiKey ? encryptSecret(ai.glm.apiKey, key) : '',
           model_pro: ai.glm.modelPro,
