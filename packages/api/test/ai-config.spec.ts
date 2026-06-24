@@ -155,6 +155,10 @@ describe('aiConfig() 工厂', () => {
     'CLOUDDREAM_MODEL',
     'AI_PRIMARY_API_KEY',
     'AI_PRIMARY_MODEL',
+    'AI_GLM_API_KEY',
+    'AI_GLM_MODEL_PRO',
+    'AI_GLM_MODEL_FLASH',
+    'AI_GLM_BASE_URL',
   ] as const;
   const saved: Record<string, string | undefined> = {};
 
@@ -175,9 +179,12 @@ describe('aiConfig() 工厂', () => {
     return aiConfig() as unknown as AiConfig;
   }
 
-  it('全缺省 → 通道顺序 deepseek(测试期主力)、分档型号 pro/flash、relay auto-v2', () => {
+  it('全缺省 → 主力 glm(GLM-5.1 coding 端点)、deepseek 分档型号 pro/flash、relay auto-v2', () => {
     const cfg = read();
-    expect(cfg.primaryProvider).toBe('deepseek');
+    expect(cfg.primaryProvider).toBe('glm');
+    expect(cfg.glm.modelPro).toBe('glm-5.1');
+    expect(cfg.glm.modelFlash).toBe('glm-5.1');
+    expect(cfg.glm.baseURL).toBe('https://open.bigmodel.cn/api/coding/paas/v4');
     expect(cfg.deepseek.modelPro).toBe('deepseek-v4-pro');
     expect(cfg.deepseek.modelFlash).toBe('deepseek-v4-flash'); // 取代弃用的 deepseek-chat
     expect(cfg.relay.model).toBe('auto-v2');
@@ -188,9 +195,14 @@ describe('aiConfig() 工厂', () => {
     expect(read().primaryProvider).toBe('relay');
   });
 
-  it('AI_PRIMARY_PROVIDER 非法值 → 回退 deepseek', () => {
-    process.env.AI_PRIMARY_PROVIDER = 'garbage';
+  it('AI_PRIMARY_PROVIDER=deepseek → 通道顺序切到 deepseek 主力', () => {
+    process.env.AI_PRIMARY_PROVIDER = 'deepseek';
     expect(read().primaryProvider).toBe('deepseek');
+  });
+
+  it('AI_PRIMARY_PROVIDER 非法值 → 回退 glm(当前主力)', () => {
+    process.env.AI_PRIMARY_PROVIDER = 'garbage';
+    expect(read().primaryProvider).toBe('glm');
   });
 
   it('AI_MODEL_PRO / AI_MODEL_FLASH 覆盖 → 透传', () => {

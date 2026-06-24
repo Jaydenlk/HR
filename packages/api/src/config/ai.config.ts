@@ -1,12 +1,12 @@
 import { registerAs } from '@nestjs/config';
 
-// 通道顺序:测试期默认 deepseek 主力(直连官方,pro/flash 两档),relay(auto-v2 中转)备份,glm(智谱 Anthropic 兼容端点)可选第三通道。
-// AI_PRIMARY_PROVIDER=deepseek|relay|glm 切换主备顺序,日后切主力不改代码;面板切换由 ai_provider_settings DB 覆盖(运行时,免重启)。
+// 通道顺序:默认 glm 主力(GLM-5.1 coding 端点,OpenAI 兼容),deepseek(直连官方,pro/flash 两档)备份,relay(auto-v2 中转)停用。
+// AI_PRIMARY_PROVIDER=glm|deepseek|relay 切换主备顺序,日后切主力不改代码;生产角色(primary/backup/disabled)以 DB ai_providers 表为准(运行时,免重启)。
 export type AiProviderKind = 'deepseek' | 'relay' | 'glm';
 
-// 默认通道顺序:deepseek 主、relay 次、glm 末。运行时无 DB 配置 / env 无显式 primary 时回退此序。
+// 默认通道顺序:glm 主、deepseek 次、relay 末。运行时无 DB 配置 / env 无显式 primary 时回退此序。
 // 无密钥的通道在 AiService 构造期被 filter,不影响实际可用顺位。
-export const DEFAULT_PROVIDER_ORDER: AiProviderKind[] = ['deepseek', 'relay', 'glm'];
+export const DEFAULT_PROVIDER_ORDER: AiProviderKind[] = ['glm', 'deepseek', 'relay'];
 
 /**
  * 通用通道排序:给定「主力 provider」+「降级顺序」,产出去重后的有序 AiProviderKind 列表。
@@ -80,7 +80,7 @@ export interface AiConfig {
 export type AiTier = 'pro' | 'flash';
 
 // 槽位 env 名:
-//   通道顺序   AI_PRIMARY_PROVIDER=deepseek|relay(缺省 deepseek;测试期 deepseek 主力)
+//   通道顺序   AI_PRIMARY_PROVIDER=glm|deepseek|relay(缺省 glm;当前 GLM-5.1 主力)
 //   DeepSeek   AI_DEEPSEEK_API_KEY(?? 旧名 DEEPSEEK_API_KEY/AI_FALLBACK_API_KEY 兜底)、
 //              AI_MODEL_PRO(缺省 deepseek-v4-pro)、AI_MODEL_FLASH(缺省 deepseek-v4-flash)、
 //              AI_DEEPSEEK_BASE_URL(?? DEEPSEEK_BASE_URL/AI_FALLBACK_BASE_URL,缺省官方 anthropic 端点)、
@@ -90,7 +90,7 @@ export type AiTier = 'pro' | 'flash';
 //              AI_RELAY_BASE_URL(?? CLOUDDREAM_BASE_URL/AI_PRIMARY_BASE_URL)、
 //              AI_RELAY_TIMEOUT_MS / AI_RELAY_MAX_RETRIES(?? 旧 AI_PRIMARY_* 兜底)
 // 默认值:
-//   primaryProvider       = 'deepseek'                      ← 测试期 DeepSeek 主力(用户拍板)
+//   primaryProvider       = 'glm'                           ← 默认 GLM-5.1 主力(parsePrimaryProvider 缺省落 glm)
 //   deepseek.modelPro     = 'deepseek-v4-pro'
 //   deepseek.modelFlash   = 'deepseek-v4-flash'             ← 取代弃用的 deepseek-chat(2026-07-24 弃用)
 //   deepseek.baseURL      = 'https://api.deepseek.com/anthropic'
@@ -125,11 +125,11 @@ export function parseMaxRetries(raw: string | undefined, fallback: number): numb
   return Math.max(0, parseEnvNumber(raw, fallback));
 }
 
-/** 通道顺序:识别 'relay'/'glm',其余(含缺省)落 'deepseek'(测试期主力)。 */
+/** 通道顺序:识别 'deepseek'/'relay',其余(含缺省/非法)落 'glm'(当前主力,GLM-5.1 coding 端点)。 */
 function parsePrimaryProvider(raw: string | undefined): AiProviderKind {
+  if (raw === 'deepseek') return 'deepseek';
   if (raw === 'relay') return 'relay';
-  if (raw === 'glm') return 'glm';
-  return 'deepseek';
+  return 'glm';
 }
 
 export const aiConfig = registerAs('ai', (): AiConfig => ({
@@ -187,15 +187,17 @@ export const aiConfig = registerAs('ai', (): AiConfig => ({
       0,
     ),
   },
-  // 智谱 GLM 直连官方 Anthropic 兼容端点(可选第三通道):无 AI_GLM_API_KEY 时该通道不构造、不可设主力。
-  // 型号默认 glm-4.6(pro)/glm-4.5-air(flash):2026-06-16 智谱官方文档 + 多源交叉核实的真实代号
-  // (社区个别摘要出现 GLM-5.x 系列疑为幻觉,以智谱开放平台模型列表为准;运维可经 AI_GLM_MODEL_* 覆盖)。
+  // 智谱 GLM coding 端点(OpenAI 兼容,主力通道):无 AI_GLM_API_KEY 时该通道不构造。
+  // 端点 https://open.bigmodel.cn/api/coding/paas/v4 实测 HTTP200(标准 api/paas/v4 报 429 无资源包);
+  // glm-5.1 是推理模型,返回 reasoning_content(思考)+ content(答案),OpenAI Chat Completions 协议——
+  // 故该通道在 DB 里 protocol=openai-compat,运行期由 AiService 走原生 fetch(见 ai.service.ts openai 路径)。
+  // pro/flash 均用 glm-5.1(coding 端点单型号;吃不准档位差异时同型号最稳);运维可经 AI_GLM_MODEL_* 覆盖。
   glm: {
     apiKey: process.env.AI_GLM_API_KEY,
-    modelPro: process.env.AI_GLM_MODEL_PRO ?? 'glm-4.6',
-    modelFlash: process.env.AI_GLM_MODEL_FLASH ?? 'glm-4.5-air',
-    // Anthropic 原生兼容端点;勿手动加 /v1(OpenAI 兼容模式会被强拼 /v1 致 404,Anthropic SDK 走 /api/anthropic 即可)。
-    baseURL: process.env.AI_GLM_BASE_URL ?? 'https://open.bigmodel.cn/api/anthropic',
+    modelPro: process.env.AI_GLM_MODEL_PRO ?? 'glm-5.1',
+    modelFlash: process.env.AI_GLM_MODEL_FLASH ?? 'glm-5.1',
+    // coding 端点;protocol=openai-compat,AiService 自动拼 /chat/completions(勿在此手动加)。
+    baseURL: process.env.AI_GLM_BASE_URL ?? 'https://open.bigmodel.cn/api/coding/paas/v4',
     timeoutMs: parseTimeoutMs(process.env.AI_GLM_TIMEOUT_MS, 120000),
     maxRetries: parseMaxRetries(process.env.AI_GLM_MAX_RETRIES, 3),
   },
