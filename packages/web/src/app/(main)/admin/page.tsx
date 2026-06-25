@@ -12,6 +12,7 @@ import {
   HeartPulse,
   ScrollText,
   Plug,
+  Gauge,
 } from 'lucide-react';
 import OverviewPanel from './_components/OverviewPanel';
 import { UserManagementPanel } from './_components/UserManagementPanel';
@@ -19,16 +20,18 @@ import InviteCodePanel from './_components/InviteCodePanel';
 import PlatformHealthTab from './_components/PlatformHealthTab';
 import LogCenterTab from './_components/LogCenterTab';
 import ApiManagementPanel from './_components/ApiManagementPanel';
+import PerfReportLibrary from './_components/PerfReportLibrary';
 
 // ─── Tab 定义 ─────────────────────────────────────────────────────────────────
 // 总面板 → 用户管理 → 邀请码 → 平台健康 → 流水中心 → API 管理(两层结构:总面板看总体,各详细侧独立 fetch)
-type AdminTab = 'overview' | 'users' | 'invites' | 'health' | 'logs' | 'api';
+type AdminTab = 'overview' | 'users' | 'invites' | 'health' | 'perf' | 'logs' | 'api';
 
 const TABS: { key: AdminTab; label: string; icon: typeof Shield }[] = [
   { key: 'overview', label: '总面板', icon: LayoutDashboard },
   { key: 'users', label: '用户管理', icon: Users },
   { key: 'invites', label: '邀请码', icon: Ticket },
   { key: 'health', label: '平台健康', icon: HeartPulse },
+  { key: 'perf', label: '性能测试', icon: Gauge },
   { key: 'logs', label: '流水中心', icon: ScrollText },
   { key: 'api', label: 'API 管理', icon: Plug },
 ];
@@ -99,7 +102,7 @@ export default function AdminPage() {
         <Shield size={22} /> 管理后台
       </h1>
       <p style={{ fontSize: '13.5px', color: 'var(--color-ink-3)', marginBottom: '20px' }}>
-        总面板 · 用户管理 · 邀请码 · 平台健康 · 流水中心 · API 管理
+        总面板 · 用户管理 · 邀请码 · 平台健康 · 性能测试 · 流水中心 · API 管理
       </p>
 
       {/* ── Tab 栏 ── */}
@@ -154,6 +157,7 @@ export default function AdminPage() {
       {tab === 'users' && <UserManagementPanel selfId={me.id} />}
       {tab === 'invites' && <InviteCodePanel />}
       {tab === 'health' && <PlatformHealthTab />}
+      {tab === 'perf' && <PerfReportLibrary />}
       {tab === 'logs' && <LogCenterTab />}
       {tab === 'api' && <ApiManagementPanel />}
     </div>

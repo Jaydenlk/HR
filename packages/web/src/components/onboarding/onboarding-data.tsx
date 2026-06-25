@@ -152,3 +152,13 @@ export const DEMO_DEBRIEF_SCORES: readonly InterviewScore[] = [
   { name: '表达条理', score: 64 },
   { name: '临场应变', score: 52 },
 ] as const;
+
+/** 投递追踪看板(自绘演示卡,非 AI 功能):同一虚构 persona(陈思宁 / 北辰文化)的几条投递,
+ *  铺在真实 6 阶段(想投/已投递/面试中/终面/Offer/已拒)上,呼应「面完一场要把进度记下来」。
+ *  纯演示数据,不调任何接口、不渲染真实拖拽看板。 */
+export const DEMO_TRACKER: readonly { id: string; company: string; role: string; stage: 'wishlist' | 'applied' | 'interview' | 'final' | 'offer' | 'rejected' }[] = [
+  { id: 't1', company: '北辰文化', role: '内容运营', stage: 'interview' },
+  { id: 't2', company: '海岸传媒', role: '新媒体运营', stage: 'applied' },
+  { id: 't3', company: '青柚科技', role: '用户运营', stage: 'wishlist' },
+  { id: 't4', company: '远山出版', role: '编辑', stage: 'final' },
+] as const;

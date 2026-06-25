@@ -7,6 +7,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Between, DataSource, MoreThanOrEqual, Repository } from 'typeorm';
 import { AiProviderService } from '../ai/ai-provider.service';
 import { AiService } from '../ai/ai.service';
+import {
+  AbReportReaderService,
+  PerfReport,
+  PerfReportCard,
+} from './ab-report-reader.service';
 import { CreateAiProviderDto } from './dto/create-ai-provider.dto';
 import { UpdateAiProviderDto } from './dto/update-ai-provider.dto';
 import { TestAiProviderDraftDto } from './dto/test-ai-provider.dto';
@@ -105,6 +110,7 @@ export class AdminService {
     private readonly dataSource: DataSource,
     private readonly aiProviders: AiProviderService,
     private readonly aiService: AiService,
+    private readonly abReport: AbReportReaderService,
     @InjectRepository(AiUsage) private readonly usageRepo: Repository<AiUsage>,
     @InjectRepository(CreditTransaction)
     private readonly creditTxRepo: Repository<CreditTransaction>,
@@ -605,6 +611,21 @@ export class AdminService {
       timeoutMs: dto.timeoutMs ?? 30000,
       maxRetries: 0,
     });
+  }
+
+  // ============================================================
+  // 性能测试报告:读打进镜像的结构化 JSON(供管理后台展示模型对比结论)。
+  // graceful:读不到时列表回空数组、详情回 null,前端显示"报告暂不可用",绝不 500。
+  // ============================================================
+
+  // 报告库列表:卡片元信息数组(不含 sections 全文)。
+  getPerfReportCards(): PerfReportCard[] {
+    return this.abReport.getPerfReportCards();
+  }
+
+  // 报告详情:按 id 返回完整 PerfReport(含 7 分区);找不到返回 null。
+  getPerfReport(id: string): PerfReport | null {
+    return this.abReport.getPerfReport(id);
   }
 
   // ---- 波2A 私有助手 ----

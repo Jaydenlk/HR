@@ -196,4 +196,19 @@ export class AdminController {
   ) {
     return this.admin.deleteAiProvider(req.user.id, id);
   }
+
+  // ===== 性能测试报告:返回打进镜像的结构化 JSON(继承 controller 级 JwtAuthGuard+AdminGuard)=====
+  // 报告库列表:卡片元信息数组(不含 sections 全文)。读不到时回 [](前端显示空,不 500)。
+  // 声明在 ':id' 之前,静态段 'perf-reports' 不被当 id。
+  @Get('perf-reports')
+  perfReports() {
+    return this.admin.getPerfReportCards();
+  }
+
+  // 报告详情:按 id 返回完整 PerfReport(含 7 分区);找不到回 null(前端显示"报告暂不可用",不 500)。
+  // id 为 slug(如 'round-1'),非 UUID,不套 ParseUUIDPipe。
+  @Get('perf-reports/:id')
+  perfReport(@Param('id') id: string) {
+    return this.admin.getPerfReport(id);
+  }
 }

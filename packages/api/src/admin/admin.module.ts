@@ -12,6 +12,7 @@ import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminDetailService } from './admin-detail.service';
+import { AbReportReaderService } from './ab-report-reader.service';
 import { AdminGuard } from '../common/guards/admin.guard';
 
 @Module({
@@ -25,6 +26,6 @@ import { AdminGuard } from '../common/guards/admin.guard';
     HealthModule,
   ],
   controllers: [AdminController],
-  providers: [AdminService, AdminDetailService, AdminGuard],
+  providers: [AdminService, AdminDetailService, AbReportReaderService, AdminGuard],
 })
 export class AdminModule {}

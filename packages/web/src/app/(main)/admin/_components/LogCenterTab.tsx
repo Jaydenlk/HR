@@ -28,6 +28,7 @@ import {
   ShieldCheck,
   UserX,
 } from 'lucide-react';
+import { RollerList } from './RollerList';
 
 // ─── 共享样式(与 page.tsx 保持一致)────────────────────────────────────────────
 
@@ -273,6 +274,52 @@ function SuccessFailedChart({ rows }: { rows: AdminSuccessStats[] }): React.Reac
   );
 }
 
+// ─── 最近 AI 调用失败:单项卡片(滚筒 / 平铺 共用,保留原 4 列字段)────────────
+
+function FailureCard({ f }: { f: AdminRecentFailure }): React.ReactElement {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+          <span style={{ fontWeight: 600, color: 'var(--color-ink)' }}>
+            {new Date(f.created_at).toLocaleString('zh-CN', {
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })}
+          </span>
+          <span style={{ fontSize: '11px', color: 'var(--color-ink-4)' }}>{relativeTime(f.created_at)}</span>
+        </div>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: f.user ? 'var(--color-ink-2)' : 'var(--color-ink-4)' }}>
+          {f.user ?? '—'}
+        </span>
+      </div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-ink-2)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+        <span>{f.endpoint ?? <span style={{ color: 'var(--color-ink-4)' }}>—</span>}</span>
+        {f.stage && (
+          <span
+            style={{
+              padding: '1px 6px',
+              borderRadius: '5px',
+              fontSize: '10.5px',
+              fontWeight: 700,
+              background: 'rgba(255,160,0,.12)',
+              color: '#e08800',
+            }}
+          >
+            {f.stage}
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: '12.5px', color: 'var(--color-danger)', wordBreak: 'break-all', lineHeight: 1.5 }}>
+        {f.reason ?? <span style={{ color: 'var(--color-ink-4)' }}>—</span>}
+      </div>
+    </div>
+  );
+}
+
 // ─── tabA 报错流水 ────────────────────────────────────────────────────────────
 
 function ErrorStreamTab(): React.ReactElement {
@@ -450,74 +497,18 @@ function ErrorStreamTab(): React.ReactElement {
           <div style={{ padding: '24px', display: 'flex', justifyContent: 'center' }}>
             <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-ink-3)' }} />
           </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '620px' }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>时间</th>
-                  <th style={thStyle}>用户</th>
-                  <th style={thStyle}>端点 / 阶段</th>
-                  <th style={thStyle}>原因</th>
-                </tr>
-              </thead>
-              <tbody>
-                {failures.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      style={{ ...tdStyle, textAlign: 'center', color: 'var(--color-ink-4)', padding: '24px' }}
-                    >
-                      暂无 AI 调用失败记录
-                    </td>
-                  </tr>
-                ) : (
-                  failures.map((f) => (
-                    <tr key={f.id}>
-                      <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--color-ink)' }}>
-                          {new Date(f.created_at).toLocaleString('zh-CN', {
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                          })}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-ink-4)', marginTop: '2px' }}>
-                          {relativeTime(f.created_at)}
-                        </div>
-                      </td>
-                      <td style={{ ...tdStyle, whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
-                        {f.user ?? <span style={{ color: 'var(--color-ink-4)' }}>—</span>}
-                      </td>
-                      <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
-                        {f.endpoint ?? <span style={{ color: 'var(--color-ink-4)' }}>—</span>}
-                        {f.stage && (
-                          <span
-                            style={{
-                              marginLeft: '6px',
-                              padding: '1px 6px',
-                              borderRadius: '5px',
-                              fontSize: '10.5px',
-                              fontWeight: 700,
-                              background: 'rgba(255,160,0,.12)',
-                              color: '#e08800',
-                            }}
-                          >
-                            {f.stage}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ ...tdStyle, color: 'var(--color-danger)', maxWidth: '320px', wordBreak: 'break-all' }}>
-                        {f.reason ?? <span style={{ color: 'var(--color-ink-4)' }}>—</span>}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        ) : failures.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-ink-4)', fontSize: '13px' }}>
+            暂无 AI 调用失败记录
           </div>
+        ) : (
+          <RollerList
+            items={failures}
+            keyOf={(f) => f.id}
+            pageSize={10}
+            label="AI 调用失败"
+            renderItem={(f) => <FailureCard f={f} />}
+          />
         )}
       </div>
 
