@@ -32,14 +32,13 @@ import type { AdminUserRow, AdminUsageOverview } from '@/lib/types';
 import {
   cardStyle,
   sectionTitleStyle,
-  thStyle,
-  tdStyle,
   inputStyle,
   smallBtn,
   relativeTime,
   loginRegion,
 } from './_shared';
 import { UserDetailDrawer } from './UserDetailDrawer';
+import { RollerList } from './RollerList';
 
 type StatusFilter = 'all' | 'active' | 'banned' | 'admin';
 type SortKey = 'created_at' | 'credit_balance' | 'usage_total';
@@ -279,134 +278,26 @@ export function UserManagementPanel({ selfId }: UserManagementPanelProps) {
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '880px' }}>
-            <thead>
-              <tr>
-                <th style={thStyle}>邮箱</th>
-                <th style={thStyle}>姓名</th>
-                <th style={thStyle}>角色</th>
-                <th style={thStyle}>状态</th>
-                <th style={thStyle}>今日 / 累计</th>
-                <th style={thStyle}>余额（点）</th>
-                <th style={thStyle}>注册时间</th>
-                <th style={thStyle}>最近登录</th>
-                <th style={thStyle}>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleUsers.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={9}
-                    style={{
-                      ...tdStyle,
-                      textAlign: 'center',
-                      color: 'var(--color-ink-4)',
-                      padding: '24px',
-                    }}
-                  >
-                    无匹配用户
-                  </td>
-                </tr>
-              ) : (
-                visibleUsers.map((u) => (
-                  <tr key={u.id}>
-                    <td style={tdStyle}>{u.email}</td>
-                    <td style={tdStyle}>{u.name}</td>
-                    <td style={tdStyle}>
-                      <span
-                        style={{
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          color:
-                            u.role === 'admin'
-                              ? 'var(--color-brand)'
-                              : 'var(--color-ink-3)',
-                        }}
-                      >
-                        {u.role === 'admin' ? '管理员' : '用户'}
-                      </span>
-                    </td>
-                    <td style={tdStyle}>
-                      <span
-                        style={{
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          color:
-                            u.status === 'banned'
-                              ? 'var(--color-danger)'
-                              : 'var(--color-success)',
-                        }}
-                      >
-                        {u.status === 'banned' ? '已封禁' : '正常'}
-                      </span>
-                    </td>
-                    <td style={tdStyle}>
-                      {u.usage_today} / {u.usage_total}
-                    </td>
-                    <td
-                      style={{
-                        ...tdStyle,
-                        fontFamily: 'var(--font-mono)',
-                        fontWeight: 700,
-                        color: 'var(--color-ink)',
-                      }}
-                    >
-                      {u.credit_balance}
-                    </td>
-                    <td style={{ ...tdStyle, whiteSpace: 'nowrap', color: 'var(--color-ink-3)' }}>
-                      {relativeTime(u.created_at)}
-                    </td>
-                    <td style={tdStyle}>
-                      {u.last_login_ip === null ? (
-                        <span style={{ color: 'var(--color-ink-4)' }}>—</span>
-                      ) : (
-                        <div style={{ whiteSpace: 'nowrap' }}>
-                          <div
-                            style={{
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '11.5px',
-                              color: 'var(--color-ink-2)',
-                            }}
-                          >
-                            {u.last_login_ip}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: '11.5px',
-                              color: 'var(--color-ink-4)',
-                              marginTop: '2px',
-                            }}
-                          >
-                            {loginRegion(u)}
-                            {u.last_login_at !== null &&
-                              ` · ${relativeTime(u.last_login_at)}`}
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td style={tdStyle}>
-                      <button
-                        type="button"
-                        onClick={() => setDetailUserId(u.id)}
-                        style={{
-                          ...smallBtn('neutral'),
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                        title="查看详情 / 充值 / 角色管理"
-                      >
-                        详情 <ChevronRight size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        {visibleUsers.length === 0 ? (
+          <div
+            style={{
+              padding: '24px',
+              textAlign: 'center',
+              color: 'var(--color-ink-4)',
+              fontSize: '13px',
+            }}
+          >
+            无匹配用户
+          </div>
+        ) : (
+          <RollerList
+            items={visibleUsers}
+            keyOf={(u) => u.id}
+            pageSize={10}
+            label="用户管理"
+            renderItem={(u) => <UserRowCard u={u} onDetail={() => setDetailUserId(u.id)} />}
+          />
+        )}
       </div>
 
       {/* ── 用户详情抽屉 ──
@@ -419,6 +310,113 @@ export function UserManagementPanel({ selfId }: UserManagementPanelProps) {
         onClose={() => setDetailUserId(null)}
         onMutated={() => void reload()}
       />
+    </div>
+  );
+}
+
+// ─── 用户行卡片(滚筒 / 平铺 共用的单项展示,保留原表格全部字段)──────────────────
+
+function UserRowCard({ u, onDetail }: { u: AdminUserRow; onDetail: () => void }): React.ReactElement {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* 第一行:邮箱 + 姓名 + 角色/状态徽标 + 详情钮 */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', wordBreak: 'break-all' }}>
+            {u.email}
+          </div>
+          <div style={{ fontSize: '12.5px', color: 'var(--color-ink-3)', marginTop: '2px' }}>{u.name}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: '6px',
+              background: u.role === 'admin' ? 'rgba(47,143,255,.1)' : 'var(--color-surface)',
+              color: u.role === 'admin' ? 'var(--color-brand)' : 'var(--color-ink-3)',
+            }}
+          >
+            {u.role === 'admin' ? '管理员' : '用户'}
+          </span>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '2px 8px',
+              borderRadius: '6px',
+              background: u.status === 'banned' ? 'var(--color-danger-soft)' : 'rgba(34,197,94,.1)',
+              color: u.status === 'banned' ? 'var(--color-danger)' : 'var(--color-success)',
+            }}
+          >
+            {u.status === 'banned' ? '已封禁' : '正常'}
+          </span>
+          <button
+            type="button"
+            onClick={onDetail}
+            style={{
+              ...smallBtn('neutral'),
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title="查看详情 / 充值 / 角色管理"
+          >
+            详情 <ChevronRight size={13} />
+          </button>
+        </div>
+      </div>
+
+      {/* 第二行:指标网格(今日/累计、余额、注册时间、最近登录)*/}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '8px 16px',
+          fontSize: '12.5px',
+        }}
+      >
+        <CardField label="今日 / 累计" value={`${u.usage_today} / ${u.usage_total}`} />
+        <CardField
+          label="余额(点)"
+          value={
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-ink)' }}>
+              {u.credit_balance}
+            </span>
+          }
+        />
+        <CardField label="注册时间" value={relativeTime(u.created_at)} />
+        <CardField
+          label="最近登录"
+          value={
+            u.last_login_ip === null ? (
+              <span style={{ color: 'var(--color-ink-4)' }}>—</span>
+            ) : (
+              <span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--color-ink-2)' }}>
+                  {u.last_login_ip}
+                </span>
+                <span style={{ color: 'var(--color-ink-4)', marginLeft: '6px' }}>
+                  {loginRegion(u)}
+                  {u.last_login_at !== null && ` · ${relativeTime(u.last_login_at)}`}
+                </span>
+              </span>
+            )
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+function CardField({ label, value }: { label: string; value: React.ReactNode }): React.ReactElement {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+      <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--color-ink-4)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+        {label}
+      </span>
+      <span style={{ color: 'var(--color-ink-2)' }}>{value}</span>
     </div>
   );
 }

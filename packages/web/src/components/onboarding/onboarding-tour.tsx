@@ -39,6 +39,7 @@ import {
   ChatSurface,
   MockSurface,
   DebriefSurface,
+  TrackerSurface,
   AuxOverview,
   AccountSurface,
   ResumesSurface,
@@ -48,7 +49,7 @@ import {
 const DONE_KEY = 'coach_tour_done';
 
 // ── 主导览章节(章节轨 = 全景地图) ──────────────────────────────────
-export const CHAPTERS = ['校招诊断', 'AI 改写', '问 Coach', '模拟面试', '面试复盘', '开始用'] as const;
+export const CHAPTERS = ['校招诊断', 'AI 改写', '问 Coach', '模拟面试', '面试复盘', '投递追踪', '开始用'] as const;
 
 // ── 章节 → 真侧栏视觉激活 href 映射(核心③) ──────────────────────────
 // 引导期把这个 href 写给 layout(OnboardingNavContext),真侧栏滑动指示器滑到对应项 / CTA 脉冲。
@@ -57,7 +58,7 @@ export const CHAPTERS = ['校招诊断', 'AI 改写', '问 Coach', '模拟面试
 //   问 Coach → /chat(CTA)、模拟面试 → /mock、面试复盘 → /debrief、辅助功能 → /overview。
 
 // ── 主导览步骤模型 ──────────────────────────────────────────────────
-type SurfaceKind = 'resumes' | 'campus' | 'rewrite' | 'chat' | 'mock' | 'debrief' | 'aux' | 'account' | 'help';
+type SurfaceKind = 'resumes' | 'campus' | 'rewrite' | 'chat' | 'mock' | 'debrief' | 'tracker' | 'aux' | 'account' | 'help';
 
 interface CanvasStep {
   id: string;
@@ -226,10 +227,28 @@ const STEPS: CanvasStep[] = [
     cta: '还有什么',
   },
 
-  // 屏 10 · 辅助功能(第4点:聚光呼吸落真侧栏「更多功能」按钮,不再高亮 /overview/求职总览)
+  // 屏 10 · 投递追踪(核心工具区一项 · 聚光真侧栏「投递追踪」项 · 非 AI 功能)
+  // 承接:面完一场,投递进度也要管起来。聚光机制同校招诊断/简历馆那拍——activeHref 写给真侧栏,
+  // 滑动指示器滑到「投递追踪」项(href=/applications,在工具区 core 常驻可见)。
+  {
+    id: 'tracker',
+    chapter: 5,
+    surface: 'tracker',
+    demo: 0,
+    activeHref: '/applications',
+    target: 'tracker-board',
+    placement: 'left',
+    auto: null,
+    tag: '投递追踪',
+    title: '投了哪家、到哪一步,一眼看清',
+    body: '把每家公司标到对应阶段：想投、已投递、面试中、终面、Offer。投到哪一步了不用脑子记,也不用再开 Excel。',
+    cta: '看更多',
+  },
+
+  // 屏 11 · 辅助功能(第4点:聚光呼吸落真侧栏「更多功能」按钮,不再高亮 /overview/求职总览)
   {
     id: 'aux',
-    chapter: 5,
+    chapter: 6,
     surface: 'aux',
     demo: 0,
     activeHref: null,
@@ -243,10 +262,10 @@ const STEPS: CanvasStep[] = [
     cta: '看点数',
   },
 
-  // 屏 11 · Part A 点数(主区显示账户/点数界面 + 聚光真侧栏左上账户区)
+  // 屏 12 · Part A 点数(主区显示账户/点数界面 + 聚光真侧栏左上账户区)
   {
     id: 'credits',
-    chapter: 5,
+    chapter: 6,
     surface: 'account',
     demo: 0,
     activeHref: null,
@@ -264,10 +283,10 @@ const STEPS: CanvasStep[] = [
     cta: '使用帮助',
   },
 
-  // 屏 12 · Part B 使用帮助(聚光真侧栏左下)
+  // 屏 13 · Part B 使用帮助(聚光真侧栏左下)
   {
     id: 'help',
-    chapter: 5,
+    chapter: 6,
     surface: 'help',
     demo: 0,
     activeHref: null,
@@ -281,10 +300,10 @@ const STEPS: CanvasStep[] = [
     cta: '轮到你了',
   },
 
-  // 屏 13 · 收尾接力(治 finish 撒手)
+  // 屏 14 · 收尾接力(治 finish 撒手)
   {
     id: 'handoff',
-    chapter: 5,
+    chapter: 6,
     surface: 'resumes',
     demo: 0,
     activeHref: '/resumes',
@@ -854,6 +873,8 @@ function renderSurface(surface: SurfaceKind, demo: number): ReactNode {
       return <MockSurface />;
     case 'debrief':
       return <DebriefSurface />;
+    case 'tracker':
+      return <TrackerSurface />;
     case 'aux':
       return <AuxOverview />;
     case 'account':

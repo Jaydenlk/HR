@@ -35,6 +35,7 @@ import {
   DEMO_MOCK_ANSWERS,
   DEMO_DEBRIEF_QUESTIONS,
   DEMO_DEBRIEF_SCORES,
+  DEMO_TRACKER,
   DEMO_AUX,
 } from './onboarding-data';
 import {
@@ -393,6 +394,72 @@ export function DebriefSurface() {
       </div>
       <div style={{ marginTop: 16 }}>
         <AITag />
+      </div>
+    </div>
+  );
+}
+
+/* ── 投递追踪(非 AI 功能,自绘演示看板) ──────────────────────────────
+   呼应真实 /applications:6 阶段看板(想投/已投递/面试中/终面/Offer/已拒),卡片记公司+岗位,
+   顶部各阶段计数;下拉切换即改阶段。阶段标签与点色逐字对齐真实 KanbanBoard 的 STAGES。
+   精选:铺虚构 persona(陈思宁 / 北辰文化)的 4 条投递,讲「投了哪家、到哪步了,一眼看清」。
+   纯展示静态卡片:不可拖、不拉数据。 */
+const TRACKER_STAGES: readonly { id: string; label: string; dot: string }[] = [
+  { id: 'wishlist',  label: '想投',   dot: 'var(--color-ink-4)' },
+  { id: 'applied',   label: '已投递', dot: 'var(--color-brand)' },
+  { id: 'interview', label: '面试中', dot: 'var(--color-warn)' },
+  { id: 'final',     label: '终面',   dot: 'var(--au-violet)' },
+  { id: 'offer',     label: 'Offer',  dot: 'var(--color-success)' },
+  { id: 'rejected',  label: '已拒',   dot: 'var(--color-danger)' },
+];
+export function TrackerSurface() {
+  return (
+    <div style={{ maxWidth: 880, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
+      <PageHead icon="tracker" title="投递追踪" sub="投了哪家、到哪一步了,一眼看清,不用再用 Excel 手记。" />
+
+      {/* 投递概览:玻璃分区卡 + 兄弟同款 sectionTitle,各阶段计数为内部扁平胶囊(呼应真实 TrackerStats) */}
+      <div className="lg" style={{ padding: 18, marginBottom: 16 }}>
+        <h2 style={{ ...sectionTitle, margin: '0 0 12px' }}>投递概览</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {TRACKER_STAGES.map((st) => {
+            const count = DEMO_TRACKER.filter((a) => a.stage === st.id).length;
+            return (
+              <span key={st.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', fontSize: 12.5, borderRadius: 'var(--radius-default)', border: '1px solid var(--hair)', background: 'rgba(47,143,255,.05)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
+                <span style={{ color: 'var(--color-ink-2)' }}>{st.label}</span>
+                <span className="mono" style={{ fontWeight: 700, color: 'var(--color-ink)', fontFamily: 'var(--font-mono)' }}>{count}</span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 按阶段看板:玻璃分区卡 + sectionTitle;内含 6 列扁平列槽,卡片记公司+岗位,下拉切换即改阶段。
+          AITag 收在卡内底部,与兄弟拍(账户/帮助/复盘)一致 */}
+      <div className="lg" data-guide="tracker-board" style={{ padding: 18 }}>
+        <h2 style={{ ...sectionTitle, margin: '0 0 12px' }}>按阶段看板</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+          {TRACKER_STAGES.map((st) => {
+            const cards = DEMO_TRACKER.filter((a) => a.stage === st.id);
+            return (
+              <div key={st.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 132 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--color-ink-2)' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
+                  {st.label}
+                </div>
+                {cards.map((c) => (
+                  <div key={c.id} style={{ padding: '9px 10px', borderRadius: 'var(--radius-default)', border: '1px solid var(--hair)', background: 'rgba(47,143,255,.05)' }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.3 }}>{c.company}</div>
+                    <div style={{ fontSize: 12, color: 'var(--color-ink-3)', marginTop: 3 }}>{c.role}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <AITag />
+        </div>
       </div>
     </div>
   );

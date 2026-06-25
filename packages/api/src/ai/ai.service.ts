@@ -688,11 +688,16 @@ export class AiService {
   }
 
   /**
-   * 连通性测试:用给定通道配置发一次最小请求(flash 型号,1 token),返回 {ok, latencyMs, error}。
-   * error 经 sanitizeError 剔除可能含密钥的片段(只回 SDK 状态/消息),绝不回明文 key。
-   * 该方法不走并发护栏 / 不走 failover —— 它就是单通道探活,供 admin 测试端点调用。
+   * 连通性测试:用给定通道配置发一次最小请求(flash 型号),返回 {ok, latencyMs, error}。
+   * 按协议分流:openai-compat 走原生 fetch 打 /chat/completions(与运行期 openaiFetch 同语义),
+   * 其它(anthropic-compat)走 Anthropic SDK。error 经 sanitizeError 剔除可能含密钥的片段(只回
+   * 状态/消息),绝不回明文 key。该方法不走并发护栏 / 不走 failover —— 它就是单通道探活,供 admin
+   * 测试端点调用。
    */
   async testConnection(p: LoadedProvider): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+    if (p.protocol === PROTOCOL_OPENAI) {
+      return this.testConnectionOpenai(p);
+    }
     const client = this.clientFor(p);
     const start = Date.now();
     try {
@@ -704,6 +709,51 @@ export class AiService {
       return { ok: true, latencyMs: Date.now() - start };
     } catch (err) {
       return { ok: false, latencyMs: Date.now() - start, error: this.sanitizeError(err, p.apiKey) };
+    }
+  }
+
+  /**
+   * openai-compat 探活:原生 fetch POST {baseURL}/chat/completions(Bearer + 超时),与 openaiFetch
+   * 同构(URL 拼接/Bearer/AbortController 超时)。判 ok 以 HTTP 状态为准:2xx → ok=true(关思考 +
+   * max_tokens:16 足够端点吐 content,但端点偶发空不应判失败,故不依赖 content 非空)。非 2xx 或网络
+   * 异常 → ok=false,error 经 sanitizeError 剔 key。
+   */
+  private async testConnectionOpenai(
+    p: LoadedProvider,
+  ): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+    const url = `${p.baseURL.replace(/\/+$/, '')}/chat/completions`;
+    const body: OpenAiChatRequest = {
+      model: p.modelFlash,
+      max_tokens: 16,
+      thinking: { type: 'disabled' },
+      messages: [{ role: 'user', content: 'ping' }],
+    };
+    const timeoutCtrl = new AbortController();
+    const timer = setTimeout(() => timeoutCtrl.abort(), p.timeoutMs);
+    const start = Date.now();
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${p.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: timeoutCtrl.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        return {
+          ok: false,
+          latencyMs: Date.now() - start,
+          error: this.sanitizeError(`HTTP ${res.status}:${text.slice(0, 300)}`, p.apiKey),
+        };
+      }
+      return { ok: true, latencyMs: Date.now() - start };
+    } catch (err) {
+      return { ok: false, latencyMs: Date.now() - start, error: this.sanitizeError(err, p.apiKey) };
+    } finally {
+      clearTimeout(timer);
     }
   }
 

@@ -32,5 +32,12 @@ data/we-mp-rss/
 *.jpeg
 CV/
 
+# dev-server 本地运行残留(pid/日志)与一次性预览页,严禁入库。
+# (coach-preview.db 已被上面的 *.db 覆盖,不重复列。)
+.dev-server*
+.admin-batch-preview/
+/packages/web/src/app/roller-preview/
+/packages/web/src/app/report-preview/
+
 # 本地工件,永不入库
 .claude/plans/cv-synthetic-gen.js

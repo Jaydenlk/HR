@@ -83,16 +83,17 @@ function buildToolNav(applicationCount: number): ToolNav {
     label: '投递追踪',
     href: '/applications',
     icon: <Briefcase size={16} />,
+    tourId: 'tracker',
     ...(applicationCount > 0 ? { badge: String(applicationCount) } : {}),
   };
   return {
     core: [
       { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} />, tourId: 'resumes' },
       { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} />, tourId: 'campus' },
+      { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
       { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
       tracker,
       { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
-      { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
     ],
     more: [
       { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
