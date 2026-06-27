@@ -25,7 +25,7 @@ import { CreditService } from '../credit/credit.service';
 import { OpsEventsService, DailyStats } from '../ops/ops-events.service';
 import { OpsEvent } from '../ops/entities/ops-event.entity';
 import { HealthService } from '../health/health.service';
-import { ConcurrencyLimiter } from '../ai/concurrency-limiter';
+import { ConcurrencyLimiter, QueueStatus } from '../ai/concurrency-limiter';
 import { AiUsage } from '../quota/entities/ai-usage.entity';
 import { CreditTransaction } from '../credit/entities/credit-transaction.entity';
 import { Diagnosis } from '../diagnoses/entities/diagnosis.entity';
@@ -307,6 +307,17 @@ export class AdminService {
     const report = await this.health.check();
     const queue = this.concurrency.status();
     return AdminHealthResponseDto.from(report, queue);
+  }
+
+  // 管理员手动重置并发护栏(POST /admin/concurrency/reset):清空 AI 限流器卡死的活跃槽位/排队队列。
+  // 仅操作内存状态(active/waiters),绝不碰任何持久化数据;被清掉的排队请求会收到 503、需用户重试。
+  // 记一条 LIMITER_RESET 审计事件(谁在何时重置、清了多少);审计写入失败不阻断重置主流程。
+  async resetConcurrency(
+    adminId: string,
+  ): Promise<{ clearedActive: number; clearedQueued: number; status: QueueStatus }> {
+    const cleared = this.concurrency.reset();
+    await this.opsEvents.record('LIMITER_RESET', { adminId, ...cleared }).catch(() => undefined);
+    return { ...cleared, status: this.concurrency.status() };
   }
 
   // 单用户活动明细(GET /admin/user-activity):仅计数,绝不含任何正文。

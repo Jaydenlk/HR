@@ -14,6 +14,7 @@ export type PositionListener = (position: number) => void;
 
 interface Waiter {
   acquire: () => void;
+  reject?: (err: Error) => void;
   onPosition?: PositionListener;
 }
 
@@ -46,6 +47,25 @@ export class ConcurrencyLimiter {
   /** 当前队列快照:进行中 / 排队中。 */
   status(): QueueStatus {
     return { active: this.active, queued: this.waiters.length };
+  }
+
+  /**
+   * 管理员手动重置护栏:把 active 计数清零,并拒绝所有排队中的等待者(令其调用方收到
+   * 503 报错、可立即重试),用于流式僵尸槽卡死时不重启容器即可恢复服务。
+   * 仅操作内存状态(active / waiters),不碰任何持久化数据;正在运行的真实任务不受影响、
+   * 其结果照常落库,它们日后 release() 时 active 已被下溢护栏 floor 在 0、不会损坏计数。
+   * 代价:若清零时仍有真实在跑的任务,会短暂突破并发上限(用户已知并接受,"有问题手动处理")。
+   */
+  reset(): { clearedActive: number; clearedQueued: number } {
+    const clearedActive = this.active;
+    const clearedQueued = this.waiters.length;
+    this.active = 0;
+    const drained = this.waiters.splice(0, this.waiters.length);
+    for (const w of drained) {
+      w.reject?.(new ServiceUnavailableException('AI 服务已被管理员重置,请重新发起请求。'));
+    }
+    this.logger.warn(`ConcurrencyLimiter.reset: cleared active=${clearedActive} queued=${clearedQueued}`);
+    return { clearedActive, clearedQueued };
   }
 
   async run<T>(task: () => Promise<T>): Promise<T> {
@@ -104,12 +124,13 @@ export class ConcurrencyLimiter {
       );
     }
     this.logger.warn(`AI 调用排队:active=${this.active} queued=${this.waiters.length + 1}`);
-    return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve, reject) => {
       const waiter: Waiter = {
         acquire: () => {
           this.active++;
           resolve();
         },
+        reject,
         onPosition,
       };
       this.waiters.push(waiter);

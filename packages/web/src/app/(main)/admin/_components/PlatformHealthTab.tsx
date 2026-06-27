@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api';
-import type { AdminHealthSnapshot, AdminSuccessStats, AdminOpsDailyStats } from '@/lib/types';
-import { Loader2, Activity, Database, Cpu, TrendingDown, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import type { AdminHealthSnapshot, AdminSuccessStats, AdminOpsDailyStats, AdminLimiterResetResult } from '@/lib/types';
+import { Loader2, Activity, Database, Cpu, TrendingDown, RefreshCw, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
 
 // ─── 共享样式(与 admin/page.tsx 对齐)────────────────────────────────────────
 
@@ -80,6 +80,9 @@ export default function PlatformHealthTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  // 重置护栏:进行中标志 + 结果提示(成功显示清空数量,失败显示错误)。
+  const [resetting, setResetting] = useState(false);
+  const [resetMsg, setResetMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   // refreshTick 是触发刷新的信号;点刷新按钮时递增,useEffect 监听它
   const refreshTick = useRef(0);
   const [tick, setTick] = useState(0);
@@ -88,6 +91,29 @@ export default function PlatformHealthTab() {
     refreshTick.current += 1;
     setRefreshing(true);
     setTick(refreshTick.current);
+  }
+
+  // 手动重置 AI 并发护栏:二次确认 → POST → 重新拉 health-snapshot 刷新读数 → 内联提示清空数量。
+  // 仅清空内存计数(active/queued),不影响数据库与正在生成的结果;卡住的请求需用户重试。
+  async function resetLimiter() {
+    if (
+      !window.confirm(
+        '确认重置 AI 并发护栏?将清空当前活跃/排队计数(不影响数据库与正在生成的结果),卡住的请求需用户重试。',
+      )
+    ) {
+      return;
+    }
+    setResetting(true);
+    setResetMsg(null);
+    try {
+      const r = await api.post<AdminLimiterResetResult>('/admin/concurrency/reset', {});
+      setResetMsg({ kind: 'ok', text: `已清空 活跃 ${r.clearedActive} / 排队 ${r.clearedQueued}` });
+      triggerRefresh();
+    } catch (err) {
+      setResetMsg({ kind: 'err', text: err instanceof Error ? err.message : '重置失败' });
+    } finally {
+      setResetting(false);
+    }
   }
 
   useEffect(() => {
@@ -463,6 +489,59 @@ export default function PlatformHealthTab() {
                 ? <><XCircle size={14} /> 队列有压力</>
                 : <><CheckCircle2 size={14} /> 无排队压力</>}
             </div>
+          </div>
+
+          {/* ── 重置护栏:流式僵尸槽卡死时的手动兜底,清空内存计数,免 SSH 重启 ── */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap',
+              marginTop: '16px',
+              paddingTop: '14px',
+              borderTop: '1px solid var(--color-line)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={resetLimiter}
+              disabled={resetting}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 14px',
+                background: 'var(--color-danger-soft)',
+                border: '1px solid var(--color-danger)',
+                borderRadius: 'var(--radius-default)',
+                color: 'var(--color-danger)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: resetting ? 'not-allowed' : 'pointer',
+                opacity: resetting ? 0.6 : 1,
+              }}
+            >
+              {resetting
+                ? <Loader2 size={13} className="animate-spin" />
+                : <RotateCcw size={13} />}
+              {resetting ? '重置中…' : '重置护栏'}
+            </button>
+            {resetMsg && (
+              <span
+                role="status"
+                style={{
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  color: resetMsg.kind === 'ok' ? 'var(--color-success)' : 'var(--color-danger)',
+                }}
+              >
+                {resetMsg.text}
+              </span>
+            )}
+            <span style={{ fontSize: '12px', color: 'var(--color-ink-4)', marginLeft: 'auto' }}>
+              仅清空内存计数,不影响数据库与正在生成的结果
+            </span>
           </div>
         </div>
       )}

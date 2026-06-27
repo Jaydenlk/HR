@@ -117,6 +117,13 @@ export class AdminController {
     return this.admin.healthSnapshot();
   }
 
+  // 手动重置并发护栏:清空 AI 限流器卡死的活跃/排队计数(仅内存,不碰数据库),
+  // 用于流式僵尸槽卡死时免 SSH 重启即可恢复服务。
+  @Post('concurrency/reset')
+  resetConcurrency(@Request() req: { user: { id: string } }) {
+    return this.admin.resetConcurrency(req.user.id);
+  }
+
   // 单用户活动明细:仅计数(各端点 AI 调用次数 / credit 消耗次数),绝不含任何正文。
   @Get('user-activity')
   userActivity(@Query() query: UserActivityQueryDto) {

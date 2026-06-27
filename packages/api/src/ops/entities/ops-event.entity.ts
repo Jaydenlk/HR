@@ -12,7 +12,8 @@ export type OpsEventType =
   | 'QUEUE_FULL'
   | 'AI_CALL_FAILED'
   | 'CREDIT_CONSUME_FAILED'
-  | 'ADMIN_ACTION';
+  | 'ADMIN_ACTION'
+  | 'LIMITER_RESET';
 
 // 运维事件流水:记录 AI 降级/两通道皆败/并发队列满三类异常事件。
 // 供管理后台(T3)展示系统健康状态,不对主业务流程造成任何影响。

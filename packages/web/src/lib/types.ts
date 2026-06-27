@@ -1530,6 +1530,17 @@ export interface AdminHealthSnapshot {
   };
 }
 
+// POST /api/admin/concurrency/reset 响应。与后端 resetConcurrency 返回字段一一对应。
+// clearedActive/clearedQueued:本次重置清空的活跃槽位数 / 排队请求数;status:重置后的护栏读数。
+export interface AdminLimiterResetResult {
+  clearedActive: number;
+  clearedQueued: number;
+  status: {
+    active: number;
+    queued: number;
+  };
+}
+
 // GET /api/admin/success-stats 单日行(后端返回数组)。
 // 与后端 AdminSuccessStatsRow 字段一一对应。
 export interface AdminSuccessStats {
