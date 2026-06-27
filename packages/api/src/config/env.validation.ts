@@ -175,6 +175,18 @@ export class EnvironmentVariables {
   @IsNumberString()
   AI_MAX_QUEUE?: string;
 
+  // ── AI 流式看门狗(watchdog-v2,可选) ──────────────────────────────────
+  // chunk 间空闲超时(毫秒):默认 180000(3 分钟);真·TCP 半开挂死 3 分钟内必然触发,
+  // 推理模型思考期(60-120s)不误杀(idle 重置点是 reader.read 返回)。
+  @IsOptional()
+  @IsNumberString()
+  AI_STREAM_IDLE_MS?: string;
+
+  // 流式总时长上限(毫秒):默认 900000(15 分钟);绝对宽裕,覆盖排队 + 多轮调用。
+  @IsOptional()
+  @IsNumberString()
+  AI_STREAM_MAX_MS?: string;
+
   // ── HTTP(可选,数值) ──────────────────────────────────────────────
   @IsOptional()
   @IsNumberString()

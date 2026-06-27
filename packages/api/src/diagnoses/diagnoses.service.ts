@@ -235,24 +235,29 @@ export class DiagnosesService {
     const out = new DiagnosisEventStream<DiagnosisStreamEvent>();
     // 成败记账上下文:phase 起于 preparing(解析阶段),work() 边跑边推进并填 resumeId/savedId。
     const ctx: PipelineContext = { phase: 'preparing', mode };
+    // 流水线级 abort(watchdog-v2):超时时 abort,令 runObservable 内的任务立即 reject →
+    // finally 释放 limiter 槽。此前 withPipelineTimeout 用 Promise.race 只 reject 了调用方,
+    // runObservable 的 task 仍 hang、finally 不跑、槽位永占。
+    const pipelineAbort = new AbortController();
 
     // 后台任务:独立于消费者运行,确保断开也跑完落库。不 await,异步推进。
     void (async () => {
       try {
         // 整体墙钟超时护栏:单 AI 调用各自有超时,但整条流水线(排队 + 多次调用)无总上限,
-        // 任一环节卡死会让本后台任务永挂、占住并发槽与 SSE 连接。超时后抛中文错误,经下方 catch
-        // 推 error 事件、finally 关流,与其它失败路径同构。注:超时只中止「等待」,不强杀底层 AI
-        // 工作(它仍受各自单调用超时约束,跑完即被丢弃,不再落库)。
+        // 任一环节卡死会让本后台任务永挂、占住并发槽与 SSE 连接。超时后 abort pipelineAbort →
+        // raceAbortSignal 令 runObservable 的 task 立即 reject → finally release 槽位。
+        // 孤儿 work() 若仍在跑,其 DB 写入无害(数据保全);push 到已关闭的 out 为空操作。
         const diagnosis = await this.withPipelineTimeout(
           this.limiter.runObservable<Diagnosis>(
             async () => {
               out.push({ type: 'step', stage: 'parsing', label: '正在解析简历与岗位信息…' });
-              return work(out, ctx);
+              return this.raceAbortSignal(work(out, ctx), pipelineAbort.signal);
             },
             (position) => {
               if (position > 0) out.push({ type: 'queue', position });
             },
           ),
+          pipelineAbort,
         );
 
         // 成功记账:整条流水线跑完 → 该行 status=success(与 happy path 行为无关,纯补记)。
@@ -370,15 +375,21 @@ export class DiagnosesService {
    * 给整条流水线 Promise 套一个墙钟超时:超时则 reject 中文错误;无论成功/失败都 clearTimeout,
    * happy path 不留悬挂定时器(否则会拖住事件循环 / 内存泄漏)。默认 600000ms,经
    * DIAGNOSIS_PIPELINE_TIMEOUT_MS 覆盖(非正/非数 → 缺省)。
+   *
+   * watchdog-v2:超时时同时 abort pipelineAbort,令 raceAbortSignal 包裹的 task 立即 reject →
+   * runObservable.finally 释放 limiter 槽(此前 Promise.race 只 reject 了调用方,task 仍 hang)。
    */
-  private withPipelineTimeout(promise: Promise<Diagnosis>): Promise<Diagnosis> {
+  private withPipelineTimeout(
+    promise: Promise<Diagnosis>,
+    pipelineAbort?: AbortController,
+  ): Promise<Diagnosis> {
     const timeoutMs = this.pipelineTimeoutMs();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error('诊断流水线超时,已中止以保护服务器资源')),
-        timeoutMs,
-      );
+      timer = setTimeout(() => {
+        pipelineAbort?.abort();
+        reject(new Error('诊断流水线超时,已中止以保护服务器资源'));
+      }, timeoutMs);
     });
     return Promise.race([promise, timeoutPromise]).finally(() => {
       if (timer) clearTimeout(timer);
@@ -388,6 +399,27 @@ export class DiagnosesService {
   private pipelineTimeoutMs(): number {
     const parsed = Number.parseInt(process.env.DIAGNOSIS_PIPELINE_TIMEOUT_MS ?? '', 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 600000;
+  }
+
+  /**
+   * Race a promise against an AbortSignal(watchdog-v2):signal 触发时立即 reject,
+   * 使 runObservable 的 task 快速 settle → finally release 释放 limiter 槽位。
+   * 原 promise(work)继续运行但已脱管:其 DB 写入无害(数据保全),push 到已关闭 out 为空操作。
+   */
+  private raceAbortSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+    if (signal.aborted) {
+      return Promise.reject(new Error('诊断流水线超时,已中止以保护服务器资源'));
+    }
+    return new Promise<T>((resolve, reject) => {
+      const onAbort = (): void => {
+        reject(new Error('诊断流水线超时,已中止以保护服务器资源'));
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+      promise.then(
+        (val) => { signal.removeEventListener('abort', onAbort); resolve(val); },
+        (err) => { signal.removeEventListener('abort', onAbort); reject(err as Error); },
+      );
+    });
   }
 
   /** 扣 1 点 + 记一条 ai_usage(对齐非流式端点 CreditInterceptor + AiUsageInterceptor;均失败不阻断)。 */

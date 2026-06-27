@@ -310,27 +310,52 @@ export class AiService {
 
   // 用 SDK messages.stream 消费 SSE,逐 text_delta 产出增量文本。
   // 该生成器的首次 yield 即"首 token 到达";其前抛错代表首 token 前失败(可切通道)。
+  //
+  // 看门狗(watchdog-v2):per-event 空闲超时 + 总时长 deadline,与 streamProviderOpenAi 同构。
+  // idle 重置点是收到任何 SDK 事件(含 thinking_delta),思考期不误杀。
   private async *streamProvider(
     provider: Provider,
     params: Anthropic.MessageStreamParams,
     signal?: AbortSignal,
   ): AsyncGenerator<string, void, void> {
-    const stream = provider.client.messages.stream(params, { signal });
-    for await (const event of stream) {
-      if (
-        event.type === 'content_block_delta' &&
-        event.delta.type === 'text_delta' &&
-        event.delta.text.length > 0
-      ) {
-        yield event.delta.text;
+    // ── 流式看门狗 ──────────────────────────────────────────────────────
+    const streamAbort = new AbortController();
+    const idleMs = this.streamIdleMs();
+    const maxMs = this.streamMaxMs();
+    const cleanupExternalSignal = this.forwardAbort(signal, streamAbort);
+    const deadlineTimer = setTimeout(() => {
+      this.logger.warn(`streamProvider: 流式总时长超过 ${maxMs}ms,强制中止`);
+      streamAbort.abort();
+    }, maxMs);
+    if (typeof deadlineTimer === 'object' && 'unref' in deadlineTimer) deadlineTimer.unref();
+    let idleTimer = this.startIdleTimer(idleMs, streamAbort, 'streamProvider');
+
+    // 传 streamAbort.signal 给 SDK:abort 时 SDK 中止底层 fetch,async iterator 抛错退出。
+    const stream = provider.client.messages.stream(params, { signal: streamAbort.signal });
+    try {
+      for await (const event of stream) {
+        // 收到任何 SDK 事件即重置 idle(含 thinking_delta、content_block_start 等)。
+        clearTimeout(idleTimer);
+        idleTimer = this.startIdleTimer(idleMs, streamAbort, 'streamProvider');
+        if (
+          event.type === 'content_block_delta' &&
+          event.delta.type === 'text_delta' &&
+          event.delta.text.length > 0
+        ) {
+          yield event.delta.text;
+        }
+        // thinking_delta(DeepSeek-v4-pro 思考模型产生)在此被静默跳过:
+        //   1. 不对外吐出:thinking 是内部推理过程,不属于用户面内容,透出会污染前端流。
+        //   2. 不置位 emitted:emitted 标志"用户已收到首字节",思考增量从未透出,
+        //      故主通道若只产出 thinking 就挂掉,上层 chat() 视为"首 token 前失败"
+        //      → 可安全切备通道重发。用户不会看到重复内容(思考从未到达前端)。
+        //   代价:pro 档在纯思考阶段挂掉会触发备通道重发,比 flash 额外增加一次完整延迟,
+        //   属有意取舍——防止用户看到半截重复内容的代价高于偶发额外延迟。
       }
-      // thinking_delta(DeepSeek-v4-pro 思考模型产生)在此被静默跳过:
-      //   1. 不对外吐出:thinking 是内部推理过程,不属于用户面内容,透出会污染前端流。
-      //   2. 不置位 emitted:emitted 标志"用户已收到首字节",思考增量从未透出,
-      //      故主通道若只产出 thinking 就挂掉,上层 chat() 视为"首 token 前失败"
-      //      → 可安全切备通道重发。用户不会看到重复内容(思考从未到达前端)。
-      //   代价:pro 档在纯思考阶段挂掉会触发备通道重发,比 flash 额外增加一次完整延迟,
-      //   属有意取舍——防止用户看到半截重复内容的代价高于偶发额外延迟。
+    } finally {
+      clearTimeout(idleTimer);
+      clearTimeout(deadlineTimer);
+      cleanupExternalSignal();
     }
   }
 
@@ -506,6 +531,12 @@ export class AiService {
    * delta.reasoning_content(思考增量)静默跳过——类比 anthropic 路径跳过 thinking_delta:
    *   不外吐、不置位 emitted,故主通道纯思考阶段挂掉仍被上层 chat() 视为"首 token 前失败"可切通道。
    * 首次 yield 即"首 token 到达";其前抛错代表首 token 前失败(可切通道)。
+   *
+   * 看门狗(watchdog-v2):per-chunk 空闲超时 + 总时长 deadline。
+   *   根因:TCP 半开/远端挂死时 reader.read() 永久 hang → limiter 槽位永占(2026-06-27 线上事故)。
+   *   idle 重置点是 reader.read() 返回(收到任何网络数据),不是 yield(外吐正文):
+   *     推理模型思考期(60-120s)只产 reasoning_content(被跳过不 yield),
+   *     但 reader.read() 仍在返回数据——idle 正确重置,不会误杀正常思考。
    */
   private async *streamProviderOpenAi(
     provider: Provider,
@@ -521,15 +552,36 @@ export class AiService {
       stream: true,
       messages: [{ role: 'system', content: system }, ...this.toOpenAiMessages(messages)],
     };
-    const res = await this.openaiFetch(provider, body, signal);
+
+    // ── 流式看门狗 ──────────────────────────────────────────────────────
+    const streamAbort = new AbortController();
+    const idleMs = this.streamIdleMs();
+    const maxMs = this.streamMaxMs();
+    const cleanupExternalSignal = this.forwardAbort(signal, streamAbort);
+    const deadlineTimer = setTimeout(() => {
+      this.logger.warn(`streamProviderOpenAi: 流式总时长超过 ${maxMs}ms,强制中止`);
+      streamAbort.abort();
+    }, maxMs);
+    if (typeof deadlineTimer === 'object' && 'unref' in deadlineTimer) deadlineTimer.unref();
+    let idleTimer = this.startIdleTimer(idleMs, streamAbort, 'streamProviderOpenAi');
+    const resetIdle = (): void => {
+      clearTimeout(idleTimer);
+      idleTimer = this.startIdleTimer(idleMs, streamAbort, 'streamProviderOpenAi');
+    };
+
+    const res = await this.openaiFetch(provider, body, streamAbort.signal);
     if (!res.body) throw new Error(`通道 ${provider.name} 流式响应无 body`);
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
     try {
       for (;;) {
-        const { done, value } = await reader.read();
+        // readWithAbort: reader.read() 与 streamAbort.signal 竞速;abort 触发时立即 reject,
+        // 不依赖 fetch 内部 signal 传播(openaiFetch 返回后其信号监听已清理)。
+        const { done, value } = await this.readWithAbort(reader, streamAbort.signal);
         if (done) break;
+        // 收到任何网络数据即重置 idle(包括 reasoning_content 帧、keep-alive、空帧)。
+        resetIdle();
         buffer += decoder.decode(value, { stream: true });
         // SSE 以 \n 分行;data: 行携带 JSON chunk,[DONE] 收尾。跨 chunk 半行留 buffer 下轮拼接。
         let idx: number;
@@ -553,6 +605,9 @@ export class AiService {
         }
       }
     } finally {
+      clearTimeout(idleTimer);
+      clearTimeout(deadlineTimer);
+      cleanupExternalSignal();
       // 释放底层流(提前关闭 / 异常退出时归还连接)。
       void reader.cancel().catch(() => undefined);
     }
@@ -787,6 +842,66 @@ export class AiService {
       .map((block) => (block.type === 'text' ? block.text : ''))
       .filter((t) => t.length > 0)
       .join('\n');
+  }
+
+  // ── 流式看门狗辅助(watchdog-v2) ─────────────────────────────────────────
+
+  /** 流式 chunk 间空闲超时(毫秒):默认 180000(3 分钟)。经 AI_STREAM_IDLE_MS 覆盖。 */
+  private streamIdleMs(): number {
+    const parsed = Number.parseInt(process.env.AI_STREAM_IDLE_MS ?? '', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 180000;
+  }
+
+  /** 流式总时长上限(毫秒):默认 900000(15 分钟)。经 AI_STREAM_MAX_MS 覆盖。 */
+  private streamMaxMs(): number {
+    const parsed = Number.parseInt(process.env.AI_STREAM_MAX_MS ?? '', 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 900000;
+  }
+
+  /**
+   * Race reader.read() against an AbortSignal:signal 触发时立即 reject,
+   * 不依赖 fetch 内部 signal 传播(openaiFetch 返回后其 signal 监听已清理)。
+   */
+  private readWithAbort(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    signal: AbortSignal,
+  ): Promise<ReadableStreamReadResult<Uint8Array>> {
+    if (signal.aborted) {
+      return Promise.reject(new DOMException('流式读取已被看门狗中止', 'AbortError'));
+    }
+    return new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+      const onAbort = (): void => {
+        reject(new DOMException('流式读取已被看门狗中止', 'AbortError'));
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+      reader.read().then(
+        (result) => { signal.removeEventListener('abort', onAbort); resolve(result); },
+        (err) => { signal.removeEventListener('abort', onAbort); reject(err as Error); },
+      );
+    });
+  }
+
+  /** 将外部 abort signal 转发到内部 AbortController;返回清理函数。 */
+  private forwardAbort(external: AbortSignal | undefined, target: AbortController): () => void {
+    if (!external) return () => {};
+    if (external.aborted) { target.abort(); return () => {}; }
+    const onAbort = (): void => target.abort();
+    external.addEventListener('abort', onAbort, { once: true });
+    return () => external.removeEventListener('abort', onAbort);
+  }
+
+  /** 启动空闲计时器:超时后触发 abort。unref() 使计时器不阻止进程正常退出。 */
+  private startIdleTimer(
+    ms: number,
+    ctrl: AbortController,
+    label: string,
+  ): ReturnType<typeof setTimeout> {
+    const timer = setTimeout(() => {
+      this.logger.warn(`${label}: chunk 间空闲超过 ${ms}ms,强制中止`);
+      ctrl.abort();
+    }, ms);
+    if (typeof timer === 'object' && 'unref' in timer) timer.unref();
+    return timer;
   }
 
   private extractToolInput<T>(response: Anthropic.Message, toolName: string): T | null {

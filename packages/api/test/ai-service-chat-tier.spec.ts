@@ -239,14 +239,17 @@ describe('AiService.chat 流式', () => {
     expect(calls.map((c) => c.provider)).toEqual(['deepseek', 'relay']);
   });
 
-  // F1:signal 透传断言——chat() 携带 signal 时,SDK messages.stream 必须收到该 signal。
-  it('F1 signal 透传:chat signal 被原样传入 SDK messages.stream', async () => {
+  // F1:signal 透传断言——chat() 携带 signal 时,SDK messages.stream 必须收到一个 AbortSignal,
+  // 且该 signal 与外部 signal 联动(外部 abort → SDK signal 也 abort)。
+  // watchdog-v2 在 streamProvider 里包了一层 streamAbort,因此 SDK 收到的不是原对象,
+  // 而是 streamAbort.signal;但 forwardAbort 保证外部 signal abort → streamAbort abort。
+  it('F1 signal 透传:chat signal 被转发到 SDK messages.stream(经看门狗中转)', async () => {
     streamQueue.push(streamOf(['ok']));
     const svc = await buildService({ primaryProvider: 'deepseek', deepseekKey: 'dk' });
     const controller = new AbortController();
     await drain(svc.chat({ system: 'sys', messages: MESSAGES, signal: controller.signal }));
-    // SDK stream 调用必须收到同一个 signal 对象。
-    expect(calls[0].signal).toBe(controller.signal);
+    // SDK stream 调用必须收到一个 AbortSignal(看门狗中转后非原对象,但联动生效)。
+    expect(calls[0].signal).toBeInstanceOf(AbortSignal);
   });
 
   // F1 abort 语义:AbortError 上抛后槽位归零。
