@@ -18,6 +18,7 @@
    - **两套测试都要跑,漏一套=假绿(2026-07-02 校验实锤)**:单元 spec 用裸 `npx jest`(testRegex `\.spec\.ts$`);**e2e 文件以 `-spec.ts` 结尾,裸 jest 匹配不到会 0 匹配静默跳过**,必须另跑 `npx jest --config ./test/jest-e2e.json --forceExit`(等价 `npm run test:e2e`)。只跑裸 jest 会让最核心的 e2e 验收用例一条没跑却报"全部通过"。任何声称"e2e 通过"的证据必须来自带 `--config ./test/jest-e2e.json` 的那次运行。
 3. 前端验收 = Playwright 走真实用户流(点按钮、填表单),不是截图存在即通过。
 4. 汇报格式:每个 step→verify 给 PASS/FAIL + 证据(命令输出/截图路径);FAIL 不许粉饰成"minor"。
+5. **合并门与合并后审计(用户 2026-07-03 指令)**:e2e/Playwright 等全部适用门真跑真过才许合并 dev(判据细则见 `02-execution-playbook.md`「通过判据」);合并后加一次轻量对抗式审计(单代理审合并 diff,保证没问题即可,不为凑发现烧 token)。
 
 ## 三、环境坑位速查(踩过的坑,别再踩)
 

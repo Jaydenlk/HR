@@ -14,8 +14,10 @@
 
 ## 通过判据(唯一标准)
 
-全部满足才算通过:
+全部满足才算通过(**缺一门都不许合并 dev**,用户 2026-07-03 指令):
 - `gates.overall_pass === true`(即 jest 全量绿 / api build 过 / 涉前端则 eslint 0 错 + web build 过)。
+- **api e2e 必须真跑且零失败**(`npx jest --config ./test/jest-e2e.json --forceExit`;newspaper 时间 bug 首修合并后不再存在任何"已知失败白名单",出现失败先归因回归/环境再处置,不许带病合并)。
+- **Playwright 硬门**:凡任务含前端改动或用户可见行为变更,Playwright 用例必须真跑真过;"环境起不来"不算过——按 STOP 修环境后重验。纯后端/纯测试改动此门 N/A,但判定记录里必须写明 N/A 理由。
 - `review.verdict === "PASS"`,且 `review.findings` 里**无 `severity === "blocking"`**。
 - 脚本约定的残留扫描符合预期(仅剩脚本白名单里的合法同名残留)。
 
@@ -74,12 +76,13 @@
 
 ## 合并规程(通过后)
 
-1. 确认在对应 `feat/<key>` 分支且实现代理已提交(`git log -1`)。
+1. 确认在对应 `feat/<key>` 分支且实现代理已提交(`git log -1`);确认「通过判据」全部满足(含 Playwright 硬门)。
 2. 切 dev,`git merge --no-ff feat/<key>`(冲突→若非平凡则 STOP 报告,别硬解)。
-3. 复跑一次冒烟:`cd packages/api && npx jest`(全量绿)+ 涉前端 `cd packages/web && npm run build`。
+3. 复跑一次冒烟:单元 `cd packages/api && npx jest` + e2e `npx jest --config ./test/jest-e2e.json --forceExit`(两条都要,裸 jest 不含 e2e)+ 涉前端 `cd packages/web && npm run build`。
 4. `git push origin dev && git push origin dev:main`(已授权)。
-5. 更新 `00-master-plan.md` 状态表该任务「合并」列打勾;把 review 的 major 遗留追加到该任务遗留清单。
-6. **不部署**(见 STOP 规则)。
+5. **合并后对抗式审计(用户 2026-07-03 指令;轻量一次,不搞扇出,不为凑发现浪费 token)**:派**一个** Sonnet 只读审计代理,对抗立场审该任务在 dev 上的最终 diff(`git show <merge_commit>` / `git diff <merge前dev>..dev`),专找"合并环节引入的问题":冲突解错、半合并、红线触碰、与 dev 既有改动的相互作用。**保证没问题即收工**——没有实质问题就一句"未发现",不许报鸡毛蒜皮凑数。发现 blocking → 立即 dev 上小修,修不动则 revert 合并并 STOP。结论一行记入 00 执行进展。
+6. 更新 `00-master-plan.md` 状态表该任务「合并」列打勾;把 review 的 major 遗留追加到该任务遗留清单。
+7. **不部署**(见 STOP 规则)。
 
 ## 修复循环规程(不通过时)
 

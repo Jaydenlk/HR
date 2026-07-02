@@ -63,11 +63,12 @@
 
 **已完成(仅到 dev,未部署)**
 - 薪资雷达模块整删:合并 dev `b5ef6ff`(← 3f4d740),已推 dev+main。独立审计 PASS;`salary_entries` 表按红线保留未 drop(要不要清表等用户点头);同名 `salary_range` 等零误伤;intelligence 的 `salary_context` 证据链一并摘除;credit e2e 受测端点改用 `/api/applications/strategy`。遗留死枚举值 `EVIDENCE_KINDS.'salary_data'` / `source_type.'salary'`(纯类型死值,不阻断,可并入 T4 清理批)。
+  - **验收终裁(2026-07-02,dev@f3b878c,六门)**:PASS——api 单测 539 过/0 败;api e2e 1111 过、仅 newspaper 已知 4 条时间 bug(唯一失败 suite);api build 0 错;web eslint 0 错;web build 成功且路由清单确认无 /salary;残留复扫 4 组 grep 全 0 命中(连压测脚本的 `/salary` 采样串都已清,比基线更干净)。原始输出留存 scratchpad(e2e-out.txt / web-build.txt)。
 
-**⚠️ 开工首修(阻断所有任务的 e2e 质量门,不属任何单个 T)**
-- `test/newspaper.e2e-spec.ts` 4 条失败(insight_cards.why_read / total_count / radar quarter=current / 2026Q2 freshness)已证实是**既有**问题:dev 基线(薪资未删)逐字节同样失败,与任何改动无关。根因=测试种子写死 `2026Q2`,而首页/雷达按"当前季度"过滤(今为 Q3),Q2 数据被全滤掉。
-  - 危害:不修则今后每个任务收 e2e 时 newspaper 恒红,Opus 分不清"我改坏的"还是"本来红的",**质量门判据失真**。
-  - 处置:**开工第一件事先修**——把 e2e 种子的 `quarter`/`published_at` 改成动态取当前季度(推荐),或用 `jest.useFakeTimers().setSystemTime(new Date('2026-05-20'))` 冻结到 Q2。独立小改,派一个实现+一个测试代理即可,不混进任何 T 分支。
+**✅ 首修已完成:newspaper e2e 时间 bug(曾阻断所有任务的 e2e 门)**
+- 根因:`test/newspaper.e2e-spec.ts` 种子写死 `2026Q2`,而首页/雷达按"当前季度"过滤(今为 Q3),Q2 数据被全滤掉,4 条恒挂;已证实既有(dev 基线同样挂,与任何改动无关)。
+- ✅ **已修(commit 30ad455 → 合并 a81a2be)**:种子改为动态取当前季度(import 产品同一套 `radar-helpers.getCurrentQuarter`)。验证:newspaper.e2e 61/61 绿;**全量 e2e 1115 passed / 0 failed(基线彻底转绿)**——此后各任务的 e2e 门判据不再被污染。纯测试改动→Playwright 门 N/A(无前端/用户可见变更);合并后审计由集成者 git 核验代行(纯测试+clean merge 无代码交互面,不派 agent 免通胀)。
+- 附:t4-s0-d1 危险区实现阶段已升 opus(commit 4863be4;曾因并发误落 fix 分支,已 rescue 保全+cherry-pick 归位 dev)。
 
 ## 全局红线(超出即停,找用户)
 
