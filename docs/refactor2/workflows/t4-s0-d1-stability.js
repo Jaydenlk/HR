@@ -128,7 +128,7 @@ if (!checklist) throw new Error('侦察代理未返回,中止后续实现')
 
 phase('实现')
 const impl = await agent(IMPL_PROMPT + '\n\n## 侦察产出的执行清单(照此逐条做,行号漂移以内容为准,[缺失-需人工]的条目停下报告不猜)\n' + checklist,
-  { label: 'impl:t4-s0-d1', phase: '实现', model: 'sonnet' })
+  { label: 'impl:t4-s0-d1', phase: '实现', model: 'opus' })
 
 if (!impl) throw new Error('实现代理未返回,中止后续验证')
 
