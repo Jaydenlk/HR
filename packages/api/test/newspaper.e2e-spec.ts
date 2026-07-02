@@ -5,7 +5,19 @@ import { Repository } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
 import { FeedItem } from '../src/feed/entities/feed-item.entity';
+import { getCurrentQuarter } from '../src/feed/radar-helpers';
 import { request, loginUser } from './test-utils';
+
+/* ------------------------------------------------------------------ */
+/*  Dynamic "current quarter" fixtures                                 */
+/*  产品逻辑(getNewspaper/radar quarter=current)按当前季度过滤，       */
+/*  测试种子必须跟随真实"现在"计算，不能写死某个季度，否则季度一过    */
+/*  测试就会全红。与 radar-helpers.getCurrentQuarter 保持一致。        */
+/* ------------------------------------------------------------------ */
+const CURRENT_QUARTER = getCurrentQuarter();
+const CURRENT_QUARTER_LABEL = CURRENT_QUARTER.label;
+// 落在当前季度窗口内、且不早于窗口起点的一个日期（窗口起点 + 1 天，避免边界问题）
+const CURRENT_QUARTER_DATE = new Date(CURRENT_QUARTER.start.getTime() + 24 * 60 * 60 * 1000);
 
 /* ------------------------------------------------------------------ */
 /*  Deterministic mock for AiService                                   */
@@ -39,9 +51,9 @@ async function seedFeedItem(
     interview_round: '一面',
     question_types: ['算法', '系统设计'],
     difficulty: 'medium',
-    quarter: '2026Q2',
+    quarter: CURRENT_QUARTER_LABEL,
     confidence: 'high',
-    published_at: new Date('2026-05-20'),
+    published_at: CURRENT_QUARTER_DATE,
     date_confidence: 'high',
     tags_json: JSON.stringify({
       companies: ['字节跳动'],
@@ -732,14 +744,14 @@ describe('Newspaper (e2e)', () => {
 
   describe('Radar quarter filter normalization', () => {
     it('quarter=current finds items with the current quarter value', async () => {
-      // Seeded items already have quarter='2026Q2' which matches current
+      // Seeded items already have quarter=CURRENT_QUARTER_LABEL which matches current
       const res = await request(app.getHttpServer())
         .get('/api/newspaper/radar?quarter=current')
         .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body.items.length).toBeGreaterThan(0);
       for (const item of res.body.items as Array<{ quarter: string }>) {
-        expect(item.quarter).toBe('2026Q2');
+        expect(item.quarter).toBe(CURRENT_QUARTER_LABEL);
       }
     });
 
@@ -828,13 +840,13 @@ describe('Newspaper (e2e)', () => {
       }
     });
 
-    it('2026Q2 high confidence post appears in homepage', async () => {
+    it('current quarter high confidence post appears in homepage', async () => {
       await seedFeedItem(feedRepo, {
         title: '2026年最新小红书前端面试分享',
-        published_at: new Date('2026-05-20'),
+        published_at: CURRENT_QUARTER_DATE,
         date_confidence: 'high',
         source_kind: 'xhs',
-        source_url: 'https://www.xiaohongshu.com/post/fresh-2026q2',
+        source_url: 'https://www.xiaohongshu.com/post/fresh-current',
         quality_score: 8,
         confidence: 'high',
         content: 'a'.repeat(300),
@@ -848,7 +860,7 @@ describe('Newspaper (e2e)', () => {
         ...(res.body.user_voice?.map((v: { source_url: string }) => v.source_url) || []),
         ...(res.body.tech_radar?.map((t: { source_url: string }) => t.source_url) || []),
       ];
-      expect(allUrls).toContain('https://www.xiaohongshu.com/post/fresh-2026q2');
+      expect(allUrls).toContain('https://www.xiaohongshu.com/post/fresh-current');
     });
 
     it('fetched today but published 2021 is not this week new', async () => {
@@ -985,7 +997,7 @@ describe('Newspaper (e2e)', () => {
     it('excludes current quarter items with content < 200 chars', async () => {
       await seedFeedItem(feedRepo, {
         title: 'Short content usable test',
-        published_at: new Date('2026-05-20'),
+        published_at: CURRENT_QUARTER_DATE,
         date_confidence: 'high',
         source_kind: 'xhs',
         source_url: 'https://example.com/short-content-001',
