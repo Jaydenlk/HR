@@ -70,6 +70,11 @@
 - ✅ **已修(commit 30ad455 → 合并 a81a2be)**:种子改为动态取当前季度(import 产品同一套 `radar-helpers.getCurrentQuarter`)。验证:newspaper.e2e 61/61 绿;**全量 e2e 1115 passed / 0 failed(基线彻底转绿)**——此后各任务的 e2e 门判据不再被污染。纯测试改动→Playwright 门 N/A(无前端/用户可见变更);合并后审计由集成者 git 核验代行(纯测试+clean merge 无代码交互面,不派 agent 免通胀)。
 - 附:t4-s0-d1 危险区实现阶段已升 opus(commit 4863be4;曾因并发误落 fix 分支,已 rescue 保全+cherry-pick 归位 dev)。
 
+**🔄 T4-H0 头像热修:进行中(第1次撞配额,已复位待续)**
+- 2026-07-02 深夜首跑 `t4-h0-avatar.js`:recon 完成,impl 改到一半(me.service/users.service/me页/resume清file_url/credit断言等 9 文件)**撞 session 配额上限中止**(非质量失败,不计轮次)。半成品未验证未提交,已丢弃,分支 feat/t4-h0-avatar 已删,树复位干净 dev@1f2d257。
+- **续跑指令(下个配额窗口)**:此脚本在**主工作树**开分支干活,resume 前先确认 `feat/t4-h0-avatar` 已删、`git status` 干净(有残留 packages/ 改动就 `git restore packages/`);然后 `Workflow({scriptPath:"E:\Agent program\HRBP\docs\refactor2\workflows\t4-h0-avatar.js", resumeFromRunId:"wf_532473f9-e07"})`(recon 走缓存省 token)。前端任务→Playwright 硬门需本机 Docker postgres+端口;env 起不来则做到代码+后端门,STOP 不合并,等 env/用户。
+- 配额提示:2026-07-02 深夜配额很紧,靠 cron 每 2h 节流续跑,别在紧配额下硬灌大 impl。
+
 ## 全局红线(超出即停,找用户)
 
 - 线上有真实用户。任何 migration 前先备份(运维手册在 `E:\coach-deploy\运维手册.md`,坐标密钥不在仓库);postgres 容器/数据卷永不触碰重建。
