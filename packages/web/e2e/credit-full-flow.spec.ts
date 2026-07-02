@@ -189,7 +189,7 @@ test.describe('A. /me 页真数据渲染', () => {
     await setToken(page, token);
     await page.goto(`${BASE_URL}/me`);
     await page.waitForTimeout(2000);
-    const img = page.locator('img[alt="头像"]');
+    const img = page.locator('button[title="点击上传头像"] img[alt="头像"]');
     await img.waitFor({ state: 'visible' });
     const naturalWidth = await img.evaluate((el) => (el as HTMLImageElement).naturalWidth);
     expect(naturalWidth).toBeGreaterThan(0);
