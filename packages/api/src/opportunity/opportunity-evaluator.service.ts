@@ -207,15 +207,6 @@ export class OpportunityEvaluatorService {
           confidence: 'low',
         });
       }
-      if (!evalCtx.hasCompanySalary) {
-        evidenceItems.push({
-          opportunity_id: opportunityId,
-          kind: 'salary_data',
-          title: '薪资数据不足',
-          excerpt: '未找到该公司/岗位的薪资数据，价值评分仅基于 JD 描述',
-          confidence: 'low',
-        });
-      }
       await this.opportunityService.saveEvidence(evidenceItems);
 
       // Step 10: Save actions
@@ -244,7 +235,7 @@ export class OpportunityEvaluatorService {
   private async buildEvaluationContext(
     userId: string,
     parsedJd: ParsedJd,
-  ): Promise<{ promptContext: string; hasResume: boolean; hasCompanySalary: boolean }> {
+  ): Promise<{ promptContext: string; hasResume: boolean }> {
     const intel = await this.evidence.gather(userId);
     const sections: string[] = [];
 
@@ -272,22 +263,7 @@ export class OpportunityEvaluatorService {
       }
     }
 
-    let hasCompanySalary = false;
-    if (companyName && intel.salary_context.length > 0) {
-      const companySalary = intel.salary_context.filter(
-        (e) => e.structured?.['company']?.toString().toLowerCase() === companyName,
-      );
-      if (companySalary.length > 0) {
-        hasCompanySalary = true;
-        sections.push(`该公司薪资参考：${companySalary.map((e) => e.summary).join('；')}`);
-      } else {
-        sections.push('未找到该公司薪资数据，价值评分仅基于 JD 描述');
-      }
-    } else {
-      sections.push('未找到薪资数据，价值评分仅基于 JD 描述');
-    }
-
-    return { promptContext: sections.join('\n'), hasResume, hasCompanySalary };
+    return { promptContext: sections.join('\n'), hasResume };
   }
 
   private buildSystemPrompt(contextString: string): string {

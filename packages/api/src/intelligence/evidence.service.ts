@@ -8,7 +8,6 @@ import { DailyTask } from '../tasks/entities/daily-task.entity';
 import { Opportunity } from '../opportunity/entities/opportunity.entity';
 import { OpportunityEvaluation } from '../opportunity/entities/opportunity-evaluation.entity';
 import { FeedItem } from '../feed/entities/feed-item.entity';
-import { SalaryEntry } from '../salary/entities/salary-entry.entity';
 import { Interview } from '../interviews/entities/interview.entity';
 import { MockSession } from '../mock/entities/mock-session.entity';
 import { CoverLetter } from '../cover-letters/entities/cover-letter.entity';
@@ -31,8 +30,6 @@ export class EvidenceService {
     private readonly evalRepo: Repository<OpportunityEvaluation>,
     @InjectRepository(FeedItem)
     private readonly feedRepo: Repository<FeedItem>,
-    @InjectRepository(SalaryEntry)
-    private readonly salaryRepo: Repository<SalaryEntry>,
     @InjectRepository(Interview)
     private readonly interviewRepo: Repository<Interview>,
     @InjectRepository(MockSession)
@@ -51,7 +48,6 @@ export class EvidenceService {
       this.gatherTasks(userId),
       this.gatherOpportunities(userId),
       this.gatherRelevantFeed(userId),
-      this.gatherSalary(userId),
       this.gatherInterviews(userId),
       this.gatherMockSessions(userId),
       this.gatherCoverLetters(userId),
@@ -63,10 +59,9 @@ export class EvidenceService {
     const tasks = this.settled<Evidence[]>(results[3], []);
     const opportunities = this.settled<Evidence[]>(results[4], []);
     const feedRelevant = this.settled<Evidence[]>(results[5], []);
-    const salaryContext = this.settled<Evidence[]>(results[6], []);
-    const interviews = this.settled<Evidence[]>(results[7], []);
-    const mockSessions = this.settled<Evidence[]>(results[8], []);
-    const coverLetters = this.settled<Evidence[]>(results[9], []);
+    const interviews = this.settled<Evidence[]>(results[6], []);
+    const mockSessions = this.settled<Evidence[]>(results[7], []);
+    const coverLetters = this.settled<Evidence[]>(results[8], []);
 
     const skills = resume?.structured?.['skills'] as string[] ?? [];
     const targetRoles = [
@@ -187,7 +182,6 @@ export class EvidenceService {
       diagnosis_patterns: diagnosisPatterns,
       tasks,
       feed_relevant: feedRelevant,
-      salary_context: salaryContext,
       interviews,
       interview_patterns: interviewPatterns,
       mock_sessions: mockSessions,
@@ -215,7 +209,6 @@ export class EvidenceService {
       ...intel.opportunities.filter((e) => this.companyMatch(e, lc)),
       ...intel.diagnoses.filter((e) => this.companyMatch(e, lc)),
       ...intel.feed_relevant.filter((e) => this.companyMatch(e, lc)),
-      ...intel.salary_context.filter((e) => this.companyMatch(e, lc)),
       ...intel.interviews.filter((e) => this.companyMatch(e, lc)),
       ...intel.mock_sessions.filter((e) => this.companyMatch(e, lc)),
       ...intel.cover_letters.filter((e) => this.companyMatch(e, lc)),
@@ -344,15 +337,6 @@ export class EvidenceService {
       lines.push(`## 相关动态 (${intelligence.feed_relevant.length}条)`);
       for (const feed of intelligence.feed_relevant) {
         lines.push(`- ${feed.summary}`);
-      }
-      lines.push('');
-    }
-
-    // Salary
-    if (intelligence.salary_context.length > 0) {
-      lines.push(`## 薪资参考 (${intelligence.salary_context.length}条)`);
-      for (const sal of intelligence.salary_context) {
-        lines.push(`- ${sal.summary}`);
       }
       lines.push('');
     }
@@ -633,39 +617,6 @@ export class EvidenceService {
       url: f.source_url ?? undefined,
       observed_at: f.created_at.toISOString(),
       weight: 0.6,
-    }));
-  }
-
-  private async gatherSalary(userId: string): Promise<Evidence[]> {
-    const companies = await this.getCompaniesOfInterest(userId);
-    if (companies.length === 0) return [];
-
-    const entries = await this.salaryRepo
-      .createQueryBuilder('se')
-      .where('se.company IN (:...companies)', { companies })
-      .orderBy('se.created_at', 'DESC')
-      .take(10)
-      .getMany();
-
-    return entries.map((s) => ({
-      source_type: 'salary' as const,
-      source_id: s.id,
-      confidence: 'high' as const,
-      freshness: this.calcFreshness(s.created_at),
-      summary: `${s.company} ${s.role} 总包${s.total_comp}`,
-      structured: {
-        company: s.company,
-        role: s.role,
-        base_salary: s.base_salary,
-        bonus: s.bonus,
-        stock_value: s.stock_value,
-        total_comp: s.total_comp,
-        level: s.level,
-        source: s.source,
-      },
-      reason: '关注公司薪资数据',
-      observed_at: s.created_at.toISOString(),
-      weight: 0.4,
     }));
   }
 

@@ -25,7 +25,6 @@ import { Department } from '../src/feed/entities/department.entity';
 import { RoleCategory } from '../src/feed/entities/role-category.entity';
 import { CoverageMetric } from '../src/feed/entities/coverage-metric.entity';
 import { DigestRun } from '../src/feed/entities/digest-run.entity';
-import { SalaryEntry } from '../src/salary/entities/salary-entry.entity';
 import { Conversation } from '../src/conversations/entities/conversation.entity';
 import { Message } from '../src/conversations/entities/message.entity';
 import { Interview } from '../src/interviews/entities/interview.entity';
@@ -42,7 +41,6 @@ describe('EvidenceService (standalone)', () => {
   let oppRepo: Repository<Opportunity>;
   let evalRepo: Repository<OpportunityEvaluation>;
   let feedRepo: Repository<FeedItem>;
-  let salaryRepo: Repository<SalaryEntry>;
   let interviewRepo: Repository<Interview>;
   let mockSessionRepo: Repository<MockSession>;
   let coverLetterRepo: Repository<CoverLetter>;
@@ -82,8 +80,6 @@ describe('EvidenceService (standalone)', () => {
             CoverageMetric,
             DigestRun,
             FeedItem,
-            // Salary
-            SalaryEntry,
             // Conversations
             Conversation,
             Message,
@@ -109,7 +105,6 @@ describe('EvidenceService (standalone)', () => {
     oppRepo = moduleRef.get<Repository<Opportunity>>(getRepositoryToken(Opportunity));
     evalRepo = moduleRef.get<Repository<OpportunityEvaluation>>(getRepositoryToken(OpportunityEvaluation));
     feedRepo = moduleRef.get<Repository<FeedItem>>(getRepositoryToken(FeedItem));
-    salaryRepo = moduleRef.get<Repository<SalaryEntry>>(getRepositoryToken(SalaryEntry));
     interviewRepo = moduleRef.get<Repository<Interview>>(getRepositoryToken(Interview));
     mockSessionRepo = moduleRef.get<Repository<MockSession>>(getRepositoryToken(MockSession));
     coverLetterRepo = moduleRef.get<Repository<CoverLetter>>(getRepositoryToken(CoverLetter));
@@ -151,7 +146,6 @@ describe('EvidenceService (standalone)', () => {
     expect(intel.diagnosis_patterns).toHaveProperty('miss');
     expect(intel).toHaveProperty('tasks');
     expect(intel).toHaveProperty('feed_relevant');
-    expect(intel).toHaveProperty('salary_context');
     expect(intel).toHaveProperty('companies_of_interest');
     expect(intel).toHaveProperty('has_resume');
     expect(intel).toHaveProperty('has_applications');
@@ -178,7 +172,6 @@ describe('EvidenceService (standalone)', () => {
     expect(intel.diagnoses).toEqual([]);
     expect(intel.tasks).toEqual([]);
     expect(intel.feed_relevant).toEqual([]);
-    expect(intel.salary_context).toEqual([]);
     expect(intel.skills).toEqual([]);
     expect(intel.target_roles).toEqual([]);
     expect(intel.application_companies).toEqual([]);
@@ -352,7 +345,6 @@ describe('EvidenceService (standalone)', () => {
       ...intel.diagnoses,
       ...intel.tasks,
       ...intel.feed_relevant,
-      ...intel.salary_context,
     ]) {
       expect(validConfidence).toContain(e.confidence);
       expect(validFreshness).toContain(e.freshness);
@@ -397,31 +389,6 @@ describe('EvidenceService (standalone)', () => {
     expect(acmeFeed).toBeDefined();
     expect(acmeFeed!.source_type).toBe('feed');
     expect(acmeFeed!.weight).toBe(0.6);
-  });
-
-  // ── 11. Salary entries matching companies of interest ─────────────────
-
-  it('gathers salary entries matching companies of interest', async () => {
-    await salaryRepo.save(
-      salaryRepo.create({
-        user_id: userId,
-        company: 'Acme Corp',
-        role: 'Senior Engineer',
-        base_salary: 200000,
-        total_comp: 280000,
-        source: 'self',
-      }),
-    );
-
-    const intel = await evidenceService.gather(userId);
-
-    expect(intel.salary_context.length).toBeGreaterThanOrEqual(1);
-    const acmeSal = intel.salary_context.find(
-      (s) => s.structured['company'] === 'Acme Corp',
-    );
-    expect(acmeSal).toBeDefined();
-    expect(acmeSal!.source_type).toBe('salary');
-    expect(acmeSal!.weight).toBe(0.4);
   });
 
   // ── 12. gather() excludes rejected applications ───────────────────────

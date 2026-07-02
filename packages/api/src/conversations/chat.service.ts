@@ -56,7 +56,7 @@ export class ChatService {
 - 模拟面试(/mock):模拟真实面试并给反馈。
 - 面试准备(/interview-prep):按公司+岗位聚合面试情报与题库。
 - 机会评估(/opportunities):评估某个职位机会的投递价值与风险。
-- 薪资行情(/salary)、行业趋势(/industry-trend)、offer 对比(/offer-comparator)、职业规划与学习路线(/career、/learning-roadmap)。
+- 行业趋势(/industry-trend)、offer 对比(/offer-comparator)、职业规划与学习路线(/career、/learning-roadmap)。
 提议续接时用上述模块口径的词汇,让用户知道在站内哪里能继续把这件事做完。
 
 ## 行动卡片输出规则(严格遵守,优先级仅次于防编造红线)

@@ -597,20 +597,6 @@ export interface CoverLetter {
   created_at: string;
 }
 
-export interface SalaryEntry {
-  id: string;
-  company: string;
-  role: string;
-  location: string | null;
-  base_salary: number;
-  bonus: number | null;
-  stock_value: number | null;
-  total_comp: number;
-  level: string | null;
-  source: string;
-  created_at: string;
-}
-
 export interface CareerPath {
   title: string;
   fit_pct: number;
@@ -677,7 +663,7 @@ export interface DashboardData {
 export type OpportunityStatus = 'draft' | 'evaluating' | 'evaluated' | 'failed' | 'tracked' | 'dismissed';
 export type Recommendation = 'strongly_recommend' | 'recommend' | 'neutral' | 'cautious' | 'not_recommend';
 export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'insufficient';
-export type EvidenceKind = 'resume_match' | 'salary_data' | 'feed_item' | 'diagnosis_history' | 'market_signal' | 'jd_analysis';
+export type EvidenceKind = 'resume_match' | 'feed_item' | 'diagnosis_history' | 'market_signal' | 'jd_analysis';
 export type ActionType = 'optimize_resume' | 'write_cover_letter' | 'prepare_interview' | 'research_company' | 'apply' | 'dismiss';
 export type ActionStatus = 'pending' | 'in_progress' | 'done' | 'skipped';
 
@@ -931,56 +917,6 @@ export interface ReferralStrategyResult {
   recommendations: string[];
   risks: string[];
   cannot_determine: string[];
-}
-
-// ─── Salary AI Analysis ───────────────────────────────────────────────────────
-
-export interface SalaryRangeResult {
-  p25: number;
-  p50: number;
-  p75: number;
-  unit: 'monthly_rmb' | 'annual_rmb';
-  year: string;
-  city: string;
-  role: string;
-  grade: 'A' | 'B' | 'C' | 'D';
-  freshness: 'fresh' | 'stale' | 'unknown';
-}
-
-export interface SalaryBreakdown {
-  base_monthly?: number;
-  months_per_year?: number;
-  annual_bonus?: string;
-  equity?: string;
-  social_insurance?: string;
-}
-
-export interface SalaryDataSource {
-  source_name: string;
-  url?: string;
-  date?: string;
-  grade: 'A' | 'B' | 'C' | 'D';
-}
-
-export interface SalaryComparison {
-  dimension: string;
-  value: string;
-  grade: 'A' | 'B' | 'C' | 'D';
-}
-
-export interface SalaryAnalysisResult {
-  summary: string;
-  confidence: 'high' | 'medium' | 'low' | 'insufficient';
-  salary_range: SalaryRangeResult | null;
-  breakdown: SalaryBreakdown | null;
-  data_sources: SalaryDataSource[];
-  comparison: SalaryComparison[];
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-  data_freshness: 'fresh' | 'stale' | 'unavailable';
 }
 
 // ─── Interview Prep (4合1) ──────────────────────────────────────────────────────
@@ -1354,52 +1290,6 @@ export interface ApplicationStrategyResult {
   application_sequence: ApplicationSequenceWeek[];
   daily_action_plan: ApplicationDailyAction[];
   risk_assessment: ApplicationRiskAssessment;
-}
-
-// ─── City × Industry Fit ─────────────────────────────────────────────────────
-
-export interface FitBreakdown {
-  skill_match: number;
-  career_ceiling: number;
-  cost_sustainability: number;
-  constraint_satisfaction: number;
-}
-
-export interface FitMatrixItem {
-  city: string;
-  industry: string;
-  fit_score: number;
-  fit_breakdown: FitBreakdown;
-  evidence_basis: string[];
-}
-
-export interface CostOfLivingItem {
-  city: string;
-  typical_salary_range: string;
-  housing_cost_note: string;
-  purchasing_power_note: string;
-}
-
-export interface IndustryHubItem {
-  city: string;
-  key_companies: string[];
-  cluster_effect: string;
-  career_ceiling: string;
-}
-
-export interface CityIndustryFitResult {
-  summary: string;
-  confidence: 'high' | 'medium' | 'low' | 'insufficient';
-  evidence_used: Array<{ field: string; value: string; relevance: string }>;
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-  fit_matrix: FitMatrixItem[];
-  cost_of_living_impact: CostOfLivingItem[];
-  industry_hub_analysis: IndustryHubItem[];
-  recommendation: string;
 }
 
 // ─── Credit 系统 ──────────────────────────────────────────────────────────────

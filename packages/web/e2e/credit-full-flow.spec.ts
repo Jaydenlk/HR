@@ -268,20 +268,20 @@ test.describe('B. Admin充值流程', () => {
 // ── C. 402链路 ───────────────────────────────────────────────────────────────
 
 test.describe('C. 402链路', () => {
-  test('C1. 前端salary页面加载正常(非白屏)', async ({ page }) => {
+  test('C1. 前端offer-comparator页面加载正常(非白屏)', async ({ page }) => {
     const token = tokens['zero'];
     if (!token) { test.skip(); return; }
 
     await setToken(page, token);
-    await page.goto(`${BASE_URL}/salary`);
+    await page.goto(`${BASE_URL}/offer-comparator`);
     await page.waitForTimeout(2000);
 
     const bodyText = await page.locator('body').textContent() ?? '';
     expect(bodyText).not.toBe('');
     expect(bodyText).not.toContain('Application error');
 
-    await page.screenshot({ path: 'playwright-report/C1-salary-page-loaded.png' });
-    console.log('C1 PASS: salary页面正常加载(非白屏)');
+    await page.screenshot({ path: 'playwright-report/C1-offer-comparator-page-loaded.png' });
+    console.log('C1 PASS: offer-comparator页面正常加载(非白屏)');
   });
 
   test('C2. API级:余额0 → 402 + "点数不足，请联系管理员充值"(来自Jest e2e)', async () => {

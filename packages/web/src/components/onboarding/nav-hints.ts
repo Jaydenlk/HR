@@ -20,7 +20,6 @@ export const NAV_HINTS: Record<string, string> = {
   career: '画出你这个职业要哪些能力,你现在差在哪,一目了然。',
   'learning-roadmap': '根据你的目标岗位,给你排一条该学什么的清单。',
   'follow-up': '面试或投递后,想好该怎么跟 HR 礼貌跟进。',
-  salary: '查这个岗位大概给多少钱,谈薪心里有数。',
   'offer-comparator': '拿到几个 offer 拿不定主意?把它们摆一起逐项对比。',
   'industry-trend': '看你关心的行业最近什么风向,聊天面试都用得上。',
   // 顶部 CTA

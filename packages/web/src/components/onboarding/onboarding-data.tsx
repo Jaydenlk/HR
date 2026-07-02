@@ -36,7 +36,6 @@ export const DEMO_AUX: readonly { id: string; icon: string; title: string; desc:
   { id: 'cover', icon: 'coverLetter', title: '写求职信', desc: '按岗位生成,顺手写内推话术' },
   { id: 'tracker', icon: 'tracker', title: '投递追踪', desc: '投了哪家到哪步了,不用 Excel 记' },
   { id: 'monthly', icon: 'monthly', title: '看月刊面经', desc: '每月行情 + 真实面经,面试前翻翻有底' },
-  { id: 'salary', icon: 'salary', title: '查薪资', desc: '这个岗大概给多少,谈薪有数' },
   { id: 'route', icon: 'route', title: '学习路线', desc: '目标岗要补什么,排一条清单' },
 ] as const;
 

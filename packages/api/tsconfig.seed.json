@@ -5,5 +5,5 @@
     "module": "commonjs",
     "moduleResolution": "node"
   },
-  "include": ["src/seed.ts", "src/salary/**/*", "src/feed/**/*", "src/users/**/*"]
+  "include": ["src/seed.ts", "src/feed/**/*", "src/users/**/*"]
 }

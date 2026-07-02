@@ -23,8 +23,6 @@ const { User } = require('./users/entities/user.entity') as { User: typeof impor
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { InviteCode } = require('./invites/entities/invite-code.entity') as { InviteCode: typeof import('./invites/entities/invite-code.entity').InviteCode };
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { SalaryEntry } = require('./salary/entities/salary-entry.entity') as { SalaryEntry: typeof import('./salary/entities/salary-entry.entity').SalaryEntry };
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { FeedItem } = require('./feed/entities/feed-item.entity') as { FeedItem: typeof import('./feed/entities/feed-item.entity').FeedItem };
 
 function loadDotenvIfPresent(envPath: string): void {
@@ -72,23 +70,6 @@ function buildSeedOptions(): DataSourceOptions {
     synchronize: false,
     logging: false,
   };
-}
-
-interface SalaryRecord {
-  company: string;
-  role: string;
-  location: string;
-  offer_level: string;
-  base_salary: number;
-  salary_months: number;
-  bonus_months: number;
-  signing_bonus: number;
-  stock_value: number;
-  housing_subsidy: number;
-  total_comp: number;
-  level: string;
-  source: string;
-  data_year: string;
 }
 
 interface InterviewRecord {
@@ -193,38 +174,6 @@ async function seed() {
       );
       console.log(`Created bootstrap invite code ${initialCode} (max_uses=${maxUses})`);
     }
-  }
-
-  // ── 1. Seed salary_entries ───────────────────────────────────────────────
-  const salaryRepo = ds.getRepository(SalaryEntry);
-  const existingSalaryCount = await salaryRepo.count({ where: { source: 'market' as 'self' } });
-
-  if (existingSalaryCount > 0) {
-    console.log(`Skipping salary seed — already have ${existingSalaryCount} market entries`);
-  } else {
-    const salaryDataPath = path.join(dataRoot, 'salary_data.json');
-    const salaryData: SalaryRecord[] = JSON.parse(fs.readFileSync(salaryDataPath, 'utf-8'));
-
-    const salaryEntities = salaryData.map((rec) => {
-      const entry = salaryRepo.create({
-        // 市场数据无投稿用户,挂系统用户名下(FK 有效)。
-        user_id: SYSTEM_USER_ID,
-        company: rec.company,
-        role: rec.role,
-        location: rec.location,
-        base_salary: rec.base_salary,
-        // Approximate annual bonus from bonus_months
-        bonus: Math.round(rec.base_salary * (rec.bonus_months ?? 0)),
-        stock_value: rec.stock_value ?? 0,
-        total_comp: rec.total_comp,
-        level: rec.level,
-        source: 'market' as 'self',
-      });
-      return entry;
-    });
-
-    await salaryRepo.save(salaryEntities);
-    console.log(`Seeded ${salaryEntities.length} salary entries`);
   }
 
   // ── 2. Seed feed_items (interview experiences) ────────────────────────────
