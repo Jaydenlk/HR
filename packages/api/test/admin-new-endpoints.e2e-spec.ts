@@ -119,7 +119,7 @@ describe('Admin 新端点 三测 (e2e)', () => {
     ]);
     await usageRepo.save([
       usageRepo.create({ user_id: otherUserId, endpoint: '/api/diagnoses' }),
-      usageRepo.create({ user_id: userId, endpoint: '/api/salary' }),
+      usageRepo.create({ user_id: userId, endpoint: '/api/applications/strategy' }),
     ]);
 
     // bulkUser 塞 250 条流水(验证 limit clamp ≤200)。
@@ -263,7 +263,7 @@ describe('Admin 新端点 三测 (e2e)', () => {
         const extra = Object.keys(tx).filter((k) => !ALLOWED.has(k));
         expect({ extra, note: tx.note }).toEqual({ extra: [], note: tx.note });
       }
-      // 仅 other 的备注,绝不出现 user 自己的端点 /api/salary 流水(user 无 salary credit tx,这里反证不串)。
+      // 仅 other 的备注,绝不出现 user 自己的端点 /api/applications/strategy 流水(user 无该 credit tx,这里反证不串)。
       const notes = (res.body.items as { note: string | null }[]).map((t) => t.note);
       expect(notes).toContain('other-tx-1');
       expect(notes).toContain('other-grant');

@@ -36,7 +36,6 @@ export interface UserIntelligence {
   diagnosis_patterns: { hit: string[]; miss: string[] };
   tasks: Evidence[];
   feed_relevant: Evidence[];
-  salary_context: Evidence[];
   companies_of_interest: string[];
   interviews: Evidence[];
   interview_patterns: {

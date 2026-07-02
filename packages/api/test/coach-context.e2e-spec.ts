@@ -100,7 +100,6 @@ describe('CoachContextService', () => {
       diagnosis_patterns: { hit: [], miss: [] },
       tasks: [],
       feed_relevant: [],
-      salary_context: [],
       interviews: [],
       interview_patterns: {
         companies_interviewed: [],

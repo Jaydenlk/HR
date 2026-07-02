@@ -20,7 +20,6 @@ import { TasksModule } from './tasks/tasks.module';
 import { OverviewModule } from './overview/overview.module';
 import { MockModule } from './mock/mock.module';
 import { CoverLettersModule } from './cover-letters/cover-letters.module';
-import { SalaryModule } from './salary/salary.module';
 import { CareerModule } from './career/career.module';
 import { FeedModule } from './feed/feed.module';
 import { OpportunityModule } from './opportunity/opportunity.module';
@@ -100,7 +99,6 @@ import { AnnouncementsModule } from './announcements/announcements.module';
     OverviewModule,
     MockModule,
     CoverLettersModule,
-    SalaryModule,
     CareerModule,
     FeedModule,
     OpportunityModule,

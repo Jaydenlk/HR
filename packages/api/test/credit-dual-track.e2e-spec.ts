@@ -20,17 +20,16 @@ import { request } from './test-utils';
 
 let failMode = false;
 
-const SALARY_RESULT = {
+const STRATEGY_RESULT = {
   summary: '双轨测试',
   confidence: 'low',
-  salary_range: {
-    p25: 20000, p50: 25000, p75: 30000,
-    unit: 'monthly_rmb', year: '2025', city: '上海', role: '前端工程师', grade: 'B', freshness: 'stale',
-  },
-  data_sources: [{ source_name: '拉勾', grade: 'B', url: 'https://www.lagou.com', date: '2025-01' }],
-  comparison: [{ dimension: '中位数', value: '约25k/月', grade: 'B' }],
+  evidence_used: [{ source: 'user_profile', content: '前端工程师，3年经验' }],
   recommendations: ['核实'], risks: ['偏差'], next_actions: ['验证'],
-  follow_up_questions: [], cannot_determine: [], data_freshness: 'stale',
+  follow_up_questions: [], cannot_determine: [],
+  target_company_tiers: [],
+  application_sequence: [],
+  daily_action_plan: [],
+  risk_assessment: { main_risks: [], mitigation: [] },
 };
 
 const mockAiService = {
@@ -39,7 +38,7 @@ const mockAiService = {
     if (failMode) {
       return Promise.reject(new ServiceUnavailableException('AI 不可用(测试注入)'));
     }
-    return Promise.resolve(SALARY_RESULT);
+    return Promise.resolve(STRATEGY_RESULT);
   }),
 };
 
@@ -108,9 +107,9 @@ describe('双轨计账 — credit + ai_usage (e2e)', () => {
 
     // 调用 AI 端点
     const res = await request(app.getHttpServer())
-      .post('/api/salary/analyze')
+      .post('/api/applications/strategy')
       .set('Authorization', `Bearer ${token}`)
-      .send({ role: '前端工程师', city: '上海' });
+      .send({ user_profile: '前端工程师，3年经验，熟悉 React 与工程化。' });
     expect(res.status).toBe(201);
 
     // 等待拦截器异步写入(consume + ai_usage 均为 fire-and-forget)
@@ -141,9 +140,9 @@ describe('双轨计账 — credit + ai_usage (e2e)', () => {
 
     failMode = true;
     const res = await request(app.getHttpServer())
-      .post('/api/salary/analyze')
+      .post('/api/applications/strategy')
       .set('Authorization', `Bearer ${token}`)
-      .send({ role: '前端工程师', city: '上海' });
+      .send({ user_profile: '前端工程师，3年经验，熟悉 React 与工程化。' });
     expect(res.status).toBe(503);
 
     await new Promise((r) => setTimeout(r, 200));

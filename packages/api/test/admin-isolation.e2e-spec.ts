@@ -117,11 +117,11 @@ describe('Admin 隔离对抗 (e2e)', () => {
       usageRepo.create({ user_id: otherUserId, endpoint: '/api/diagnoses' }),
       usageRepo.create({ user_id: otherUserId, endpoint: '/api/diagnoses' }),
       usageRepo.create({ user_id: otherUserId, endpoint: '/api/conversations' }),
-      usageRepo.create({ user_id: userId, endpoint: '/api/salary' }),
+      usageRepo.create({ user_id: userId, endpoint: '/api/applications/strategy' }),
     ]);
     await creditTxRepo.save([
       creditTxRepo.create({ user_id: otherUserId, delta: -1, type: 'consume', balance_after: 49, endpoint: '/api/diagnoses', note: null, created_by: null }),
-      creditTxRepo.create({ user_id: userId, delta: -1, type: 'consume', balance_after: 49, endpoint: '/api/salary', note: null, created_by: null }),
+      creditTxRepo.create({ user_id: userId, delta: -1, type: 'consume', balance_after: 49, endpoint: '/api/applications/strategy', note: null, created_by: null }),
     ]);
 
     // ops_events 里塞一条含「模拟敏感字段」的 ADMIN_ACTION,用于 error-stream / ops-events 白名单断言。
@@ -265,8 +265,8 @@ describe('Admin 隔离对抗 (e2e)', () => {
       expect(res.body.aiCallsTotal).toBe(3);
       expect(res.body.creditConsumeTotal).toBe(1);
       const epSet = new Set((res.body.aiCallsByEndpoint as { endpoint: string }[]).map((r) => r.endpoint));
-      // 绝不能出现 user(非 other)专属的 /api/salary 端点 → 证明无跨用户串数据。
-      expect(epSet.has('/api/salary')).toBe(false);
+      // 绝不能出现 user(非 other)专属的 /api/applications/strategy 端点 → 证明无跨用户串数据。
+      expect(epSet.has('/api/applications/strategy')).toBe(false);
       expect(epSet.has('/api/diagnoses')).toBe(true);
 
       const ALLOWED = new Set([
@@ -279,14 +279,14 @@ describe('Admin 隔离对抗 (e2e)', () => {
       assertNoForbiddenKeysDeep(res.body, 'user-activity');
     });
 
-    it('/admin/user-activity 换查 user 自身 → 只含 user 的端点(/api/salary),不含 other 的 /api/diagnoses', async () => {
+    it('/admin/user-activity 换查 user 自身 → 只含 user 的端点(/api/applications/strategy),不含 other 的 /api/diagnoses', async () => {
       const res = await request(app.getHttpServer())
         .get(`/api/admin/user-activity?userId=${userId}`)
         .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(res.body.userId).toBe(userId);
       const epSet = new Set((res.body.aiCallsByEndpoint as { endpoint: string }[]).map((r) => r.endpoint));
-      expect(epSet.has('/api/salary')).toBe(true);
+      expect(epSet.has('/api/applications/strategy')).toBe(true);
       expect(epSet.has('/api/conversations')).toBe(false);
     });
 

@@ -147,11 +147,11 @@ test.describe('Credit 402 全局拦截(剧本 4 前端)', () => {
   });
 
   test('余额不足时调用 AI 端点 → 页面出现"点数不足"提示,非白屏', async ({ page }) => {
-    // salary 页加载验证(非白屏 / 非错误页)。
+    // offer-comparator 页加载验证(非白屏 / 非错误页)。
     // 注:将余额真正置 0 需消耗 50 次 AI 调用,不在前端 UI 验收范围;
     // API 层 402 + "点数不足"文案由 credit.e2e-spec.ts 覆盖。
     await setLocalStorageToken(page, token);
-    await page.goto(`${BASE_URL}/salary`);
+    await page.goto(`${BASE_URL}/offer-comparator`);
 
     // 等待页面加载
     await page.waitForTimeout(2000);
@@ -161,6 +161,6 @@ test.describe('Credit 402 全局拦截(剧本 4 前端)', () => {
     expect(bodyText).not.toBe('');
     expect(bodyText).not.toContain('Application error');
 
-    await page.screenshot({ path: 'playwright-report/salary-page-loaded.png' });
+    await page.screenshot({ path: 'playwright-report/offer-comparator-page-loaded.png' });
   });
 });

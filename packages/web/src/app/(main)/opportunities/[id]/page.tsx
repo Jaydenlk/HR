@@ -39,7 +39,6 @@ const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
 
 const EVIDENCE_KIND_LABELS: Record<EvidenceKind, string> = {
   resume_match: '简历匹配',
-  salary_data: '薪资数据',
   feed_item: '情报来源',
   diagnosis_history: '诊断历史',
   market_signal: '市场信号',

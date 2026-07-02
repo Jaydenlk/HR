@@ -1,6 +1,6 @@
 /**
  * Credit 计费体系 e2e:CreditGuard(402)/ CreditInterceptor(成功扣 1、失败不扣)/ 注册赠送 /
- * /me 三端点 / 管理员充值。受测 AI 端点用 /api/salary/analyze(已挂 CreditGuard + 双拦截器)。
+ * /me 三端点 / 管理员充值。受测 AI 端点用 /api/applications/strategy(已挂 CreditGuard + 双拦截器)。
  *
  * AiService 被 mock:failMode=false → 201(成功,扣 1);failMode=true → 503(失败,不扣)。
  */
@@ -16,17 +16,16 @@ import { request } from './test-utils';
 
 let failMode = false;
 
-const ANALYSIS_RESULT = {
-  summary: '测试用薪资分析结果。',
+const STRATEGY_RESULT = {
+  summary: '测试用投递策略结果。',
   confidence: 'low',
-  salary_range: {
-    p25: 22000, p50: 27000, p75: 31000,
-    unit: 'monthly_rmb', year: '2025', city: '北京', role: '后端工程师', grade: 'B', freshness: 'stale',
-  },
-  data_sources: [{ source_name: 'BOSS直聘', grade: 'B', url: 'https://www.zhipin.com', date: '2025-01' }],
-  comparison: [{ dimension: '中位数', value: '约27k/月', grade: 'B' }],
+  evidence_used: [{ source: 'user_profile', content: '后端工程师，3年经验' }],
   recommendations: ['核实'], risks: ['偏差'], next_actions: ['验证'],
-  follow_up_questions: [], cannot_determine: [], data_freshness: 'stale',
+  follow_up_questions: [], cannot_determine: [],
+  target_company_tiers: [],
+  application_sequence: [],
+  daily_action_plan: [],
+  risk_assessment: { main_risks: [], mitigation: [] },
 };
 
 const mockAiService = {
@@ -35,7 +34,7 @@ const mockAiService = {
     if (failMode) {
       return Promise.reject(new ServiceUnavailableException('AI 服务暂时不可用(测试注入)。'));
     }
-    return Promise.resolve(ANALYSIS_RESULT);
+    return Promise.resolve(STRATEGY_RESULT);
   }),
 };
 
@@ -53,9 +52,9 @@ async function register(app: INestApplication, email: string, name: string): Pro
 
 function callAnalyze(app: INestApplication, token: string) {
   return request(app.getHttpServer())
-    .post('/api/salary/analyze')
+    .post('/api/applications/strategy')
     .set('Authorization', `Bearer ${token}`)
-    .send({ role: '后端工程师', city: '北京' });
+    .send({ user_profile: '后端工程师，3年经验，熟悉 Node.js 与分布式系统。' });
 }
 
 describe('Credit 计费体系 (e2e)', () => {
@@ -112,8 +111,8 @@ describe('Credit 计费体系 (e2e)', () => {
   describe('CreditGuard / CreditInterceptor', () => {
     it('无 JWT 调 AI 端点 → 401(Jwt 先于 Credit)', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/salary/analyze')
-        .send({ role: '后端工程师', city: '北京' });
+        .post('/api/applications/strategy')
+        .send({ user_profile: '后端工程师，3年经验，熟悉 Node.js 与分布式系统。' });
       expect(res.status).toBe(401);
     });
 
@@ -146,7 +145,7 @@ describe('Credit 计费体系 (e2e)', () => {
       expect(consumes).toHaveLength(1);
       expect(consumes[0].delta).toBe(-1);
       expect(consumes[0].balance_after).toBe(49);
-      expect(consumes[0].endpoint).toBe('/api/salary/analyze');
+      expect(consumes[0].endpoint).toBe('/api/applications/strategy');
     }, 30000);
 
     it('失败调用(AI 503)不扣点、不产生 consume 流水', async () => {
@@ -208,7 +207,7 @@ describe('Credit 计费体系 (e2e)', () => {
       // 倒序:最近的 consume 在前。
       expect(res.body.items[0].type).toBe('consume');
       expect(res.body.items[0].delta).toBe(-1);
-      expect(res.body.items[0].endpoint).toBe('/api/salary/analyze');
+      expect(res.body.items[0].endpoint).toBe('/api/applications/strategy');
       expect(res.body.items[1].type).toBe('signup_grant');
       // 不暴露 created_by/user_id。
       expect(res.body.items[0]).not.toHaveProperty('created_by');

@@ -26,8 +26,6 @@ const ENDPOINT_LABELS: Record<string, string> = {
   '/interview-prep/tech-coach': '技术准备',
   '/interview-prep/case-coach': '案例练习',
   '/follow-up/generate': '跟进消息',
-  '/salary/analyze': '薪资分析',
-  '/salary/city-industry-fit': '城市适配',
   '/offer-comparator/compare': 'Offer 比对',
   '/learning-roadmap/build': '学习路线',
   '/industry-trend/analyze': '行业趋势',

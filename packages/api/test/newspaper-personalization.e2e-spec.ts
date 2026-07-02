@@ -25,7 +25,6 @@ import { Department } from '../src/feed/entities/department.entity';
 import { RoleCategory } from '../src/feed/entities/role-category.entity';
 import { CoverageMetric } from '../src/feed/entities/coverage-metric.entity';
 import { DigestRun } from '../src/feed/entities/digest-run.entity';
-import { SalaryEntry } from '../src/salary/entities/salary-entry.entity';
 import { Conversation } from '../src/conversations/entities/conversation.entity';
 import { Message } from '../src/conversations/entities/message.entity';
 import { Interview } from '../src/interviews/entities/interview.entity';
@@ -51,7 +50,6 @@ const ALL_ENTITIES = [
   CoverageMetric,
   DigestRun,
   FeedItem,
-  SalaryEntry,
   Conversation,
   Message,
   Interview,
