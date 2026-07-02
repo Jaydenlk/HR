@@ -29,7 +29,7 @@
 1. `packages/web/src/app/(main)/layout.tsx`:重写导航构建(四模块结构替换 buildMainNav/buildToolNav)。
 2. 删除目录:`packages/web/src/app/(main)/learning-roadmap/`、`(main)/industry-trend/`、`(main)/follow-up/`。
 3. 删除后端模块:`packages/api/src/learning-roadmap/`、`packages/api/src/industry-trend/`;从 `app.module.ts` 移除注册;全仓 grep 清理对这两模块的引用(credit 配置、计费枚举、admin 面板、类型定义)。
-4. 全仓 grep 三个被删路由(`/learning-roadmap`、`/industry-trend`、`/follow-up`)的跳转引用(today 页、overview 页、chat handoff-card、公告等),逐个删除或改指向。
+4. 全仓 grep 三个被删路由(`/learning-roadmap`、`/industry-trend`、`/follow-up`)的跳转引用(today 页、overview 页、chat handoff-card、公告等),逐个删除或改指向。**审计校准(audit m9)已点名的硬编码位**:`chat.service.ts:59` 系统 prompt「站内能力地图」里的两个被删路由、`me/page.tsx:32-33`、`nav-hints.ts:21/25`——验收 grep 范围必须覆盖**后端 AI prompt 文件**,不能只搜前端跳转代码(否则 AI 会继续给用户推荐已删除的页面)。
 
 ## 派工方案
 

@@ -37,13 +37,24 @@
 - 每个聚合区块带"关联已有记录"选择器(手动 link)。
 - 空状态文案诚实:"暂无关联记录",不放假数据。
 
+## 审计校准(2026-07-02,编号对应 CODE-AUDIT-2026-07-02.md)
+**数据打通增补(并入第 1 节执行,全是真越权洞,不是锦上添花):**
+- cover_letters:generate/regenerate 写入 application_id 时补归属校验,比照 `follow-up.service.ts:187-199` 模式,CoverLettersModule 需引入 ApplicationsModule——**只加外键堵不住 IDOR**,外键只保证目标行存在不保证属于自己(B2/M12)。
+- interviews:create/update 写入 application_id 同样零校验,一并补(B4/M2);interviews 的 GET 端点补 DTO 白名单投影或收窄 relations,堵住"伪造 application_id 回读他人投递 notes/薪资/内推人"的隐私泄露路径(B4)。
+**前端增补(并入第 4 节执行):**
+- 详情页补「删除投递」操作——后端 DELETE 带归属校验已就绪,前端一直零入口(m13)。
+- StrategyPanel 用页面已拉取的投递列表预填"当前在投公司",不让用户重打一遍(m8)。
+- 跟进消息面板生成时把 company/role/stage 真实值填入上下文,终结"裸 UUID 塞 prompt"(m10)。
+- 投递阶段中文标签抽 `lib/tracker-stages.ts` 共享(已复制 6 处,含 onboarding-surfaces;M18)。
+- 求职信联动:生成表单补简历选择器传 resume_id——后端防编造双分支早已就绪,前端 TODO 与现状不符(M11/M21);从详情页进入的场景顺带传 application_id。
+
 ## 派工方案
 
 **编排:一条 dynamic workflow** — stage1: A 后端 → stage2: B 前端(串行,依赖 API 形状)→ stage3: C(e2e/IDOR/Playwright)与 D(审计)**并行扇出** → 汇总。
 
 **Agent A(implementer,Sonnet,worktree)** — 后端,prompt:
 ```
-任务:按 docs/refactor2/T5-application-detail.md 设计定稿 1-3 实现数据打通+聚合+link API。
+任务:按 docs/refactor2/T5-application-detail.md 设计定稿 1-3 + 审计校准节实现数据打通+聚合+link API(写入路径的归属校验与 GET 投影是验收硬项)。
 必读输入:该文档;applications 模块全部;mock.service.ts L360 附近写入逻辑;applications.service.ts assertOwnedRefs;T6 的 company_research 实体。
 禁止触碰:前端;AI 服务;diagnoses。
 硬规则:migration 手写且全部 nullable 零回填;link 双向归属校验缺一不可;归一化函数与 T6 共用一个 util,不许复制粘贴两份。

@@ -35,6 +35,12 @@
 ### 5. 与 T3 的协同(本任务只留钩子)
 `recruit_events` 就是职业维基「入行层-校招信号」的一手源之一;本任务不做维基侧消费,只保证 `recruit_events` 表结构含 `role_hint` 字段可供未来按职业族聚合。
 
+## 审计校准(2026-07-02,编号对应 CODE-AUDIT-2026-07-02.md)
+- **摘 C 端计费(M7)**:`feed/import`、`feed/digest` 是管理员运营操作,摘掉 CreditGuard+CreditInterceptor,不扣管理员个人点数;本任务新增的源管理端点一律不挂 C 端计费。
+- **权限门 UI(M8)**:/digest 页的导入按钮与来源状态区对普通用户隐藏(后端 GET /feed/sources、/feed/runs 的 AdminGuard 已由 T4 先行补上,本任务做前端门)。
+- **digest 生成器接活(M9)**:`POST /feed/digest` 周刊生成实现完整但全仓无任何触发路径(建成即弃)。本任务把它接进周更流程/每期月刊生成;若新设计确认不需要则连 digest-generator.service.ts 一起删——二选一,不留孤儿。
+- **投稿删除入口(m23)**:面经条目补前端删除按钮(后端 DELETE /feed/:id 归属校验已就绪)。
+
 ## 派工方案
 
 **编排:一条 dynamic workflow** — stage0: Agent 0 侦察 → stage1: A 后端(三适配器可在 A 内部并行小分队,前提文件不相交)→ stage2: B 前端 → stage3: C(e2e/Playwright)与 D(审计)**并行扇出** → 汇总。
@@ -42,7 +48,7 @@
 **Agent 0(explorer,Sonnet,只读)** — 前置侦察:feed 模块 source 类型体系/抓取调度机制/runs 记录方式/digest 生成钩子,产出接入点坐标清单(file:line)。
 **Agent A(implementer,Sonnet,worktree)** — 后端:适配器×3 + recruit_events + GLM 解析 + 去重 + 周 cron。prompt:
 ```
-任务:按 docs/refactor2/T2-recruit-intel.md 设计定稿 1-3 实现校招情报摄入流水线。
+任务:按 docs/refactor2/T2-recruit-intel.md 设计定稿 1-3 + 审计校准节实现校招情报摄入流水线。
 必读输入:该文档;Agent 0 的接入点清单;feed 模块相关文件;AiService 调用范式(找一个现有 GLM 调用照抄结构)。
 禁止触碰:newspaper 前端;其他模块。
 硬规则:解析经 AiService;缺失字段 null 不许编;migration 手写;sheet_link 抓不到就降级提示,不搞反爬对抗。

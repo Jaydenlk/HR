@@ -8,7 +8,7 @@
 - 前端 `(main)/mock/page.tsx:495-507` 只展示这 1 条让用户点"是/不是",用户没机会看到其他候选。
 - 无任何消歧:不给 AI 多候选、不用简历/JD 上下文二次匹配。
 - 调优药方已有文档但从未落地:`docs/part5-bocha-tuning-obscure-2026-06-26.md`(天眼查/企查查强召回 + 上下文二次匹配 + count 提升 + 多候选级联)。实现前必读。
-- 两处独立实现:mock 的 company-search + industry-trend 的 industry-bocha(后者已随 T1 删除)。
+- 两处独立实现:mock 的 company-search + industry-trend 的 industry-bocha(后者**将**随 T1 删除;按 00 总纲顺序 T1 在 T6 之前执行,撰写本文时文件仍在仓库,audit m5 勘误)。
 - `ai-search` 端点该 key 403 无套餐,只用 `web-search`。
 
 ## 设计定稿
@@ -45,13 +45,19 @@
 4. `packages/web/src/app/(main)/mock/page.tsx`:公司确认 UI 改多候选点选(雷达列表+都不是兜底)。
 5. GLM 上下文匹配 prompt 走 AiService(不直连供应商)。
 
+## 审计校准(2026-07-02,编号对应 CODE-AUDIT-2026-07-02.md)
+- **防伪造(M3,安全硬项)**:公司确认环节改为前端回传**候选 id/hash**,后端按 id 查库取真实候选拼 prompt;禁止信任前端回传的 name/summary/source_url 原文——现状可绕过前端伪造"已核实"公司背景注入防编造 prompt。
+- **降级透传(m6)**:候选/降级返回结构带 reason(no_key/timeout/error),前端区分"真没搜到"与"搜索服务暂时不可用"两种文案,不再一律说没搜到。
+- **边界(m12)**:company_research 的归一化只服务公司搜索缓存,**不吞并** feed 的 CompanyRegistryService 白名单匹配——不许施工中"顺手统一"成第三套逻辑。
+- **节流联动(m3,与 T4 协同)**:count 升 10 + 两路查询落地时,company-check 端点的专属节流必须同步落地,成本与博查计费相称。
+
 ## 派工方案
 
 **编排:一条 dynamic workflow** — stage1: A 后端(串行)→ stage2: B 前端(依赖 A 的 API 形状,串行)→ stage3: C(jest e2e + Playwright)与 D(审计)**并行扇出** → 汇总。
 
 **Agent A(implementer,Sonnet,worktree)** — 后端,prompt:
 ```
-任务:按 docs/refactor2/T6-bocha-search.md 设计定稿 1-5 实现统一公司搜索服务。
+任务:按 docs/refactor2/T6-bocha-search.md 设计定稿 1-5 + 审计校准节实现统一公司搜索服务(候选 id 回传防伪造是验收硬项)。
 必读输入:该文档;docs/part5-bocha-tuning-obscure-2026-06-26.md;packages/api/src/mock/company-search.service.ts(现状);mock.service.ts;concurrency/credit 现有守卫用法。
 禁止触碰:ai.service.ts 流式部分、限流器、diagnoses 模块。
 硬规则:缓存只认归一化名精确相等;候选不截断;博查降级语义({available:false})保持;migration 手写。
