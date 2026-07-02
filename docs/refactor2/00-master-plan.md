@@ -56,7 +56,7 @@
 | T6 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
 | T5 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
 | T2 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
-| T4 | ✅ | ☐(先审计后修) | ☐ | ☐ | ☐ | ☐ |
+| T4 | ✅ | ◐ H0已合并 / S0+D1待 | ◐ H0✅ | ◐ H0✅ | ◐ H0✅(c02ed37) | ☐ |
 | T3 | ✅ | ☐(先焊schema) | ☐ | ☐ | ☐ | ☐ |
 
 ## 执行进展与已知问题(2026-07-02 自主执行,Fable 值守)
@@ -70,10 +70,12 @@
 - ✅ **已修(commit 30ad455 → 合并 a81a2be)**:种子改为动态取当前季度(import 产品同一套 `radar-helpers.getCurrentQuarter`)。验证:newspaper.e2e 61/61 绿;**全量 e2e 1115 passed / 0 failed(基线彻底转绿)**——此后各任务的 e2e 门判据不再被污染。纯测试改动→Playwright 门 N/A(无前端/用户可见变更);合并后审计由集成者 git 核验代行(纯测试+clean merge 无代码交互面,不派 agent 免通胀)。
 - 附:t4-s0-d1 危险区实现阶段已升 opus(commit 4863be4;曾因并发误落 fix 分支,已 rescue 保全+cherry-pick 归位 dev)。
 
-**🔄 T4-H0 头像热修:进行中(第1次撞配额,已复位待续)**
-- 2026-07-02 深夜首跑 `t4-h0-avatar.js`:recon 完成,impl 改到一半(me.service/users.service/me页/resume清file_url/credit断言等 9 文件)**撞 session 配额上限中止**(非质量失败,不计轮次)。半成品未验证未提交,已丢弃,分支 feat/t4-h0-avatar 已删,树复位干净 dev@1f2d257。
-- **续跑指令(下个配额窗口)**:此脚本在**主工作树**开分支干活,resume 前先确认 `feat/t4-h0-avatar` 已删、`git status` 干净(有残留 packages/ 改动就 `git restore packages/`);然后 `Workflow({scriptPath:"E:\Agent program\HRBP\docs\refactor2\workflows\t4-h0-avatar.js", resumeFromRunId:"wf_532473f9-e07"})`(recon 走缓存省 token)。前端任务→Playwright 硬门需本机 Docker postgres+端口;env 起不来则做到代码+后端门,STOP 不合并,等 env/用户。
-- 配额提示:2026-07-02 深夜配额很紧,靠 cron 每 2h 节流续跑,别在紧配额下硬灌大 impl。
+**✅ T4-H0 头像热修:已完成并合并(merge `c02ed37` ← 34c254e/9248c9d,dev+main)**
+- 修复:me.service 返回 `/files/download/<key>` 可访问 URL(复用鉴权下载路由的 assertOwner ACL,非静态挂载)、me页/layout 两处 `<img>` 接鉴权 Blob 拉取(新建 `use-authed-image.ts` hook)、清 `resume.file_url` 死字段、A3 补 `naturalWidth>0` 真断言(唯一精确定位器)。红线守住:未碰 ACL、无静态挂载、无 DROP migration。
+- 全六门通过:api e2e 1115过0败 / api build / web eslint 0错 / web build / **Playwright A3 真过(201+naturalWidth>0,13 passed 0 failed,D1/D2 是既有 429-skip)** / 残留复扫(file_url 命中仅 .claude/audit 历史文本=误报,源码零残留);workflow 内审计 + **合并后对抗审计均 PASS 零阻断**。
+- 曲折:首跑撞 session 配额中止→复位;resume 跑完但本机 coach-postgres 迁移滞后缺 file_metadata 表致 A3 报 500(非代码,jest e2e sqlite 侧同链路 21/21 绿)→收口时 `migration:run` 补齐本机库(仅应用已有的 CreateFileMetadata 等 5 个迁移,本地 dev 库非生产)→A3 因非唯一定位器 strict-mode 失败→修定位器转绿。
+- **⚠️ 部署注意(非阻断遗留)**:线上老用户 DB 里可能存旧裸 key 格式 avatar_url,部署后其 getBlob 拼出畸形 URL→静默降级文字头像(比裂图净改善、不崩),但不自动恢复旧头像、无重传提示。本次热修范围外,部署时知悉;若要恢复需另做数据处理或引导重传。
+- 现场:测试留了 coach-postgres 容器(部署前本就在跑)+ api(:3002)/web(:3001)dev 进程,后续任务的 Playwright 可复用(注意端口占用,t4-s0-d1 脚本会处理冲突)。
 
 ## 全局红线(超出即停,找用户)
 
