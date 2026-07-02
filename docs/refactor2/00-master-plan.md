@@ -1,7 +1,9 @@
 # 二次重构 · 总纲(唯一入口文档)
 
-> 本文件是二次重构的总调度台。**任何模型(尤其 Opus 4.8)接手时,先读本文件,再读 `01-dev-principles.md`,再读当前任务的 T 文档,然后才许动手。**
-> 设计已全部定稿(2026-07-02 与用户逐项确认),执行阶段**不需要再做任何架构决策**——照单派工即可。遇到文档没覆盖的决策点:停下,问用户,不许自作主张。
+> 本文件是二次重构的总调度台。**任何模型(尤其 Opus 4.8)接手时,先读本文件 → `01-dev-principles.md` → `02-execution-playbook.md`,然后按执行手册照单跑脚本即可。**
+> 设计已全部定稿(2026-07-02 与用户逐项确认),执行阶段**不需要再做任何架构决策**——每个任务已被 Fable 预制成一条可直接运行的侦察先行 workflow 脚本(在 `docs/refactor2/workflows/`),Opus 只需:跑脚本→按判据读结果→合并或升级。遇到文档没覆盖的决策点:停下,问用户,不许自作主张。
+>
+> **降级 Opus 交接铁律**:不要自己分解任务、不要自己写派工 prompt。`02-execution-playbook.md` 的「任务→脚本 索引表」是唯一执行清单,按序 `Workflow({scriptPath})` 即可;判定、合并、STOP 规则全在手册里。
 
 ## 窗口约定
 
@@ -57,6 +59,16 @@
 | T4 | ✅ | ☐(先审计后修) | ☐ | ☐ | ☐ | ☐ |
 | T3 | ✅ | ☐(先焊schema) | ☐ | ☐ | ☐ | ☐ |
 
+## 执行进展与已知问题(2026-07-02 自主执行,Fable 值守)
+
+**已完成(仅到 dev,未部署)**
+- 薪资雷达模块整删:合并 dev `b5ef6ff`(← 3f4d740),已推 dev+main。独立审计 PASS;`salary_entries` 表按红线保留未 drop(要不要清表等用户点头);同名 `salary_range` 等零误伤;intelligence 的 `salary_context` 证据链一并摘除;credit e2e 受测端点改用 `/api/applications/strategy`。遗留死枚举值 `EVIDENCE_KINDS.'salary_data'` / `source_type.'salary'`(纯类型死值,不阻断,可并入 T4 清理批)。
+
+**⚠️ 开工首修(阻断所有任务的 e2e 质量门,不属任何单个 T)**
+- `test/newspaper.e2e-spec.ts` 4 条失败(insight_cards.why_read / total_count / radar quarter=current / 2026Q2 freshness)已证实是**既有**问题:dev 基线(薪资未删)逐字节同样失败,与任何改动无关。根因=测试种子写死 `2026Q2`,而首页/雷达按"当前季度"过滤(今为 Q3),Q2 数据被全滤掉。
+  - 危害:不修则今后每个任务收 e2e 时 newspaper 恒红,Opus 分不清"我改坏的"还是"本来红的",**质量门判据失真**。
+  - 处置:**开工第一件事先修**——把 e2e 种子的 `quarter`/`published_at` 改成动态取当前季度(推荐),或用 `jest.useFakeTimers().setSystemTime(new Date('2026-05-20'))` 冻结到 Q2。独立小改,派一个实现+一个测试代理即可,不混进任何 T 分支。
+
 ## 全局红线(超出即停,找用户)
 
 - 线上有真实用户。任何 migration 前先备份(运维手册在 `E:\coach-deploy\运维手册.md`,坐标密钥不在仓库);postgres 容器/数据卷永不触碰重建。
@@ -71,7 +83,7 @@
 2. T4-D8:阿里云老站下线,需用户点头。
 3. T3:注册表 v1 与经济验证批 go/no-go,两处用户过目节点。
 4. evidence_used 拍板(audit M6):4 个 AI 功能后端每次都输出 evidence_used 字段但前端从不渲染——补渲染(强化"诚实可溯源"卖点)还是删字段(省每次调用的输出 token),二选一。
-5. 薪资记录删除(audit m20):GET/DELETE /salary/:id 从未被前端调用——保留补删除 UI,还是按"只增不删"删掉死端点。
+5. ~~薪资记录删除(audit m20)~~ **已了结**:用户 2026-07-02 拍板删整个薪资雷达模块,已执行并合并 dev(见「执行进展」)。
 6. 对话删除(audit m22):DELETE /conversations/:id 无前端入口——补按钮,还是确认不需要后归入 T4 清理批。
 
 ## 用户已拍板的关键决策(执行期不得重开讨论)

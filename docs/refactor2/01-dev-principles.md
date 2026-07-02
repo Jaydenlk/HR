@@ -15,6 +15,7 @@
 
 1. `tsc --noEmit` 不是 lint,不是测试。lint = `npx eslint src/` 0 错误;测试 = jest/Playwright 真跑真过,附原始输出。
 2. **jest 必须从 `packages/api` 目录跑**(`cd packages/api && npx jest ...`)。从仓库根跑会走 babel-jest 报 TS 语法错——这是已知坑,不是代码问题。
+   - **两套测试都要跑,漏一套=假绿(2026-07-02 校验实锤)**:单元 spec 用裸 `npx jest`(testRegex `\.spec\.ts$`);**e2e 文件以 `-spec.ts` 结尾,裸 jest 匹配不到会 0 匹配静默跳过**,必须另跑 `npx jest --config ./test/jest-e2e.json --forceExit`(等价 `npm run test:e2e`)。只跑裸 jest 会让最核心的 e2e 验收用例一条没跑却报"全部通过"。任何声称"e2e 通过"的证据必须来自带 `--config ./test/jest-e2e.json` 的那次运行。
 3. 前端验收 = Playwright 走真实用户流(点按钮、填表单),不是截图存在即通过。
 4. 汇报格式:每个 step→verify 给 PASS/FAIL + 证据(命令输出/截图路径);FAIL 不许粉饰成"minor"。
 
