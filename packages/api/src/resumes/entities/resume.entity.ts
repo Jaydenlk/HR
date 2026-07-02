@@ -26,9 +26,6 @@ export class Resume {
   parsed_json: ParsedResume | null;
 
   @Column({ nullable: true })
-  file_url: string;
-
-  @Column({ nullable: true })
   file_type: string;
 
   @Column({ default: false })

@@ -223,7 +223,7 @@ describe('Credit 计费体系 (e2e)', () => {
         .attach('file', Buffer.from([0x89, 0x50, 0x4e, 0x47]), { filename: 'a.png', contentType: 'image/png' });
       expect(res.status).toBe(201);
       expect(typeof res.body.avatar_url).toBe('string');
-      expect(res.body.avatar_url).toMatch(/^avatars\//);
+      expect(res.body.avatar_url).toMatch(/^\/files\/download\/avatars\//);
       const u = await userRepo.findOneByOrFail({ email });
       expect(u.avatar_url).toBe(res.body.avatar_url);
     }, 30000);

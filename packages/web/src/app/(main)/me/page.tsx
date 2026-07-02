@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { useAuthedImage } from '@/lib/use-authed-image';
 import type { MeProfile, CreditLedgerItem, CreditLedgerPage } from '@/lib/types';
 import { Loader2, Camera, User, Coins, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -124,6 +125,7 @@ export default function MePage() {
 
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarImage = useAuthedImage(profile?.avatar_url);
 
   // ── 加载个人信息 ──────────────────────────────────────────────────────────
   function fetchProfile() {
@@ -296,10 +298,10 @@ export default function MePage() {
                 >
                   {profileLoading ? (
                     <Skeleton width="72px" height="72px" />
-                  ) : profile?.avatar_url ? (
+                  ) : profile?.avatar_url && !avatarImage.error && avatarImage.url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={profile.avatar_url}
+                      src={avatarImage.url}
                       alt="头像"
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />

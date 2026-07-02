@@ -38,7 +38,6 @@ export interface Resume {
   title: string;
   raw_text: string;
   parsed_json: ParsedResume | null;
-  file_url: string | null;
   file_type: string | null;
   is_primary: boolean;
   created_at: string;

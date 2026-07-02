@@ -61,7 +61,8 @@ export class MeService {
   }
 
   // 头像上传:限 2MB、仅 jpeg/png/webp;复用 FilesService.upload(userId, file, 'avatars'),更新 users.avatar_url。
-  // avatar_url 存上传返回的 key(对齐简历 file_url 现行模式),返回该 key。
+  // avatar_url 存鉴权下载路径(/files/download/<key>),而非裸 key——裸 key 不含 ACL 前缀,<img src>
+  // 直接指过去会 404/裂图。此路径不含全局前缀 'api',与前端 API_BASE(已含 /api)拼装规则对齐。
   async updateAvatar(userId: string, file: Express.Multer.File | undefined): Promise<{ avatar_url: string }> {
     if (!file) {
       throw new BadRequestException('请上传头像文件(字段名 file)');
@@ -76,7 +77,8 @@ export class MeService {
       throw new BadRequestException('头像仅支持 JPEG / PNG / WebP');
     }
     const key = await this.files.upload(userId, file, 'avatars');
-    await this.users.updateAvatar(userId, key);
-    return { avatar_url: key };
+    const avatarUrl = `/files/download/${key}`;
+    await this.users.updateAvatar(userId, avatarUrl);
+    return { avatar_url: avatarUrl };
   }
 }
