@@ -184,13 +184,17 @@ test.describe('A. /me 页真数据渲染', () => {
     const uploadBody = await uploadRes.json() as { avatar_url?: string };
     expect(uploadRes.status).toBe(201);
     expect(typeof uploadBody.avatar_url).toBe('string');
-    expect(uploadBody.avatar_url).toMatch(/^avatars\//);
+    expect(uploadBody.avatar_url).toMatch(/^\/files\/download\/avatars\//);
 
     await setToken(page, token);
     await page.goto(`${BASE_URL}/me`);
     await page.waitForTimeout(2000);
+    const img = page.locator('img[alt="头像"]');
+    await img.waitFor({ state: 'visible' });
+    const naturalWidth = await img.evaluate((el) => (el as HTMLImageElement).naturalWidth);
+    expect(naturalWidth).toBeGreaterThan(0);
     await page.screenshot({ path: 'playwright-report/A3-me-page-avatar.png' });
-    console.log('A3 PASS: 头像上传201, avatar_url=', uploadBody.avatar_url);
+    console.log('A3 PASS: 头像上传201且真实渲染, avatar_url=', uploadBody.avatar_url, 'naturalWidth=', naturalWidth);
   });
 });
 

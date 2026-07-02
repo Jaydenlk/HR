@@ -55,7 +55,7 @@ export class UsersService {
     await this.repo.update({ id, terms_agreed_at: IsNull() }, { terms_agreed_at: new Date() });
   }
 
-  // 更新用户头像:存上传文件的 key(对齐简历 file_url 现行模式)。
+  // 更新用户头像:存调用方传入的可访问路径(如 /files/download/avatars/xxx.png)。
   async updateAvatar(id: string, avatarKey: string): Promise<void> {
     await this.repo.update({ id }, { avatar_url: avatarKey });
   }

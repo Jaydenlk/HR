@@ -39,7 +39,6 @@ export interface ResumeDetailResponse {
   title: string;
   raw_text: string;
   parsed_json: ParsedResume | null;
-  file_url: string | null;
   file_type: string | null;
   is_primary: boolean;
   created_at: Date;
@@ -85,7 +84,6 @@ export function toResumeDetailResponse(resume: Resume): ResumeDetailResponse {
     title: resume.title,
     raw_text: resume.raw_text,
     parsed_json: resume.parsed_json,
-    file_url: resume.file_url ?? null,
     file_type: resume.file_type ?? null,
     is_primary: resume.is_primary,
     created_at: resume.created_at,

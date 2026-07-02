@@ -14,6 +14,7 @@ import { NAV_HINTS } from '@/components/onboarding/nav-hints';
 import { AnnouncementBanner } from '@/components/ui/announcement-banner';
 import { AnnouncementModal } from '@/components/ui/announcement-modal';
 import { api } from '@/lib/api';
+import { useAuthedImage } from '@/lib/use-authed-image';
 import type { User, Conversation, Interview, Application, MeProfile } from '@/lib/types';
 import {
   CalendarDays,
@@ -131,6 +132,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
 function ShellLayoutInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const avatarImage = useAuthedImage(user?.avatar_url);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isMobile, setIsMobile] = useState(false);
@@ -452,10 +454,10 @@ function ShellLayoutInner({ children }: { children: React.ReactNode }) {
             }}
           >
             {/* Avatar */}
-            {user?.avatar_url ? (
+            {user?.avatar_url && !avatarImage.error && avatarImage.url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={user.avatar_url}
+                src={avatarImage.url}
                 alt="头像"
                 style={{
                   width: '32px',
