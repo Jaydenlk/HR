@@ -37,6 +37,16 @@
 2. **再定处置**:写明断点到 00 与记忆文件,等配额恢复后走 closeout 式续跑:①缺口审计代理(只读+跑探针)对照设计文档列 DONE/PARTIAL/MISSING;②补完代理只做缺口(危险区用 opus),增量提交;③正常验证段收口。**不许无脑从头重跑原实现段。**
 3. **t4-s0-d1 现状坐标(2026-07-03)**:半成品已抢救提交(worktree `E:\Agent program\coach-wt\t4-s0-d1`,分支 feat/t4-s0-d1-stability,commit 0722155,14 文件含 migration+smoke spec,未过质量门);快照在 `coach-wt\_snapshots\t4s0d1-20260703-1431`;续跑一律走 `t4-s0-d1-closeout.js`,不再跑原脚本的实现段。
 
+## 省配额模式:agent team(2026-07-03 用户指令,t4-s0-d1 收口之后的任务适用)
+
+weekly 配额吃紧,从 T1 起不再用 workflow 四段扇出(侦察/实现/测试/审计=每任务 4 个新模型实例),改为**常驻小队+SendMessage 续用**:
+
+- **开发代理(每任务 1 个,sonnet)**:一个代理吃下"侦察+实现+自验"全程——prompt 直接取对应 workflow 脚本里的 RECON+IMPL 段拼接(脚本仍是唯一的红线/判据来源,只是执行载体从 workflow 换成 Agent)。增量提交铁律照旧。FAIL 修复不新开代理:**SendMessage 给同一个开发代理**发失败清单定点修(它有全上下文,最省 token),≤2 轮。
+- **审计代理(全程 1 个,sonnet,跨任务复用)**:只读找茬,prompt 取脚本 REVIEW 段;每个任务收口时 SendMessage 发新任务的 diff 坐标续审。独立性靠"只读+不参与实现"保证,不靠新开实例。
+- **测试门**:优先让开发代理自验时一次跑全(它反正在现场);leader 合并前的复跑冒烟照旧亲自跑(运维不算写码)。仅当自验与审计结论冲突时才单独开测试代理仲裁。
+- **禁用项不变**:team-agent-workflow 插件(jayden-workflow hooks)仍然禁用,这里说的 agent team 是 Agent 工具+SendMessage 常驻复用,不是那个插件。
+- 判据、STOP 规则、合并规程、修复≤2轮、增量提交铁律——全部照本手册原文执行,一条不松。
+
 ## 通过判据(唯一标准)
 
 全部满足才算通过(**缺一门都不许合并 dev**,用户 2026-07-03 指令):
