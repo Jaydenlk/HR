@@ -33,6 +33,8 @@ export class ApplicationResponseDto {
   notes: string | null;
   resume_id: string | null;
   diagnosis_id: string | null;
+  resume_version_id: string | null;
+  company_research_id: string | null;
   events?: ApplicationEventResponseDto[];
   created_at: Date;
   updated_at: Date;
@@ -50,6 +52,8 @@ export class ApplicationResponseDto {
     dto.notes = application.notes ?? null;
     dto.resume_id = application.resume_id ?? null;
     dto.diagnosis_id = application.diagnosis_id ?? null;
+    dto.resume_version_id = application.resume_version_id ?? null;
+    dto.company_research_id = application.company_research_id ?? null;
     if (application.events !== undefined) {
       dto.events = application.events.map(ApplicationEventResponseDto.from);
     }
