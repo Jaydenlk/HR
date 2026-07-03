@@ -5,10 +5,12 @@ import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
 import { CreditInterceptor } from '../credit/credit.interceptor';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ApplicationsService } from './applications.service';
+import { ApplicationLinksService } from './application-links.service';
 import { StrategyService } from './strategy.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 import { ApplicationStrategyDto } from './dto/application-strategy.dto';
+import { LinkApplicationDto } from './dto/link-application.dto';
 
 @Controller('applications')
 @UseGuards(JwtAuthGuard)
@@ -16,6 +18,7 @@ export class ApplicationsController {
   constructor(
     private readonly applications: ApplicationsService,
     private readonly strategy: StrategyService,
+    private readonly links: ApplicationLinksService,
   ) {}
 
   @Post()
@@ -66,5 +69,25 @@ export class ApplicationsController {
   @Get(':id/events')
   getEvents(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.applications.getEvents(id, user.id);
+  }
+
+  // ── T5 投递详情二级页:聚合 / 手动 link / AI 建议(建议只读,不写库) ──────────────
+  @Get(':id/related')
+  getRelated(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.links.getRelated(id, user.id);
+  }
+
+  @Patch(':id/link')
+  link(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: LinkApplicationDto,
+  ) {
+    return this.links.link(id, user.id, dto);
+  }
+
+  @Get(':id/link-suggestions')
+  getLinkSuggestions(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.links.getLinkSuggestions(id, user.id);
   }
 }
