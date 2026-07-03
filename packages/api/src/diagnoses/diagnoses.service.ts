@@ -85,6 +85,13 @@ export class DiagnosesService {
   private readonly logger = new Logger(DiagnosesService.name);
   private readonly jdCache = new NodeCache({ stdTTL: 7 * 24 * 3600 });
 
+  // 「查同用户同 mode 冲突 → 落 running 行」的进程内串行锁,按 `${userId}:${mode}` 分键。
+  // 关闭并发发起的原子性空档:此前查冲突(裸 SELECT,控制器)与插 running 行(推迟到后台 fire-and-forget)
+  // 之间有异步空档,两个几乎同时的请求都在对方 INSERT 前完成 SELECT、双双放行 → 双建行、双扣费。把两步
+  // 锁进同一 per-(user,mode) 串行段后,第二个请求必在第一个 running 行落库后才查 → 命中 409。链路排空即删键,无泄漏。
+  // 生产单 Node 进程,进程内锁可靠;若未来横向扩多进程,须改用 DB 部分唯一索引兜底。
+  private readonly reserveChains = new Map<string, Promise<unknown>>();
+
   // 孤儿 running 行的惰性判死阈值(15 分钟)。健康流水线有 600s(默认)墙钟超时护栏,其自身超时
   // 处理器会在 10 分钟内把行标 failed,故一条 running 行存活超过 15 分钟只可能是【进程重启遗留的孤儿】。
   // 读取(findOne/findAllByUser)与防重复查重(findRunningConflict)时命中即就地判 failed —— 无清扫 cron。
@@ -151,9 +158,11 @@ export class DiagnosesService {
     userId: string,
     dto: CreateCampusDiagnosisDto,
     endpoint: string,
+    reserved?: { runningId?: string },
   ): AsyncIterable<DiagnosisStreamEvent> {
     // resumeId 传给 runPipeline 用于「发起即插 running 行」(ctx.resumeId 预置);skipLimiter=true
     // 贯穿所有内层 AI 调用(prepare/analyzer/rewriter)——外层 runObservable 已持槽,避免嵌套自锁(D1)。
+    // reserved:控制器路径已由 reserveRunningSlot 同步落库 running 行,透传其 id 复用(不再后台二次插)。
     return this.runPipeline(userId, dto.resume_id, endpoint, 'profession_standard', async (out, ctx) => {
       const prepared = await this.prepareProfessionStandard(userId, dto, true);
       ctx.resumeId = prepared.resume.id;
@@ -188,7 +197,7 @@ export class DiagnosesService {
       await this.repo.update(saved.id, { suggestions });
       saved.suggestions = suggestions;
       return saved;
-    });
+    }, reserved);
   }
 
   /** JD 匹配诊断 — 流式。结构同上;analyzeAgainstPreset 的对位是 analyzer.analyze。 */
@@ -196,6 +205,7 @@ export class DiagnosesService {
     userId: string,
     dto: CreateDiagnosisDto,
     endpoint: string,
+    reserved?: { runningId?: string },
   ): AsyncIterable<DiagnosisStreamEvent> {
     return this.runPipeline(userId, dto.resume_id, endpoint, 'jd_match', async (out, ctx) => {
       const prepared = await this.prepareJdMatch(userId, dto, true);
@@ -227,7 +237,7 @@ export class DiagnosesService {
       await this.repo.update(saved.id, { suggestions });
       saved.suggestions = suggestions;
       return saved;
-    });
+    }, reserved);
   }
 
   /**
@@ -249,11 +259,16 @@ export class DiagnosesService {
       out: DiagnosisEventStream<DiagnosisStreamEvent>,
       ctx: PipelineContext,
     ) => Promise<Diagnosis>,
+    reserved?: { runningId?: string },
   ): AsyncIterable<DiagnosisStreamEvent> {
     const out = new DiagnosisEventStream<DiagnosisStreamEvent>();
     // 成败记账上下文:phase 起于 preparing(解析阶段);resumeId 预置(发起即插 running 行需要它,
     // 也使落库前失败能归因到该行);savedId 由 insertRunningRow 立即填入。
     const ctx: PipelineContext = { phase: 'preparing', mode, resumeId };
+    // 控制器路径:running 行已由同步的 reserveRunningSlot 在临界区内落库(关闭并发空档),此处复用其 id、
+    // 不再后台二次插(runningId 可能为 undefined——预留时插入失败的兜底,交由失败路径补记,与既有语义一致)。
+    // 直调路径(无 reserved,如既有 e2e 直接调 streamCreate):仍由下方后台任务插 running 行,行为不变。
+    if (reserved) ctx.savedId = reserved.runningId;
     // 流水线级 abort(watchdog-v2):超时时 abort,令 runObservable 内的任务立即 reject →
     // finally 释放 limiter 槽。此前 withPipelineTimeout 用 Promise.race 只 reject 了调用方,
     // runObservable 的 task 仍 hang、finally 不跑、槽位永占。
@@ -266,7 +281,8 @@ export class DiagnosesService {
         // 之后分析落库 / markSuccess / recordFailure 全部 UPDATE 这一行(不再新插),故诊断一发起即在 DB 可见——
         // 断流或离开页面回来仍能查到进行中态并轮询至终态。插入失败(极少见,如无效 resume_id 的 FK 违规)
         // 不设 savedId,交由失败路径兜底补记(与改动前无 running 行时的行为一致)。
-        await this.insertRunningRow(userId, ctx);
+        // reserved 存在时该行已在 reserveRunningSlot 里落库(控制器路径),跳过以免二次插入。
+        if (!reserved) await this.insertRunningRow(userId, ctx);
 
         // 整体墙钟超时护栏:单 AI 调用各自有超时,但整条流水线(排队 + 多次调用)无总上限,
         // 任一环节卡死会让本后台任务永挂、占住并发槽与 SSE 连接。超时后 abort pipelineAbort →
@@ -704,6 +720,52 @@ export class DiagnosesService {
       if (!failed && !active) active = row;
     }
     return active;
+  }
+
+  /**
+   * 原子预留(S0 并发防重复):在 (userId, mode) 进程内串行锁下,原子完成「查冲突 → 落 running 行」。
+   * 命中冲突 → 返回 {conflict}(控制器据此回 409,携带其 id);否则立即落一行 status='running'(发起即在 DB 可见)
+   * 并返回 {runningId}。控制器把 runningId 透传给 streamCreate,后台流水线复用该行、不再二次插入。
+   *
+   * 为何「查 + 插」必须在同一临界区:此前查冲突(裸 SELECT,控制器)与插 running 行(推迟到后台 fire-and-forget)
+   * 之间有异步空档,两个并发请求都在对方 INSERT 前完成 SELECT、双双放行 → 双建行、双扣费。锁进同一 per-(user,mode)
+   * 串行段后,第二个请求必在第一个 running 行落库后才查 → 命中冲突。生产单 Node 进程,进程内锁可靠。
+   *
+   * 冲突判定沿用 findRunningConflict:内含惰性判死(超时孤儿先标 failed 再判),故僵尸行不会误挡新诊断。
+   * 插入失败(极少见,如 resume_id FK 违规)→ runningId 为 undefined:控制器仍启流,后台 work() 的 resumes.findOne
+   * 抛 NotFound 走失败路径,recordFailure 兜底补记(与改动前无 running 行时行为一致)。
+   */
+  async reserveRunningSlot(
+    userId: string,
+    mode: 'jd_match' | 'profession_standard',
+    resumeId: string,
+  ): Promise<{ conflict: Diagnosis } | { runningId?: string }> {
+    return this.serializeReserve(`${userId}:${mode}`, async () => {
+      const conflict = await this.findRunningConflict(userId, mode);
+      if (conflict) return { conflict };
+      const ctx: PipelineContext = { phase: 'preparing', mode, resumeId };
+      await this.insertRunningRow(userId, ctx);
+      return { runningId: ctx.savedId };
+    });
+  }
+
+  /**
+   * 按 key 进程内串行执行 task(mutex):同 key 的调用排成一条 promise 链,严格先来先跑;前一个的成败都不阻断
+   * 后一个(then(task, task):无论 prev resolve/reject,task 都接着跑)。task 自身抛错只 reject 返回给调用方,
+   * 不污染链(tail 恒 resolve)。链尾排空(map 当前尾即本次 tail)即删该 key,避免 map 无界增长。
+   */
+  private serializeReserve<T>(key: string, task: () => Promise<T>): Promise<T> {
+    const prev = this.reserveChains.get(key) ?? Promise.resolve();
+    const result = prev.then(task, task);
+    const tail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.reserveChains.set(key, tail);
+    void tail.then(() => {
+      if (this.reserveChains.get(key) === tail) this.reserveChains.delete(key);
+    });
+    return result;
   }
 
   // 孤儿判定:running 且 created_at 距今超过 ORPHAN_TIMEOUT_MS(15 分钟)。
