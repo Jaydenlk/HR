@@ -44,7 +44,8 @@ export class MockController {
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Get('company-check')
   companyCheck(@Query() query: CompanyCheckQueryDto) {
-    return this.mock.checkCompany(query.name ?? '');
+    // force=true:缓存候选被拒后的强制重搜(绕缓存走两路真实博查);同受上方 @Throttle 约束。
+    return this.mock.checkCompany(query.name ?? '', query.force === true);
   }
 
   @Get()

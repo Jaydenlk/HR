@@ -179,6 +179,17 @@ describe('MockService — checkCompany() 返回候选数组', () => {
 
     expect(result).toEqual({ company_known: false, candidates: [], reason: 'timeout' });
   });
+
+  it('forceRefresh 透传到 companyResearch.search(缓存候选被拒后的强制重搜通道)', async () => {
+    const research = makeCompanyResearch();
+    const svc = makeService({ research });
+
+    await svc.checkCompany('某公司', true);
+    expect(research.search).toHaveBeenCalledWith('某公司', undefined, true);
+
+    await svc.checkCompany('某公司');
+    expect(research.search).toHaveBeenLastCalledWith('某公司', undefined, false);
+  });
 });
 
 describe('MockService — create() 按 company_research_id 查库(防伪造 M3)', () => {

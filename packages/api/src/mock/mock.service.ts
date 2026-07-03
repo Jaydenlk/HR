@@ -88,13 +88,15 @@ export class MockService {
 
   /**
    * 库外公司搜索确认：查库未命中时调用统一公司搜索服务(company-research)。
-   * 返回 {company_known, candidates, reason?} 供前端展示多候选消歧确认框
+   * 返回 {company_known, candidates, reason?, from_cache?} 供前端展示多候选消歧确认框
    * (破坏性 API 变更：不再是单一 search_candidate，reason 透传搜索不可用原因，供前端区分文案，m6 校准)。
+   * forceRefresh=true:缓存候选被用户拒绝后的强制重搜通道(绕缓存两路真实搜索,设计定稿4)。
    */
-  async checkCompany(name: string): Promise<{
+  async checkCompany(name: string, forceRefresh = false): Promise<{
     company_known: boolean;
     candidates: CompanyResearchCandidate[];
     reason?: 'no_key' | 'timeout' | 'error';
+    from_cache?: boolean;
   }> {
     const lookup = await this.lookupCompany(name);
     if (lookup.company_known) {
@@ -102,7 +104,7 @@ export class MockService {
     }
 
     // 库外：追加统一公司搜索(候选全量返回，不截断)
-    const outcome = await this.companyResearch.search(name.trim());
+    const outcome = await this.companyResearch.search(name.trim(), undefined, forceRefresh);
     return { company_known: false, ...outcome };
   }
 
