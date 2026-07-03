@@ -243,7 +243,8 @@ test.describe('mock 创建框搜索确认三态', () => {
     }
   });
 
-  test('态3: 库外公司点"都不是" → 候选列表消失,出现通用模式提示', async ({ page }) => {
+  test('态3: 库外公司点"都不是" → (缓存候选先触发一次强制重搜)最终候选列表消失,出现通用模式提示', async ({ page }) => {
+    test.setTimeout(90_000); // 缓存场景会追加一次两路真实博查重搜
     await setupAuthAndOpenDialog(page);
 
     const companyInput = page.locator('input[placeholder="如：字节跳动"]');
@@ -255,7 +256,7 @@ test.describe('mock 创建框搜索确认三态', () => {
     );
     await companyInput.press('Tab');
     const checkResp = await checkResponsePromise;
-    const checkBody = await checkResp.json() as { company_known: boolean; candidates: unknown[] };
+    const checkBody = await checkResp.json() as { company_known: boolean; candidates: unknown[]; from_cache?: boolean };
     await page.waitForTimeout(800);
 
     if (checkBody.candidates.length === 0) {
@@ -270,10 +271,35 @@ test.describe('mock 创建框搜索确认三态', () => {
     // 有候选：先点"都不是"
     const noneBtn = page.locator('button:has-text("都不是")');
     await expect(noneBtn).toBeVisible({ timeout: 5000 });
-    await noneBtn.click();
-    await page.waitForTimeout(500);
 
-    // 候选列表消失
+    if (checkBody.from_cache === true) {
+      // 审计修复1:缓存候选被拒 → 前端自动触发一次 force=true 强制重搜(绕缓存两路真实博查)
+      const forcedRespPromise = page.waitForResponse(
+        (resp) => resp.url().includes('/mock-sessions/company-check') && resp.url().includes('force=true') && resp.status() === 200,
+        { timeout: 30000 },
+      );
+      await noneBtn.click();
+      const forcedResp = await forcedRespPromise;
+      const forcedBody = await forcedResp.json() as { candidates: unknown[]; from_cache?: boolean };
+      expect(forcedBody.from_cache).toBeUndefined(); // 重搜结果非缓存
+      console.log(`态3: 缓存候选被拒,强制重搜返回 ${forcedBody.candidates.length} 个新候选`);
+      await page.waitForTimeout(800);
+
+      if (forcedBody.candidates.length > 0) {
+        // 新候选列表出现 → 再拒一次(此时非缓存,直接落通用模式,不会无限重搜)
+        await expect(page.locator('text=找到以下可能匹配的公司')).toBeVisible({ timeout: 5000 });
+        const noneBtn2 = page.locator('button:has-text("都不是")');
+        await expect(noneBtn2).toBeVisible({ timeout: 3000 });
+        await noneBtn2.click();
+        await page.waitForTimeout(500);
+      }
+    } else {
+      // 非缓存候选被拒 → 行为不变,直接通用模式
+      await noneBtn.click();
+      await page.waitForTimeout(500);
+    }
+
+    // 终点一致:候选列表消失
     const listBox = page.locator('text=找到以下可能匹配的公司');
     await expect(listBox).not.toBeVisible();
 
@@ -284,7 +310,7 @@ test.describe('mock 创建框搜索确认三态', () => {
     expect(hintText).toContain('通用');
 
     await page.screenshot({ path: 'e2e-screenshots/search-confirm-state3-after-no.png' });
-    console.log('态3 PASS: 点"都不是"后候选列表消失，出现通用模式提示:', hintText?.slice(0, 80));
+    console.log('态3 PASS: 拒绝候选后(缓存场景含一次强制重搜)候选列表消失，出现通用模式提示:', hintText?.slice(0, 80));
   });
 
   test('API 级: company-check 未登录 → 401', async ({ request }) => {

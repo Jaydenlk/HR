@@ -53,6 +53,8 @@ interface CompanyCheckResult {
   company_known: boolean;
   candidates: CompanyCandidate[];
   reason?: 'no_key' | 'timeout' | 'error';
+  /** 候选来自 7 天缓存时为 true:用户拒绝缓存候选("都不是")会自动触发一次强制新搜索(设计定稿4) */
+  from_cache?: boolean;
 }
 
 /** 用户对候选列表的消歧选择：pending=未决定，selected=已选某候选(记 id)，none=都不是(通用模式) */
@@ -117,6 +119,8 @@ function MockPageInner() {
   const [checkResult, setCheckResult] = useState<CompanyCheckResult | null>(null);
   // 用户对多候选列表的消歧选择
   const [candidateChoice, setCandidateChoice] = useState<CandidateChoice>({ kind: 'pending' });
+  // 缓存候选被拒后的强制重搜进行中(期间隐藏旧候选列表,展示重搜提示)
+  const [reSearching, setReSearching] = useState(false);
   // latest-wins: 每次发起新请求时中止上一次未完成的请求
   const checkAbortRef = useRef<AbortController | null>(null);
 
@@ -133,7 +137,11 @@ function MockPageInner() {
       });
   }, []);
 
-  async function checkCompany(name: string) {
+  /**
+   * 公司查询。force=true:缓存候选被用户拒绝后的强制重搜(绕过后端 7 天缓存,设计定稿4)。
+   * 重搜结果 from_cache 不置位,再拒即落通用模式——不会形成无限重搜循环。
+   */
+  async function checkCompany(name: string, force = false) {
     if (!name.trim()) {
       setCheckResult(null);
       setCandidateChoice({ kind: 'pending' });
@@ -143,9 +151,10 @@ function MockPageInner() {
     checkAbortRef.current?.abort();
     const controller = new AbortController();
     checkAbortRef.current = controller;
+    if (force) setReSearching(true);
     try {
       const res = await api.get<CompanyCheckResult>(
-        `/mock-sessions/company-check?name=${encodeURIComponent(name.trim())}`,
+        `/mock-sessions/company-check?name=${encodeURIComponent(name.trim())}${force ? '&force=true' : ''}`,
         { signal: controller.signal },
       );
       setCheckResult(res);
@@ -154,6 +163,8 @@ function MockPageInner() {
       // AbortError 属正常取消，其余失败静默不阻断创建流程
       setCheckResult(null);
       setCandidateChoice({ kind: 'pending' });
+    } finally {
+      if (force) setReSearching(false);
     }
   }
 
@@ -419,9 +430,16 @@ function MockPageInner() {
                 {/* 三态提示区(T6:态2 改为多候选点选，态1/3 语义不变) */}
                 {/* 态1：库内命中 → 无感知（不展示任何提示） */}
 
+                {/* 缓存候选被拒后的强制重搜进行中提示 */}
+                {reSearching && (
+                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--color-ink-3)', lineHeight: 1.5 }}>
+                    已忽略此前的搜索记录，正在重新联网搜索…
+                  </p>
+                )}
+
                 {/* 态2：库外 + 有候选 + 用户未决定 → 多候选点选列表(消歧三层的呈现层，不论后端走哪层，
                     都统一列表化展示，永不跳过前端确认——即使只有 1 个候选，也要求显式点选) */}
-                {checkResult && !checkResult.company_known && checkResult.candidates.length > 0 && candidateChoice.kind === 'pending' && (
+                {!reSearching && checkResult && !checkResult.company_known && checkResult.candidates.length > 0 && candidateChoice.kind === 'pending' && (
                   <div style={{
                     marginTop: '8px',
                     padding: '12px 14px',
@@ -494,7 +512,15 @@ function MockPageInner() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setCandidateChoice({ kind: 'none' })}
+                      onClick={() => {
+                        // 缓存候选被拒 → 自动触发一次强制新搜索(设计定稿4:"用户可拒绝触发新搜索")。
+                        // 新搜结果 from_cache 不置位,再拒走 else 分支落通用模式——不会无限重搜。
+                        if (checkResult?.from_cache) {
+                          void checkCompany(form.company, true);
+                        } else {
+                          setCandidateChoice({ kind: 'none' });
+                        }
+                      }}
                       style={{
                         padding: '4px 14px',
                         borderRadius: '7px',
@@ -506,7 +532,7 @@ function MockPageInner() {
                         cursor: 'pointer',
                       }}
                     >
-                      都不是，通用模式
+                      {checkResult?.from_cache ? '都不是，重新搜索' : '都不是，通用模式'}
                     </button>
                   </div>
                 )}
