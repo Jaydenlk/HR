@@ -575,13 +575,16 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
 
   // ── GET /api/mock-sessions/company-check ────────────────────────────────
   describe('GET /api/mock-sessions/company-check', () => {
-    it('known company → { company_known: true }', async () => {
+    it('known company → { company_known: true, candidates: [] }', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/mock-sessions/company-check?name=字节跳动')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.company_known).toBe(true);
+      // T6 破坏性变更:search_candidate(单候选) → candidates[](多候选数组)
+      expect(res.body.candidates).toEqual([]);
+      expect(res.body).not.toHaveProperty('search_candidate');
     });
 
     it('known company alias → { company_known: true }', async () => {
@@ -593,22 +596,24 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
       expect(res.body.company_known).toBe(true);
     });
 
-    it('unknown company → { company_known: false }', async () => {
+    it('unknown company → { company_known: false, candidates: 数组(全量,不截断) }', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/mock-sessions/company-check?name=量子翻斗云科技')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.company_known).toBe(false);
+      expect(Array.isArray(res.body.candidates)).toBe(true);
     });
 
-    it('empty name → { company_known: false }', async () => {
+    it('empty name → { company_known: false, candidates: [] }', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/mock-sessions/company-check?name=')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.company_known).toBe(false);
+      expect(res.body.candidates).toEqual([]);
     });
 
     it('without JWT → 401', async () => {

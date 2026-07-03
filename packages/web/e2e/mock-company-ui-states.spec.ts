@@ -3,8 +3,11 @@
  *
  * 三态验证:
  * 1. 库内公司(字节跳动) → 失焦无提示行
- * 2. 库外生造公司(量子翻斗云科技) → 失焦后出现"不在资料库"提示行
+ * 2. 库外生造公司(量子翻斗云科技) → 失焦后出现候选点选列表或"不在资料库"提示行
  * 3. 不填公司 → 无提示行
+ *
+ * T6 博查统一搜索重设计后更新(破坏性 API 变更):search_candidate(单候选) → candidates[](多候选数组)，
+ * 确认框由"是/不是"两按钮改为候选列表 +"选择这家"/"都不是"。
  *
  * 端口修复:原写死 BASE_URL=3003(需单独起第二个 web 实例),改为与其余套件一致的
  *   可配置 BASE_URL(默认 3001,可经 MOCK_UI_BASE_URL 覆盖)。token 改用全局 fetch
@@ -87,13 +90,13 @@ test.describe('Mock 三态 UI 验证', () => {
     console.log('State 1 (known company 字节跳动): PASS - no hint shown');
   });
 
-  test('态2: 库外公司(量子翻斗云科技)失焦 → 确认框或通用提示(按 Bocha 是否有候选)', async ({ page }) => {
+  test('态2: 库外公司(量子翻斗云科技)失焦 → 候选点选列表或通用提示(按 Bocha 是否有候选)', async ({ page }) => {
     await setupAuthAndOpenDialog(page);
 
     const companyInput = page.locator('input[placeholder="如：字节跳动"]');
     await companyInput.fill('量子翻斗云科技');
 
-    // 捕获 company-check 响应:库外公司若 Bocha 有候选 → 确认框;无候选 → 通用提示。
+    // 捕获 company-check 响应:库外公司若 Bocha 有候选 → 候选列表;无候选 → 通用提示。
     // (真实 Bocha 对该生造名常返回模糊候选,故不能写死"不在资料库")
     const checkRespPromise = page.waitForResponse(
       (resp) => resp.url().includes('/mock-sessions/company-check') && resp.status() === 200,
@@ -103,21 +106,21 @@ test.describe('Mock 三态 UI 验证', () => {
     const checkResp = await checkRespPromise;
     const checkBody = (await checkResp.json()) as {
       company_known: boolean;
-      search_candidate: { name: string } | null;
+      candidates: { id: string; name: string }[];
     };
 
     // 库外:company_known 必为 false
     expect(checkBody.company_known).toBe(false);
     await page.waitForTimeout(800);
 
-    if (checkBody.search_candidate !== null) {
-      // 有候选 → 确认框「我查到的是」+「是,就是这家」/「不是」
-      const confirmBox = page.locator('text=我查到的是');
-      await expect(confirmBox).toBeVisible({ timeout: 5000 });
-      await expect(page.locator('button:has-text("是，就是这家")')).toBeVisible();
-      await expect(page.locator('button:has-text("不是")')).toBeVisible();
+    if (checkBody.candidates.length > 0) {
+      // 有候选 → 候选列表「找到以下可能匹配的公司」+「选择这家」/「都不是」
+      const listBox = page.locator('text=找到以下可能匹配的公司');
+      await expect(listBox).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('button:has-text("选择这家")').first()).toBeVisible();
+      await expect(page.locator('button:has-text("都不是")')).toBeVisible();
       await page.screenshot({ path: 'e2e-screenshots/state2-confirm-box.png', fullPage: false });
-      console.log('State 2 (库外+有候选): PASS - 确认框出现');
+      console.log('State 2 (库外+有候选): PASS - 候选列表出现');
     } else {
       // 无候选 → 直接通用模式「不在资料库 … 通用面试 + JD」
       const hint = page.locator('p:has-text("不在资料库")');
