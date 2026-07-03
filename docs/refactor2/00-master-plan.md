@@ -56,7 +56,7 @@
 | T6 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
 | T5 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
 | T2 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
-| T4 | ✅ | ◐ H0已合并 / S0+D1待 | ◐ H0✅ | ◐ H0✅ | ◐ H0✅(c02ed37) | ☐ |
+| T4 | ✅ | ◐ H0✅+S0+D1✅ / 防护+清理批待 | ◐ H0✅ S0+D1✅ | ◐ H0✅ S0+D1✅ | ◐ H0(c02ed37) S0+D1(b4682eb) | ☐ |
 | T3 | ✅ | ☐(先焊schema) | ☐ | ☐ | ☐ | ☐ |
 
 ## 执行进展与已知问题(2026-07-02 自主执行,Fable 值守)
@@ -82,6 +82,8 @@
 - 缺口审计:R1-R6/R9 全 DONE(后端状态机/migration/409顺序/chat解耦/防僵尸/D1 skipLimiter 全在半成品里),R7 前端恢复 MISSING、R8 测试 PARTIAL——补完代理已全部补齐(前端 hook+卡片+409转视图、7用例 S0 e2e+skipLimiter 单测+chat断开落库),另抓修一处 R1 回归(UPDATE 不回填 mode 默认值,buildJdMatchEntity 显式 mode)。补完后 e2e 全量 1123/0 失败。
 - 验证:review PASS(1 minor);gates 6/8——门6 web build FAIL 判环境非代码(worktree .git 指针+pnpm 软链触发 Next16 Turbopack 误判 root;主仓库同代码构建绿、webpack 构建绿),门8③ **抓到真缺陷(blocking)**:同用户 74-99ms 并发双发诊断,409 防重复失效、双建行双扣费(2/2 复现)。根因=findRunningConflict 裸 SELECT 与 insertRunningRow(被推迟到后台任务)非原子。门8①②(断开恢复/刷新不丢回复)真实浏览器 PASS。
 - 处置:修复第 1 轮已派 opus 代理(原子化 check+insert+真并发回归用例),完成后重验→合并。worktree Turbopack 限制记入 02 注意事项。
+- **✅ 已完成合并(merge `b4682eb`,dev+main,2026-07-03 深夜)**:fix1 交付=reserveRunningSlot 进程内 per-(user,mode) 串行原子预留(INSERT 提前到同步路径,直调路径零变化保 30+ 既有用例)+ [S0-race] 真并发回归用例(旁路锁反向转红证明有效);fix1 自验四门全绿(危险区 20/20/单测 547/0/e2e 1124/0 含新用例)。合并零冲突;主仓库冒烟 leader 亲跑:单测 547/0 ✅、e2e 1124/0 ✅、web build ✅(31 路由产出,坐实门6为 worktree 环境问题)。合并后对抗审计:已派(结论出来补记于此)。
+- **遗留(非阻断)**:①409 原子性依赖生产单 Node 进程前提(进程内锁);未来 API 横向扩多实例需补 Postgres 部分唯一索引兜底(`CREATE UNIQUE INDEX ...(user_id,mode) WHERE status='running'`),代码注释已标注。②review 1条minor:R7 前端恢复路径未做逐钮 Playwright(门8①②已真实浏览器覆盖主路径)。
 
 ## 全局红线(超出即停,找用户)
 
