@@ -230,6 +230,11 @@ function MockPageInner() {
           position: relative; z-index: 1;
           padding: 32px;
           width: 100%; max-width: 500px;
+          /* 对话框过高时自身滚动(globals.css .modal-overlay 注④的既定惯例:
+             在 .lg 上加 maxHeight + overflowY:auto;overlay 上下各留 24px padding)。
+             兜底保证短屏下"都不是"/创建按钮永远可达,不再出现整框撑爆视口无法滚动。 */
+          max-height: calc(100vh - 48px);
+          overflow-y: auto;
         }
       `}</style>
 
@@ -453,7 +458,10 @@ function MockPageInner() {
                     <div style={{ marginBottom: '10px', fontWeight: 600 }}>
                       找到以下可能匹配的公司，请选择：
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+                    {/* 候选列表限高内滚(用户实测bug:列表撑满屏且不可滚)。滚动条样式走
+                        globals.css 全站主题化滚动条(全局选择器,自动继承液态玻璃细条风格);
+                        "都不是"按钮在本容器之外,不随列表滚动,始终可见可达。 */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px', maxHeight: 'min(45vh, 340px)', overflowY: 'auto', paddingRight: '4px' }}>
                       {checkResult.candidates.slice(0, CANDIDATE_DISPLAY_LIMIT).map((candidate) => (
                         <div
                           key={candidate.id}
