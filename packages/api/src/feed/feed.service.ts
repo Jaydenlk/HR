@@ -32,10 +32,10 @@ export class FeedService {
         category: 'interview_exp',
       });
     const saved = await this.repo.save(item);
-    return FeedItemResponseDto.from(saved);
+    return FeedItemResponseDto.from(saved, userId);
   }
 
-  async findAll(query: FeedQueryDto = {}): Promise<FeedItemResponseDto[]> {
+  async findAll(query: FeedQueryDto = {}, viewerUserId?: string): Promise<FeedItemResponseDto[]> {
     const qb = this.repo
       .createQueryBuilder('item')
       .leftJoinAndSelect('item.source_ref', 'source')
@@ -73,7 +73,7 @@ export class FeedService {
     return raw
       .map((item) => applyFeedQualityFilter(item))
       .filter((item): item is FeedItem => item !== null)
-      .map((item) => FeedItemResponseDto.from(item));
+      .map((item) => FeedItemResponseDto.from(item, viewerUserId));
   }
 
   async remove(id: string, userId: string): Promise<void> {

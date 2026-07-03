@@ -12,6 +12,9 @@ import { RssImporterService } from './importers/rss-importer.service';
 import { WechatImporterService } from './importers/wechat-importer.service';
 import { XhsImporterService } from './importers/xhs-importer.service';
 import { SearchSchedulerService } from './search-scheduler.service';
+import { RecruitIntelService } from './recruit-intel.service';
+import { DigestGeneratorService } from './digest-generator.service';
+import { RECRUIT_INTEL_SOURCE_KINDS } from './types/feed.types';
 import type { DigestRunStatus, FeedSourceKind } from './types/feed.types';
 import type { FeedImporter } from './importers/feed-importer.interface';
 
@@ -36,6 +39,8 @@ export class FeedIngestionService {
     private readonly xhs: XhsImporterService,
     @Inject(forwardRef(() => SearchSchedulerService))
     private readonly searchScheduler: SearchSchedulerService,
+    private readonly recruitIntel: RecruitIntelService,
+    private readonly digestGenerator: DigestGeneratorService,
   ) {}
 
   findRuns(): Promise<DigestRun[]> {
@@ -75,6 +80,16 @@ export class FeedIngestionService {
     await this.import({});
   }
 
+  // T2 校招情报周更 + 月刊汇总钩子(M9):挂在既有 @nestjs/schedule 体系上注册的周任务,不另起
+  // 独立调度框架。周一凌晨 4 点:① sheet_link 源尽力而为抓取解析,② 紧接着触发周刊生成——
+  // digest-generator 此前完整实现却全仓无触发路径(建成即弃),现在真正接上,且其汇总内容
+  // 会纳入本周新增的 recruit_events(见 DigestGeneratorService.generateWeeklyDigest)。
+  @Cron('0 0 4 * * 1', { name: 'recruit-intel-weekly', timeZone: 'Asia/Shanghai' })
+  async recruitAndDigestWeekly(): Promise<void> {
+    await this.recruitIntel.weeklySheetLinkIngest();
+    await this.digestGenerator.generateWeeklyDigest();
+  }
+
   private async importSource(source: FeedSource, keyword?: string): Promise<DigestRun> {
     const run = await this.startRun(source.id);
     let fetched = 0;
@@ -84,6 +99,14 @@ export class FeedIngestionService {
     try {
       if (source.status === 'needs_config') {
         return this.finishRun(run, 'failed', fetched, saved, skipped, `${source.name} requires ${source.config_key ?? 'configuration'}`);
+      }
+
+      // T2 校招情报三类源不走这条通用拉取通道:sheet_file/wechat_dump 在上传时即时解析,
+      // sheet_link 走专属周 cron 尽力抓取(见 recruitAndDigestWeekly)。管理员点"导入来源"命中
+      // 这些源时直接跳过并给出说明,不产生噪音"failed" run。
+      if ((RECRUIT_INTEL_SOURCE_KINDS as readonly string[]).includes(source.kind)) {
+        await this.registry.recordSuccess(source.id);
+        return this.finishRun(run, 'success', 0, 0, 0, `${source.name} 通过上传/周 cron 专属入口处理，不走通用导入`);
       }
 
       const timeoutMs = this.sourceTimeoutMs();

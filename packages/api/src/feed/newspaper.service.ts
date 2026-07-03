@@ -4,6 +4,8 @@ import { Repository, In } from 'typeorm';
 import { FeedItem } from './entities/feed-item.entity';
 import { EvidenceService } from '../intelligence/evidence.service';
 import { CompanyRegistryService } from './company-registry.service';
+import { RecruitIntelService } from './recruit-intel.service';
+import type { RecruitBoardData } from './recruit-intel.service';
 import {
   normalizeQualityScore,
   isUsable,
@@ -61,6 +63,8 @@ export interface NewspaperEdition {
   trending_tags: string[];
   total_count: number;
   categories: Record<string, number>;
+  // T2:校招情报常驻板块——未过期按 event_date 升序;缺日期落 unscheduled("日期待确认")。
+  recruit_intel: RecruitBoardData;
 }
 
 export interface RadarQuery {
@@ -148,10 +152,12 @@ export class NewspaperService {
     private readonly feedRepo: Repository<FeedItem>,
     private readonly evidence: EvidenceService,
     private readonly companyRegistry: CompanyRegistryService,
+    private readonly recruitIntel: RecruitIntelService,
   ) {}
 
   async getNewspaper(userId: string): Promise<NewspaperEdition> {
     const { start, end } = getCurrentQuarter();
+    const recruitBoard = await this.recruitIntel.getBoardData();
 
     // Query items from current quarter with high/medium date_confidence
     const allItemsRaw = await this.feedRepo
@@ -182,6 +188,7 @@ export class NewspaperService {
         trending_tags: [],
         total_count: 0,
         categories: {},
+        recruit_intel: recruitBoard,
       };
     }
 
@@ -245,6 +252,7 @@ export class NewspaperService {
       trending_tags: trendingTags,
       total_count: allItems.length,
       categories,
+      recruit_intel: recruitBoard,
     };
   }
 

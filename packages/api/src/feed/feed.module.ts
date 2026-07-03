@@ -7,6 +7,7 @@ import { Company } from './entities/company.entity';
 import { Department } from './entities/department.entity';
 import { RoleCategory } from './entities/role-category.entity';
 import { CoverageMetric } from './entities/coverage-metric.entity';
+import { RecruitEvent } from './entities/recruit-event.entity';
 import { FeedController } from './feed.controller';
 import { NewspaperController } from './newspaper.controller';
 import { FeedService } from './feed.service';
@@ -26,11 +27,13 @@ import { FeedClassifierService } from './feed-classifier.service';
 import { FeedIngestionService } from './feed-ingestion.service';
 import { CompanyRegistryService } from './company-registry.service';
 import { SearchSchedulerService } from './search-scheduler.service';
+import { RecruitEventParserService } from './recruit-event-parser.service';
+import { RecruitIntelService } from './recruit-intel.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      FeedItem, FeedSource, DigestRun, Company, Department, RoleCategory, CoverageMetric,
+      FeedItem, FeedSource, DigestRun, Company, Department, RoleCategory, CoverageMetric, RecruitEvent,
     ]),
     AiModule,
     IntelligenceModule,
@@ -52,6 +55,8 @@ import { SearchSchedulerService } from './search-scheduler.service';
     FeedIngestionService,
     CompanyRegistryService,
     SearchSchedulerService,
+    RecruitEventParserService,
+    RecruitIntelService,
   ],
   exports: [CompanyRegistryService],
 })

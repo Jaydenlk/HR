@@ -50,6 +50,25 @@ export class SourceRegistryService implements OnModuleInit {
     return this.repo.find({ order: { kind: 'ASC', name: 'ASC' } });
   }
 
+  /** T2 校招情报三类源(sheet_file/sheet_link/wechat_dump)由管理员手动创建,不走种子文件。
+   * config_key 恒为 null——这三类源不用环境变量配置,而是靠上传/homepage_url 驱动。 */
+  async createManual(input: {
+    kind: FeedSourceKind;
+    name: string;
+    homepage_url?: string;
+    description?: string;
+  }): Promise<FeedSource> {
+    const entity = this.repo.create({
+      kind: input.kind,
+      name: input.name,
+      homepage_url: input.homepage_url ?? null,
+      config_key: null,
+      status: 'active',
+      description: input.description ?? null,
+    });
+    return this.repo.save(entity);
+  }
+
   findActive(): Promise<FeedSource[]> {
     return this.repo.find({
       where: { status: 'active' },
