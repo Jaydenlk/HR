@@ -212,6 +212,8 @@ describe('Feed (e2e)', () => {
       'fetched_at',
       'created_at',
       'date_confidence',
+      // m23:是否为当前登录用户本人的投稿(供前端渲染删除按钮),布尔值不泄露 user_id 本身。
+      'is_mine',
     ]);
 
     beforeAll(async () => {
@@ -303,10 +305,11 @@ describe('Feed (e2e)', () => {
   });
 
   describe('GET /api/feed/sources', () => {
+    // T2 补 T4 遗留缺口(M14):来源列表含运营内部信息,现挂 AdminGuard——用 adminToken。
     it('returns configured source registry', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/feed/sources')
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
@@ -317,7 +320,7 @@ describe('Feed (e2e)', () => {
     it('marks missing configured sources as needs_config', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/feed/sources')
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       const xhs = res.body.find((source: { kind: string }) => source.kind === 'xhs');
@@ -328,6 +331,14 @@ describe('Feed (e2e)', () => {
       const res = await request(app.getHttpServer()).get('/api/feed/sources');
 
       expect(res.status).toBe(401);
+    });
+
+    it('rejects non-admin source registry access with 403', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed/sources')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(403);
     });
   });
 
@@ -349,14 +360,23 @@ describe('Feed (e2e)', () => {
       expect(importRes.body.runs[0].error_message).toContain('requires');
     });
 
+    // T2 补 T4 遗留缺口(M14):抓取记录含运营内部信息,现挂 AdminGuard——用 adminToken。
     it('lists ingestion runs', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/feed/runs')
-        .set('Authorization', `Bearer ${token}`);
+        .set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body.length).toBeGreaterThan(0);
+    });
+
+    it('rejects non-admin runs access with 403', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/feed/runs')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(403);
     });
 
     it('rejects unauthenticated import', async () => {

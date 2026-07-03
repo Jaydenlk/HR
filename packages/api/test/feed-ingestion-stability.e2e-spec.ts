@@ -50,6 +50,8 @@ describe('FeedIngestionService stability', () => {
     const feed = { existsExternal: jest.fn(async () => false), saveExternal: jest.fn() };
     const classifier = { classify: jest.fn() };
     const searchScheduler = { planDailyJobs: jest.fn(async () => []), executeJobs: jest.fn() };
+    const recruitIntel = { weeklySheetLinkIngest: jest.fn(async () => undefined) };
+    const digestGenerator = { generateWeeklyDigest: jest.fn(async () => ({ status: 'empty', message: 'stub' })) };
 
     const defaultImporter: FeedImporter = { kind: 'xhs', fetch: jest.fn(async () => []) };
     const xhs = overrides.xhs ?? defaultImporter;
@@ -65,6 +67,8 @@ describe('FeedIngestionService stability', () => {
       wechat as never,
       xhs as never,
       searchScheduler as never,
+      recruitIntel as never,
+      digestGenerator as never,
     );
 
     return { service, savedRuns, registry, feed, classifier };
