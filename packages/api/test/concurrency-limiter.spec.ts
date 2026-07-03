@@ -229,4 +229,64 @@ describe('ConcurrencyLimiter', () => {
       expect(limiter.status()).toEqual({ active: 0, queued: 0 });
     });
   });
+
+  // ── D1 嵌套自锁修复:skipLimiter ────────────────────────────────────────────
+  // 诊断管线外层 runObservable 已持一个槽,内层 AI 调用(analyzer/rewriter/parser)对同一单例再 acquire
+  // 会形成自锁。skipLimiter=true 令内层【整体跳过 acquire/release】,既不自锁也不占额外槽/不留僵尸 waiter。
+  describe('D1 嵌套自锁:skipLimiter', () => {
+    it('skipLimiter=true 的任务不 acquire(执行期间 active 不增),收尾队列干净', async () => {
+      const limiter = buildLimiter(1, 8);
+      let activeDuring = -1;
+      const result = await limiter.run(
+        async () => {
+          activeDuring = (limiter as unknown as { active: number }).active;
+          return 'ok';
+        },
+        { skipLimiter: true },
+      );
+      expect(result).toBe('ok');
+      expect(activeDuring).toBe(0); // 未占槽
+      expect(limiter.status()).toEqual({ active: 0, queued: 0 });
+    });
+
+    it('外层持满唯一槽时,内层 skipLimiter 调用不自锁(D1 核心场景)', async () => {
+      const limiter = buildLimiter(1, 8); // 仅 1 槽:外层 runObservable 即占满
+      // 外层持槽期间,内层再对同一 limiter 调用。skipLimiter 直接执行 → 不排队、不自锁。
+      const result = await limiter.runObservable(async () => {
+        const inner = await limiter.run(async () => 'inner-done', { skipLimiter: true });
+        // 内层未占槽:此刻 active 仍是外层的 1(而非 2 或死锁)。
+        expect((limiter as unknown as { active: number }).active).toBe(1);
+        return inner;
+      }, () => {});
+      expect(result).toBe('inner-done');
+      expect(limiter.status()).toEqual({ active: 0, queued: 0 }); // 收尾释放干净
+    });
+
+    it('反证:外层持满唯一槽 + 内层【不】skipLimiter → 自锁(内层 acquire 永不返回)', async () => {
+      const limiter = buildLimiter(1, 8);
+      let innerRan = false;
+      const nested = limiter.runObservable(async () => {
+        // 无 skipLimiter:内层 acquire 因唯一槽被外层占用而入队等待 → 外层永不释放 → 自锁。
+        await limiter.run(async () => {
+          innerRan = true;
+        });
+        return 'should-not-reach';
+      }, () => {});
+
+      // 自锁证明:nested 永不 settle。用超时竞速证其挂住(而非 resolve/reject)。
+      const timeout = new Promise<string>((resolve) => setTimeout(() => resolve('TIMEOUT'), 150));
+      const winner = await Promise.race([
+        nested.then(() => 'RESOLVED').catch(() => 'REJECTED'),
+        timeout,
+      ]);
+      expect(winner).toBe('TIMEOUT');
+      expect(innerRan).toBe(false); // 内层任务从未执行(卡在 acquire)
+      // 内层排队者已入队(1 个 waiter),外层占 1 槽——僵尸态。
+      expect(limiter.status()).toEqual({ active: 1, queued: 1 });
+
+      // 清理:reset 拒绝排队者,令 nested 最终 reject(吞掉),避免悬挂 promise 干扰后续用例。
+      limiter.reset();
+      await nested.catch(() => undefined);
+    });
+  });
 });
