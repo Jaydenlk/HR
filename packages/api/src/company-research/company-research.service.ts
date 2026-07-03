@@ -100,7 +100,7 @@ export class CompanyResearchService {
     if (extracted.length === 0) return { candidates: [] };
 
     // 候选全量落库:upsert by canonical_name,取得真实数据库 id(前端确认阶段回传 id 靠此)。
-    const persisted = await this.upsertDedupById(extracted);
+    const persisted = await this.upsertMerged(extracted);
 
     // 层②:多候选 + 有上下文 → GLM 打分排序,高置信取首位(仍需前端确认,不跳过)。
     if (persisted.length > 1 && context?.jdText?.trim()) {
@@ -154,16 +154,26 @@ export class CompanyResearchService {
 
   /**
    * upsert by canonical_name(每个候选各自的名称,不是输入查询名)取得真实数据库行。
-   * 唯一索引会让同一 canonical_name 的重复来源(两路查询都命中同一家公司)收敛到同一行；
-   * 收敛后按 id 去重(而非再按候选名做二次相似度裁剪)，避免前端看到重复的同一 id 候选卡片。
+   *
+   * 先按候选自身归一化名去重(两路查询都命中同一家公司时,通用来源与强召回来源会产生
+   * 不同 source_url 但相同 canonical_name 的条目——source_url 去重管不到这种情况)，
+   * 再逐条【顺序】upsert，而非 Promise.all 并发：canonical_name 唯一索引下，同批内对
+   * 同一 canonical_name 并发执行 findOne→save 的 check-then-write 会互相竞态，
+   * 第二个 save 撞唯一约束直接抛 500(已用真实 e2e 复现)。这不是"再按候选名做相似度裁剪"，
+   * 是同一家公司的多条来源合并为一行，属于去重范畴，不影响候选去重后的真实数量。
    */
-  private async upsertDedupById(items: ExtractedItem[]): Promise<CompanyResearch[]> {
-    const rows = await Promise.all(items.map((item) => this.upsertOne(item)));
-    const byId = new Map<string, CompanyResearch>();
-    for (const row of rows) {
-      if (!byId.has(row.id)) byId.set(row.id, row);
+  private async upsertMerged(items: ExtractedItem[]): Promise<CompanyResearch[]> {
+    const byCanonical = new Map<string, ExtractedItem>();
+    for (const item of items) {
+      const canonical = normalizeCompanyName(item.name);
+      if (!byCanonical.has(canonical)) byCanonical.set(canonical, item);
     }
-    return [...byId.values()];
+
+    const rows: CompanyResearch[] = [];
+    for (const item of byCanonical.values()) {
+      rows.push(await this.upsertOne(item));
+    }
+    return rows;
   }
 
   private async upsertOne(item: ExtractedItem): Promise<CompanyResearch> {

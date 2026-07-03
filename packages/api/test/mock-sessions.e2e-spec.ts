@@ -596,6 +596,8 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
       expect(res.body.company_known).toBe(true);
     });
 
+    // T6 两路查询并发发起真实博查调用(通用 + include=tianyancha.com,qcc.com 强召回),
+    // 比改造前单路查询耗时更长,沿用本文件其余真实外呼用例的 30s 超时惯例。
     it('unknown company → { company_known: false, candidates: 数组(全量,不截断) }', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/mock-sessions/company-check?name=量子翻斗云科技')
@@ -604,7 +606,7 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
       expect(res.status).toBe(200);
       expect(res.body.company_known).toBe(false);
       expect(Array.isArray(res.body.candidates)).toBe(true);
-    });
+    }, 30000);
 
     it('empty name → { company_known: false, candidates: [] }', async () => {
       const res = await request(app.getHttpServer())
@@ -640,6 +642,6 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('company_known', false);
-    });
+    }, 30000);
   });
 });
