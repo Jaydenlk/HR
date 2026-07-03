@@ -20,8 +20,10 @@
  */
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:3001';
-const API_URL = 'http://localhost:3002';
+// 端口可配置(与 mock-company-ui-states.spec.ts 同一对环境变量):默认 3001/3002,
+// 当默认端口被占用(如给用户实时浏览的服务)时,可指到备用端口验证,不打扰默认实例。
+const BASE_URL = process.env.MOCK_UI_BASE_URL ?? 'http://localhost:3001';
+const API_URL = process.env.MOCK_UI_API_URL ?? 'http://localhost:3002';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
