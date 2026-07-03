@@ -156,6 +156,7 @@ describe('S0 running 状态机 / 防重复(409)/ 防僵尸(惰性判死)/ D1 嵌
   let userRepo: Repository<User>;
   let resumeRepo: Repository<Resume>;
   let diagnosisRepo: Repository<Diagnosis>;
+  let usageRepo: Repository<AiUsage>;
 
   // 各 completeStructured(toolName) 的返回值可被单测覆盖(注入 gate/错误)。
   let structuredImpl: (toolName: string) => unknown;
@@ -207,6 +208,7 @@ describe('S0 running 状态机 / 防重复(409)/ 防僵尸(惰性判死)/ D1 嵌
     userRepo = moduleRef.get(getRepositoryToken(User));
     resumeRepo = moduleRef.get(getRepositoryToken(Resume));
     diagnosisRepo = moduleRef.get(getRepositoryToken(Diagnosis));
+    usageRepo = moduleRef.get(getRepositoryToken(AiUsage));
   }, 30_000);
 
   afterAll(async () => {
@@ -452,5 +454,63 @@ describe('S0 running 状态机 / 防重复(409)/ 防僵尸(惰性判死)/ D1 嵌
 
     // 收尾无僵尸槽/waiter(外层槽全部释放,队列清空)。
     expect(limiter.status()).toEqual({ active: 0, queued: 0 });
+  }, 15_000);
+
+  // ── S0 并发原子性:同用户同 mode 两个【真并发】发起 → 恰好 1 行 / 1 计费 / 第二个 409 带第一个 id ──
+  // 复现的真 bug:此前控制器裸 SELECT(findRunningConflict)查冲突、running 行 INSERT 推迟到后台 fire-and-forget,
+  // 两个几乎同时的请求都在对方 INSERT 前完成 SELECT、双双放行 → 各建行、各扣费(50→46,双扣 4 点),第二次无 409。
+  // 修复后走控制器同款路径:reserveRunningSlot(原子「查冲突 → 落 running 行」,进程内 per-(user,mode) 串行锁)。
+  // 两次真并发发起(Promise.all,均在对方返回前进入临界区)后串行化:第一次落行,第二次必命中冲突。
+  it('[S0-race] 同用户同 mode 两个真并发发起 → 恰好 1 行创建 / 恰好 1 次计费 / 第二个 409 带第一个 diagnosisId', async () => {
+    const user = await newUser('s0-race@diag.dev', 5);
+    const resume = await newResume(user.id);
+    const dto = { resume_id: resume.id, profession: '互联网产品经理' };
+    const endpoint = '/api/diagnoses/campus/stream';
+
+    // 两个真并发发起,各自模拟控制器的「预留」步骤(reserveRunningSlot)——同时进入串行锁,先来者落 running 行、
+    // 后来者查到它 → 拿冲突(控制器据此回 409)。此步不跑流水线,是并发原子性的核心断言点。
+    const [r1, r2] = await Promise.all([
+      service.reserveRunningSlot(user.id, 'profession_standard', resume.id),
+      service.reserveRunningSlot(user.id, 'profession_standard', resume.id),
+    ]);
+
+    // 恰好一个拿到 runningId(赢家、落了行),另一个拿到 conflict(输家、回 409)。
+    const reserved = [r1, r2];
+    const winners = reserved.filter((r): r is { runningId?: string } => !('conflict' in r));
+    const losers = reserved.filter(
+      (r): r is { conflict: Diagnosis } => 'conflict' in r,
+    );
+    expect(winners.length).toBe(1);
+    expect(losers.length).toBe(1);
+    const winner = winners[0];
+    const loser = losers[0];
+    expect(typeof winner.runningId).toBe('string');
+    // 第二个请求的 409 携带第一个的 diagnosisId(前端据此转入「进行中」视图,不重复发起)。
+    expect(loser.conflict.id).toBe(winner.runningId);
+
+    // 恰好 1 条诊断行被创建(不再各建一行 → 双扣的前提被斩断)。
+    const rowsAfterReserve = await diagnosisRepo.find({ where: { user_id: user.id } });
+    expect(rowsAfterReserve.length).toBe(1);
+    expect(rowsAfterReserve[0].id).toBe(winner.runningId);
+    expect(rowsAfterReserve[0].status).toBe('running');
+
+    // 驱动赢家的流水线到 done(控制器路径:streamCreate 复用已预留的 running 行,不二次插入)。
+    const events = await drain(
+      service.streamCreateProfessionStandard(user.id, dto, endpoint, winner),
+    );
+    expect(find(events, 'done')).toBeDefined();
+    expect(find(events, 'error')).toBeUndefined();
+
+    // 收尾仍恰好 1 行(赢家的 running 行被就地翻 success,输家未建行,流水线未新插)。
+    const rowsFinal = await diagnosisRepo.find({ where: { user_id: user.id } });
+    expect(rowsFinal.length).toBe(1);
+    expect(rowsFinal[0].id).toBe(winner.runningId);
+    expect(rowsFinal[0].status).toBe('success');
+
+    // 恰好 1 次计费:ai_usage 恰好 1 条,余额恰好扣 1 点(5 → 4);输家的 409 不计费。
+    const usageCount = await usageRepo.count({ where: { user_id: user.id } });
+    expect(usageCount).toBe(1);
+    const after = await userRepo.findOneByOrFail({ id: user.id });
+    expect(after.credit_balance).toBe(4);
   }, 15_000);
 });
