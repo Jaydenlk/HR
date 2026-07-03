@@ -42,6 +42,7 @@ interface ExtractedItem {
   summary: string;
   source_url: string;
   domain: string;
+  raw: BochaWebPage;
 }
 
 @Injectable()
@@ -139,7 +140,7 @@ export class CompanyResearchService {
       if (seen.has(source_url)) continue;
       seen.add(source_url);
       const summary = (item.summary ?? item.snippet ?? '').trim().slice(0, 120);
-      result.push({ name, summary, source_url, domain: this.extractDomain(source_url) });
+      result.push({ name, summary, source_url, domain: this.extractDomain(source_url), raw: item });
     }
     return result;
   }
@@ -187,7 +188,7 @@ export class CompanyResearchService {
       source_url: item.source_url,
       source_domain: item.domain,
       retrieved_at: new Date(),
-      raw: null,
+      raw: item.raw as unknown as Record<string, unknown>,
     });
     return this.repo.save(entity);
   }
