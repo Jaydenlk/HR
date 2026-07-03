@@ -51,6 +51,11 @@ const IMPL_PROMPT = `你是实现代理,执行「T3 职业维基 Stage0——骨
 - 先 \`git log dev -1\` 确认 dev 最新提交;然后创建**独立 worktree**:\`git worktree add "E:\\Agent program\\coach-wt\\t3-stage0" -b feat/t3-stage0 dev\`(若该路径或分支已存在,说明是重跑,直接 \`cd\` 进去 \`git status\`/\`git log -1\` 确认干净可续跑,不要重复创建报错就慌)。
 - 之后所有读写、所有 git 操作都在 E:\\Agent program\\coach-wt\\t3-stage0 这个 worktree 目录里进行。
 
+## 增量提交铁律(防配额中断全损;2026-07-03 实证教训:另一任务曾三次单窗烧尽 300k+ token 且零提交,全部白干)
+- 若 worktree/分支是重跑残留且已有本任务提交(含 "wip(" 前缀抢救性提交):你是续跑,先 git diff dev...HEAD --stat 对照交付清单做缺口分析,只做未完成部分,不许重做已完成的、不许 revert 半成品重来。
+- 每完成交付清单一项(类型定义/JSON Schema/校验器/检查脚本/实体+migration/seed导入器/每个测试文件,各算一项)立即 git add 涉及文件(逐路径,不用 -A)并 commit(message 可用 "wip(t3-stage0): <条目>",最后不必整理历史)。不许攒到最后一次性提交——配额中断时,已提交的就是断点,没提交的就是白干。
+- 最终全量自验仍按「自验」节统一做;自验后的修补也要及时 commit。
+
 ## 骨架定义(T3-career-wiki.md §3 + T3-总体设计-原稿.md 第一部分,焊死为常量,不许自行增删)
 8层固定骨架(所有职业一致,层名与本文件保持一致):
 1. 定位层:一句话定位 / 解决什么问题 / 为什么这个职业成立(社会分工意义,非JD定义)
@@ -140,8 +145,9 @@ const GATES_PROMPT = `你是测试代理。仓库 E:\\Agent program\\HRBP,工作
 1. cd packages/api && npx tsc --noEmit —— 0 错误(这是编译探针,不等同测试,但必须过)。
 2. cd packages/api && npm run build —— nest build 必须成功。
 3. cd packages/api && npx jest --runInBand —— 全量必须绿(含新增的 occupation-schema-validator / occupation-checks / occupation-tables-migration-smoke / occupation-seed-importer 等 spec,以及仓库既有全部测试无回归)。注意必须从 packages/api 目录跑,从仓库根跑会走 babel-jest 报 TS 语法错,那是环境坑不是代码错。
-4. 残留扫描:git grep -rn "career-explore" -- packages/api/src/occupations 应为空;git grep -n "source_refs\\|'A1'\\|'A2'\\|'A3'\\|tier\\|entailment" -- packages/api/src/occupations/occupation.types.ts(或实现代理实际落的骨架类型文件路径,先用 git show --stat 确认路径)应为空(注意"A1A2A3"只是设计文档里的连写简称,真实代码里会以 tier 字段名或 'A1'/'A2'/'A3' 独立枚举值出现,不要只搜连写字面量);确认没有任何文件改动落在 packages/web/ 或 packages/api/src/app.module.ts 或仓库根 CLAUDE.md / docs/refactor2/*.md。
-5. migration 命名核对:确认新迁移文件名格式为 <毫秒时间戳>-PascalCase描述.ts,且时间戳大于仓库里此前最新迁移文件的时间戳(不会在 typeorm 迁移记录里造成顺序冲突)。
+4. cd packages/api && npx jest --config ./test/jest-e2e.json --forceExit —— e2e 全量必须绿(本任务纯加法,不应引起任何既有 e2e 回归;裸 npx jest 匹配不到 .e2e-spec.ts 文件,必须用这条 --config 命令单独跑,这是全局硬判据不许省)。
+5. 残留扫描:git grep -rn "career-explore" -- packages/api/src/occupations 应为空;git grep -n "source_refs\\|'A1'\\|'A2'\\|'A3'\\|tier\\|entailment" -- packages/api/src/occupations/occupation.types.ts(或实现代理实际落的骨架类型文件路径,先用 git show --stat 确认路径)应为空(注意"A1A2A3"只是设计文档里的连写简称,真实代码里会以 tier 字段名或 'A1'/'A2'/'A3' 独立枚举值出现,不要只搜连写字面量);确认没有任何文件改动落在 packages/web/ 或 packages/api/src/app.module.ts 或仓库根 CLAUDE.md / docs/refactor2/*.md。
+6. migration 命名核对:确认新迁移文件名格式为 <毫秒时间戳>-PascalCase描述.ts,且时间戳大于仓库里此前最新迁移文件的时间戳(不会在 typeorm 迁移记录里造成顺序冲突)。
 
 不改任何代码;测试挂了如实报 FAIL 附错误,不许自己修。任务背景:T3职业维基Stage0——只交付8层骨架的TS类型/JSON Schema/校验器/确定性检查脚本(改造自p2lib)/5张表migration/seed导入器,不涉及任何API/前端改动,schema在设计上被要求这一步就焊死定稿。`
 
@@ -175,7 +181,7 @@ diff 里不应出现:任何 packages/web/ 文件、任何新增的 API controlle
 ## 依赖纪律
 若 diff 里 package.json 新增了依赖(如 ajv/zod/joi),核实 impl_report 里是否说明了"为什么手写不够"及"已核实当前API用法"——没有合理说明的新依赖判 major。
 
-不改任何文件。verdict 用 PASS/FAIL;findings 为空数组时才允许 PASS;有任意 blocking 一律 FAIL。`
+不改任何文件。verdict 用 PASS/FAIL:有任意 blocking 一律 FAIL;只有 major/minor 时允许 PASS(它们照实列进 findings,会被记入任务遗留清单,不许因此把 verdict 压成 FAIL 制造无谓修复循环,也不许为了 PASS 而漏报)。`
 
 phase('侦察')
 const checklist = await agent(RECON_PROMPT, { label: 'recon:t3-stage0', phase: '侦察', model: 'sonnet' })

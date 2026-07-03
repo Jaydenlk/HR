@@ -76,6 +76,7 @@
 - Every AI feature must refuse to fabricate when data is missing
 
 ## Workflow
+- **以 dynamic workflow 为主力(2026-06-22 用户指令)**:实质任务优先用 dynamic workflow 编排(并行/竞标/评审/流水线)。**team-agent-workflow(jayden-workflow 那套 5-agent + enforcement hook)不准随便用**——它在含空格的家目录(`C:\Users\Jayden park`)下 hook 报错刷屏,已在全局 settings.json 禁用(`team-agent-workflow@jayden-workflow: false`,2026-06-22)。单点重活可用 fable-dev,但编排默认走 dynamic workflow。
 - All development in worktrees (unless trivial)
 - Subagents for code/tests, main agent for quality control
 - Load superpowers skills before any creative work

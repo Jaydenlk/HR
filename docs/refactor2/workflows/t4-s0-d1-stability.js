@@ -8,6 +8,10 @@ export const meta = {
   ],
 }
 
+// ⚠️ 2026-07-03:本脚本实现段已作废,不要再从头跑。三次配额中断后,opus 半成品已抢救提交到
+// worktree(E:\Agent program\coach-wt\t4-s0-d1,分支 feat/t4-s0-d1-stability,commit 0722155,
+// 14 文件含 migration+smoke spec,未过质量门)。续跑一律走同目录 t4-s0-d1-closeout.js
+// (缺口审计→只补缺口→验证),依据 02-execution-playbook.md「配额中断处置」节。
 const REPO = 'E:\\Agent program\\HRBP'
 const WORKTREE = 'E:\\Agent program\\coach-wt\\t4-s0-d1'
 const BRANCH = 'feat/t4-s0-d1-stability'

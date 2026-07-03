@@ -106,7 +106,13 @@ log('按侦察清单在feat/t6-bocha分支实现company-research模块+手写mig
 const IMPL_PROMPT = `你是实现代理,执行「T6博查统一搜索服务重设计」建造任务,任务key=t6-bocha。设计文档:${DESIGN_DOC}(全文,含审计校准节与红线节,必读)。
 
 ## 操作规程
-- 仓库 E:\\Agent program\\HRBP。先git status确认工作区干净(工作区里已有的未跟踪杂物或CLAUDE.md之类的改动不是你的,不许stage、不许清理)。基于dev创建分支feat/t6-bocha并切换(就在主工作区做,不建独立worktree)。
+- 仓库 E:\\Agent program\\HRBP。先git status摸底:已跟踪文件里**文档类改动(docs/、CLAUDE.md、.claude/下)与未跟踪杂物不是你的**,不许stage、不许清理,如实记录后继续即可,不算脏;**packages/等代码文件存在未提交改动才是异常——立即停止如实报告,不许自己checkout/stash/清理**。
+- 分支判定:git branch --list feat/t6-bocha。①已存在且git log显示有本任务提交(company-research/bocha相关,含"wip("前缀抢救性提交)→切过去续跑(按下方增量提交铁律的续跑判定走);②不存在→基于dev创建并切换(就在主工作区做,不建独立worktree);③存在但提交明显是别的任务→停止报告。
+
+## 增量提交铁律(防配额中断全损;2026-07-03实证教训:另一任务曾三次单窗烧尽300k+token且零提交,全部白干)
+- 开工先看git log --oneline dev..HEAD:本分支已有本任务提交→你是续跑,先git diff dev...HEAD --stat对照执行清单做缺口分析,只做未完成部分,不许重做已完成的、不许revert半成品重来。
+- 每完成执行清单一个条目(或一组强耦合条目,如"实体+migration"一组)立即git add涉及文件(逐路径,不用-A)并commit(message可用"wip(t6-bocha): <条目>",最后不必整理历史)。不许攒到最后一次性提交——配额中断时,已提交的就是断点,没提交的就是白干。
+- 最终全量自验仍按「自验」节统一做;自验后的修补也要及时commit。
 - 严格按下面"侦察产出的执行清单"逐条执行,范围外一行不改;每改一处先Read确认内容与清单描述一致再动手。
 - 清单里标[缺失-需人工]的条目,或执行中发现目标内容与清单描述不符(比如所指代码段已经不存在、或和红线冲突),停在该条,如实报告,不许猜、不许硬着头皮绕过。
 
@@ -169,7 +175,10 @@ const GATES_PROMPT = `你是测试代理。仓库 E:\\Agent program\\HRBP,切到
 4) cd packages/api && npm run build(或等价nest build)。
 5) cd packages/web && npx eslint src/ —— 0错误。
 6) cd packages/web && npm run build —— 通过。
-7) Playwright(如环境具备可用后端+博查key):cd packages/web,跑mock-search-confirm.spec.ts与mock-company-ui-states.spec.ts(这两个是真实调用博查的live e2e,需要真实网络与登录态);若当前测试环境不具备这些前提(比如无法起后端、没有博查key),如实标注SKIPPED并说明原因,不许假装跑过。
+7) Playwright(硬门,计入overall_pass——本任务把mock页改成多候选交互,这是运行时行为,前面几门测不出来;"环境起不来"不算过,起不来如实FAIL并写清卡点,那是环境问题按STOP处置,不许标SKIPPED混过):
+   a) 前置:本机数据库Docker容器coach-postgres须在跑;cd packages/api && pnpm migration:run(把company_research新迁移应用到本机dev库,本机库无真实用户数据可直接跑);本机packages/api/.env已有DEV_LOGIN=1与博查key,不需要额外配置。
+   b) 起服务(验收用build+start,不用dev模式;第4/6门已产出build产物直接复用):一个终端 cd packages/api && npm run start(3002);另一个终端 cd packages/web && npx next start --port 3001(不要裸npm run start,web的start脚本默认监听3000,和playwright.config.ts的baseURL http://localhost:3001对不上)。若3001/3002被主dev服务占用,先确认冲突再决定停掉或换端口(换端口要同步改.env.local的NEXT_PUBLIC_API_URL与baseURL)。
+   c) cd packages/web && npx playwright test e2e/mock-search-confirm.spec.ts e2e/mock-company-ui-states.spec.ts —— 这两个是真实调用博查的live用例,已被本任务适配多候选交互,必须真跑真过;若博查搜索因网络/配额偶发失败,重试一次仍失败则如实FAIL附错误原文。
 8) 残留复扫:git grep -n "CompanySearchService\\|company-search.service\\|ConfirmedCompanyInfo" -- ':!docs' 应为空;git grep -n "mock-sessions/company-check" 核对现存端点仍能正常路由,字段名与前端一致。
 9) 红线抽查:git diff dev...feat/t6-bocha -- packages/api/src/feed/ 应为空(未碰CompanyRegistryService);git diff dev...feat/t6-bocha -- packages/api/src/industry-trend/ 应为空(未碰T1范围);git diff dev...feat/t6-bocha -- packages/api/src/ai/ai.service.ts packages/api/src/ai/concurrency-limiter.ts packages/api/src/diagnoses/ 应为空(未碰危险区);检查新migration文件里raw等JSON字段用的是@Column('simple-json')而非字面jsonb类型声明,且没有对salary_entries等无关表的DROP动作。
 不改任何代码;测试挂了如实报FAIL附错误,不许自己修。实现背景:博查统一搜索服务重设计,company-check端点破坏性API变更(候选数组+id确认),新增company_research表与手写migration,mock模块的company-search.service.ts已被删除替换。`

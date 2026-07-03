@@ -32,6 +32,7 @@ const RECON_PROMPT = `你是只读侦察代理,任务 key=t2-recruit-intel。仓
 1. ${DESIGN_DOC} —— 设计定稿全文(源接入三类适配器/GLM解析/周更调度/呈现/与T3协同/派工方案/step→verify)+ 审计校准节(M7/M8/M9/m23)+ 红线节。这是本任务唯一的设计依据。
 2. ${MASTER_PLAN} —— 重点看「待用户输入的遗留项」第 1 条(公众号爬取工具格式待用户提供)与「用户已拍板的关键决策」里"校招情报"那一条(周更;源=购买的在线表格+公众号现成爬取工具产物;解析用平台自有GLM5.1)。
 3. ${AUDIT_DOC} —— 用 grep -n "^### M7\\.\\|^### M8\\.\\|^### M9\\.\\|^### m23\\." 定位这四条原文,连同各自"核实"与"suggestion"段落一起读,确认设计文档的「审计校准」节是否完整转述了这四条(如有遗漏细节,写进清单)。
+4. docs/refactor2/T2-wechat-source-research-2026-07-03.md —— 公众号源调研报告(2026-07-03 已产出:wewe-rss 与替代工具对比+未能核实清单)。用途:了解 wechat_dump 未来可能对接的工具产物形态;**用户尚未拍板具体工具,适配器仍按红线要求的"通用文本/json 摄入"实现**,但清单里要引用报告结论写明预留的对接面(报告点名的产物格式类型),避免实现与生态明显脱节。
 
 ## 第二步:必读实时代码(以下逐一 Read,不要只 grep 摘要)
 - packages/api/src/feed/types/feed.types.ts —— FEED_SOURCE_KINDS 现有枚举值、EXTERNAL_SOURCE_KINDS、FEED_CATEGORIES。
@@ -82,7 +83,9 @@ log('按侦察清单在 feat/t2-intel 分支实现三适配器+GLM解析+去重+
 const IMPL_PROMPT = `你是实现代理,执行「月刊校招情报摄入流水线」建造任务,任务 key=t2-recruit-intel。设计文档:${DESIGN_DOC}(全文,含审计校准节与红线节,必读)。
 
 ## 操作规程
-- 仓库 E:\\Agent program\\HRBP。先 git status + git branch 确认现状(工作区里可能存在其它任务留下的未跟踪/未提交改动,那不是你的,不许 stage、不许清理、不许 commit,只针对你自己改动的文件操作)。基于 dev 创建分支 feat/t2-intel 并切换(就在主工作区做,不建 worktree)。
+- 仓库 E:\\Agent program\\HRBP。先 git status + git branch 摸底:已跟踪文件里**文档类改动(docs/、CLAUDE.md、.claude/ 下)与未跟踪杂物不是你的**,不许 stage、不许清理、不许 commit,如实记录后继续即可,不算脏;**packages/ 等代码文件存在未提交改动才是异常——立即停止如实报告**。
+- 分支判定:git branch --list feat/t2-intel。①已存在且 git log 显示有本任务提交(recruit/feed 相关,含 "wip(" 前缀抢救性提交)→ 切过去续跑(按下方增量提交铁律的续跑判定走);②不存在 → 基于 dev 创建并切换(就在主工作区做,不建 worktree);③存在但提交明显是别的任务 → 停止报告。
+- 增量提交铁律(防配额中断全损;2026-07-03 实证教训:另一任务曾三次单窗烧尽 300k+ token 且零提交,全部白干):续跑时先 git diff dev...HEAD --stat 对照清单做缺口分析,只做未完成部分,不许重做、不许 revert 半成品重来;每完成清单一个条目(或一组强耦合条目,如"实体+migration"一组)立即 git add 涉及文件(逐路径,不用 -A)并 commit(message 可用 "wip(t2-intel): <条目>",最后不必整理历史)。不许攒到最后一次性提交——配额中断时,已提交的就是断点,没提交的就是白干。
 - 严格按下面「侦察产出的执行清单」逐条执行,范围外一行不改。清单标 [缺失] 或与红线冲突的条目,停在该条报告,不许猜、不许绕过、不许静默跳过后继续做别的。
 - 每改一处先 Read 确认内容与清单描述一致再动手。
 
@@ -110,7 +113,7 @@ ${checklist}
 - e2e:上传样例 CSV → 事件入库 → newspaper 端点返回;防编造测试(缺截止日的行 → event_date 为 null 且不进"按截止日排序"主列表,落"日期待确认"分区)。
 - **跑测命令必须分两条,不能只跑一条就号称"全量"**(jest.config.json 的 testRegex 只匹配 *.spec.ts,不匹配 *.e2e-spec.ts):
   1) cd packages/api && npx jest --runInBand(单测,含新增 recruit 相关单测)
-  2) cd packages/api && npx jest --config ./test/jest-e2e.json --runInBand(e2e,含新增 recruit e2e 与被改造的 credit e2e——如清单判定需要改造)
+  2) cd packages/api && npx jest --config ./test/jest-e2e.json --runInBand --forceExit(e2e,含新增 recruit e2e 与被改造的 credit e2e——如清单判定需要改造;--forceExit 防开放句柄挂死)
 
 ## 自验(全部完成后,最终回复里附原始输出,不许只说"通过"两个字)
 1) 残留/红线自查:git grep 确认新增 kind 值(sheet_file/sheet_link/wechat_dump 或清单实际采用的命名)未与既有 'wechat' 混淆;git grep 确认 feed.controller.ts 的 import/digest 两端点已无 CreditGuard/CreditInterceptor 且新端点未挂;确认 recruit_events 实体含 role_hint 字段。
@@ -145,7 +148,7 @@ const REVIEW = {
 
 const GATES_PROMPT = `你是测试代理。仓库 E:\\Agent program\\HRBP,切到分支 feat/t2-intel(实现代理刚提交完毕,先 git log -1 确认在该分支最新提交上)。逐门跑质量门,每门附原始输出关键段(失败必须贴完整错误,不许说"通过"两个字了事):
 1) cd packages/api && npx jest --runInBand —— 单测全量必须绿(jest.config.json 的 testRegex 只匹配 *.spec.ts,这条覆盖不到 e2e,是第一条不是全部)。
-2) cd packages/api && npx jest --config ./test/jest-e2e.json --runInBand —— e2e 全量必须绿,含新增的 recruit 相关 e2e 与被改造的 credit e2e(若实现代理判定需要换受测端点)。必须用这个 --config 参数,直接跑 npx jest --runInBand 会漏掉所有 *.e2e-spec.ts。
+2) cd packages/api && npx jest --config ./test/jest-e2e.json --runInBand --forceExit —— e2e 全量必须绿,含新增的 recruit 相关 e2e 与被改造的 credit e2e(若实现代理判定需要换受测端点)。必须用这个 --config 参数,直接跑 npx jest --runInBand 会漏掉所有 *.e2e-spec.ts;--forceExit 防开放句柄挂死。
 3) cd packages/api && npm run build(或等价 nest build)。
 4) cd packages/web && npx eslint src/ —— 0 错误。
 5) cd packages/web && npm run build —— 通过。
@@ -155,6 +158,10 @@ const GATES_PROMPT = `你是测试代理。仓库 E:\\Agent program\\HRBP,切到
    - 确认 digest-generator.service.ts 的调用点是否真的被某个周期任务/流程触发(不是只加了代码没接线)。
    - 确认月刊·面经投稿卡片是否新增了删除按钮,并对应调用 DELETE /feed/:id。
 7) 新 kind 值不与既有 'wechat' 混淆:git grep -n "kind === 'wechat'\\|kind: 'wechat'" packages/api/src/feed —— 逐条核对新增的 sheet_file/sheet_link/wechat_dump(或清单实际命名)分支未误写成 'wechat'。
+8) Playwright 实机走查(硬门,计入 overall_pass——本任务有三处前端改动:/digest 权限门与三类源管理 UI、/newspaper 校招情报板块、面经删除按钮,全是运行时行为,前面几门测不出来;服务起不来如实 FAIL 写清卡点,不许标 SKIPPED 混过):
+   a) 起服务:一个终端 cd packages/api && npm run dev(本机 packages/api/.env 已有 DEV_LOGIN=1 与 AI key,监听 3002);另一个终端 cd packages/web && npm run dev(监听 3001)。等两端就绪。
+   b) 登录:POST http://localhost:3002/api/auth/dev-login 拿 token 写入 localStorage 'token' 键('coach_tour_done' 设 '1' 跳导览)。需要两个账号:一个 admin(本机库已有的管理员账号,查不到就把 dev-login 建的号在库里把 role 置 admin——本机 dev 库无真实用户数据,可直接改)、一个普通用户。
+   c) 走查:①普通用户开 /digest —— 看不到导入按钮/来源状态区/三类源管理 UI;②admin 开 /digest —— 三类源管理 UI 可见,用 packages/api/test/fixtures/ 里的规整 CSV 样例走一次真实上传→解析(真 GLM,偶发失败重试一次)→提示成功;③开 /newspaper —— 出现"校招情报"板块,刚导入且未过期的事件可见,缺 event_date 的行落在"日期待确认"分区而不是主列表;④普通用户投稿一条面经后,自己的投稿条目上有删除按钮,点击后条目消失(DELETE /feed/:id 生效)。
 不改任何代码;测试挂了如实报 FAIL 附错误,不许自己修。实现背景:月刊校招情报摄入流水线新建,feed 模块新增三类源适配器与 recruit_events 实体,digest-generator 已接入周更流程,feed/import 与 feed/digest 已摘除 C 端计费。`
 
 const REVIEW_PROMPT = `你是只读审计代理(找茬,不背书)。仓库 E:\\Agent program\\HRBP,先读 ${DESIGN_DOC} 全文(设计定稿+审计校准+红线)建立标准,再审计分支 feat/t2-intel 相对 dev 的完整 diff(git diff dev...feat/t2-intel)。

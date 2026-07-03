@@ -12,6 +12,31 @@
    - 通过 → 按「合并规程」合并进 dev,更新 `00-master-plan.md` 状态表对应格,进下一任务。
    - 不通过 → 按「修复循环」派修复,**最多 2 轮**;仍不过 → **STOP**,在状态表写清卡点、已试、下一步建议,等用户。
 
+## 开工预检(每次 Workflow({scriptPath}) 之前,leader 逐项过,缺一项不许发车)
+
+1. **配额窗口**:上一个 agent 是否秒报 session limit?是 → 本轮不发实现类任务,只做文档/判定/收口,写明等下次唤醒。
+2. **主树状态**:`git status`——若脚本在主工作区跑(t1/t6/t2),主树的**文档类**已跟踪改动(docs/、CLAUDE.md、.claude/)先由 leader 收口提交;**代码文件**有未提交改动则先查明归属,不许带病发车。任务在主树进行期间,leader 不得在主树做任何提交。
+3. **分支/worktree 残留**:`git branch --list feat/<key>` + `git worktree list`——目标分支已存在且有本任务提交 = 续跑局面(脚本 impl 已内置续跑判定,放心发);分支存在但内容不明 → 先查清再发。
+4. **端口/服务**:涉 Playwright 的任务,确认 3001/3002/5432 的占用现状(主树 dev 服务可能在跑),脚本内已写处理方式,但 leader 心里要有数。
+5. **任务体量预判**:实现段预估要动 >10 个文件或含"新模块+migration+前端"三件套的,确认脚本已含增量提交铁律(2026-07-03 后所有脚本已注入);没有的老脚本不许直接跑。
+
+## 增量提交与任务切片(2026-07-03 实证教训,硬约束)
+
+**教训**:t4-s0-d1 实现代理连续三个配额窗口烧尽(单窗 359k token/90 工具调用/37 分钟),三次都把提交压到任务最后,中断=全部白干,靠主树 leader 抢救性快照+代付提交才保住。
+
+- **增量提交铁律**:实现代理每完成执行清单一个条目(或一组强耦合条目)立即 commit(可用 `wip(<key>):` 前缀)。配额中断时,已提交的就是断点,没提交的就是白干。所有脚本的 impl prompt 已内置此条,修复代理的派工 prompt 也必须带上。
+- **续跑判定铁律**:实现代理开工先 `git log` 查本分支有无本任务已有提交(含 wip 前缀的抢救性提交),有 → 缺口分析后只做剩余部分,不许重做、不许 revert 重来。
+- **切片原则**:单个实现代理的任务量以"一个配额窗口能收口"为上限(经验值:≤10 文件改动或 ≤150k token 预估)。超过的在脚本层拆成串行多段(参照 t5 的后端/前端两段式),每段独立提交。
+- **同任务第 3 次被配额打断** = 结构性过大,不许第 4 次原样重跑;必须改走"缺口审计→只补剩余"的 closeout 式流程(见下节)。
+
+## 配额中断处置(症状→动作)
+
+症状:后台任务通知实现代理死于 session limit / 进程退出。
+
+1. **先保资产**:立即查 worktree/分支的 `git status`。有未提交改动 → leader 亲自 `git add <本任务路径> && git commit -m "wip(<key>): 抢救性提交(未过质量门)"`(这是 git 运维不是写产品代码,leader 可做);危险区任务同时打快照(`git diff > E:\Agent program\coach-wt\_snapshots\<key>-<时刻>\tracked-changes.patch` + 拷走 untracked 新文件)。
+2. **再定处置**:写明断点到 00 与记忆文件,等配额恢复后走 closeout 式续跑:①缺口审计代理(只读+跑探针)对照设计文档列 DONE/PARTIAL/MISSING;②补完代理只做缺口(危险区用 opus),增量提交;③正常验证段收口。**不许无脑从头重跑原实现段。**
+3. **t4-s0-d1 现状坐标(2026-07-03)**:半成品已抢救提交(worktree `E:\Agent program\coach-wt\t4-s0-d1`,分支 feat/t4-s0-d1-stability,commit 0722155,14 文件含 migration+smoke spec,未过质量门);快照在 `coach-wt\_snapshots\t4s0d1-20260703-1431`;续跑一律走 `t4-s0-d1-closeout.js`,不再跑原脚本的实现段。
+
 ## 通过判据(唯一标准)
 
 全部满足才算通过(**缺一门都不许合并 dev**,用户 2026-07-03 指令):
@@ -45,7 +70,7 @@
 |----|------|------|------|------|----------|----------|
 | 0 | 薪资雷达删除 | (已由 Fable 执行,见状态表) | 删除 | — | dev | 不 drop 表;不推线上 |
 | 1 | T4-H0 头像热修 | `t4-h0-avatar.js` | 修复 | 无 | dev | 禁静态挂载绕 ACL |
-| 2 | T4-S0+D1 稳定性 | `t4-s0-d1-stability.js` | 构建(危险区) | 无 | dev | 改完必跑 watchdog+limiter spec;惰性 failed 先于 409 |
+| 2 | T4-S0+D1 稳定性 | **`t4-s0-d1-closeout.js`**(半成品续跑;原 `t4-s0-d1-stability.js` 实现段作废不再从头跑) | 缺口审计+补完(危险区) | 无 | dev | 改完必跑 watchdog+limiter spec;惰性 failed 先于 409 |
 | 3 | T1 导航重组删页 | `t1-nav.js` | 删除重组 | 无(薪资若已删则少一项) | dev | 禁删 follow-up 后端;清后端 AI prompt 死路由 |
 | 4 | T6 博查统一搜索 | `t6-bocha.js` | 构建+migration | T1(行业趋势先删) | dev | 缓存只认精确名;候选不截断;防伪造 |
 | 5 | T5 投递详情页 | `t5-app-detail.js` | 构建+migration | T6(公司背景实体) | dev | 写入补归属校验(非只加FK);同名 salary_range 禁碰 |
@@ -94,9 +119,9 @@
 ## 脚本执行注意事项(2026-07-02 防呆校验补跑发现,已在脚本内修好,此处提醒)
 
 - **jest 两条都要跑**:脚本已内置"单元 `npx jest` + e2e `npx jest --config ./test/jest-e2e.json --forceExit`"两条命令;别手贱改回只跑一条裸 jest(会静默漏掉全部 e2e 报假绿)。详见 `01-dev-principles.md` 第二节。
-- **t4-s0-d1(危险区)建议用 opus 跑实现阶段**:这条改的是出过两次生产事故的 limiter/watchdog/diagnoses。脚本里实现 agent 默认 `model:'sonnet'`;稳定性是本轮最高目标,**运行前建议把该脚本实现阶段的 `model` 改成 `'opus'`**(或接受 sonnet 但把审计门加严)。这是唯一建议你运行前微调的一处。其余脚本 sonnet 即可。
+- **t4-s0-d1(危险区)实现/补完必须 opus,不许降回 sonnet**(用户 2026-07-03 指令;原脚本已改好并提交 4863be4,closeout 脚本同样内置 opus)。其余脚本 sonnet 即可,无需运行前微调。
 - **Playwright 门的环境前置**:涉前端/e2e 的脚本要在 worktree 里补 `packages/api/.env` 与 `packages/web/.env.local`(gitignored 不随 worktree 带过来,缺了服务起不来);需要本机 Docker Postgres(coach-postgres)与端口 3001/3002/5432 空闲。脚本已写"起不来就如实 FAIL"兜底——真起不来时那是环境问题,不是代码 FAIL,按 STOP 处理别误判。
-- **REVIEW 判据是"findings 非空即 FAIL"**(继承自 proven 范本):若审计只剩鸡毛蒜皮的 minor,按判据仍需清掉或明确降级放行——别看到 review=FAIL 就以为脚本坏了。real blocking 才是硬拦。
+- **REVIEW 判据以「通过判据」节为准**:verdict=PASS 且无 blocking 才放行;major 记遗留不阻断,minor 只记录。各脚本 review prompt 已统一对齐这个口径(2026-07-03 修正:此前 t3 脚本写的"findings 非空即 FAIL"会让 minor 触发假 FAIL 修复循环,已改)。
 - **分支预检查**:`feat/<key>` 若因上次残留已存在,`git checkout -b` 会报错;脚本侦察阶段会如实报告,你先确认该分支已清理或改为续跑。
 
 ## 交接自检(Opus 开工前确认)

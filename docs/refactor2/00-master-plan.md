@@ -62,7 +62,7 @@
 ## 执行进展与已知问题(2026-07-02 自主执行,Fable 值守)
 
 **已完成(仅到 dev,未部署)**
-- 薪资雷达模块整删:合并 dev `b5ef6ff`(← 3f4d740),已推 dev+main。独立审计 PASS;`salary_entries` 表按红线保留未 drop(要不要清表等用户点头);同名 `salary_range` 等零误伤;intelligence 的 `salary_context` 证据链一并摘除;credit e2e 受测端点改用 `/api/applications/strategy`。遗留死枚举值 `EVIDENCE_KINDS.'salary_data'` / `source_type.'salary'`(纯类型死值,不阻断,可并入 T4 清理批)。
+- 薪资雷达模块整删:合并 dev `b5ef6ff`(← 3f4d740),已推 dev+main。独立审计 PASS;**`salary_entries` 表:用户 2026-07-03 拍板不清、永留记录**——该表现为孤儿表:代码零引用、数据原样保留(含用户自报+81条market种子),由初始迁移 `1781186894991-InitialSchema.ts` 创建,`migration-smoke.spec.ts` 仍校验其存在。未来任何人想清理:必须用户再次确认+备份先行,不许当"顺手清理"做掉;同名 `salary_range` 等零误伤;intelligence 的 `salary_context` 证据链一并摘除;credit e2e 受测端点改用 `/api/applications/strategy`。遗留死枚举值 `EVIDENCE_KINDS.'salary_data'` / `source_type.'salary'`(纯类型死值,不阻断,可并入 T4 清理批)。
   - **验收终裁(2026-07-02,dev@f3b878c,六门)**:PASS——api 单测 539 过/0 败;api e2e 1111 过、仅 newspaper 已知 4 条时间 bug(唯一失败 suite);api build 0 错;web eslint 0 错;web build 成功且路由清单确认无 /salary;残留复扫 4 组 grep 全 0 命中(连压测脚本的 `/salary` 采样串都已清,比基线更干净)。原始输出留存 scratchpad(e2e-out.txt / web-build.txt)。
 
 **✅ 首修已完成:newspaper e2e 时间 bug(曾阻断所有任务的 e2e 门)**
@@ -87,12 +87,12 @@
 
 ## 待用户输入的遗留项(执行到对应节点时索要,不阻塞其他工作)
 
-1. T2:公众号爬取现成工具的具体仓库/产物格式(用户:此前做过,GitHub 有相关 app)——wechat_dump 适配器对齐真实格式前按通用摄入实现。
+1. T2:公众号工具——用户已知候选 `https://github.com/cooderl/wewe-rss` 但疑不合适;**2026-07-03 已派 Sonnet 调研**(wewe-rss+替代品对比,产出 `T2-wechat-source-research-2026-07-03.md`),结论出来后定 wechat_dump 适配器对齐格式;此前按通用摄入实现。
 2. T4-D8:阿里云老站下线,需用户点头。
 3. T3:注册表 v1 与经济验证批 go/no-go,两处用户过目节点。
-4. evidence_used 拍板(audit M6):4 个 AI 功能后端每次都输出 evidence_used 字段但前端从不渲染——补渲染(强化"诚实可溯源"卖点)还是删字段(省每次调用的输出 token),二选一。
-5. ~~薪资记录删除(audit m20)~~ **已了结**:用户 2026-07-02 拍板删整个薪资雷达模块,已执行并合并 dev(见「执行进展」)。
-6. 对话删除(audit m22):DELETE /conversations/:id 无前端入口——补按钮,还是确认不需要后归入 T4 清理批。
+4. ~~evidence_used 拍板(audit M6)~~ **已裁决(用户 2026-07-03 授权"看着办",leader 裁:删)**:4 个 AI 功能的 evidence_used 字段从 schema/prompt 删除——前端从未渲染、用户从未见过,却在每次调用烧输出 token;"诚实可溯源"卖点未来由 T3 维基的证据侧表承载(那里有完整设计),不靠这个死字段。归入 T4 第三段清理批执行。
+5. ~~薪资记录删除(audit m20)~~ **已了结**:用户 2026-07-02 拍板删整个薪资雷达模块,已执行并合并 dev(见「执行进展」);表处置见执行进展 salary 条。
+6. 对话删除(audit m22):后端有 DELETE /conversations/:id 端点(删除一条聊天会话),前端任何地方都没有删除按钮——用户想删自己的对话做不到,端点是死的。**leader 建议:补前端删除入口**(对话列表项加删除,轻量、有隐私/整理价值),归 T4 清理批;用户如反对(不想让用户删对话)改为删端点,一句话即可。
 
 ## 用户已拍板的关键决策(执行期不得重开讨论)
 

@@ -223,6 +223,13 @@ ${checklist}
   清理、不许 revert)。检查分支 feat/t5-app-detail 是否已存在:不存在则基于 dev 创建并切换;已存在则
   git log 看它最近几条提交是不是本任务(T5/application/interview/cover-letter/mock 相关)产物,是就直接切
   过去继续、不要用 dev 重新分支覆盖;明显是别的任务遗留就停下来报告不要动。就在主工作区做,不新开 worktree。
+  另注:工作区里已跟踪文档类改动(docs/、CLAUDE.md、.claude/ 下)同未跟踪杂物一样不是你的,如实记录后继续
+  即可,不算脏;packages/ 代码文件有未提交改动才停下报告。
+- 增量提交铁律(防配额中断全损;2026-07-03 实证教训:另一任务曾三次单窗烧尽 300k+ token 且零提交,全部
+  白干):若上一步判定是续跑,先 git diff dev...HEAD --stat 对照清单做缺口分析,只做未完成部分,不许重做
+  已完成的、不许 revert 半成品重来;每完成清单一个条目(或一组强耦合条目,如"实体+migration"一组)立即
+  git add 涉及文件(逐路径,不用 -A)并 commit(message 可用 "wip(t5-app-detail): <条目>",最后不必整理
+  历史)。不许攒到最后一次性提交——配额中断时,已提交的就是断点,没提交的就是白干。
 - 只做后端:migration + entity + service(mock/cover-letters/interviews/applications 四处)+ module 的
   imports/exports 调整 + 新的 related/link/link-suggestions 端点(挂在 applications 域下,遵照 BRIEF 第四节
   的循环依赖提示,不要让 ApplicationsModule 反向 import 三个消费方模块)+ e2e/单测。
@@ -276,6 +283,11 @@ ${checklist}
 ${implBackend}
 
 ## 操作规程
+- 增量提交铁律(防配额中断全损):开工先 git log --oneline dev..HEAD 认清已有提交(后端提交+可能存在的前端
+  "wip(" 抢救性提交);若有前端半成品提交,先缺口分析只做剩余部分,不许重做、不许 revert。每完成一个前端
+  改动点(如"详情页骨架""AI建议横幅""tracker-stages 抽取+六处替换"各算一个)立即 git add 涉及文件(逐路径)
+  并 commit(可用 "wip(t5-app-detail): <条目>" 前缀)。不许攒到最后一次性提交——配额中断时,已提交的就是
+  断点,没提交的就是白干。
 - 只做前端:详情页新建、看板卡片点击行为改造、编辑弹层与时间线组件搬移复用、AI 建议横幅(仅用户点击"采纳"
   才调用 link 接口,不允许自动生效)、聚合区块与手动关联选择器+每条已关联记录的"取消关联"按钮(调用 PATCH
   link 的 action:'unlink')、删除投递入口、StrategyPanel 预填、跟进消息面板嵌入(真实 company/role/stage,

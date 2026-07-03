@@ -83,11 +83,16 @@ phase('实现')
 const IMPL_PROMPT = `你是实现代理,执行「T1 导航四模块重组+删页」。仓库 E:\\Agent program\\HRBP,当前在 dev。
 
 ## 操作规程
-- 先 git branch --show-current 确认当前就在 dev,再 git status 确认工作区除了未跟踪杂物、CLAUDE.md 改动之外干净(这两类不是你的,不许 stage、不许清理)。**如果当前不在 dev,或工作区里还有其他已跟踪文件的未提交改动(比如别的任务遗留的大量增删)——立即停止,如实报告当前分支与 git status 原文,不许自己 checkout/stash/清理来"帮忙"、也不许在错误的分支上硬着头皮开工。**
-- 确认在 dev 且干净后:基于 dev 创建分支 feat/t1-nav 并切换(就在主工作区做,不建独立 worktree)。
+- 先 git branch --show-current 与 git status 摸底。已跟踪文件里**文档类改动(docs/、CLAUDE.md、.claude/ 下)与未跟踪杂物不是你的**:不许 stage、不许清理,如实记录后继续即可,不算脏。**packages/ 等代码文件存在未提交改动才是异常——立即停止,如实报告当前分支与 git status 原文,不许自己 checkout/stash/清理来"帮忙"、也不许硬着头皮开工。**
+- 分支判定:git branch --list feat/t1-nav。①分支已存在且 git log 显示有本任务提交(导航/删页相关,含 "wip(" 前缀的抢救性提交)→ 切过去续跑(按下方增量提交铁律的续跑判定走);②分支不存在 → 确认当前在 dev 后基于 dev 创建 feat/t1-nav 并切换(就在主工作区做,不建独立 worktree);③分支存在但提交内容明显是别的任务 → 停止报告。
 - 严格按下面"侦察产出的执行清单"逐条执行,范围外一行不改;每改一处先 Read 确认内容与清单描述一致再动手。
 - 遇到清单里标"[缺失-需人工]"的条目,或执行中发现目标内容与清单描述不符(比如所指代码段已经不存在、或和红线冲突),**停在该条,如实报告,不许猜、不许硬着头皮删**。
 - 红线清单(清单末尾那一节)是硬约束,任何一条动了都算失败,不因为"顺手""看起来该删"就越界。
+
+## 增量提交铁律(防配额中断全损;2026-07-03 实证教训:另一任务曾三次单窗烧尽 300k+ token 且零提交,全部白干)
+- 开工先看 git log --oneline dev..HEAD:本分支已有本任务提交 → 你是续跑,先 git diff dev...HEAD --stat 对照执行清单做缺口分析,只做未完成部分,不许重做已完成的、不许 revert 半成品重来。
+- 每完成执行清单一个条目(或一组强耦合条目)立即 git add 涉及文件(逐路径,不用 -A)并 commit(message 可用 "wip(t1-nav): <条目>",最后不必整理历史)。不许攒到最后一次性提交——配额中断时,已提交的就是断点,没提交的就是白干。
+- 最终全量自验仍按「自验」节统一做;自验后的修补也要及时 commit。
 
 ## 硬红线(不管侦察清单有没有记全,以下每一条都独立成立,违反任何一条都是失败)
 - packages/api/src/follow-up/ 整个后端模块(controller/service/module/dto)——禁止删除、禁止修改。app.module.ts 里 FollowUpModule 的 import 与注册禁止删除。packages/api/test/follow-up.e2e-spec.ts、packages/api/test/test-utils.ts 禁止修改。
@@ -109,7 +114,9 @@ const IMPL_PROMPT = `你是实现代理,执行「T1 导航四模块重组+删页
    预期:各自命中一条(说明红线保留项没被误删)。
 2. cd packages/api && npx tsc --noEmit(后端编译探针)。
 3. cd packages/web && npx tsc --noEmit(前端编译探针——本任务核心改动在前端,这一步不能省)。
-4. 只提交本任务涉及的文件:git add 逐路径(不要用 git add -A / git add .),git commit -m "feat(nav): 导航四模块重组+删除学习路线/行业趋势/跟进消息三个独立页(后端follow-up模块与chat.service能力地图已同步清理)"。
+4. cd packages/api && npx jest --runInBand(单测全量必须绿——本任务删了后端模块,必须证明无回归;注意这条匹配不到 .e2e-spec.ts,不是全部)。
+5. cd packages/api && npx jest --config ./test/jest-e2e.json --forceExit(e2e 全量必须绿——裸 npx jest 会把 .e2e-spec.ts 安静跳过,必须用这条 --config 命令;被删的 learning-roadmap/industry-trend 两个 e2e 文件不应再被跑到,保留的 follow-up.e2e-spec.ts 必须仍绿)。
+6. 收尾确认:全部改动已按增量提交铁律逐条入库;git status 确认无本任务残留未提交文件;最后一条 commit 用 "feat(nav): 导航四模块重组+删除学习路线/行业趋势/跟进消息三个独立页(后端follow-up模块与chat.service能力地图已同步清理)" 收口。
 
 ## 最终回复格式
 交付报告:清单逐条 DONE/SKIP(附原因,SKIP 必须说清是[缺失]还是红线冲突还是别的)、残留扫描原始输出(含上面三条 git grep)、两个 tsc 输出、commit hash、git diff --stat dev...feat/t1-nav。`
@@ -139,16 +146,17 @@ const REVIEW = {
 }
 
 const GATES_PROMPT = `你是测试代理。仓库 E:\\Agent program\\HRBP,切到分支 feat/t1-nav(实现代理刚提交完毕,先 git log -1 确认在该分支最新提交上)。逐门跑质量门,每门附原始输出关键段(失败必须贴完整错误,不许说"通过"两个字了事):
-1. cd packages/api && npx jest --runInBand —— 全量必须绿(含仍保留的 follow-up.e2e-spec.ts;learning-roadmap.e2e-spec.ts 和 industry-trend.e2e-spec.ts 应该已经不存在,如果还在说明实现代理漏删,记为 FAIL)。注意必须从 packages/api 目录跑,从仓库根跑会走 babel-jest 报 TS 语法错,那是环境坑不是代码错。
-2. cd packages/api && npm run build(或等价 nest build)。
-3. cd packages/web && npx eslint src/ —— 0 错误。
-4. cd packages/web && npm run build —— 通过,且构建输出的路由清单里不再有 /learning-roadmap、/industry-trend、/follow-up 三个路由;/debrief、/offer-comparator、/applications 等保留路由仍在。
-5. 残留复扫(排除 docs/ 与 .claude/):
+1. cd packages/api && npx jest --runInBand —— 单测全量必须绿。注意两点:①jest.config.json 的 testRegex 只匹配 *.spec.ts,这条命令跑不到任何 *.e2e-spec.ts 文件(它们被安静跳过,0 匹配不报错),所以它不是"全量",e2e 见下一门;②必须从 packages/api 目录跑,从仓库根跑会走 babel-jest 报 TS 语法错,那是环境坑不是代码错。
+2. cd packages/api && npx jest --config ./test/jest-e2e.json --forceExit —— e2e 全量必须绿(这才是 e2e 的正确跑法)。重点核对:follow-up.e2e-spec.ts 仍存在且绿(红线保留项);learning-roadmap.e2e-spec.ts 与 industry-trend.e2e-spec.ts 应已不存在——如果还在(还被跑到)说明实现代理漏删,记为 FAIL。
+3. cd packages/api && npm run build(或等价 nest build)。
+4. cd packages/web && npx eslint src/ —— 0 错误。
+5. cd packages/web && npm run build —— 通过,且构建输出的路由清单里不再有 /learning-roadmap、/industry-trend、/follow-up 三个路由;/debrief、/offer-comparator、/applications 等保留路由仍在。
+6. 残留复扫(排除 docs/ 与 .claude/):
    git grep -niE "learning-roadmap|industry-trend|industry_trend|LearningRoadmapModule|IndustryTrendModule|RoadmapPhase|RoadmapItem|RoadmapResource|BuildRoadmapRequest|BuildRoadmapResult|IndustryTrendResult|IndustryTrendConfidence|IndustryHiringOutlook|IndustryGrowthSignal|IndustryRiskSignal|IndustryEntryRole" -- ':!docs' ':!.claude'
    预期:空,或只剩 interview-prep.service.ts / career.service.ts 里的两行豁免注释,逐条核对是否确实只剩这两行。
    git grep -n "'follow-up'" -- packages/web/src/components/onboarding/nav-hints.ts "packages/web/src/app/(main)/me/page.tsx"
    预期:各自仍有一条命中(红线保留项不能被误删),如果没命中记为 FAIL。
-6. Playwright 实机走查(必须做,计入 overall_pass——nav-indicator 滑动高亮/badge/dot/新导航项可达性是运行时 DOM 行为,前面 1-5 的 tsc/eslint/build/grep 一条都测不出来):
+7. Playwright 实机走查(必须做,计入 overall_pass——nav-indicator 滑动高亮/badge/dot/新导航项可达性是运行时 DOM 行为,前面几门的 jest/eslint/build/grep 一条都测不出来):
    a. 起服务:一个终端 cd packages/api && npm run dev(本地 packages/api/.env 已有 DEV_LOGIN=1,不用额外设置;监听 3002);另一个终端 cd packages/web && npm run dev(监听 3001)。等两端就绪(能访问 http://localhost:3001 且 http://localhost:3002/api 有响应即可,不必是 200)。
    b. cd packages/web && npx playwright test e2e/iter2-w1-three-lines.spec.ts —— 确认"线3"整个 describe 块和"线1-E"这一个 test 在文件里已经不存在(不是跳过,是不存在),保留的"线1-A/B/C/D""线2""回归"用例仍然绿。
    c. 用 Playwright 浏览器工具(browser_navigate/browser_click/browser_snapshot 等)登录后走查新导航:登录方式参照上面 spec 文件里的 devLogin() 函数——POST http://localhost:3002/api/auth/dev-login 拿 token,写入 localStorage 的 'token' 键(同时把 'coach_tour_done' 设为 '1' 跳过新手导览),再访问 http://localhost:3001。依次点击侦察清单确认的四组导航项(面试前 5 项、面试中 3 项、面试后 2 或 3 项——视薪资雷达是否存在、其他 4 项),确认每一项都能点击到达、页面不白屏、浏览器控制台无 404 请求;再直接访问三个被删路由 /learning-roadmap、/industry-trend、/follow-up,确认均不是可用页面(404 或跳转,不能还能正常渲染出旧页面);确认面试复盘 badge、投递追踪 badge、今天页 dot 在新结构对应的导航项上仍然正常显示。
