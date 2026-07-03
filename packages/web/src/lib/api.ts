@@ -36,6 +36,19 @@ export class ApiError extends Error {
   }
 }
 
+// 409 冲突错误(诊断防重复):后端流式端点在「同用户同类型已有进行中诊断」时回 409 并携带
+// {diagnosisId, message}。普通 handleError 只从 body 提取一句 message、丢掉 diagnosisId,调用方
+// 无法转入「进行中」视图。故单列此错误保留原始 body,让诊断页据 body.diagnosisId 轮询进行中诊断
+// (不重复发起、不重复扣费)。继承 ApiError,status 恒为 409。
+export class ApiConflictError extends ApiError {
+  readonly body: unknown;
+  constructor(message: string, body: unknown) {
+    super(409, message);
+    this.name = 'ApiConflictError';
+    this.body = body;
+  }
+}
+
 // 402 余额不足错误:带 code 标记方便调用方或全局层识别。
 export class InsufficientCreditError extends Error {
   readonly code = 'INSUFFICIENT_CREDIT';
@@ -208,6 +221,17 @@ async function* postStreamRaw<T>(
 
   // 非流式失败(含 401 跳登录 / 402 余额不足 / 4xx 校验)按统一语义抛出。
   if (!res.ok) {
+    // 409 冲突(诊断防重复):暴露状态码与 body 给调用方,令其转入「进行中」视图(据 diagnosisId
+    // 轮询,不重复扣费),而非被 handleError 抹成一条只剩 message、丢掉 diagnosisId 的通用错误。
+    if (res.status === 409) {
+      const body: unknown = await res.json().catch(() => null);
+      const message =
+        body && typeof body === 'object' && 'message' in body &&
+        typeof (body as { message: unknown }).message === 'string'
+          ? (body as { message: string }).message
+          : '请求冲突';
+      throw new ApiConflictError(message, body);
+    }
     await handleError(res);
   }
   if (!res.body) {
