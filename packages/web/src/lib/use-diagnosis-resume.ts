@@ -45,9 +45,11 @@ export function useDiagnosisResume(
 ): DiagnosisResumeState {
   const [resumingId, setResumingId] = useState<string | null>(null);
   const [resumeFailed, setResumeFailed] = useState<string | null>(null);
-  // onComplete 用 ref 承接,避免其身份变化重启轮询 effect。
+  // onComplete 用 ref 承接,避免其身份变化重启轮询 effect(每次渲染都是新函数但语义不变)。
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   const beginResume = useCallback((id: string) => {
     setResumeFailed(null);
