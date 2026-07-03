@@ -55,7 +55,7 @@
 | T1 | ✅ | ✅ | ✅ | ✅ | ✅(23f8fc3) | ☐ |
 | T6 | ✅ | ✅ | ✅ | ✅ | ✅(fb79545) | ☐ |
 | T5 | ✅ | ✅ | ✅ | ✅ | ✅(e2b326f) | ☐ |
-| T2 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
+| T2 | ✅ | ✅ | ✅ | ✅ | ✅(6ffc579) | ☐ |
 | T4 | ✅ | ◐ H0✅+S0+D1✅ / 防护+清理批待 | ◐ H0✅ S0+D1✅ | ◐ H0✅ S0+D1✅ | ◐ H0(c02ed37) S0+D1(b4682eb) | ☐ |
 | T3 | ✅ | ☐(先焊schema) | ☐ | ☐ | ☐ | ☐ |
 
@@ -102,6 +102,11 @@
 - 质量链:开发自验(单测 571/0、e2e 1090/0 净增 33、Playwright 门6 全流程两次过)→独立审计 PASS(迁移安全五点全过、六 blocking 核点全绿,2 minor 均裁合理:resume_id 联动写回/ wishlist 配色统一)→合并树一致性空→冒烟三门绿(web build 含 /applications/[id] 路由)。
 - 测验战果:真机迁移抓修 1 只真 bug(mock_sessions/cover_letters.application_id 历史建表为 varchar 非 uuid,FK 建不上;防御性 SET NULL 清洗+USING 转型,零 DELETE 零回填)。累计 7 只真 bug 合并前拦截。
 - **⚠️ 部署注意**:迁移 1782700000000 含列类型转换(varchar→uuid)与存量脏值置 NULL——上线执行前必须先备份数据库(全局红线本就要求,此处特别提醒)。
+
+**✅ T2 月刊校招情报:已完成合并(merge `6ffc579`,dev+main,2026-07-04,agent team 第四单,+3042/-66)**
+- 交付:三类源适配器(sheet_file CSV/XLSX、sheet_link 朴素抓取+降级、wechat_dump 按调研报告 json schema 落地对接面)+recruit_events(迁移 1782800000000)+GLM 解析(防编造 null 纪律,15 行/批)+去重(归一化哈希+confidence 权威合并+apply_url 补空)+周一 4:00 cron+digest 汇总真接线(M9 终结"建成即弃")+newspaper 校招情报板块(含"日期待确认"分区)+/digest 管理员门控与三类源 UI(M8)+投稿删除按钮(m23)+M7 摘 C 端计费+sources/runs 补 AdminGuard(T4 缺口最小补丁,注释注明)。
+- 质量链:开发自验(单测 606/0、e2e 1106/0 净增 16、Playwright 硬门 4/4 真 GLM 真 Postgres)→独立审计 PASS(四 blocking 核点全过、自报 7 条实现判断逐条裁定合理/属实)→2 minor 当场闭环(dedup_key 实体唯一索引对齐双端、去重函数更名 normalizeCompanyForDedup)→合并树一致性空→冒烟三门绿(e2e 1106/0、web build 28 页)。
+- 决策记录:wechat_dump 实现口径=调研报告推荐的"人工把关+GLM5.1"JSON schema({account_name,batch_note,articles[]});将来用户选定自动化工具只需在产物层适配该 schema,管线零改动。00 遗留项第 1 条已同步该口径。
 
 ## 全局红线(超出即停,找用户)
 
