@@ -299,6 +299,94 @@ describe('Interviews (e2e)', () => {
     });
   });
 
+  // ── T5 审计校准(B4/M2):application_id 归属校验 + GET 不再泄露关联 Application 全字段 ──
+  describe('application_id ownership guard & GET privacy (T5)', () => {
+    let otherAppId: string;
+    let ownAppId: string;
+
+    beforeAll(async () => {
+      const otherRes = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ company: '他人公司', role: '软件工程师', notes: '机密备注:内推人张三,薪资30k' });
+      otherAppId = otherRes.body.id;
+
+      const ownRes = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '自己公司', role: '软件工程师' });
+      ownAppId = ownRes.body.id;
+    });
+
+    it('POST 引用他人 application_id → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/interviews')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ round: 'IDOR面', application_id: otherAppId });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('POST 引用不存在的 application_id → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/interviews')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ round: 'IDOR面2', application_id: '00000000-0000-0000-0000-000000000099' });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('POST 引用自己的 application_id → 201', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/interviews')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ round: '合法面', application_id: ownAppId });
+
+      expect(res.status).toBe(201);
+      expect(res.body.application_id).toBe(ownAppId);
+    });
+
+    it('PATCH 引用他人 application_id → 403', async () => {
+      const create = await request(app.getHttpServer())
+        .post('/api/interviews')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ round: '待PATCH面' });
+
+      const res = await request(app.getHttpServer())
+        .patch(`/api/interviews/${create.body.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ application_id: otherAppId });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('GET :id 不再泄露关联 Application 的全字段(B4:曾经 relations 预加载会连带回读 notes/salary_range 等)', async () => {
+      const create = await request(app.getHttpServer())
+        .post('/api/interviews')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ round: '隐私测试面', application_id: ownAppId });
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/interviews/${create.body.id}`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).not.toHaveProperty('application');
+    });
+
+    it('GET 列表同样不含 application 关系对象', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/interviews')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      const withApplication = (res.body as Array<Record<string, unknown>>).find(
+        (iv) => 'application' in iv,
+      );
+      expect(withApplication).toBeUndefined();
+    });
+  });
+
   describe('POST /api/interviews/:id/analyze', () => {
     let interviewNoTranscriptId: string;
 
