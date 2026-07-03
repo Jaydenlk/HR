@@ -35,6 +35,8 @@ export interface CompanySearchContext {
 export interface CompanyResearchOutcome {
   candidates: CompanyResearchCandidate[];
   reason?: 'no_key' | 'timeout' | 'error';
+  /** 候选来自 7 天缓存时置 true;前端据此在用户拒绝缓存候选后触发一次强制新搜索(设计定稿4后半句)。 */
+  from_cache?: boolean;
 }
 
 interface ExtractedItem {
@@ -71,15 +73,25 @@ export class CompanyResearchService {
    *  ① 精确命中缓存（canonical_name 相等且 retrieved_at ≤7 天）→ 单候选，仍需前端确认。
    *  ② 上下文匹配（多候选 + 有上下文）→ GLM 打分排序，高置信取首位，仍需前端确认。
    *  ③ 人工消歧 → 候选全量返回（前端自行决定展示 top3-5，不是本层裁剪）。
+   *
+   * forceRefresh=true(缓存候选被用户拒绝后的重搜通道，设计定稿4):跳过"缓存命中即返回"
+   * 这一步，直接走两路真实搜索;结果照常按 canonical_name 精确 upsert 更新缓存行。
+   * 强制刷新只是绕过读缓存,不引入任何模糊命中——缓存写入与命中规则一字不变。
    */
-  async search(name: string, context?: CompanySearchContext): Promise<CompanyResearchOutcome> {
+  async search(
+    name: string,
+    context?: CompanySearchContext,
+    forceRefresh = false,
+  ): Promise<CompanyResearchOutcome> {
     const canonical = normalizeCompanyName(name);
     if (!canonical) return { candidates: [] };
 
     // 层①之一:精确命中缓存(红线:只认归一化名精确相等 且 retrieved_at ≤7天,不做任何模糊命中)
-    const cached = await this.repo.findOne({ where: { canonical_name: canonical } });
-    if (cached && this.isFresh(cached.retrieved_at)) {
-      return { candidates: [this.toDto(cached)] };
+    if (!forceRefresh) {
+      const cached = await this.repo.findOne({ where: { canonical_name: canonical } });
+      if (cached && this.isFresh(cached.retrieved_at)) {
+        return { candidates: [this.toDto(cached)], from_cache: true };
+      }
     }
 
     // 两路查询合并:通用查询 + include=tianyancha.com,qcc.com 强召回查询
@@ -190,7 +202,33 @@ export class CompanyResearchService {
       retrieved_at: new Date(),
       raw: item.raw as unknown as Record<string, unknown>,
     });
-    return this.repo.save(entity);
+    try {
+      return await this.repo.save(entity);
+    } catch (err) {
+      // 跨请求竞态自愈:两个请求同时首搜同一家未缓存公司时,双方 findOne 都为 null,
+      // 后到的 save 会撞 canonical_name 唯一索引(0ee7d9f 只消除了同批次内竞态,管不到跨请求)。
+      // 唯一冲突意味着"该行刚被并发写入"——回读该行返回即可,数据语义等价,不上抛 500。
+      if (this.isUniqueViolation(err)) {
+        const row = await this.repo.findOne({ where: { canonical_name: canonical } });
+        if (row) return row;
+      }
+      throw err;
+    }
+  }
+
+  /** 唯一约束冲突判定:兜住 postgres(23505)与 better-sqlite3(SQLITE_CONSTRAINT*)两端错误形态。 */
+  private isUniqueViolation(err: unknown): boolean {
+    if (!(err instanceof Error)) return false;
+    const e = err as Error & { code?: unknown; driverError?: { code?: unknown; message?: unknown } };
+    const codes = [e.code, e.driverError?.code].filter((c): c is string => typeof c === 'string');
+    if (codes.some((c) => c === '23505' || c.startsWith('SQLITE_CONSTRAINT'))) return true;
+    const messages = [
+      e.message,
+      typeof e.driverError?.message === 'string' ? e.driverError.message : '',
+    ];
+    return messages.some((m) =>
+      /UNIQUE constraint failed|duplicate key value violates unique constraint/i.test(m),
+    );
   }
 
   /**

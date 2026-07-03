@@ -67,7 +67,7 @@ function makeService({
 }
 
 describe('CompanyResearchService — 缓存精确命中', () => {
-  it('canonical_name 精确相等且 7 天内 → 直接返回单候选，不调用博查', async () => {
+  it('canonical_name 精确相等且 7 天内 → 直接返回单候选(带 from_cache 标记)，不调用博查', async () => {
     const canonical = normalizeCompanyName('字节跳动');
     const repo = makeFakeRepo([
       {
@@ -87,6 +87,133 @@ describe('CompanyResearchService — 缓存精确命中', () => {
     expect(bocha.search).not.toHaveBeenCalled();
     expect(result.candidates).toHaveLength(1);
     expect(result.candidates[0].name).toBe('字节跳动');
+    // 前端靠 from_cache 区分"缓存候选"(被拒可触发强制新搜索)与"新搜候选"(被拒直接通用模式)
+    expect(result.from_cache).toBe(true);
+  });
+});
+
+describe('CompanyResearchService — 强制刷新(forceRefresh,缓存候选被拒后的重搜通道)', () => {
+  it('forceRefresh=true 时绕过新鲜缓存直接两路真实搜索,结果精确 upsert 更新缓存行,不带 from_cache', async () => {
+    const canonical = normalizeCompanyName('字节跳动');
+    const repo = makeFakeRepo([
+      {
+        canonical_name: canonical,
+        display_name: '字节跳动',
+        summary: '旧缓存简介',
+        source_url: 'https://old.com/x',
+        source_domain: 'old.com',
+        retrieved_at: new Date(), // 缓存仍新鲜,非强制路径必命中
+      },
+    ]);
+    const bocha = makeBocha(async () => ({
+      available: true,
+      items: [{ name: '字节跳动', url: 'https://new.com/x', summary: '新搜索简介' }],
+    }));
+    const { svc } = makeService({ repo, bocha });
+
+    const result = await svc.search('字节跳动', undefined, true);
+
+    // 绕过缓存:真实发起了两路搜索
+    expect(bocha.search).toHaveBeenCalledTimes(2);
+    // 新结果非缓存:不带 from_cache 标记
+    expect(result.from_cache).toBeUndefined();
+    expect(result.candidates[0].summary).toBe('新搜索简介');
+    // 缓存行被按 canonical_name 精确 upsert 更新(同一行,无模糊命中、无新起第二行)
+    expect(repo._rows.get(canonical)?.summary).toBe('新搜索简介');
+    expect(repo._rows.size).toBe(1);
+  });
+
+  it('forceRefresh=false(默认)时新鲜缓存照常命中,不发起搜索(强制刷新不改变缓存命中规则)', async () => {
+    const canonical = normalizeCompanyName('字节跳动');
+    const repo = makeFakeRepo([
+      {
+        canonical_name: canonical,
+        display_name: '字节跳动',
+        summary: '缓存简介',
+        source_url: 'https://a.com/x',
+        source_domain: 'a.com',
+        retrieved_at: new Date(),
+      },
+    ]);
+    const bocha = makeBocha();
+    const { svc } = makeService({ repo, bocha });
+
+    const result = await svc.search('字节跳动', undefined, false);
+
+    expect(bocha.search).not.toHaveBeenCalled();
+    expect(result.from_cache).toBe(true);
+  });
+});
+
+describe('CompanyResearchService — upsert 唯一冲突自愈(跨请求竞态)', () => {
+  function makeConflictRepo(conflictErr: Error) {
+    // 时序:search 缓存查 → null;upsertOne 预查 → null;save → 撞唯一约束;自愈回读 → 既有行。
+    const existingRow: CompanyResearch = {
+      id: 'row-from-other-request',
+      canonical_name: normalizeCompanyName('冲突公司'),
+      display_name: '冲突公司',
+      summary: '另一请求先写入的行',
+      source_url: 'https://other.com/x',
+      source_domain: 'other.com',
+      retrieved_at: new Date(),
+      raw: null,
+    };
+    let findCount = 0;
+    return {
+      repo: {
+        findOne: jest.fn(async ({ where }: { where: { canonical_name?: string } }) => {
+          if (!where.canonical_name) return null;
+          findCount++;
+          return findCount <= 2 ? null : existingRow; // 第3次(冲突后回读)才可见
+        }),
+        create: jest.fn((partial: Partial<CompanyResearch>) => partial as CompanyResearch),
+        save: jest.fn().mockRejectedValue(conflictErr),
+      },
+      existingRow,
+    };
+  }
+
+  it('save 撞 sqlite 唯一约束 → 回读该 canonical_name 既有行返回,不上抛', async () => {
+    const err = new Error('UNIQUE constraint failed: company_research.canonical_name');
+    (err as Error & { code?: string }).code = 'SQLITE_CONSTRAINT_UNIQUE';
+    const { repo, existingRow } = makeConflictRepo(err);
+    const bocha = makeBocha(async () => ({
+      available: true,
+      items: [{ name: '冲突公司', url: 'https://mine.com/x', summary: '本请求提取的候选' }],
+    }));
+    const { svc } = makeService({ repo: repo as any, bocha });
+
+    const result = await svc.search('冲突公司');
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0].id).toBe(existingRow.id); // 自愈:返回并发写入方的既有行
+  });
+
+  it('save 撞 postgres 唯一约束(driverError.code=23505) → 同样自愈,不上抛', async () => {
+    const err = new Error('duplicate key value violates unique constraint "IDX_company_research_canonical_name"');
+    (err as Error & { driverError?: { code: string } }).driverError = { code: '23505' };
+    const { repo, existingRow } = makeConflictRepo(err);
+    const bocha = makeBocha(async () => ({
+      available: true,
+      items: [{ name: '冲突公司', url: 'https://mine.com/x', summary: '本请求提取的候选' }],
+    }));
+    const { svc } = makeService({ repo: repo as any, bocha });
+
+    const result = await svc.search('冲突公司');
+
+    expect(result.candidates[0].id).toBe(existingRow.id);
+  });
+
+  it('save 抛非唯一冲突错误 → 照常上抛,不吞错', async () => {
+    const err = new Error('connection lost');
+    const { repo } = makeConflictRepo(err);
+    const bocha = makeBocha(async () => ({
+      available: true,
+      items: [{ name: '冲突公司', url: 'https://mine.com/x', summary: 'S' }],
+    }));
+    const { svc } = makeService({ repo: repo as any, bocha });
+
+    await expect(svc.search('冲突公司')).rejects.toThrow('connection lost');
   });
 });
 
