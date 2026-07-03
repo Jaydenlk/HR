@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import type { CoverLetter, CoverLetterTone } from '@/lib/types';
+import type { CoverLetter, CoverLetterTone, Resume } from '@/lib/types';
 import { RefreshCw, Copy, FileText, Loader2, Plus } from 'lucide-react';
 import { ReferralPanel } from './_referral';
 import {
@@ -73,6 +73,36 @@ function CoverLetterTab() {
   const [tone, setTone] = useState<CoverLetterTone>('warm');
   const [lengthWords, setLengthWords] = useState(350);
   const [jdText, setJdText] = useState('');
+  // M11/M21 审计校准:简历选择器(可选,传 resume_id)+ 从详情页进入时顺带传 application_id。
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState('');
+  const applicationId = searchParams.get('applicationId');
+
+  // 从投递详情页跳转过来时预填公司/岗位(query 有值即预填,只做一次)。
+  const prefilledFromApplication = useRef(false);
+  useEffect(() => {
+    if (prefilledFromApplication.current) return;
+    const qCompany = searchParams.get('company');
+    const qRole = searchParams.get('role');
+    if (!qCompany && !qRole) return;
+    prefilledFromApplication.current = true;
+    setTimeout(() => {
+      if (qCompany) setCompany(qCompany);
+      if (qRole) setRole(qRole);
+    }, 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await api.get<Resume[]>('/resumes');
+        setResumes(data);
+      } catch {
+        // 简历列表加载失败不阻断求职信生成(简历选择器降级为空列表,可选字段)。
+      }
+    })();
+  }, []);
 
   // handoff 接待:accepted 后预填字段。
   // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题。
@@ -122,14 +152,14 @@ function CoverLetterTab() {
     setError(null);
     setGenerating(true);
     try {
-      // TODO(#103): 求职信目前仅基于 JD + 公司/岗位/语气生成，尚未接入用户简历。
-      // 待后端开放简历上下文入参后，在此追加 resume 字段实现"简历 × JD"双向定制。
       const letter = await api.post<CoverLetter>('/cover-letters', {
         company,
         role,
         tone,
         length_words: lengthWords,
         jd_text: jdText.trim(),
+        resume_id: selectedResumeId || undefined,
+        application_id: applicationId || undefined,
       });
       setCurrentLetter(letter);
       setLetters((prev) => [letter, ...prev]);
@@ -326,6 +356,28 @@ function CoverLetterTab() {
                 onChange={(e) => setRole(e.target.value)}
                 placeholder="资深前端工程师"
               />
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={labelStyle}>
+                关联简历
+                <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: '6px', color: 'var(--color-ink-4)' }}>
+                  （可选，不选则只基于 JD 撰写通用求职意愿信）
+                </span>
+              </label>
+              <select
+                style={{ ...inputStyle, cursor: 'pointer' }}
+                value={selectedResumeId}
+                onChange={(e) => setSelectedResumeId(e.target.value)}
+              >
+                <option value="">不关联简历</option>
+                {resumes.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                    {r.is_primary ? '（主简历）' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div style={{ marginBottom: '14px' }}>

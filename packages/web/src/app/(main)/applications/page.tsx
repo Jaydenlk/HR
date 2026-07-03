@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import type {
@@ -12,7 +12,6 @@ import type {
 import { TrackerStats } from '@/components/tracker/tracker-stats';
 import { KanbanBoard } from '@/components/tracker/kanban-board';
 import { ApplicationForm } from '@/components/tracker/application-form';
-import { ApplicationTimeline } from '@/components/tracker/application-timeline';
 import {
   Plus,
   Briefcase,
@@ -47,7 +46,8 @@ const CONFIDENCE_LABELS: Record<ApplicationStrategyResult['confidence'], string>
   insufficient: '信息不足',
 };
 
-function StrategyPanel() {
+// m8 审计校准:接收页面已拉取的 applications 列表,预填"当前在投公司",不让用户重打一遍。
+function StrategyPanel({ applications }: { applications: Application[] }) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<StrategyState>('idle');
   const [result, setResult] = useState<ApplicationStrategyResult | null>(null);
@@ -59,6 +59,16 @@ function StrategyPanel() {
     current_applications: [],
   });
   const [appsInput, setAppsInput] = useState('');
+  // 只预填一次:applications 首次到手时把公司名塞进输入框,之后用户编辑不会被覆盖。
+  // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题(同款处理见 cover-letter/page.tsx)。
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefilledRef.current || applications.length === 0) return;
+    const companies = Array.from(new Set(applications.map((a) => a.company).filter(Boolean)));
+    if (companies.length === 0) return;
+    prefilledRef.current = true;
+    setTimeout(() => setAppsInput(companies.join('，')), 0);
+  }, [applications]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -967,8 +977,6 @@ export default function ApplicationsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [defaultStage, setDefaultStage] = useState<string>('wishlist');
-  // 编辑模式:点卡片打开同一弹窗,initial 预填 + 时间线;为 null 时为新增模式。
-  const [editing, setEditing] = useState<Application | null>(null);
 
   // #45 — separate initial-load flag from mutation refresh; mutations use silent refetch
   const fetchData = useCallback(async (silent = false) => {
@@ -1007,28 +1015,8 @@ export default function ApplicationsPage() {
     }
   }
 
-  async function handleUpdate(data: Record<string, string>) {
-    if (!editing) return;
-    try {
-      setActionError(null);
-      await api.patch(`/applications/${editing.id}`, data);
-      setEditing(null);
-      setFormOpen(false);
-      await fetchData(true);
-      toast.success('已保存修改');
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : '保存失败，请稍后重试');
-    }
-  }
-
-  function handleEdit(application: Application) {
-    setEditing(application);
-    setFormOpen(true);
-  }
-
   function handleCloseForm() {
     setFormOpen(false);
-    setEditing(null);
   }
 
   async function handleStageChange(id: string, stage: string) {
@@ -1049,13 +1037,11 @@ export default function ApplicationsPage() {
   }
 
   function handleAddFromColumn(stage: string) {
-    setEditing(null);
     setDefaultStage(stage);
     setFormOpen(true);
   }
 
   function handleAddNew() {
-    setEditing(null);
     setDefaultStage('wishlist');
     setFormOpen(true);
   }
@@ -1063,21 +1049,7 @@ export default function ApplicationsPage() {
   return (
     <>
       {formOpen && (
-        editing ? (
-          <ApplicationForm
-            key={editing.id}
-            initial={editing}
-            onSubmit={handleUpdate}
-            onCancel={handleCloseForm}
-            footer={<ApplicationTimeline applicationId={editing.id} />}
-          />
-        ) : (
-          <ApplicationForm
-            defaultStage={defaultStage}
-            onSubmit={handleCreate}
-            onCancel={handleCloseForm}
-          />
-        )
+        <ApplicationForm defaultStage={defaultStage} onSubmit={handleCreate} onCancel={handleCloseForm} />
       )}
 
       <div
@@ -1197,7 +1169,7 @@ export default function ApplicationsPage() {
 
         {/* Strategy panel */}
         <div style={{ flexShrink: 0, marginTop: '16px' }}>
-          <StrategyPanel />
+          <StrategyPanel applications={applications} />
         </div>
 
         {/* Content */}
@@ -1322,7 +1294,6 @@ export default function ApplicationsPage() {
             <KanbanBoard
               applications={applications}
               onStageChange={handleStageChange}
-              onEdit={handleEdit}
               onAdd={handleAddFromColumn}
             />
           </div>

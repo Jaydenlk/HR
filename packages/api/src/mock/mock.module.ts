@@ -9,6 +9,7 @@ import { CreditModule } from '../credit/credit.module';
 import { FeedModule } from '../feed/feed.module';
 import { SpeechModule } from '../speech/speech.module';
 import { CompanyResearchModule } from '../company-research/company-research.module';
+import { ApplicationsModule } from '../applications/applications.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CompanyResearchModule } from '../company-research/company-research.modu
     FeedModule,
     SpeechModule,
     CompanyResearchModule,
+    ApplicationsModule,
   ],
   controllers: [MockController],
   providers: [MockService],

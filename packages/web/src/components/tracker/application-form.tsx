@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Application } from '@/lib/types';
+import { STAGE_META } from '@/lib/tracker-stages';
 
 type ApplicationFormData = {
   company: string;
@@ -21,15 +22,6 @@ interface ApplicationFormProps {
   defaultStage?: string;
   footer?: React.ReactNode;
 }
-
-const STAGE_OPTIONS = [
-  { id: 'wishlist',  label: '想投' },
-  { id: 'applied',   label: '已投递' },
-  { id: 'interview', label: '面试中' },
-  { id: 'final',     label: '终面' },
-  { id: 'offer',     label: 'Offer' },
-  { id: 'rejected',  label: '已拒' },
-];
 
 export function ApplicationForm({ onSubmit, onCancel, initial, defaultStage, footer }: ApplicationFormProps) {
   const [form, setForm] = useState<ApplicationFormData>({
@@ -170,7 +162,7 @@ export function ApplicationForm({ onSubmit, onCancel, initial, defaultStage, foo
                 value={form.stage}
                 onChange={(e) => handleChange('stage', e.target.value)}
               >
-                {STAGE_OPTIONS.map((s) => (
+                {STAGE_META.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.label}
                   </option>

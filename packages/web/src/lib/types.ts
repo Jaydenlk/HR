@@ -280,8 +280,81 @@ export interface Application {
   notes: string | null;
   resume_id: string | null;
   diagnosis_id: string | null;
+  resume_version_id: string | null;
+  company_research_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// ─── T5 投递详情二级页:聚合 / link / 建议(与后端 application-related.dto.ts 一一对应) ──
+
+export interface ApplicationRelatedInterview {
+  id: string;
+  company: string | null;
+  role: string | null;
+  round: string;
+  interview_at: string | null;
+  duration_min: number | null;
+  overall_grade: string | null;
+  created_at: string;
+  transcript_status: TranscribeStatus | null;
+}
+
+export interface ApplicationRelatedMockSession {
+  id: string;
+  company: string | null;
+  role: string | null;
+  mode: string;
+  status: string;
+  overall_grade: string | null;
+  created_at: string;
+}
+
+export interface ApplicationRelatedCoverLetter {
+  id: string;
+  company: string | null;
+  role: string | null;
+  tone: CoverLetterTone;
+  version: number;
+  created_at: string;
+}
+
+export interface ApplicationRelatedResumeVersion {
+  id: string;
+  version_num: number;
+  change_note: string | null;
+  created_at: string;
+}
+
+export interface ApplicationRelatedResume {
+  resume: { id: string; title: string; is_primary: boolean };
+  version: ApplicationRelatedResumeVersion | null;
+}
+
+export interface ApplicationRelatedCompanyResearch {
+  id: string;
+  display_name: string;
+  summary: string;
+  source_url: string;
+  source_domain: string;
+  retrieved_at: string;
+}
+
+export interface ApplicationRelated {
+  interviews: ApplicationRelatedInterview[];
+  mock_sessions: ApplicationRelatedMockSession[];
+  cover_letters: ApplicationRelatedCoverLetter[];
+  resume: ApplicationRelatedResume | null;
+  company_research: ApplicationRelatedCompanyResearch | null;
+}
+
+export type LinkTargetType = 'interview' | 'mock' | 'cover_letter' | 'resume_version' | 'company_research';
+
+export interface LinkSuggestion {
+  type: Extract<LinkTargetType, 'interview' | 'mock' | 'cover_letter'>;
+  target_id: string;
+  label: string;
+  reason: string;
 }
 
 export interface ApplicationEvent {
@@ -407,6 +480,7 @@ export interface MockEvaluation {
 
 export interface MockSession {
   id: string;
+  application_id: string | null;
   company: string | null;
   role: string | null;
   jd_text: string | null;
@@ -593,6 +667,7 @@ export type CoverLetterTone = 'professional' | 'warm' | 'direct';
 
 export interface CoverLetter {
   id: string;
+  application_id: string | null;
   company: string | null;
   role: string | null;
   tone: CoverLetterTone;

@@ -3,23 +3,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import type { ApplicationEvent } from '@/lib/types';
+import { stageLabel } from '@/lib/tracker-stages';
 
 interface ApplicationTimelineProps {
   applicationId: string;
-}
-
-const STAGE_LABELS: Record<string, string> = {
-  wishlist: '想投',
-  applied: '已投递',
-  interview: '面试中',
-  final: '终面',
-  offer: 'Offer',
-  rejected: '已拒',
-};
-
-function stageLabel(stage: string | null): string {
-  if (!stage) return '创建';
-  return STAGE_LABELS[stage] ?? stage;
 }
 
 // 相对时间(刚刚/N 分钟前/N 小时前/N 天前),超过 30 天回退绝对日期。

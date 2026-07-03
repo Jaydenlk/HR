@@ -1,23 +1,10 @@
 'use client';
 
+import { STAGE_META } from '@/lib/tracker-stages';
+
 interface TrackerStatsProps {
   stats: Record<string, number>;
 }
-
-interface StatTile {
-  key: string;
-  label: string;
-  color: string;
-}
-
-const TILES: StatTile[] = [
-  { key: 'wishlist',  label: '想投',  color: 'var(--color-ink-3)' },
-  { key: 'applied',   label: '已投递', color: 'var(--color-brand)' },
-  { key: 'interview', label: '面试中', color: 'var(--color-warn)' },
-  { key: 'final',     label: '终面',  color: 'var(--au-violet)' },
-  { key: 'offer',     label: 'Offer', color: 'var(--color-success)' },
-  { key: 'rejected',  label: '已拒',  color: 'var(--color-danger)' },
-];
 
 export function TrackerStats({ stats }: TrackerStatsProps) {
   return (
@@ -29,11 +16,11 @@ export function TrackerStats({ stats }: TrackerStatsProps) {
         marginBottom: '20px',
       }}
     >
-      {TILES.map((tile) => {
-        const count = stats[tile.key] ?? 0;
+      {STAGE_META.map((tile) => {
+        const count = stats[tile.id] ?? 0;
         return (
           <div
-            key={tile.key}
+            key={tile.id}
             className="lg"
             style={{
               padding: '16px 18px',

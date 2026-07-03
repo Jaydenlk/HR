@@ -485,6 +485,69 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
     });
   });
 
+  // ── T5 审计校准(B2/M12 同款):application_id 归属校验,越权直接拒绝不烧 AI 额度 ──
+  describe('POST /api/mock-sessions — application_id ownership guard (T5)', () => {
+    let otherAppId: string;
+    let ownAppId: string;
+
+    beforeAll(async () => {
+      const otherRes = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ company: '他人公司', role: '软件工程师' });
+      otherAppId = otherRes.body.id;
+
+      const ownRes = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '自己公司', role: '软件工程师' });
+      ownAppId = ownRes.body.id;
+    });
+
+    it('引用他人 application_id → 403,且不产生僵尸会话(越权拒绝早于 AI 出题)', async () => {
+      const beforeRes = await request(app.getHttpServer())
+        .get('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`);
+      const countBefore = beforeRes.body.length;
+
+      const res = await request(app.getHttpServer())
+        .post('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: 'IDOR', role: '软件工程师', question_count: 2, application_id: otherAppId });
+
+      expect(res.status).toBe(403);
+
+      const afterRes = await request(app.getHttpServer())
+        .get('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`);
+      expect(afterRes.body.length).toBe(countBefore);
+    });
+
+    it('引用不存在的 application_id → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          company: 'IDOR2',
+          role: '软件工程师',
+          question_count: 2,
+          application_id: '00000000-0000-0000-0000-000000000099',
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('引用自己的 application_id → 201,且会话写入该 application_id', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/mock-sessions')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '自己公司', role: '软件工程师', question_count: 2, application_id: ownAppId });
+
+      expect(res.status).toBe(201);
+      expect(res.body.application_id).toBe(ownAppId);
+    });
+  });
+
   // ── 公司库双路径 + 防编造 prompt 断言 ──────────────────────────────────────
   describe('Company registry lookup & anti-hallucination prompts', () => {
     beforeEach(() => {

@@ -7,6 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { Application } from '../../applications/entities/application.entity';
 
 export type CoverLetterTone = 'professional' | 'warm' | 'direct';
 
@@ -24,6 +25,10 @@ export class CoverLetter {
 
   @Column({ nullable: true })
   application_id: string;
+
+  @ManyToOne(() => Application, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'application_id' })
+  application: Application;
 
   @Column({ nullable: true })
   resume_id: string;

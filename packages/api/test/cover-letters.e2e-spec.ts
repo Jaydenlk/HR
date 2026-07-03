@@ -180,6 +180,74 @@ describe('Cover Letters (e2e)', () => {
       });
     });
   });
+
+  // ─── T5 审计校准(B2/M12):application_id 归属校验 ─────────────────────────
+  describe('POST /api/cover-letters — application_id ownership guard (T5)', () => {
+    let otherToken: string;
+    let otherAppId: string;
+    let ownAppId: string;
+
+    beforeAll(async () => {
+      otherToken = await loginUser(app, 'coverletters-other@coach.dev', 'Cover Letters Other');
+      const otherRes = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${otherToken}`)
+        .send({ company: '他人公司', role: '软件工程师' });
+      otherAppId = otherRes.body.id;
+
+      const ownRes = await request(app.getHttpServer())
+        .post('/api/applications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ company: '自己公司', role: '软件工程师' });
+      ownAppId = ownRes.body.id;
+    });
+
+    it('引用他人 application_id → 403(不触发 AI 生成)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/cover-letters')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          company: 'IDOR',
+          role: 'Engineer',
+          jd_text: 'We are looking for a skilled software engineer to join our team.',
+          application_id: otherAppId,
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('引用不存在的 application_id → 403', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/cover-letters')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          company: 'IDOR2',
+          role: 'Engineer',
+          jd_text: 'We are looking for a skilled software engineer to join our team.',
+          application_id: '00000000-0000-0000-0000-000000000099',
+        });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('引用自己的 application_id → 非 401/403(触发真实 AI 生成 — 30s timeout)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/cover-letters')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          company: '自己公司',
+          role: 'Engineer',
+          jd_text: 'We are looking for a skilled software engineer to join our team.',
+          application_id: ownAppId,
+        });
+
+      expect(res.status).not.toBe(401);
+      expect(res.status).not.toBe(403);
+      if (res.status === 201) {
+        expect(res.body.application_id).toBe(ownAppId);
+      }
+    }, 30000);
+  });
 });
 
 // ─── AI live:真实调用 CloudDreamAI/DeepSeek(默认 skip,RUN_AI_LIVE=1 开启)─────────
