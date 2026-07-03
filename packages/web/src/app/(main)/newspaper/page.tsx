@@ -23,6 +23,7 @@ import type {
   InsightCard,
   NewspaperEdition,
 } from '@/lib/types';
+import { RecruitIntelBoard } from './RecruitIntelBoard';
 
 type TabKey = 'all' | 'interview_exp' | 'hot' | 'job_tips' | 'editorial' | 'insight';
 type SortMode = 'latest' | 'campus';
@@ -34,6 +35,10 @@ const SOURCE_KIND_LABELS: Record<FeedSourceKind, string> = {
   blog: '博客',
   ugc: '用户投稿',
   coach: 'Coach',
+  // T2 三类源不产出 FeedItem(落 recruit_events 表,见下方「校招情报」板块),不会在面经卡片上渲染。
+  sheet_file: '校招表格',
+  sheet_link: '校招表格(链接)',
+  wechat_dump: '公众号整理稿',
 };
 
 const SOURCE_KIND_COLORS: Record<FeedSourceKind, string> = {
@@ -43,6 +48,9 @@ const SOURCE_KIND_COLORS: Record<FeedSourceKind, string> = {
   blog: '#8b5cf6',
   ugc: '#6b7280',
   coach: 'var(--color-warn, #f59e0b)',
+  sheet_file: '#0ea5e9',
+  sheet_link: '#0ea5e9',
+  wechat_dump: '#0ea5e9',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -204,6 +212,9 @@ export default function NewspaperPage() {
         <>
           {/* Hero Section */}
           <HeroSection edition={edition} />
+
+          {/* T2:校招情报常驻板块 */}
+          <RecruitIntelBoard data={edition.recruit_intel} />
 
           {/* Category Tabs */}
           <div className="np-tabs" role="tablist" aria-label="分类筛选">

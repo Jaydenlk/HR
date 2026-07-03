@@ -30,8 +30,10 @@ export class FeedItemResponseDto {
   fetched_at: Date | null;
   created_at: Date;
   date_confidence: FeedItem['date_confidence'];
+  /** m23:是否为当前登录用户本人的投稿——用于前端展示删除按钮,不泄露 user_id 本身。 */
+  is_mine: boolean;
 
-  static from(item: FeedItem): FeedItemResponseDto {
+  static from(item: FeedItem, viewerUserId?: string): FeedItemResponseDto {
     const dto = new FeedItemResponseDto();
     dto.id = item.id;
     dto.title = item.title;
@@ -50,6 +52,7 @@ export class FeedItemResponseDto {
     dto.fetched_at = item.fetched_at ?? null;
     dto.created_at = item.created_at;
     dto.date_confidence = item.date_confidence;
+    dto.is_mine = Boolean(viewerUserId) && item.user_id === viewerUserId;
     return dto;
   }
 }

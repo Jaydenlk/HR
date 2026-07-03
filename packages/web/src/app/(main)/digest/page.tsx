@@ -11,6 +11,7 @@ import {
   RefreshCcw,
   Search,
   Settings,
+  Trash2,
   X,
 } from 'lucide-react';
 import {
@@ -29,7 +30,9 @@ import type {
   FeedSource,
   FeedSourceKind,
   FeedSourceStatus,
+  User,
 } from '@/lib/types';
+import { RecruitSourceManager } from './RecruitSourceManager';
 
 type SourceFilter = FeedSourceKind | 'all';
 type CategoryFilter = FeedCategory | 'all';
@@ -57,6 +60,11 @@ const SOURCE_KIND_LABELS: Record<FeedSourceKind, string> = {
   blog: '博客',
   ugc: '用户内容',
   coach: 'Coach',
+  // T2 三类源不产出 FeedItem(落 recruit_events 表),这几个 label 实际不会在面经卡片上渲染,
+  // 仅为满足 Record<FeedSourceKind, string> 的完整性。
+  sheet_file: '校招表格',
+  sheet_link: '校招表格(链接)',
+  wechat_dump: '公众号整理稿',
 };
 
 const CATEGORY_LABELS: Record<FeedCategory, string> = {
@@ -153,6 +161,20 @@ export default function DigestPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // M8:来源管理/导入是管理员运营操作,普通用户既看不到入口,也不发起这两个 admin-only 端点的请求
+  // (GET /feed/sources、/feed/runs 现挂 AdminGuard,非 admin 调用会 403)。
+  const [me, setMe] = useState<User | null>(null);
+  const [meLoaded, setMeLoaded] = useState(false);
+  const isAdmin = me?.role === 'admin';
+
+  useEffect(() => {
+    api
+      .get<User>('/auth/me')
+      .then((u) => setMe(u))
+      .catch(() => setMe(null))
+      .finally(() => setMeLoaded(true));
+  }, []);
+
   const feedPath = useMemo(() => {
     const params = new URLSearchParams();
     const source = sourceFilterToQuery(sourceFilter);
@@ -165,6 +187,8 @@ export default function DigestPage() {
   }, [categoryFilter, keyword, sourceFilter]);
 
   async function loadSourcesAndRuns() {
+    // 非 admin 不发起这两个 admin-only 端点的请求(403 且无意义)。
+    if (!isAdmin) return;
     const [feedSources, digestRuns] = await Promise.all([
       api.get<FeedSource[]>('/feed/sources'),
       api.get<DigestRun[]>('/feed/runs'),
@@ -199,6 +223,7 @@ export default function DigestPage() {
   }, [feedPath]);
 
   useEffect(() => {
+    if (!meLoaded || !isAdmin) return;
     Promise.all([
       api.get<FeedSource[]>('/feed/sources'),
       api.get<DigestRun[]>('/feed/runs'),
@@ -208,7 +233,7 @@ export default function DigestPage() {
         setRuns(digestRuns);
       })
       .catch(() => {});
-  }, []);
+  }, [meLoaded, isAdmin]);
 
   async function loadDigest() {
     setLoading(true);
@@ -236,6 +261,7 @@ export default function DigestPage() {
   }, [sources]);
 
   async function handleImport() {
+    if (!isAdmin) return;
     setImporting(true);
     setPageError(null);
     try {
@@ -309,15 +335,17 @@ export default function DigestPage() {
             <RefreshCcw size={16} />
             刷新
           </button>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => void handleImport()}
-            disabled={loading || importing || sources.length === 0}
-          >
-            {importing ? <Loader2 className="spin" size={16} /> : <Database size={16} />}
-            {importing ? '导入中' : '导入来源'}
-          </button>
+          {isAdmin && (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => void handleImport()}
+              disabled={loading || importing || sources.length === 0}
+            >
+              {importing ? <Loader2 className="spin" size={16} /> : <Database size={16} />}
+              {importing ? '导入中' : '导入来源'}
+            </button>
+          )}
           <button className="primary-button" type="button" onClick={() => setShowForm(true)}>
             <Plus size={16} />
             写面经
@@ -325,26 +353,36 @@ export default function DigestPage() {
         </div>
       </section>
 
-      <section className="status-grid" aria-label="来源状态">
-        <div className="lg status-card">
-          <span>来源配置</span>
-          <strong>{sourceSummary.active}/{sourceSummary.total}</strong>
-          <small>{sourceSummary.needsConfig > 0 ? `${sourceSummary.needsConfig} 个待配置` : '全部可用'}</small>
-        </div>
-        <div className="lg status-card">
-          <span>最近导入</span>
-          <strong>{latestRun ? RUN_STATUS_LABELS[latestRun.status] : '未运行'}</strong>
-          <small>{latestRun ? formatDate(latestRun.created_at) : '点击导入来源开始采集'}</small>
-        </div>
-        <div className="lg status-card">
-          <span>当前结果</span>
-          <strong>{items.length}</strong>
-          <small>按筛选条件返回的真实记录</small>
-        </div>
-      </section>
+      {isAdmin && (
+        <section className="status-grid" aria-label="来源状态">
+          <div className="lg status-card">
+            <span>来源配置</span>
+            <strong>{sourceSummary.active}/{sourceSummary.total}</strong>
+            <small>{sourceSummary.needsConfig > 0 ? `${sourceSummary.needsConfig} 个待配置` : '全部可用'}</small>
+          </div>
+          <div className="lg status-card">
+            <span>最近导入</span>
+            <strong>{latestRun ? RUN_STATUS_LABELS[latestRun.status] : '未运行'}</strong>
+            <small>{latestRun ? formatDate(latestRun.created_at) : '点击导入来源开始采集'}</small>
+          </div>
+          <div className="lg status-card">
+            <span>当前结果</span>
+            <strong>{items.length}</strong>
+            <small>按筛选条件返回的真实记录</small>
+          </div>
+        </section>
+      )}
 
-      <SourceStrip sources={sources} />
-      <RunNotice run={latestRun} />
+      {isAdmin && (
+        <>
+          <SourceStrip sources={sources} />
+          <RunNotice run={latestRun} />
+          <RecruitSourceManager
+            sources={sources}
+            onChanged={() => void loadSourcesAndRuns()}
+          />
+        </>
+      )}
 
       <section className="controls" aria-label="月刊筛选">
         <div className="search-box">
@@ -396,16 +434,19 @@ export default function DigestPage() {
         </div>
       ) : items.length === 0 ? (
         <EmptyDigestState
-          hasSources={sources.length > 0}
+          // 非 admin 不知道来源配置状态(接口不对其开放),不套用"未配置来源"文案,
+          // 统一走"还没有抓取到新情报"这条更中性的分支。
+          hasSources={isAdmin ? sources.length > 0 : true}
           hasFilters={sourceFilter !== 'all' || categoryFilter !== 'all' || keyword.trim().length > 0}
           onImport={() => void handleImport()}
           onReset={resetFilters}
           importing={importing}
+          isAdmin={isAdmin}
         />
       ) : (
         <section className="digest-grid" aria-label="月刊内容">
           {items.map((item) => (
-            <DigestCard key={item.id} item={item} />
+            <DigestCard key={item.id} item={item} onDeleted={() => setItems((prev) => prev.filter((i) => i.id !== item.id))} />
           ))}
         </section>
       )}
@@ -559,12 +600,14 @@ function EmptyDigestState({
   importing,
   onImport,
   onReset,
+  isAdmin,
 }: {
   hasSources: boolean;
   hasFilters: boolean;
   importing: boolean;
   onImport: () => void;
   onReset: () => void;
+  isAdmin: boolean;
 }) {
   return (
     <section className="empty-state">
@@ -583,21 +626,48 @@ function EmptyDigestState({
             清空筛选
           </button>
         )}
-        <button className="primary-button" type="button" onClick={onImport} disabled={!hasSources || importing}>
-          {importing ? <Loader2 className="spin" size={16} /> : <Database size={16} />}
-          {importing ? '导入中' : '导入来源'}
-        </button>
+        {isAdmin && (
+          <button className="primary-button" type="button" onClick={onImport} disabled={!hasSources || importing}>
+            {importing ? <Loader2 className="spin" size={16} /> : <Database size={16} />}
+            {importing ? '导入中' : '导入来源'}
+          </button>
+        )}
       </div>
     </section>
   );
 }
 
-function DigestCard({ item }: { item: FeedItem }) {
+function DigestCard({ item, onDeleted }: { item: FeedItem; onDeleted: () => void }) {
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/feed/${item.id}`);
+      onDeleted();
+    } catch {
+      setDeleting(false);
+    }
+  }
+
   return (
     <article className="lg digest-card">
       <div className="card-top">
         <span className={`category-pill ${item.category}`}>{CATEGORY_LABELS[item.category]}</span>
         <span className={`source-badge ${item.source_kind}`}>{SOURCE_KIND_LABELS[item.source_kind]}</span>
+        {/* m23:自己的投稿补删除按钮(后端 DELETE /feed/:id 已有归属校验)。 */}
+        {item.is_mine && (
+          <button
+            className="icon-button card-delete-button"
+            type="button"
+            aria-label="删除这条投稿"
+            onClick={() => void handleDelete()}
+            disabled={deleting}
+          >
+            {deleting ? <Loader2 className="spin" size={13} /> : <Trash2 size={13} />}
+          </button>
+        )}
       </div>
       <h2>{item.title}</h2>
       <p>{excerpt(item)}</p>
@@ -944,6 +1014,18 @@ button {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.card-delete-button {
+  width: 24px;
+  min-height: 24px;
+  height: 24px;
+  margin-left: auto;
+  color: var(--color-ink-3);
+}
+
+.card-delete-button:hover {
+  color: var(--color-danger);
 }
 
 .category-pill,
