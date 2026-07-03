@@ -162,7 +162,7 @@ export class CareerService {
     const MAX_ATTEMPTS = 3;
     let raw: RawCareerAnalysis = {};
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      // schema 范式对照 industry_trend / parse_jd:顶层 required 只列两个容器(paths/skill_audit),
+      // schema 范式对照 parse_jd:顶层 required 只列两个容器(paths/skill_audit),
       // 内层 object 不设 required(降级到 flash 时缺字段不应整轮失败,改由 service 端兜底)。
       raw = await this.ai.completeStructured<RawCareerAnalysis>({
         system,

@@ -12,7 +12,7 @@ import { CaseCoachDto } from './dto/case-coach.dto';
 
 type Confidence = 'high' | 'medium' | 'low' | 'insufficient';
 
-// 合法 confidence 枚举白名单（与 salary/strategy/learning-roadmap 等 service 对齐）。
+// 合法 confidence 枚举白名单（与 salary/strategy 等 service 对齐）。
 // AI 返回的 confidence 不可直接采信：非白名单值一律降为 'low'，不信任未知枚举。
 const VALID_CONFIDENCE = new Set<Confidence>(['high', 'medium', 'low', 'insufficient']);
 
