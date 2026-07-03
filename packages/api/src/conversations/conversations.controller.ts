@@ -79,8 +79,13 @@ export class ConversationsController {
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     };
 
-    const abort = new AbortController();
-    res.on('close', () => abort.abort());
+    // 断开只停转发,不取消生成(对齐诊断解耦哲学):客户端断开仅置 closed=true 停止 write;
+    // service 后台任务继续把 AI 流完整消费并落库/扣费。拆掉了此前 res.on('close')→abort.abort() 联动,
+    // 后者会真正中止上游生成、丢掉整条回复。findOne 越权/不存在等错误现由 service 以 error 事件推送。
+    let closed = false;
+    res.on('close', () => {
+      closed = true;
+    });
 
     try {
       for await (const event of this.conversations.streamMessage(
@@ -88,25 +93,12 @@ export class ConversationsController {
         user.id,
         dto.content,
         '/api/conversations/:id/messages/stream',
-        abort.signal,
       )) {
+        if (closed) break; // 客户端已断开:停止转发,后台任务仍跑完落库。
         write(event);
       }
-    } catch (err) {
-      // findOne 越权/不存在等在生成器首拉时抛出(此时多半已发响应头),无法再改状态码,
-      // 统一以 error 事件可读告知前端,避免连接裸断。NotFoundException 的 message 为英文
-      // "Not Found",归一成中文兜底。
-      const raw =
-        err && typeof err === 'object' && 'message' in err &&
-        typeof (err as { message: unknown }).message === 'string'
-          ? (err as { message: string }).message
-          : '';
-      write({
-        type: 'error',
-        message: raw && raw !== 'Not Found' ? raw : '对话不存在或无法访问',
-      });
     } finally {
-      res.end();
+      if (!closed) res.end();
     }
   }
 

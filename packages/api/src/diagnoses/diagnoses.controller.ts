@@ -55,11 +55,21 @@ export class DiagnosesController {
   // 无法表达「流中断/排队满不记」)。对齐 conversations 的流式扣费时机。
   @Post('campus/stream')
   @UseGuards(CreditGuard)
-  streamCampus(
+  async streamCampus(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateCampusDiagnosisDto,
     @Res() res: Response,
   ): Promise<void> {
+    // 防重复(S0):同用户同 mode 已有未超时进行中诊断 → 409 携带其 id(前端转入「进行中」视图,不重复发起/扣费)。
+    // findRunningConflict 内部先做惰性判死再判冲突,故超时的僵尸行不会误挡新诊断。
+    const conflict = await this.diagnoses.findRunningConflict(user.id, 'profession_standard');
+    if (conflict) {
+      res.status(409).json({
+        diagnosisId: conflict.id,
+        message: '你已有一个校招诊断正在进行中,请等待其完成后再发起。',
+      });
+      return;
+    }
     return this.pipeSse(
       res,
       this.diagnoses.streamCreateProfessionStandard(
@@ -72,11 +82,19 @@ export class DiagnosesController {
 
   @Post('stream')
   @UseGuards(CreditGuard)
-  streamJd(
+  async streamJd(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateDiagnosisDto,
     @Res() res: Response,
   ): Promise<void> {
+    const conflict = await this.diagnoses.findRunningConflict(user.id, 'jd_match');
+    if (conflict) {
+      res.status(409).json({
+        diagnosisId: conflict.id,
+        message: '你已有一个诊断正在进行中,请等待其完成后再发起。',
+      });
+      return;
+    }
     return this.pipeSse(
       res,
       this.diagnoses.streamCreate(user.id, dto, '/api/diagnoses/stream'),

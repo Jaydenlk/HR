@@ -52,6 +52,7 @@ export type DiagnosisStreamEvent =
 //   analyzer_error   —— 分析阶段抛错(落库前)。
 //   rewriter_error   —— 改写阶段抛错(分析已落库 → status=partial)。
 //   client_disconnect—— 客户端断开导致中止(本架构后台不随断开中止,保留枚举以备扩展)。
+//   orphaned         —— 进行中(running)行超 15 分钟仍未落终态(疑似进程重启遗留),读取时惰性判失败。
 //   unknown          —— 未归类。
 export type DiagnosisFailureReason =
   | 'input_validation'
@@ -60,24 +61,34 @@ export type DiagnosisFailureReason =
   | 'analyzer_error'
   | 'rewriter_error'
   | 'client_disconnect'
+  | 'orphaned'
   | 'unknown';
 
-// 流水线运行上下文:work() 边跑边填,供失败归类与「失败也记一行」使用。
-//   phase       —— 当前阶段;失败时据此归类 failure_reason。
-//   resumeId    —— 解析就绪后填入,使「落库前失败」也能记一行可归因的 failed 诊断。
-//   mode        —— 诊断形态,落库失败行时带上(默认值符合实体默认)。
-//   savedId     —— 分析行已落库后的诊断 id;改写阶段失败 → 据此把该行标 partial。
+// 流水线运行上下文:work() 边跑边填,供失败归类与状态机记账使用。
+//   phase            —— 当前阶段;失败时据此归类 failure_reason。
+//   resumeId         —— 由 dto 预填(发起即插 running 行需要),使「落库前失败」也能归因到该行。
+//   mode             —— 诊断形态。
+//   savedId          —— 诊断行 id。S0 后:发起即插的 running 行 id,恒等于本次诊断落库行——
+//                       markSuccess/recordFailure 一律更新这一行,不再分裂成「更新 vs 补插」两条路径。
+//   analysisPersisted—— 分析结果是否已落库(分析 update 之后置 true)。失败记账据此判 partial(已落) / failed(未落),
+//                       替代旧的「savedId 有无」判据(现 savedId 恒有值,不能再用它区分阶段)。
 interface PipelineContext {
   phase: 'preparing' | 'analyzing' | 'suggesting';
   resumeId?: string;
   mode: 'jd_match' | 'profession_standard';
   savedId?: string;
+  analysisPersisted?: boolean;
 }
 
 @Injectable()
 export class DiagnosesService {
   private readonly logger = new Logger(DiagnosesService.name);
   private readonly jdCache = new NodeCache({ stdTTL: 7 * 24 * 3600 });
+
+  // 孤儿 running 行的惰性判死阈值(15 分钟)。健康流水线有 600s(默认)墙钟超时护栏,其自身超时
+  // 处理器会在 10 分钟内把行标 failed,故一条 running 行存活超过 15 分钟只可能是【进程重启遗留的孤儿】。
+  // 读取(findOne/findAllByUser)与防重复查重(findRunningConflict)时命中即就地判 failed —— 无清扫 cron。
+  private static readonly ORPHAN_TIMEOUT_MS = 15 * 60 * 1000;
 
   constructor(
     @InjectRepository(Diagnosis) private readonly repo: Repository<Diagnosis>,
@@ -141,10 +152,10 @@ export class DiagnosesService {
     dto: CreateCampusDiagnosisDto,
     endpoint: string,
   ): AsyncIterable<DiagnosisStreamEvent> {
-    return this.runPipeline(userId, endpoint, 'profession_standard', async (out, ctx) => {
-      // resumeId 先据 dto 预填,使「解析/校验阶段失败」(落库前)也能补记一行可归因的 failed 诊断。
-      ctx.resumeId = dto.resume_id;
-      const prepared = await this.prepareProfessionStandard(userId, dto);
+    // resumeId 传给 runPipeline 用于「发起即插 running 行」(ctx.resumeId 预置);skipLimiter=true
+    // 贯穿所有内层 AI 调用(prepare/analyzer/rewriter)——外层 runObservable 已持槽,避免嵌套自锁(D1)。
+    return this.runPipeline(userId, dto.resume_id, endpoint, 'profession_standard', async (out, ctx) => {
+      const prepared = await this.prepareProfessionStandard(userId, dto, true);
       ctx.resumeId = prepared.resume.id;
       ctx.phase = 'analyzing';
       out.push({ type: 'step', stage: 'analyzing', label: '正在按职业标尺逐维度诊断…' });
@@ -155,12 +166,15 @@ export class DiagnosesService {
         prepared.jdJson,
         prepared.parsedResume,
         prepared.resumeRawText,
+        true, // skipLimiter
       );
 
       // 不变量:analysis 事件发出前诊断行必须已落库(suggestions 暂空),diagnosisId 一到前端即可跳已存结果。
-      const diagnosis = this.buildProfessionEntity(userId, prepared, dto, analysis, []);
-      const saved = (await this.repo.save(diagnosis)) as Diagnosis;
-      ctx.savedId = saved.id;
+      // S0 后复用发起即插的 running 行:用分析结果 UPDATE 它(状态留 running 至 markSuccess),不再新插一行。
+      const saved = await this.persistAnalysisRow(
+        ctx,
+        this.buildProfessionEntity(userId, prepared, dto, analysis, []),
+      );
       ctx.phase = 'suggesting';
       out.push({ type: 'analysis', diagnosisId: saved.id, payload: analysis });
 
@@ -169,6 +183,7 @@ export class DiagnosesService {
         prepared.resumeRawText,
         prepared.preset,
         analysis,
+        true, // skipLimiter
       );
       await this.repo.update(saved.id, { suggestions });
       saved.suggestions = suggestions;
@@ -182,10 +197,8 @@ export class DiagnosesService {
     dto: CreateDiagnosisDto,
     endpoint: string,
   ): AsyncIterable<DiagnosisStreamEvent> {
-    return this.runPipeline(userId, endpoint, 'jd_match', async (out, ctx) => {
-      // resumeId 先据 dto 预填,使「解析/校验阶段失败」(落库前)也能补记一行可归因的 failed 诊断。
-      ctx.resumeId = dto.resume_id;
-      const prepared = await this.prepareJdMatch(userId, dto);
+    return this.runPipeline(userId, dto.resume_id, endpoint, 'jd_match', async (out, ctx) => {
+      const prepared = await this.prepareJdMatch(userId, dto, true);
       ctx.resumeId = prepared.resume.id;
       ctx.phase = 'analyzing';
       out.push({ type: 'step', stage: 'analyzing', label: '正在分析简历与 JD 的多维匹配…' });
@@ -193,11 +206,14 @@ export class DiagnosesService {
       const matchResult = await this.analyzer.analyze(
         JSON.stringify(prepared.parsedResume),
         JSON.stringify(prepared.parsedJD),
+        true, // skipLimiter
       );
 
-      const diagnosis = this.buildJdMatchEntity(userId, prepared, dto, matchResult, []);
-      const saved = (await this.repo.save(diagnosis)) as Diagnosis;
-      ctx.savedId = saved.id;
+      // 复用发起即插的 running 行(见 streamCreateProfessionStandard 注释)。
+      const saved = await this.persistAnalysisRow(
+        ctx,
+        this.buildJdMatchEntity(userId, prepared, dto, matchResult, []),
+      );
       ctx.phase = 'suggesting';
       out.push({ type: 'analysis', diagnosisId: saved.id, payload: matchResult.dimensions });
 
@@ -206,6 +222,7 @@ export class DiagnosesService {
         prepared.resumeText,
         dto.jd_text,
         JSON.stringify(matchResult),
+        true, // skipLimiter
       );
       await this.repo.update(saved.id, { suggestions });
       saved.suggestions = suggestions;
@@ -225,6 +242,7 @@ export class DiagnosesService {
    */
   private runPipeline(
     userId: string,
+    resumeId: string,
     endpoint: string,
     mode: 'jd_match' | 'profession_standard',
     work: (
@@ -233,8 +251,9 @@ export class DiagnosesService {
     ) => Promise<Diagnosis>,
   ): AsyncIterable<DiagnosisStreamEvent> {
     const out = new DiagnosisEventStream<DiagnosisStreamEvent>();
-    // 成败记账上下文:phase 起于 preparing(解析阶段),work() 边跑边推进并填 resumeId/savedId。
-    const ctx: PipelineContext = { phase: 'preparing', mode };
+    // 成败记账上下文:phase 起于 preparing(解析阶段);resumeId 预置(发起即插 running 行需要它,
+    // 也使落库前失败能归因到该行);savedId 由 insertRunningRow 立即填入。
+    const ctx: PipelineContext = { phase: 'preparing', mode, resumeId };
     // 流水线级 abort(watchdog-v2):超时时 abort,令 runObservable 内的任务立即 reject →
     // finally 释放 limiter 槽。此前 withPipelineTimeout 用 Promise.race 只 reject 了调用方,
     // runObservable 的 task 仍 hang、finally 不跑、槽位永占。
@@ -243,6 +262,12 @@ export class DiagnosesService {
     // 后台任务:独立于消费者运行,确保断开也跑完落库。不 await,异步推进。
     void (async () => {
       try {
+        // S0「回来可见 / 防重复扣费」:限流 acquire 之前先插一行 status=running 的最小行,ctx.savedId 立即拿到。
+        // 之后分析落库 / markSuccess / recordFailure 全部 UPDATE 这一行(不再新插),故诊断一发起即在 DB 可见——
+        // 断流或离开页面回来仍能查到进行中态并轮询至终态。插入失败(极少见,如无效 resume_id 的 FK 违规)
+        // 不设 savedId,交由失败路径兜底补记(与改动前无 running 行时的行为一致)。
+        await this.insertRunningRow(userId, ctx);
+
         // 整体墙钟超时护栏:单 AI 调用各自有超时,但整条流水线(排队 + 多次调用)无总上限,
         // 任一环节卡死会让本后台任务永挂、占住并发槽与 SSE 连接。超时后 abort pipelineAbort →
         // raceAbortSignal 令 runObservable 的 task 立即 reject → finally release 槽位。
@@ -286,6 +311,45 @@ export class DiagnosesService {
     return out;
   }
 
+  /**
+   * S0:发起即插一行 status='running' 的最小诊断行,ctx.savedId 立即拿到(限流 acquire 之前)。
+   * 只写 user_id / resume_id / mode / status 四列(其余留 null,分析阶段再 UPDATE 补齐)。
+   * 插入失败(极少见:如 resume_id 无效导致 FK 违规)吞掉并记日志、不设 savedId——后续 work() 内的
+   * resumes.findOne 会抛 NotFound 走失败路径,recordFailure 的兜底分支(无 savedId)与改动前行为一致。
+   */
+  private async insertRunningRow(userId: string, ctx: PipelineContext): Promise<void> {
+    if (!ctx.resumeId) return;
+    try {
+      const res = await this.repo.insert({
+        user_id: userId,
+        resume_id: ctx.resumeId,
+        mode: ctx.mode,
+        status: 'running',
+      });
+      const id = res.identifiers[0]?.id;
+      if (typeof id === 'string') ctx.savedId = id;
+    } catch (err) {
+      this.logger.warn(
+        `running 行插入失败 userId=${userId} resumeId=${ctx.resumeId}: ${String(err)}`,
+      );
+    }
+  }
+
+  /**
+   * 分析结果落库(analysis 事件发出前的不变量)。S0 后复用发起即插的 running 行:把分析列 UPDATE 进去,
+   * 状态仍留 running(改写阶段还在跑),成功走 markSuccess 翻 success、改写失败走 recordFailure 翻 partial。
+   * repo.save(带 id)对既有行走 UPDATE(created_at 不变,15 分钟孤儿判据据此);running 插入失败(无 savedId)
+   * 的兜底:新插一行并回填 savedId,保证 analysis 帧永远带一个真实存在的 diagnosisId。
+   */
+  private async persistAnalysisRow(ctx: PipelineContext, entity: Diagnosis): Promise<Diagnosis> {
+    entity.status = 'running';
+    if (ctx.savedId) entity.id = ctx.savedId;
+    const saved = (await this.repo.save(entity)) as Diagnosis;
+    ctx.savedId = saved.id;
+    ctx.analysisPersisted = true;
+    return saved;
+  }
+
   // 成功记账:把该诊断行标 success(记账失败不抛,不污染已交付结果)。
   private async markSuccess(diagnosisId: string): Promise<void> {
     try {
@@ -298,8 +362,10 @@ export class DiagnosesService {
   /**
    * 失败记账(纯增量,与计费跳过同构):
    *  - 归类 failure_reason(按阶段 + 错误特征);
-   *  - 分析行已落库(ctx.savedId 有值)→ 视为 partial(分析成功、改写阶段失败),更新该行;
-   *  - 否则补记一行 failed(带 user_id / resume_id / mode,使诊断成功率分母完整、可下钻原因)。
+   *  - 分析已落库(ctx.analysisPersisted)→ partial(分析成功、仅改写阶段失败);否则 failed(含解析/校验阶段失败)。
+   *    S0 后 ctx.savedId 恒指向发起即插的 running 行,故一律 UPDATE 该行到终态,不再新插;
+   *    partial/failed 的区分改由 analysisPersisted 承担(旧代码用 savedId 有无区分,现已失效)。
+   *  - 兜底:running 行插入失败(极少见,无 savedId)→ 补记一行(resume_id 缺失则不记,避免违反非空约束)。
    * 端点入参仅用于记账失败时的日志定位,不进库。任何记账自身错误都吞掉并记日志,绝不二次抛错。
    */
   private async recordFailure(
@@ -310,19 +376,20 @@ export class DiagnosesService {
   ): Promise<void> {
     const reason = this.categorizeFailure(ctx, err);
     const message = this.readableError(err).slice(0, 2000);
+    const status: 'partial' | 'failed' = ctx.analysisPersisted ? 'partial' : 'failed';
     try {
       if (ctx.savedId) {
-        // 分析已落库 → partial(分析有结果,改写失败)。
+        // 更新发起即插的 running 行(或分析已落库的行)到终态。
         await this.repo.update(ctx.savedId, {
-          status: 'partial',
+          status,
           failure_reason: reason,
           pipeline_error_message: message,
         });
       } else {
-        // 落库前失败 → 补记一行 failed(resume_id 缺失则不记,避免违反非空约束;归类仍进日志)。
+        // running 行插入失败的兜底:补记一行(resume_id 缺失则不记,归类仍进日志)。
         if (!ctx.resumeId) {
           this.logger.warn(
-            `诊断失败但无 resume_id,跳过 failed 记账 userId=${userId} endpoint=${endpoint} reason=${reason}`,
+            `诊断失败但无 running 行且无 resume_id,跳过记账 userId=${userId} endpoint=${endpoint} reason=${reason}`,
           );
           return;
         }
@@ -330,7 +397,7 @@ export class DiagnosesService {
           user_id: userId,
           resume_id: ctx.resumeId,
           mode: ctx.mode,
-          status: 'failed',
+          status,
           failure_reason: reason,
           pipeline_error_message: message,
         });
@@ -440,9 +507,11 @@ export class DiagnosesService {
 
   // ── 共用阶段:输入校验 / 解析 / 实体构建 ────────────────────────────────
 
+  // skipLimiter:流式管线调用置 true —— 本方法内部的 parser 调用在外层 runObservable 槽内,须跳过二次 acquire(D1)。
   private async prepareJdMatch(
     userId: string,
     dto: CreateDiagnosisDto,
+    skipLimiter = false,
   ): Promise<{
     resume: Awaited<ReturnType<ResumesService['findOne']>>;
     resumeText: string;
@@ -464,12 +533,12 @@ export class DiagnosesService {
       );
     }
 
-    const parsedResume = await this.resolveParsedResume(resume);
+    const parsedResume = await this.resolveParsedResume(resume, skipLimiter);
 
     const jdHash = crypto.createHash('md5').update(dto.jd_text).digest('hex');
     let parsedJD = this.jdCache.get<ParsedJD>(jdHash);
     if (!parsedJD) {
-      parsedJD = await this.parser.parseJD(dto.jd_text);
+      parsedJD = await this.parser.parseJD(dto.jd_text, skipLimiter);
       this.jdCache.set(jdHash, parsedJD);
     }
 
@@ -510,18 +579,21 @@ export class DiagnosesService {
    */
   private async resolveParsedResume(
     resume: { id: string; raw_text: string; parsed_json: ParsedResume | null },
+    skipLimiter = false,
   ): Promise<ParsedResume> {
     if (resume.parsed_json && isResumeParseMeaningful(resume.parsed_json)) {
       return resume.parsed_json;
     }
-    const parsed = await this.parser.parseResume(resume.raw_text);
+    const parsed = await this.parser.parseResume(resume.raw_text, skipLimiter);
     await this.resumes.updateParsedJson(resume.id, parsed);
     return parsed;
   }
 
+  // skipLimiter:流式管线调用置 true —— 本方法内部的 parser 调用在外层 runObservable 槽内,须跳过二次 acquire(D1)。
   private async prepareProfessionStandard(
     userId: string,
     dto: CreateCampusDiagnosisDto,
+    skipLimiter = false,
   ): Promise<{
     preset: ReturnType<ProfessionPresetsService['resolveByProfession']>;
     resume: Awaited<ReturnType<ResumesService['findOne']>>;
@@ -540,9 +612,9 @@ export class DiagnosesService {
     }
 
     const [parsedResume, jdJson] = await Promise.all([
-      this.resolveParsedResume(resume),
+      this.resolveParsedResume(resume, skipLimiter),
       dto.jd_text
-        ? this.parser.parseJD(dto.jd_text).then((jd) => JSON.stringify(jd))
+        ? this.parser.parseJD(dto.jd_text, skipLimiter).then((jd) => JSON.stringify(jd))
         : Promise.resolve(null),
     ]);
 
@@ -582,12 +654,16 @@ export class DiagnosesService {
 
   // ── 查询 ────────────────────────────────────────────────────────────────
 
-  findAllByUser(userId: string): Promise<Diagnosis[]> {
-    return this.repo.find({
+  async findAllByUser(userId: string): Promise<Diagnosis[]> {
+    const list = await this.repo.find({
       where: { user_id: userId },
       relations: { resume: true },
       order: { created_at: 'DESC' },
     });
+    // 防僵尸(读取时惰性兜底):进程重启遗留的孤儿 running 行(超 15 分钟)就地判 failed,
+    // 使「回来可见」列表不再展示永久卡死的进行中卡片。健康流水线永不触发(其 600s 墙钟先翻终态)。
+    for (const d of list) await this.failIfOrphan(d);
+    return list;
   }
 
   async findOne(id: string, userId: string): Promise<Diagnosis> {
@@ -596,6 +672,62 @@ export class DiagnosesService {
       relations: { resume: true },
     });
     if (!diagnosis) throw new NotFoundException();
+    // 轮询 GET /diagnoses/:id 命中孤儿 running 行 → 惰性判 failed,让前端「进行中」轮询能收敛到终态。
+    await this.failIfOrphan(diagnosis);
     return diagnosis;
+  }
+
+  /**
+   * 防重复(S0):查同用户同 mode 的「未超时」进行中诊断。返回非空则控制器据此回 409(携带该 id)。
+   *
+   * 关键顺序(D 审计点名的死锁风险点,审计会重点核):【先惰性判死、再判 409】。
+   * 必须先把超时的 running 行就地标 failed,再看是否仍有真正 running 的行——否则一条卡死的僵尸 running 行
+   * 会让用户永远拿到 409、永久卡在「进行中」错觉里(比原 bug 更差的死锁)。按 created_at DESC 取最新的
+   * 未超时 running 行作为冲突对象。
+   */
+  async findRunningConflict(
+    userId: string,
+    mode: 'jd_match' | 'profession_standard',
+  ): Promise<Diagnosis | null> {
+    const running = await this.repo.find({
+      where: { user_id: userId, mode, status: 'running' },
+      order: { created_at: 'DESC' },
+    });
+    let active: Diagnosis | null = null;
+    for (const row of running) {
+      // 先惰性判死:超时的孤儿就地标 failed(不计入 409 判定);未超时的最新一条才是真冲突。
+      const failed = await this.failIfOrphan(row);
+      if (!failed && !active) active = row;
+    }
+    return active;
+  }
+
+  // 孤儿判定:running 且 created_at 距今超过 ORPHAN_TIMEOUT_MS(15 分钟)。
+  private isRunningOrphan(d: Diagnosis): boolean {
+    return (
+      d.status === 'running' &&
+      Date.now() - new Date(d.created_at).getTime() > DiagnosesService.ORPHAN_TIMEOUT_MS
+    );
+  }
+
+  // 命中孤儿 running 行 → 就地标 failed(reason=orphaned)并同步入参实体(使调用方返回对象反映终态)。
+  // 返回是否发生判死。写库失败吞掉记日志、不抛:读路径绝不因惰性记账失败而 500。
+  private async failIfOrphan(d: Diagnosis): Promise<boolean> {
+    if (!this.isRunningOrphan(d)) return false;
+    const message = '诊断进行中状态超过 15 分钟仍未落终态(疑似进程重启遗留),已惰性判定为失败。';
+    try {
+      await this.repo.update(d.id, {
+        status: 'failed',
+        failure_reason: 'orphaned',
+        pipeline_error_message: message,
+      });
+    } catch (err) {
+      this.logger.error(`孤儿 running 行惰性判死写入失败 id=${d.id}: ${String(err)}`);
+      return false;
+    }
+    d.status = 'failed';
+    d.failure_reason = 'orphaned';
+    d.pipeline_error_message = message;
+    return true;
   }
 }

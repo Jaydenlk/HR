@@ -68,7 +68,21 @@ export class ConcurrencyLimiter {
     return { clearedActive, clearedQueued };
   }
 
-  async run<T>(task: () => Promise<T>): Promise<T> {
+  /**
+   * 执行一个受并发护栏保护的任务。
+   *
+   * D1(嵌套死锁修复):`opts.skipLimiter===true` 时【整体跳过 acquire/release】,直接执行任务——
+   * 专供「诊断管线内层 AI 调用」使用:外层 diagnoses runObservable 已持一个槽,内层再对同一单例
+   * acquire 会形成自锁(AI_MAX_CONCURRENCY=2 时两个并发诊断 100% 必现)。跳过后内层既不进队列、
+   * 也不占额外槽位,故:①不会与外层槽自锁;②超时中止时不残留内层僵尸 waiter 污染排位队列。
+   * 一次诊断在护栏账面上恒等于「1 个槽」(外层 runObservable),内层调用被这个外层槽覆盖,
+   * 队列语义(GET /ai/queue-status)因此仍然诚实——不会把一次诊断重复计成 2 个在跑请求。
+   * 其余约 20 个独立消费方(chat/cover-letters/mock 等)不传此选项 → 默认 false → 照常受限流保护。
+   */
+  async run<T>(task: () => Promise<T>, opts?: { skipLimiter?: boolean }): Promise<T> {
+    if (opts?.skipLimiter) {
+      return task();
+    }
     await this.acquire();
     try {
       return await task();

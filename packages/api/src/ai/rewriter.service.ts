@@ -47,10 +47,12 @@ const SUGGESTION_PRIORITIES = new Set<RewriteSuggestion['priority']>(['high', 'm
 export class RewriterService {
   constructor(private readonly ai: AiService) {}
 
+  // skipLimiter:诊断流式管线内层调用置 true(外层 runObservable 已持槽,避免嵌套自锁,见 D1)。
   async suggest(
     resumeText: string,
     jdText: string,
     matchResult: string,
+    skipLimiter = false,
   ): Promise<RewriteSuggestion[]> {
     if (!resumeText || resumeText.trim().length < 30) {
       throw new BadRequestException(
@@ -70,15 +72,20 @@ export class RewriterService {
       toolDescription: '根据简历、JD 和匹配分析生成具体的简历改写建议',
       schema: REWRITE_SUGGESTIONS_SCHEMA,
       tier: 'pro', // 改写核心产出:走重档型号
+      skipLimiter,
     });
 
     return this.normalizeSuggestions(result.suggestions);
   }
 
+  // skipLimiter:诊断流式管线内层调用置 true。注意本方法内含【两次】AI 调用——本体 suggest_rewrites +
+  // auditFaithfulness 的 flag_fabrication 复核(diagnosis-stream INV-5 证实其在流式管线内被调用),
+  // 两处都必须 skip,否则第二次 acquire 仍会与外层 runObservable 槽形成嵌套自锁。
   async suggestAgainstPreset(
     resumeText: string,
     preset: ProfessionPreset,
     analysis: ProfessionStandardResult,
+    skipLimiter = false,
   ): Promise<RewriteSuggestion[]> {
     if (resumeText.trim().length < 30) {
       throw new BadRequestException('简历内容过短，无法改写。');
@@ -90,6 +97,7 @@ export class RewriterService {
       toolDescription: '基于简历原文与诊断给职业特化改写建议',
       schema: REWRITE_SUGGESTIONS_SCHEMA,
       tier: 'pro', // 改写核心产出:走重档型号
+      skipLimiter,
     });
     const result = { suggestions: this.normalizeSuggestions(raw.suggestions) };
     // 禁编造兜底(两层),不满足者归类 gap_advice 并清空 original,防止被当成可直接粘贴的现成简历句:
@@ -110,7 +118,7 @@ export class RewriterService {
     });
     // 第三层(女娲式自检):确定性规则只能拦数字;再过一次 AI 复核(带上诊断缺口),把 suggested 注入
     // 简历没有的方法/能力/分析变量(尤其诊断已判定缺失/没真用过的能力)的改进型建议降级为 gap_advice。
-    return this.auditFaithfulness(resumeText, analysis, guarded);
+    return this.auditFaithfulness(resumeText, analysis, guarded, skipLimiter);
   }
 
   /**
@@ -147,6 +155,7 @@ export class RewriterService {
     resumeText: string,
     analysis: ProfessionStandardResult,
     suggestions: RewriteSuggestion[],
+    skipLimiter = false,
   ): Promise<RewriteSuggestion[]> {
     const candidates = suggestions
       .map((s, index) => ({ index, original: s.original, suggested: s.suggested, type: s.type }))
@@ -164,6 +173,7 @@ export class RewriterService {
         toolName: 'flag_fabrication',
         toolDescription: '返回 suggested 含简历未支撑实质内容、需降级为建议补充的建议 index 列表',
         schema: FAITHFULNESS_SCHEMA,
+        skipLimiter,
       });
       const flagged = new Set(Array.isArray(res?.indices) ? res.indices : []);
       if (flagged.size === 0) return suggestions;

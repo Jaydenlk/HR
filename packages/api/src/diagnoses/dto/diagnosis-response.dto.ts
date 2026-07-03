@@ -36,7 +36,7 @@ export class DiagnosisResponseDto {
   keywords_hit: string[];
   keywords_miss: string[];
   suggestions: RewriteSuggestion[];
-  status?: 'success' | 'failed' | 'partial';
+  status?: 'running' | 'success' | 'failed' | 'partial';
   created_at: Date;
   resume: Resume;
 
@@ -64,6 +64,8 @@ export class DiagnosisResponseDto {
     dto.status = d.status;
     dto.created_at = d.created_at;
     dto.resume = d.resume;
+    // 仅失败/部分失败给中性提示;running(进行中)与 success/NULL 一律 null——
+    // 前端凭 status==='running' 驱动「进行中」视图,不复用本字段承载进度语义。
     dto.user_message =
       d.status === 'failed' || d.status === 'partial'
         ? '诊断分析未完成,请重试'
