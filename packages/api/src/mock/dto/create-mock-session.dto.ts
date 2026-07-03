@@ -1,24 +1,4 @@
-import { IsString, IsOptional, IsIn, IsInt, Min, Max, IsObject, ValidateNested, MaxLength } from 'class-validator';
-import { Type } from 'class-transformer';
-import type { ConfirmedCompanyInfo } from '../mock.service';
-
-class ConfirmedCompanyInfoDto implements ConfirmedCompanyInfo {
-  @IsString()
-  @MaxLength(100)
-  name!: string;
-
-  @IsString()
-  @MaxLength(500)
-  summary!: string;
-
-  @IsString()
-  @MaxLength(500)
-  source_url!: string;
-
-  @IsString()
-  @MaxLength(40)
-  searched_at!: string;
-}
+import { IsString, IsOptional, IsIn, IsInt, Min, Max, IsUUID } from 'class-validator';
 
 export class CreateMockSessionDto {
   @IsString()
@@ -48,10 +28,12 @@ export class CreateMockSessionDto {
   @IsOptional()
   question_count?: number;
 
-  /** 前端用户确认的联网搜索公司信息（库外公司搜索确认后带入） */
+  /**
+   * 前端确认的公司搜索候选 id(company_research 表主键)。
+   * 防伪造(M3 安全硬项，破坏性 API 变更):不再接受前端回传的原始 name/summary/source_url 文本，
+   * 只接受候选 id；后端按 id 查库取真实字段拼防编造 prompt，杜绝客户端伪造"已核实"公司背景。
+   */
   @IsOptional()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => ConfirmedCompanyInfoDto)
-  confirmed_company_info?: ConfirmedCompanyInfo;
+  @IsUUID()
+  company_research_id?: string;
 }

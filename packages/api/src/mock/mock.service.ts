@@ -5,7 +5,7 @@ import { AiService } from '../ai/ai.service';
 import { SpeechService } from '../speech/speech.service';
 import type { SynthesizedAudio } from '../speech/providers/speech.provider';
 import { CompanyRegistryService } from '../feed/company-registry.service';
-import { CompanySearchService, SearchCandidate } from './company-search.service';
+import { CompanyResearchService, CompanyResearchCandidate } from '../company-research/company-research.service';
 import type { Company } from '../feed/entities/company.entity';
 import { MockSession, Question, Answer, Evaluation } from './entities/mock-session.entity';
 import { CreateMockSessionDto } from './dto/create-mock-session.dto';
@@ -23,12 +23,18 @@ interface CompanyLookup {
   matched: Company | null;
 }
 
-/** 前端确认的联网搜索公司信息 */
+/**
+ * 出题 prompt 用的已确认公司信息。
+ *
+ * 防伪造(M3 安全硬项):本对象只能由 create() 按前端回传的 company_research_id 查库构造，
+ * 绝不能直接采信前端请求体里夹带的原始 name/summary/source_url 文本——客户端可任意构造这些字段，
+ * 只有查库取得的内容才可信。
+ */
 export interface ConfirmedCompanyInfo {
   name: string;
   summary: string;
   source_url: string;
-  searched_at: string; // ISO date string, 由前端填写
+  searched_at: string; // ISO date string，取自 company_research.retrieved_at
 }
 
 /** 出题 prompt 所需的公司上下文字符串 */
@@ -70,7 +76,7 @@ export class MockService {
     private readonly ai: AiService,
     private readonly speech: SpeechService,
     private readonly companyRegistry: CompanyRegistryService,
-    private readonly companySearch: CompanySearchService,
+    private readonly companyResearch: CompanyResearchService,
   ) {}
 
   /** 查库：name 为空直接返回未命中 */
@@ -81,22 +87,23 @@ export class MockService {
   }
 
   /**
-   * 库外公司搜索确认：查库未命中时调用博查搜索。
-   * 返回 {company_known, search_candidate} 供前端展示确认框。
+   * 库外公司搜索确认：查库未命中时调用统一公司搜索服务(company-research)。
+   * 返回 {company_known, candidates, reason?} 供前端展示多候选消歧确认框
+   * (破坏性 API 变更：不再是单一 search_candidate，reason 透传搜索不可用原因，供前端区分文案，m6 校准)。
    */
   async checkCompany(name: string): Promise<{
     company_known: boolean;
-    search_candidate: SearchCandidate | null;
+    candidates: CompanyResearchCandidate[];
+    reason?: 'no_key' | 'timeout' | 'error';
   }> {
     const lookup = await this.lookupCompany(name);
     if (lookup.company_known) {
-      return { company_known: true, search_candidate: null };
+      return { company_known: true, candidates: [] };
     }
 
-    // 库外：追加博查搜索
-    const searchOutcome = await this.companySearch.search(name.trim());
-    const candidate = searchOutcome.available ? searchOutcome.candidate : null;
-    return { company_known: false, search_candidate: candidate };
+    // 库外：追加统一公司搜索(候选全量返回，不截断)
+    const outcome = await this.companyResearch.search(name.trim());
+    return { company_known: false, ...outcome };
   }
 
   async generateQuestions(
@@ -349,6 +356,22 @@ ${qaList}
     // 查公司库（命中/未命中双路径）
     const lookup = await this.lookupCompany(dto.company ?? '');
 
+    // 防伪造(M3 安全硬项):前端只回传候选 id，这里按 id 查库取真实字段拼防编造 prompt，
+    // 绝不信任请求体里可能夹带的任何原始 name/summary/source_url 文本(那些字段已从 DTO 移除)。
+    let confirmed: ConfirmedCompanyInfo | undefined;
+    if (dto.company_research_id) {
+      const row = await this.companyResearch.findById(dto.company_research_id);
+      if (!row) {
+        throw new BadRequestException('公司背景信息已失效或不存在，请重新搜索确认');
+      }
+      confirmed = {
+        name: row.display_name,
+        summary: row.summary,
+        source_url: row.source_url,
+        searched_at: new Date(row.retrieved_at).toISOString().slice(0, 10),
+      };
+    }
+
     // 先出题再落库:出题是创建会话的核心产物。若 AI 失败,generateQuestions
     // 抛出的 ServiceUnavailableException(503)直接上抛,不写入任何会话行,
     // 避免产生无题的"进行中"僵尸会话。
@@ -358,7 +381,7 @@ ${qaList}
       role,
       count,
       lookup,
-      dto.confirmed_company_info,
+      confirmed,
     );
 
     const session = this.repo.create({

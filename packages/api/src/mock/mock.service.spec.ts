@@ -7,6 +7,10 @@
  *
  * Step 5（D1 收口）验证：
  * - generateEvaluation 调用 ai.completeStructured 时带 tier:'pro'
+ *
+ * T6 博查统一搜索重设计验证：
+ * - checkCompany() 返回 candidates 数组(破坏性 API 变更)
+ * - create() 按 company_research_id 查库构造 confirmed(防伪造 M3)，无效 id → 400
  */
 import { MockService } from './mock.service';
 import type { ConfirmedCompanyInfo } from './mock.service';
@@ -29,9 +33,14 @@ function makeCompanyRegistry(matched: unknown = null) {
   };
 }
 
-function makeCompanySearch(candidate: unknown = null) {
+function makeCompanyResearch({
+  candidates = [] as unknown[],
+  reason,
+  byId = null as unknown,
+} = {}) {
   return {
-    search: jest.fn().mockResolvedValue({ available: true, candidate }),
+    search: jest.fn().mockResolvedValue(reason ? { candidates, reason } : { candidates }),
+    findById: jest.fn().mockResolvedValue(byId),
   };
 }
 
@@ -55,7 +64,7 @@ function makeService({
   ai = makeAiService(),
   speech = makeSpeechService(),
   registry = makeCompanyRegistry(),
-  search = makeCompanySearch(),
+  research = makeCompanyResearch(),
   repo = makeRepo(),
 } = {}) {
   return new MockService(
@@ -63,7 +72,7 @@ function makeService({
     ai as any,
     speech as any,
     registry as any,
-    search as any,
+    research as any,
   );
 }
 
@@ -133,6 +142,84 @@ describe('MockService — 无 confirmed_company_info 时不暴露搜索来源', 
     const call = (ai.completeStructured as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
     expect(call.prompt).not.toContain('https://');
     expect(call.system).not.toContain('联网搜索');
+  });
+});
+
+describe('MockService — checkCompany() 返回候选数组', () => {
+  it('库内命中：candidates 为空数组，不调用 companyResearch.search', async () => {
+    const registry = makeCompanyRegistry({ id: 'c1', name: '字节跳动' });
+    const research = makeCompanyResearch();
+    const svc = makeService({ registry, research });
+
+    const result = await svc.checkCompany('字节跳动');
+
+    expect(result).toEqual({ company_known: true, candidates: [] });
+    expect(research.search).not.toHaveBeenCalled();
+  });
+
+  it('库外命中：透传 companyResearch.search 返回的候选数组', async () => {
+    const candidates = [
+      { id: 'cr-1', name: '候选甲', summary: 'S1', source_url: 'https://a.com', source_domain: 'a.com' },
+      { id: 'cr-2', name: '候选乙', summary: 'S2', source_url: 'https://b.com', source_domain: 'b.com' },
+    ];
+    const research = makeCompanyResearch({ candidates });
+    const svc = makeService({ research });
+
+    const result = await svc.checkCompany('某冷门公司');
+
+    expect(result.company_known).toBe(false);
+    expect(result.candidates).toEqual(candidates);
+  });
+
+  it('库外且搜索服务不可用：透传 reason(m6 校准，不吞掉降级原因)', async () => {
+    const research = makeCompanyResearch({ candidates: [], reason: 'timeout' });
+    const svc = makeService({ research });
+
+    const result = await svc.checkCompany('某公司');
+
+    expect(result).toEqual({ company_known: false, candidates: [], reason: 'timeout' });
+  });
+});
+
+describe('MockService — create() 按 company_research_id 查库(防伪造 M3)', () => {
+  it('company_research_id 有效 → 按库内真实字段构造 confirmed，不信任任何前端文本', async () => {
+    const ai = makeAiService();
+    const research = makeCompanyResearch({
+      byId: {
+        id: 'cr-1',
+        display_name: '某地区性有限公司',
+        summary: '专注于区域物流服务的中小企业',
+        source_url: 'https://example-regional.com',
+        retrieved_at: new Date('2026-06-13T00:00:00.000Z'),
+      },
+    });
+    const repo = makeRepo();
+    const svc = makeService({ ai, research, repo });
+
+    await svc.create('user-1', {
+      company: '某地区性有限公司',
+      role: '运营专员',
+      company_research_id: 'cr-1',
+    } as any);
+
+    expect(research.findById).toHaveBeenCalledWith('cr-1');
+    const call = (ai.completeStructured as jest.Mock).mock.calls[0][0] as { system: string; prompt: string };
+    expect(call.system).toContain('https://example-regional.com');
+    expect(call.system).toContain('2026-06-13');
+    expect(call.prompt).toContain('专注于区域物流服务的中小企业');
+  });
+
+  it('company_research_id 无效/不存在 → 抛 400，不静默降级为通用模式', async () => {
+    const research = makeCompanyResearch({ byId: null });
+    const svc = makeService({ research });
+
+    await expect(
+      svc.create('user-1', {
+        company: '某公司',
+        role: '运营专员',
+        company_research_id: 'not-exist-id',
+      } as any),
+    ).rejects.toMatchObject({ status: 400 });
   });
 });
 
