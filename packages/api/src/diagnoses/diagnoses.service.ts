@@ -555,6 +555,10 @@ export class DiagnosesService {
     return this.repo.create({
       user_id: userId,
       resume_id: prepared.resume.id,
+      // 显式置 mode(与 buildProfessionEntity 的 'profession_standard' 对称)。S0 前走 repo.save 新插,
+      // INSERT 会把 mode 列默认值 'jd_match' 回填进内存实体;S0 后 persistAnalysisRow 复用 running 行走
+      // UPDATE(entity.id 已设),UPDATE 不回填默认值 → done 事件内存实体 mode 会是 undefined。显式赋值兜住。
+      mode: 'jd_match',
       jd_text: dto.jd_text,
       jd_parsed: prepared.parsedJD,
       jd_company: prepared.parsedJD.company ?? undefined,
