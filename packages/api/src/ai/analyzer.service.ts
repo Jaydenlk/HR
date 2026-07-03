@@ -47,9 +47,11 @@ interface RawProfessionStandard {
 export class AnalyzerService {
   constructor(private readonly ai: AiService) {}
 
+  // skipLimiter:诊断流式管线内层调用置 true(外层 runObservable 已持槽,避免嵌套自锁,见 D1)。
   analyze(
     resumeJson: string,
     jdJson: string,
+    skipLimiter = false,
   ): Promise<{ total_score: number; dimensions: MatchDimensions }> {
     if (!resumeJson || resumeJson.trim().length < 30) {
       throw new BadRequestException(
@@ -69,6 +71,7 @@ export class AnalyzerService {
       toolDescription: '对简历与 JD 进行多维度匹配评分分析',
       schema: MATCH_RESULT_SCHEMA,
       tier: 'pro', // 诊断核心产出:走重档型号
+      skipLimiter,
     });
   }
 
@@ -81,6 +84,8 @@ export class AnalyzerService {
     // 原始简历正文:AI parser 常削平日期(教育区间→单一毕业日、剥离项目/年级标注),
     // 传入则让时间线 guard 从正文做正则级日期对兜底,补回 parser 丢失的判据(确定性,抽不出放过)。
     rawResumeText: string | null = null,
+    // skipLimiter:诊断流式管线内层调用置 true(外层 runObservable 已持槽,避免嵌套自锁,见 D1)。
+    skipLimiter = false,
   ): Promise<ProfessionStandardResult> {
     if (resumeJson.trim().length < 30) {
       throw new BadRequestException('简历内容过短，无法分析。');
@@ -106,6 +111,7 @@ export class AnalyzerService {
         toolDescription: '按职业胜任力标尺输出分维度诊断(含 why)',
         schema: PROFESSION_STANDARD_SCHEMA,
         tier: 'pro', // 诊断核心产出:走重档型号
+        skipLimiter,
       });
       // 预设为权威:按顺序对齐 AI 维度,key/name/max 取自预设(消除英文 key 泄漏与结构漂移),
       // AI 只贡献 score/why/evidenceFound/gap;score 收敛到 [0, 满分]、total 重算。

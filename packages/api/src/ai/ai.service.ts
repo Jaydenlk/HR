@@ -23,6 +23,9 @@ interface CompleteStructuredParams {
   // 结构化输出默认上限 8192:4合1/比对类重 schema 在 4096 下易被截断。可按调用方上调。
   maxTokens?: number;
   tier?: AiTier;
+  // D1:诊断管线内层调用置 true,令底层 limiter.run 跳过二次 acquire(外层 runObservable 已持槽,
+  // 避免嵌套自锁)。仅 diagnoses 管线经 analyzer/rewriter/parser 传入;其余消费方不传 → 照常受限流。
+  skipLimiter?: boolean;
 }
 
 interface ChatParams {
@@ -185,8 +188,16 @@ export class AiService {
   }
 
   async completeStructured<T>(params: CompleteStructuredParams): Promise<T> {
-    const { system, prompt, toolName, toolDescription, schema, maxTokens = 8192, tier = 'flash' } =
-      params;
+    const {
+      system,
+      prompt,
+      toolName,
+      toolDescription,
+      schema,
+      maxTokens = 8192,
+      tier = 'flash',
+      skipLimiter = false,
+    } = params;
 
     const tool: Anthropic.Tool = {
       name: toolName,
@@ -222,9 +233,16 @@ export class AiService {
           toolDescription,
           schema,
           maxTokens,
+          skipLimiter,
         );
       }
-      return this.attemptStructured<T>(provider, build(provider.modelFor(tier)), toolName, schema);
+      return this.attemptStructured<T>(
+        provider,
+        build(provider.modelFor(tier)),
+        toolName,
+        schema,
+        skipLimiter,
+      );
     });
   }
 
@@ -463,6 +481,7 @@ export class AiService {
     toolDescription: string,
     schema: Record<string, unknown>,
     maxTokens: number,
+    skipLimiter = false,
   ): Promise<T> {
     const tool: OpenAiTool = {
       type: 'function',
@@ -490,7 +509,7 @@ export class AiService {
       const data = await this.limiter.run(async () => {
         const res = await this.openaiFetch(provider, body);
         return (await res.json()) as OpenAiChatResponse;
-      });
+      }, { skipLimiter });
       const choice = data.choices?.[0];
       // 截断检测:length 截断的 arguments 是残缺 JSON,继续用会静默落库不完整数据,当失败处理。
       if (choice?.finish_reason === 'length') {
@@ -650,6 +669,7 @@ export class AiService {
     messageParams: Anthropic.MessageCreateParamsNonStreaming,
     toolName: string,
     schema: Record<string, unknown>,
+    skipLimiter = false,
   ): Promise<T> {
     // 中转偶发对强制 tool_use 返回空块、缺 required 字段或被 max_tokens 截断的残缺 JSON:最多取 3 次完整。
     // 全部失败视为该通道失败(抛错),交由 withFailover 决定是否降级——绝不把残缺/截断结果当成功返回(防编造红线)。
@@ -671,7 +691,10 @@ export class AiService {
         // 首次默认采样;失败后抬温(0.4/0.8/1.0)打破确定性 prefill 锁定,不影响成功首跑的稳定性。
         ...(i > 0 ? { temperature: Math.min(0.4 + (i - 1) * 0.3, 1) } : {}),
       };
-      const response = await this.limiter.run(() => provider.client.messages.create(params));
+      const response = await this.limiter.run(
+        () => provider.client.messages.create(params),
+        { skipLimiter },
+      );
       // 截断检测:max_tokens 处截断的 tool_use 是残缺 JSON,继续用会静默落库不完整数据,必须当失败处理。
       if (response.stop_reason === 'max_tokens') {
         throw new Error(

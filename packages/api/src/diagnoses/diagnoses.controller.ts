@@ -55,31 +55,57 @@ export class DiagnosesController {
   // 无法表达「流中断/排队满不记」)。对齐 conversations 的流式扣费时机。
   @Post('campus/stream')
   @UseGuards(CreditGuard)
-  streamCampus(
+  async streamCampus(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateCampusDiagnosisDto,
     @Res() res: Response,
   ): Promise<void> {
+    // 防重复(S0):同用户同 mode 已有未超时进行中诊断 → 409 携带其 id(前端转入「进行中」视图,不重复发起/扣费)。
+    // reserveRunningSlot 在进程内 per-(user,mode) 串行锁下原子完成「查冲突(内含惰性判死)→ 落 running 行」,
+    // 关闭并发发起的原子性空档:两个几乎同时的请求经此串行,第二个必命中 409、不再各自建行/各自扣费。
+    // 无冲突时已落库的 running 行 id 透传给 streamCreate,后台流水线复用该行、不二次插入。
+    const reserved = await this.diagnoses.reserveRunningSlot(
+      user.id,
+      'profession_standard',
+      dto.resume_id,
+    );
+    if ('conflict' in reserved) {
+      res.status(409).json({
+        diagnosisId: reserved.conflict.id,
+        message: '你已有一个校招诊断正在进行中,请等待其完成后再发起。',
+      });
+      return;
+    }
     return this.pipeSse(
       res,
       this.diagnoses.streamCreateProfessionStandard(
         user.id,
         dto,
         '/api/diagnoses/campus/stream',
+        reserved,
       ),
     );
   }
 
   @Post('stream')
   @UseGuards(CreditGuard)
-  streamJd(
+  async streamJd(
     @CurrentUser() user: { id: string },
     @Body() dto: CreateDiagnosisDto,
     @Res() res: Response,
   ): Promise<void> {
+    // 防重复(S0):见 streamCampus 注释——reserveRunningSlot 原子「查冲突 → 落 running 行」,关闭并发空档。
+    const reserved = await this.diagnoses.reserveRunningSlot(user.id, 'jd_match', dto.resume_id);
+    if ('conflict' in reserved) {
+      res.status(409).json({
+        diagnosisId: reserved.conflict.id,
+        message: '你已有一个诊断正在进行中,请等待其完成后再发起。',
+      });
+      return;
+    }
     return this.pipeSse(
       res,
-      this.diagnoses.streamCreate(user.id, dto, '/api/diagnoses/stream'),
+      this.diagnoses.streamCreate(user.id, dto, '/api/diagnoses/stream', reserved),
     );
   }
 

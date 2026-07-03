@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, ApiConflictError } from '@/lib/api';
 import type {
   Resume,
   Diagnosis,
@@ -12,6 +12,11 @@ import type {
   DiagnosisAnalysisPayload,
 } from '@/lib/types';
 import { getScoreColor } from '@/lib/score-utils';
+import { useDiagnosisResume, conflictDiagnosisId } from '@/lib/use-diagnosis-resume';
+import {
+  DiagnosisInProgressCard,
+  DiagnosisFailedCard,
+} from '@/components/diagnosis/resume-progress-card';
 import { JdInput } from '@/components/diagnosis/jd-input';
 import {
   useHandoffReception,
@@ -412,6 +417,19 @@ function NewDiagnosisPageInner() {
     router.push(`/diagnoses/${id}`);
   }
 
+  // S0「回来可见 / 防重复」:mount 时查进行中 JD 匹配诊断,有则轮询至终态;409 冲突亦转入此视图。
+  const { resumingId, resumeFailed, beginResume, dismissResume } = useDiagnosisResume(
+    'jd_match',
+    goToDiagnosis,
+  );
+
+  // 从进行中/失败态返回表单:清空恢复态,并把评估屏复位到 JD 步骤。
+  function backToForm() {
+    dismissResume();
+    setStep('jd');
+    setSubmitError(null);
+  }
+
   // 兜底②:流断且没拿到 diagnosisId 时,查最近一条本简历、晚于本次提交的诊断,跳过去。
   async function findRecentDiagnosis(
     resumeId: string,
@@ -520,6 +538,15 @@ function NewDiagnosisPageInner() {
       if (err instanceof Error && err.name === 'AbortError') return;
       if (handledError || navigated) return;
 
+      // 409 防重复:后端检测到进行中诊断,未发起新流水线、未扣费。转入「进行中」视图轮询既有诊断。
+      if (err instanceof ApiConflictError) {
+        const conflictId = conflictDiagnosisId(err.body);
+        if (conflictId) {
+          beginResume(conflictId);
+          return;
+        }
+      }
+
       if (knownId) {
         goToDiagnosis(knownId);
         return;
@@ -538,6 +565,16 @@ function NewDiagnosisPageInner() {
         setQueuePosition(null);
       }
     }
+  }
+
+  // S0 恢复视图优先于评估屏与表单:有进行中诊断 → 进行中卡片;轮询到 failed → 失败卡片(可返回重试)。
+  if (resumingId) {
+    return (
+      <DiagnosisInProgressCard note="你有一个诊断正在生成，完成后会自动展示结果，请稍候…" />
+    );
+  }
+  if (resumeFailed) {
+    return <DiagnosisFailedCard message={resumeFailed} onRetry={backToForm} />;
   }
 
   if (step === 'analyzing') {

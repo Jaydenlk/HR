@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, ApiConflictError } from '@/lib/api';
 import type {
   Resume,
   Diagnosis,
@@ -15,6 +15,11 @@ import type {
   ProfessionStandardResult,
 } from '@/lib/types';
 import { getScoreColor } from '@/lib/score-utils';
+import { useDiagnosisResume, conflictDiagnosisId } from '@/lib/use-diagnosis-resume';
+import {
+  DiagnosisInProgressCard,
+  DiagnosisFailedCard,
+} from '@/components/diagnosis/resume-progress-card';
 import { FileText, Plus, ChevronRight, Sparkles, Target, Gauge, Check } from 'lucide-react';
 
 type Step = 'setup' | 'analyzing';
@@ -425,6 +430,19 @@ export default function CampusDiagnosisPage() {
     router.push(`/diagnoses/${id}`);
   }
 
+  // S0「回来可见 / 防重复」:mount 时查进行中校招诊断,有则轮询至终态;409 冲突亦转入此视图。
+  const { resumingId, resumeFailed, beginResume, dismissResume } = useDiagnosisResume(
+    'profession_standard',
+    goToDiagnosis,
+  );
+
+  // 从进行中/失败态返回表单:清空恢复态,并把评估屏复位到表单步骤。
+  function backToForm() {
+    dismissResume();
+    setStep('setup');
+    setSubmitError(null);
+  }
+
   // 兜底②:流断且没拿到 diagnosisId 时,查最近一条本简历、晚于本次提交的诊断,跳过去。
   // 后端 analysis 事件发出前已落库,故即便整条流断了,结果通常已存在。
   async function findRecentDiagnosis(
@@ -541,6 +559,15 @@ export default function CampusDiagnosisPage() {
       if (err instanceof Error && err.name === 'AbortError') return;
       if (handledError || navigated) return;
 
+      // 409 防重复:后端检测到同类型进行中诊断,未发起新流水线、未扣费。转入「进行中」视图轮询既有诊断。
+      if (err instanceof ApiConflictError) {
+        const conflictId = conflictDiagnosisId(err.body);
+        if (conflictId) {
+          beginResume(conflictId);
+          return;
+        }
+      }
+
       // 流异常(首帧前 HTTP 错误 / 网络中断):先按已知 id 跳,再查最近落库,最后报可重试错误。
       if (knownId) {
         goToDiagnosis(knownId);
@@ -562,6 +589,16 @@ export default function CampusDiagnosisPage() {
         setQueuePosition(null);
       }
     }
+  }
+
+  // S0 恢复视图优先于评估屏与表单:有进行中诊断 → 进行中卡片;轮询到 failed → 失败卡片(可返回重试)。
+  if (resumingId) {
+    return (
+      <DiagnosisInProgressCard note="你有一个校招诊断正在生成，完成后会自动展示结果，请稍候…" />
+    );
+  }
+  if (resumeFailed) {
+    return <DiagnosisFailedCard message={resumeFailed} onRetry={backToForm} />;
   }
 
   if (step === 'analyzing') {

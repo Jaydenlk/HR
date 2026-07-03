@@ -13,6 +13,7 @@ import { ConcurrencyLimiter } from '../ai/concurrency-limiter';
 import { CreditService } from '../credit/credit.service';
 import { CoachHandoffsService } from '../coach-handoffs/coach-handoffs.service';
 import { parseHandoff, StreamHandoffSplitter } from './handoff-parser';
+import { DiagnosisEventStream } from '../diagnoses/diagnosis-event-stream';
 import type { RewriteSuggestion } from '../common/types';
 
 // SSE 事件:queue 排位变化 / token 增量 / done 完成(含落库 message + 余额)/ error 可读错误
@@ -174,114 +175,144 @@ export class ConversationsService {
    *   合法 → 建 coach_handoffs 记录 + 写 rich_card + SSE 推 card 事件;
    *   非法 → 把缓冲文本原样补发(正文无损降级)。
    * 存库的 message content 已剥离标记。
+   *
+   * 解耦(对齐诊断哲学「断开只停转发,不取消生成、照常落库」):真正的生成/落库/扣费在后台任务里
+   * push 到一个 {@link DiagnosisEventStream} 实例,本生成器只是 `yield*` 消费它。控制器停止迭代
+   * (客户端断开)只是不再消费缓冲事件,后台任务继续把 AI 流【完整消费到自然结束】并落库/扣费——
+   * 故不再接收「客户端断开」信号,也就不会像旧实现那样在 for-await 中途因 abort 抛错而丢掉整条回复。
+   * 用户回来重开会话即见完整回复。
    */
-  async *streamMessage(
+  streamMessage(
     convId: string,
     userId: string,
     content: string,
     endpoint: string,
-    signal?: AbortSignal,
   ): AsyncGenerator<ChatStreamEvent, void, void> {
-    const conv = await this.findOne(convId, userId);
-    const history = conv.messages;
-    const userMsg = await this.persistUserMessage(convId, content);
+    const out = new DiagnosisEventStream<ChatStreamEvent>();
 
-    const backlog = this.limiter.status();
-    if (backlog.queued > 0) {
-      yield { type: 'queue', position: backlog.queued };
-    }
-
-    let context: { type: string; data: string } | undefined;
-    let userContext: string;
-    try {
-      context = await this.buildBoundContext(conv, userId);
-      userContext = await this.buildUserContext(userId, content);
-    } catch (err) {
-      yield { type: 'error', message: this.readableError(err) };
-      return;
-    }
-
-    const splitter = new StreamHandoffSplitter();
-    let cleanText = ''; // 已确认无标记的正文增量(剥离前)
-    try {
-      for await (const chunk of this.chat.stream(
-        history,
-        content,
-        context,
-        userContext,
-        signal,
-      )) {
-        const emit = splitter.feed(chunk);
-        if (emit) {
-          cleanText += emit;
-          yield { type: 'token', text: emit };
-        }
-      }
-    } catch (err) {
-      // 流中途出错:先把 splitter pending/缓冲中的内容 flush 给客户端,再发 error 事件。
-      const { extra: pendingFlush } = splitter.finish();
-      if (pendingFlush) {
-        yield { type: 'token', text: pendingFlush };
-      }
-      yield { type: 'error', message: this.readableError(err) };
-      return;
-    }
-
-    // 流正常完成:处理缓冲区(含可能的 handoff 标记)。
-    const { extra, card } = splitter.finish();
-    if (extra) {
-      // 缓冲区解析失败时的降级补发:把缓冲文本推给客户端并追加到正文。
-      cleanText += extra;
-      yield { type: 'token', text: extra };
-    }
-
-    // 落 assistant 消息(存库内容已剥离标记)。
-    const assistantMsg = await this.persistAssistantMessage(convId, cleanText, null);
-
-    // 若有合法卡片且 payload 在限额内:建 handoff 记录 → 更新 message rich_card → 推 card SSE 事件。
-    if (card && ConversationsService.isPayloadWithinLimit(card.payload)) {
+    // 后台任务:独立于消费者(SSE 连接)运行。不 await,launch 后立即返回可消费的生成器。
+    void (async () => {
       try {
-        const handoff = await this.handoffs.create({
-          user_id: userId,
-          conversation_id: convId,
-          message_id: assistantMsg.id,
-          target: card.target,
-          payload: card.payload,
+        const conv = await this.findOne(convId, userId);
+        const history = conv.messages;
+        const userMsg = await this.persistUserMessage(convId, content);
+
+        const backlog = this.limiter.status();
+        if (backlog.queued > 0) {
+          out.push({ type: 'queue', position: backlog.queued });
+        }
+
+        let context: { type: string; data: string } | undefined;
+        let userContext: string;
+        try {
+          context = await this.buildBoundContext(conv, userId);
+          userContext = await this.buildUserContext(userId, content);
+        } catch (err) {
+          out.push({ type: 'error', message: this.readableError(err) });
+          return;
+        }
+
+        const splitter = new StreamHandoffSplitter();
+        let cleanText = ''; // 已确认无标记的正文增量(剥离前)
+        try {
+          // 不传 signal:上游 AI 流式请求完整消费到自然结束才落库(客户端断开只停转发、不中止生成)。
+          for await (const chunk of this.chat.stream(history, content, context, userContext)) {
+            const emit = splitter.feed(chunk);
+            if (emit) {
+              cleanText += emit;
+              out.push({ type: 'token', text: emit });
+            }
+          }
+        } catch (err) {
+          // 流中途出错:先把 splitter pending/缓冲中的内容 flush 给客户端,再发 error 事件。
+          const { extra: pendingFlush } = splitter.finish();
+          if (pendingFlush) {
+            out.push({ type: 'token', text: pendingFlush });
+          }
+          out.push({ type: 'error', message: this.readableError(err) });
+          return;
+        }
+
+        // 流正常完成:处理缓冲区(含可能的 handoff 标记)。
+        const { extra, card } = splitter.finish();
+        if (extra) {
+          // 缓冲区解析失败时的降级补发:把缓冲文本推给客户端并追加到正文。
+          cleanText += extra;
+          out.push({ type: 'token', text: extra });
+        }
+
+        // 落 assistant 消息(存库内容已剥离标记)。
+        const assistantMsg = await this.persistAssistantMessage(convId, cleanText, null);
+
+        // 若有合法卡片且 payload 在限额内:建 handoff 记录 → 更新 message rich_card → 推 card SSE 事件。
+        if (card && ConversationsService.isPayloadWithinLimit(card.payload)) {
+          try {
+            const handoff = await this.handoffs.create({
+              user_id: userId,
+              conversation_id: convId,
+              message_id: assistantMsg.id,
+              target: card.target,
+              payload: card.payload,
+            });
+            const richCard: Record<string, unknown> = {
+              handoff_id: handoff.id,
+              target: card.target,
+              payload: card.payload,
+            };
+            assistantMsg.rich_card = richCard;
+            await this.msgRepo.save(assistantMsg);
+            out.push({
+              type: 'card',
+              handoff_id: handoff.id,
+              target: card.target,
+              payload: card.payload,
+              message_id: assistantMsg.id,
+            });
+          } catch {
+            // 卡片落库失败不中断整个流程,正文已完整推送。
+          }
+        }
+
+        await this.finalizeConversation(conv, history, content);
+
+        let creditBalance: number | null = null;
+        try {
+          creditBalance = await this.credit.consume(userId, endpoint);
+        } catch {
+          creditBalance = null;
+        }
+
+        out.push({
+          type: 'done',
+          user_message: userMsg,
+          assistant_message: assistantMsg,
+          credit_balance: creditBalance,
         });
-        const richCard: Record<string, unknown> = {
-          handoff_id: handoff.id,
-          target: card.target,
-          payload: card.payload,
-        };
-        assistantMsg.rich_card = richCard;
-        await this.msgRepo.save(assistantMsg);
-        yield {
-          type: 'card',
-          handoff_id: handoff.id,
-          target: card.target,
-          payload: card.payload,
-          message_id: assistantMsg.id,
-        };
-      } catch {
-        // 卡片落库失败不中断整个流程,正文已完整推送。
+      } catch (err) {
+        // findOne 越权/不存在(或落库/扣费等未预期错误):以 error 事件可读告知,归一 'Not Found' 为中文兜底
+        // (对齐控制器旧行为)。此前该翻译在控制器 catch 里;解耦后生成器不再抛到控制器,故就地翻译。
+        const raw =
+          err && typeof err === 'object' && 'message' in err &&
+          typeof (err as { message: unknown }).message === 'string'
+            ? (err as { message: string }).message
+            : '';
+        out.push({
+          type: 'error',
+          message: raw && raw !== 'Not Found' ? raw : '对话不存在或无法访问',
+        });
+      } finally {
+        out.close();
       }
-    }
+    })();
 
-    await this.finalizeConversation(conv, history, content);
+    return this.consume(out);
+  }
 
-    let creditBalance: number | null = null;
-    try {
-      creditBalance = await this.credit.consume(userId, endpoint);
-    } catch {
-      creditBalance = null;
-    }
-
-    yield {
-      type: 'done',
-      user_message: userMsg,
-      assistant_message: assistantMsg,
-      credit_balance: creditBalance,
-    };
+  // 把解耦事件流包成 AsyncGenerator(保持 streamMessage 的对外类型不变);控制器停止迭代不影响后台任务。
+  private async *consume(
+    out: DiagnosisEventStream<ChatStreamEvent>,
+  ): AsyncGenerator<ChatStreamEvent, void, void> {
+    yield* out;
   }
 
   // ── Shared helpers ────────────────────────────────────────────────────────

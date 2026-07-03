@@ -253,6 +253,54 @@ describe('Chat SSE stream + accounting + on-demand context', () => {
     blockers.forEach((r) => r());
   });
 
+  // ── R4 解耦:客户端断开只停转发,后台完整消费上游流并落库/扣费(回复永不丢)──────────
+  it('[R4][解耦] 消费方提前 break(客户端断开)→ 后台仍把完整回复落库并扣费', async () => {
+    const user = await newUser('chat-disconnect@test.dev', 5);
+    const conv = await service.create(user.id, {});
+
+    // 可控 gate:先 yield 一段(触发 token),卡住收尾段,模拟「断开时上游尚未流完」。
+    let releaseTail!: () => void;
+    const tailGate = new Promise<void>((resolve) => {
+      releaseTail = resolve;
+    });
+    chatStreamImpl = async function* (): AsyncGenerator<string, void, void> {
+      yield '断开前已经生成好的第一段完整回复内容文字';
+      await tailGate; // 断开时后台卡在这里(上游还没流完)
+      yield '断开后后台继续消费到自然结束的第二段收尾文字';
+    };
+
+    // 消费到第一个 token 即 break(等同控制器 res.on('close') 后停止转发)。
+    const gen = service.streamMessage(conv.id, user.id, '帮我看简历', '/api/test');
+    let gotToken = false;
+    for await (const e of gen) {
+      if (e.type === 'token') {
+        gotToken = true;
+        break; // 断开:停止转发。后台任务(独立)应继续把上游流完整消费并落库。
+      }
+    }
+    expect(gotToken).toBe(true);
+
+    // 放行上游收尾 → 后台任务完整消费到自然结束并落 assistant + 扣费。
+    releaseTail();
+
+    // 轮询直到 assistant 消息落库(后台异步推进)。
+    let assistant: Message | undefined;
+    for (let i = 0; i < 200; i++) {
+      const persisted = await service.findOne(conv.id, user.id);
+      assistant = persisted.messages.find((m) => m.role === 'assistant');
+      if (assistant) break;
+      await new Promise((r) => setImmediate(r));
+    }
+    expect(assistant).toBeDefined();
+    // 完整回复(两段都在)落库——断开只停转发,上游流完整消费到结束,绝不落半截。
+    expect(assistant!.content).toContain('第一段');
+    expect(assistant!.content).toContain('第二段收尾');
+
+    // 扣费照常发生(1 点),与「跑完落库」同生共死。
+    const after = await userRepo.findOneByOrFail({ id: user.id });
+    expect(after.credit_balance).toBe(4); // 5 - 1
+  });
+
   // ── 非流式旧端点回归(降级路径) ──────────────────────────────────────────
 
   it('非流式 sendMessage 仍可用(降级路径):返回 user/assistant 消息', async () => {

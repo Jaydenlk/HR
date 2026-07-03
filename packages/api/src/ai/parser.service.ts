@@ -126,13 +126,15 @@ export function isResumeParseMeaningful(r: ParsedResume): boolean {
 export class ParserService {
   constructor(private readonly ai: AiService) {}
 
-  async parseResume(text: string): Promise<ParsedResume> {
+  // skipLimiter:诊断流式管线内层调用置 true(外层 runObservable 已持槽,避免嵌套自锁,见 D1)。
+  async parseResume(text: string, skipLimiter = false): Promise<ParsedResume> {
     const raw = await this.ai.completeStructured<RawParsedResume>({
       system: RESUME_SYSTEM,
       prompt: buildParseResumePrompt(text),
       toolName: 'parse_resume',
       toolDescription: '将简历文本解析为结构化 JSON 数据',
       schema: PARSED_RESUME_SCHEMA,
+      skipLimiter,
     });
     const parsed = this.normalizeResume(raw);
     // 退化解析(schema 合法但语义为空)= 解析失败,不可静默放行:否则下游渲染成 "姓名:" 误判
@@ -146,13 +148,14 @@ export class ParserService {
     return parsed;
   }
 
-  async parseJD(text: string): Promise<ParsedJD> {
+  async parseJD(text: string, skipLimiter = false): Promise<ParsedJD> {
     const raw = await this.ai.completeStructured<RawParsedJD>({
       system: JD_SYSTEM,
       prompt: buildParseJDPrompt(text),
       toolName: 'parse_jd',
       toolDescription: '将招聘 JD 文本解析为结构化 JSON 数据',
       schema: PARSED_JD_SCHEMA,
+      skipLimiter,
     });
     return this.normalizeJD(raw);
   }

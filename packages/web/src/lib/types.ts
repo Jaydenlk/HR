@@ -80,6 +80,12 @@ interface DiagnosisBase {
   score: number;
   // 后端 entity nullable: true,旧数据可能为 null,消费处须 ?? [] 兜底。
   suggestions: RewriteSuggestion[] | null;
+  // 单次诊断成败/进行中状态(与后端 DiagnosisResponseDto 一致):
+  //   running —— 进行中(S0「回来可见」:诊断页 mount 时据此显示进行中卡片并轮询至终态);
+  //   success/failed/partial —— 终态;存量行为 null(未记账)。
+  status?: 'running' | 'success' | 'failed' | 'partial';
+  // 失败/部分失败时的中性提示;running/success/null 态为 null。
+  user_message?: string | null;
   created_at: string;
   resume?: Resume;
 }
