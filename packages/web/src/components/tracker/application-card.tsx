@@ -1,21 +1,13 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import type { Application } from '@/lib/types';
+import { STAGE_META } from '@/lib/tracker-stages';
 
 interface ApplicationCardProps {
   application: Application;
   onStageChange: (id: string, stage: string) => void;
-  onEdit: (application: Application) => void;
 }
-
-const STAGES = [
-  { id: 'wishlist',  label: '想投' },
-  { id: 'applied',   label: '已投递' },
-  { id: 'interview', label: '面试中' },
-  { id: 'final',     label: '终面' },
-  { id: 'offer',     label: 'Offer' },
-  { id: 'rejected',  label: '已拒' },
-];
 
 function isUrgent(deadline: string | null): boolean {
   if (!deadline) return false;
@@ -31,19 +23,24 @@ function formatDeadline(deadline: string | null): string | null {
   });
 }
 
-export function ApplicationCard({ application, onStageChange, onEdit }: ApplicationCardProps) {
+export function ApplicationCard({ application, onStageChange }: ApplicationCardProps) {
+  const router = useRouter();
   const urgent = isUrgent(application.deadline);
   const deadlineLabel = formatDeadline(application.deadline);
+
+  function openDetail() {
+    router.push(`/applications/${application.id}`);
+  }
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => onEdit(application)}
+      onClick={openDetail}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onEdit(application);
+          openDetail();
         }
       }}
       style={{
@@ -163,7 +160,7 @@ export function ApplicationCard({ application, onStageChange, onEdit }: Applicat
             outline: 'none',
           }}
         >
-          {STAGES.map((s) => (
+          {STAGE_META.map((s) => (
             <option key={s.id} value={s.id}>
               {s.label}
             </option>

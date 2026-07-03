@@ -48,6 +48,7 @@ import { MessageBubble } from '@/components/chat/message-bubble';
 import { MockStage } from '@/components/mock/mock-stage';
 import { QuestionCard } from '@/components/interview/question-card';
 import { ScoreRadar } from '@/components/interview/score-radar';
+import { STAGE_META } from '@/lib/tracker-stages';
 
 const NOOP_ASYNC = async () => {};
 
@@ -401,17 +402,9 @@ export function DebriefSurface() {
 
 /* ── 投递追踪(非 AI 功能,自绘演示看板) ──────────────────────────────
    呼应真实 /applications:6 阶段看板(想投/已投递/面试中/终面/Offer/已拒),卡片记公司+岗位,
-   顶部各阶段计数;下拉切换即改阶段。阶段标签与点色逐字对齐真实 KanbanBoard 的 STAGES。
+   顶部各阶段计数;下拉切换即改阶段。阶段标签与点色改为消费共享 lib/tracker-stages.ts(M18)。
    精选:铺虚构 persona(陈思宁 / 北辰文化)的 4 条投递,讲「投了哪家、到哪步了,一眼看清」。
    纯展示静态卡片:不可拖、不拉数据。 */
-const TRACKER_STAGES: readonly { id: string; label: string; dot: string }[] = [
-  { id: 'wishlist',  label: '想投',   dot: 'var(--color-ink-4)' },
-  { id: 'applied',   label: '已投递', dot: 'var(--color-brand)' },
-  { id: 'interview', label: '面试中', dot: 'var(--color-warn)' },
-  { id: 'final',     label: '终面',   dot: 'var(--au-violet)' },
-  { id: 'offer',     label: 'Offer',  dot: 'var(--color-success)' },
-  { id: 'rejected',  label: '已拒',   dot: 'var(--color-danger)' },
-];
 export function TrackerSurface() {
   return (
     <div style={{ maxWidth: 880, margin: '0 auto', padding: 'clamp(20px, 4vh, 40px) clamp(20px, 3vw, 32px)' }}>
@@ -421,11 +414,11 @@ export function TrackerSurface() {
       <div className="lg" style={{ padding: 18, marginBottom: 16 }}>
         <h2 style={{ ...sectionTitle, margin: '0 0 12px' }}>投递概览</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {TRACKER_STAGES.map((st) => {
+          {STAGE_META.map((st) => {
             const count = DEMO_TRACKER.filter((a) => a.stage === st.id).length;
             return (
               <span key={st.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', fontSize: 12.5, borderRadius: 'var(--radius-default)', border: '1px solid var(--hair)', background: 'rgba(47,143,255,.05)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
                 <span style={{ color: 'var(--color-ink-2)' }}>{st.label}</span>
                 <span className="mono" style={{ fontWeight: 700, color: 'var(--color-ink)', fontFamily: 'var(--font-mono)' }}>{count}</span>
               </span>
@@ -439,12 +432,12 @@ export function TrackerSurface() {
       <div className="lg" data-guide="tracker-board" style={{ padding: 18 }}>
         <h2 style={{ ...sectionTitle, margin: '0 0 12px' }}>按阶段看板</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
-          {TRACKER_STAGES.map((st) => {
+          {STAGE_META.map((st) => {
             const cards = DEMO_TRACKER.filter((a) => a.stage === st.id);
             return (
               <div key={st.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 132 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--color-ink-2)' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
                   {st.label}
                 </div>
                 {cards.map((c) => (

@@ -9,7 +9,6 @@ interface KanbanColumnProps {
   dotColor: string;
   applications: Application[];
   onStageChange: (id: string, stage: string) => void;
-  onEdit: (application: Application) => void;
   onAdd: () => void;
 }
 
@@ -18,7 +17,6 @@ export function KanbanColumn({
   dotColor,
   applications,
   onStageChange,
-  onEdit,
   onAdd,
 }: KanbanColumnProps) {
   return (
@@ -92,12 +90,7 @@ export function KanbanColumn({
         }}
       >
         {applications.map((app) => (
-          <ApplicationCard
-            key={app.id}
-            application={app}
-            onStageChange={onStageChange}
-            onEdit={onEdit}
-          />
+          <ApplicationCard key={app.id} application={app} onStageChange={onStageChange} />
         ))}
       </div>
 

@@ -1,26 +1,17 @@
 'use client';
 
 import type { Application } from '@/lib/types';
+import { STAGE_META } from '@/lib/tracker-stages';
 import { KanbanColumn } from './kanban-column';
 
 interface KanbanBoardProps {
   applications: Application[];
   onStageChange: (id: string, stage: string) => void;
-  onEdit: (application: Application) => void;
   onAdd: (stage: string) => void;
 }
 
-const STAGES = [
-  { id: 'wishlist',  label: '想投',   dotColor: 'var(--color-ink-4)' },
-  { id: 'applied',   label: '已投递', dotColor: 'var(--color-brand)' },
-  { id: 'interview', label: '面试中', dotColor: 'var(--color-warn)' },
-  { id: 'final',     label: '终面',   dotColor: 'var(--au-violet)' },
-  { id: 'offer',     label: 'Offer',  dotColor: 'var(--color-success)' },
-  { id: 'rejected',  label: '已拒',   dotColor: 'var(--color-danger)' },
-];
-
-export function KanbanBoard({ applications, onStageChange, onEdit, onAdd }: KanbanBoardProps) {
-  const byStage = STAGES.reduce<Record<string, Application[]>>((acc, s) => {
+export function KanbanBoard({ applications, onStageChange, onAdd }: KanbanBoardProps) {
+  const byStage = STAGE_META.reduce<Record<string, Application[]>>((acc, s) => {
     acc[s.id] = applications.filter((a) => a.stage === s.id);
     return acc;
   }, {});
@@ -36,15 +27,14 @@ export function KanbanBoard({ applications, onStageChange, onEdit, onAdd }: Kanb
         minHeight: 0,
       }}
     >
-      {STAGES.map((stage) => (
+      {STAGE_META.map((stage) => (
         <KanbanColumn
           key={stage.id}
           stage={stage.id}
           label={stage.label}
-          dotColor={stage.dotColor}
+          dotColor={stage.color}
           applications={byStage[stage.id] ?? []}
           onStageChange={onStageChange}
-          onEdit={onEdit}
           onAdd={() => onAdd(stage.id)}
         />
       ))}
