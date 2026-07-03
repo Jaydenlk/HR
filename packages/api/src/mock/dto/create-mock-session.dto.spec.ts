@@ -1,12 +1,12 @@
 /**
- * ConfirmedCompanyInfoDto MaxLength 验证测试
- * 超过上限时 ValidationPipe 应返回 400（validate 抛出异常）
+ * CreateMockSessionDto — company_research_id 校验测试
+ *
+ * T6 破坏性变更:confirmed_company_info(前端回传原始文本)已替换为 company_research_id
+ * (前端只回传候选 id，后端按 id 查库取真实字段，防伪造 M3)。本文件验证 DTO 层的 UUID 格式校验。
  */
 import 'reflect-metadata';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-
-// 直接复用 DTO 内部 class 需要先 export；本测试通过 CreateMockSessionDto 间接验证
 import { CreateMockSessionDto } from './create-mock-session.dto';
 
 async function validateDto(raw: Record<string, unknown>) {
@@ -14,85 +14,31 @@ async function validateDto(raw: Record<string, unknown>) {
   return validate(dto, { whitelist: true });
 }
 
-const validBase = {
-  company: '字节跳动',
-  role: '产品经理',
-  confirmed_company_info: {
-    name: '字节跳动',
-    summary: '科技公司',
-    source_url: 'https://example.com',
-    searched_at: '2026-06-13',
-  },
-};
+const VALID_UUID = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 
-describe('ConfirmedCompanyInfoDto — MaxLength 校验', () => {
-  it('合法输入时验证通过', async () => {
-    const errors = await validateDto(validBase);
+describe('CreateMockSessionDto — company_research_id 校验', () => {
+  it('不带 company_research_id 时验证通过(通用模式)', async () => {
+    const errors = await validateDto({ company: '字节跳动', role: '产品经理' });
     expect(errors.length).toBe(0);
   });
 
-  it('name 超过 100 字符时验证失败', async () => {
-    const raw = {
-      ...validBase,
-      confirmed_company_info: {
-        ...validBase.confirmed_company_info,
-        name: 'A'.repeat(101),
-      },
-    };
-    const errors = await validateDto(raw);
-    const nested = errors.find((e) => e.property === 'confirmed_company_info');
-    expect(nested).toBeDefined();
-    const children = nested?.children ?? [];
-    const nameErr = children.find((c) => c.property === 'name');
-    expect(nameErr).toBeDefined();
-    expect(JSON.stringify(nameErr?.constraints)).toContain('maxLength');
+  it('合法 UUID 时验证通过', async () => {
+    const errors = await validateDto({
+      company: '字节跳动',
+      role: '产品经理',
+      company_research_id: VALID_UUID,
+    });
+    expect(errors.length).toBe(0);
   });
 
-  it('summary 超过 500 字符时验证失败', async () => {
-    const raw = {
-      ...validBase,
-      confirmed_company_info: {
-        ...validBase.confirmed_company_info,
-        summary: 'S'.repeat(501),
-      },
-    };
-    const errors = await validateDto(raw);
-    const nested = errors.find((e) => e.property === 'confirmed_company_info');
-    const children = nested?.children ?? [];
-    const summaryErr = children.find((c) => c.property === 'summary');
-    expect(summaryErr).toBeDefined();
-    expect(JSON.stringify(summaryErr?.constraints)).toContain('maxLength');
-  });
-
-  it('source_url 超过 500 字符时验证失败', async () => {
-    const raw = {
-      ...validBase,
-      confirmed_company_info: {
-        ...validBase.confirmed_company_info,
-        source_url: 'https://example.com/' + 'x'.repeat(490),
-      },
-    };
-    const errors = await validateDto(raw);
-    const nested = errors.find((e) => e.property === 'confirmed_company_info');
-    const children = nested?.children ?? [];
-    const urlErr = children.find((c) => c.property === 'source_url');
-    expect(urlErr).toBeDefined();
-    expect(JSON.stringify(urlErr?.constraints)).toContain('maxLength');
-  });
-
-  it('searched_at 超过 40 字符时验证失败', async () => {
-    const raw = {
-      ...validBase,
-      confirmed_company_info: {
-        ...validBase.confirmed_company_info,
-        searched_at: '2026-06-13T00:00:00.000Z' + 'X'.repeat(20),
-      },
-    };
-    const errors = await validateDto(raw);
-    const nested = errors.find((e) => e.property === 'confirmed_company_info');
-    const children = nested?.children ?? [];
-    const atErr = children.find((c) => c.property === 'searched_at');
-    expect(atErr).toBeDefined();
-    expect(JSON.stringify(atErr?.constraints)).toContain('maxLength');
+  it('非 UUID 格式的 company_research_id 验证失败', async () => {
+    const errors = await validateDto({
+      company: '字节跳动',
+      role: '产品经理',
+      company_research_id: '不是一个uuid',
+    });
+    const err = errors.find((e) => e.property === 'company_research_id');
+    expect(err).toBeDefined();
+    expect(JSON.stringify(err?.constraints)).toContain('isUuid');
   });
 });

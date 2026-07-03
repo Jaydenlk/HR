@@ -1,8 +1,12 @@
 import { INestApplication, ValidationPipe, ServiceUnavailableException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { AiService } from '../src/ai/ai.service';
 import { CompanyRegistryService } from '../src/feed/company-registry.service';
+import { CompanyResearch } from '../src/company-research/entities/company-research.entity';
+import { normalizeCompanyName } from '../src/company-research/normalize';
 import { request, loginUser } from './test-utils';
 
 /* ------------------------------------------------------------------ */
@@ -575,13 +579,16 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
 
   // ── GET /api/mock-sessions/company-check ────────────────────────────────
   describe('GET /api/mock-sessions/company-check', () => {
-    it('known company → { company_known: true }', async () => {
+    it('known company → { company_known: true, candidates: [] }', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/mock-sessions/company-check?name=字节跳动')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.company_known).toBe(true);
+      // T6 破坏性变更:search_candidate(单候选) → candidates[](多候选数组)
+      expect(res.body.candidates).toEqual([]);
+      expect(res.body).not.toHaveProperty('search_candidate');
     });
 
     it('known company alias → { company_known: true }', async () => {
@@ -593,22 +600,26 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
       expect(res.body.company_known).toBe(true);
     });
 
-    it('unknown company → { company_known: false }', async () => {
+    // T6 两路查询并发发起真实博查调用(通用 + include=tianyancha.com,qcc.com 强召回),
+    // 比改造前单路查询耗时更长,沿用本文件其余真实外呼用例的 30s 超时惯例。
+    it('unknown company → { company_known: false, candidates: 数组(全量,不截断) }', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/mock-sessions/company-check?name=量子翻斗云科技')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.company_known).toBe(false);
-    });
+      expect(Array.isArray(res.body.candidates)).toBe(true);
+    }, 30000);
 
-    it('empty name → { company_known: false }', async () => {
+    it('empty name → { company_known: false, candidates: [] }', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/mock-sessions/company-check?name=')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.company_known).toBe(false);
+      expect(res.body.candidates).toEqual([]);
     });
 
     it('without JWT → 401', async () => {
@@ -635,6 +646,62 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('company_known', false);
+    }, 30000);
+  });
+
+  // ── company-check 缓存与 force 强制刷新(审计修复1:缓存候选被拒可触发新搜索) ──
+  describe('GET /api/mock-sessions/company-check — 缓存与 force 强制刷新', () => {
+    const SEED_NAME = '翻斗云缓存种子公司甲乙丙';
+
+    beforeAll(async () => {
+      // 直接种一行新鲜缓存(生造名,真实搜索不可能召回同名候选),使缓存/强刷路径可确定性验证。
+      const repo = app.get<Repository<CompanyResearch>>(getRepositoryToken(CompanyResearch));
+      await repo.save(
+        repo.create({
+          canonical_name: normalizeCompanyName(SEED_NAME),
+          display_name: SEED_NAME,
+          summary: 'SEEDED-CACHE-ROW',
+          source_url: 'https://seed.example.com/x',
+          source_domain: 'seed.example.com',
+          retrieved_at: new Date(),
+          raw: null,
+        }),
+      );
+    });
+
+    it('缓存命中 → from_cache=true 且候选即缓存行', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/mock-sessions/company-check?name=${encodeURIComponent(SEED_NAME)}`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.company_known).toBe(false);
+      expect(res.body.from_cache).toBe(true);
+      expect(res.body.candidates).toHaveLength(1);
+      expect(res.body.candidates[0].summary).toBe('SEEDED-CACHE-ROW');
+    });
+
+    // force=true 走两路真实博查(网络),沿用真实外呼用例 30s 超时惯例。
+    it('force=true → 绕过缓存走真实新搜索:from_cache 不置位,不回吐缓存种子行', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/mock-sessions/company-check?name=${encodeURIComponent(SEED_NAME)}&force=true`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.company_known).toBe(false);
+      // 强制刷新结果不是缓存:哪怕缓存行仍新鲜也不返回它
+      expect(res.body.from_cache).toBeUndefined();
+      expect(Array.isArray(res.body.candidates)).toBe(true);
+      const summaries = (res.body.candidates as { summary: string }[]).map((c) => c.summary);
+      expect(summaries).not.toContain('SEEDED-CACHE-ROW');
+    }, 30000);
+
+    it('force 参数非法值 → 400(布尔校验)', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/mock-sessions/company-check?name=${encodeURIComponent(SEED_NAME)}&force=banana`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
     });
   });
 });

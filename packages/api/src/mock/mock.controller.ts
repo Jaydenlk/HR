@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   StreamableFile,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CreditGuard } from '../credit/credit.guard';
 import { AiUsageInterceptor } from '../quota/ai-usage.interceptor';
@@ -36,9 +37,15 @@ export class MockController {
     return this.mock.create(user.id, dto);
   }
 
+  // 专属节流(m3 审计校准,与 T4 协同):company-check 会触发真实计费的博查调用,T6 重设计后
+  // count 10 + 两路查询,单次成本翻倍,不能只靠共享的全局 IP 限流(120次/60s)兜底。
+  // 每 IP 每分钟 20 次:足够覆盖正常填表场景下的多次改名重查/重试,同时把单 IP 最坏情况下的
+  // 博查调用量(20×2路=40次/分钟)锁在远低于全局上限的范围内。
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Get('company-check')
   companyCheck(@Query() query: CompanyCheckQueryDto) {
-    return this.mock.checkCompany(query.name ?? '');
+    // force=true:缓存候选被拒后的强制重搜(绕缓存走两路真实博查);同受上方 @Throttle 约束。
+    return this.mock.checkCompany(query.name ?? '', query.force === true);
   }
 
   @Get()
