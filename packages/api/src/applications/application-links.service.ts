@@ -231,11 +231,16 @@ export class ApplicationLinksService {
     if (!appRow) throw new NotFoundException();
 
     if (dto.action === 'link') {
+      // 关联版本时一并把 resume_id 跟到该版本所属的简历——语义上"选了这一版"必然隐含"选了这份简历",
+      // 不要求用户先经旧的 create/update resume_id 流程单独选过一次简历(否则 related.resume 会因
+      // resume_id 仍为空而始终展示不出这条刚关联的版本,体验上说不通)。
+      appRow.resume_id = ownedResume.id;
       appRow.resume_version_id = dto.target_id;
     } else {
       if (appRow.resume_version_id !== dto.target_id) {
         throw new BadRequestException('该简历版本当前未关联到此投递,无法取消关联');
       }
+      // unlink 只撤销"选中了哪一版"这一层,不动 resume_id(可能是用户此前独立选定的简历)。
       appRow.resume_version_id = null;
     }
     await this.appRepo.save(appRow);
