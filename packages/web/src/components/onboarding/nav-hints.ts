@@ -18,10 +18,8 @@ export const NAV_HINTS: Record<string, string> = {
   // 工具区「更多功能」
   'interview-prep': '面试前押题、备好高频问题的答法,心里有底再上场。',
   career: '画出你这个职业要哪些能力,你现在差在哪,一目了然。',
-  'learning-roadmap': '根据你的目标岗位,给你排一条该学什么的清单。',
   'follow-up': '面试或投递后,想好该怎么跟 HR 礼貌跟进。',
   'offer-comparator': '拿到几个 offer 拿不定主意?把它们摆一起逐项对比。',
-  'industry-trend': '看你关心的行业最近什么风向,聊天面试都用得上。',
   // 顶部 CTA
   chat: '不知道下一步做什么?把处境说给 Coach,排好你的下一步。',
 } as const;

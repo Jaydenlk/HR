@@ -33,11 +33,7 @@ import {
   X,
   Scale,
   ClipboardList,
-  Route,
-  Mail,
-  TrendingUp,
-  ChevronDown,
-  ChevronRight,
+  FileAudio,
   Shield,
   LogOut,
   Coins,
@@ -56,54 +52,69 @@ interface NavItem {
   tourId?: string;
 }
 
-function buildMainNav(interviewCount: number): NavItem[] {
+interface NavGroup {
+  id: string;
+  title: string;
+  items: NavItem[];
+}
+
+// 四模块常驻展开结构(替代旧的「主导航4项 + 工具区core6+more6折叠」):
+// 面试前/面试中/面试后/其他,共 15 项分四组,信息量可控,不再需要「更多功能」折叠收纳。
+function buildNavGroups(interviewCount: number, applicationCount: number): NavGroup[] {
   return [
-    { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true, tourId: 'today' },
-    { id: 'monthly', label: '月刊·面经', href: '/newspaper', icon: <BookOpen size={16} /> },
     {
-      id: 'debrief',
-      label: '面试复盘',
-      href: '/debrief',
-      icon: <Mic size={16} />,
-      ...(interviewCount > 0 ? { badge: String(interviewCount) } : {}),
+      id: 'pre-interview',
+      title: '面试前',
+      items: [
+        { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} />, tourId: 'resumes' },
+        { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} />, tourId: 'campus' },
+        { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
+        { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
+        {
+          id: 'tracker',
+          label: '投递追踪',
+          href: '/applications',
+          icon: <Briefcase size={16} />,
+          tourId: 'tracker',
+          ...(applicationCount > 0 ? { badge: String(applicationCount) } : {}),
+        },
+      ],
     },
-    { id: 'overview', label: '求职总览', href: '/overview', icon: <LayoutDashboard size={16} /> },
+    {
+      id: 'during-interview',
+      title: '面试中',
+      items: [
+        { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
+        { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
+        // 直达 debrief 页既有的 ?upload=1 上传流程(debrief/page.tsx 已实现,非新建逻辑)。
+        { id: 'debrief-upload', label: '面试录音上传', href: '/debrief?upload=1', icon: <FileAudio size={16} /> },
+      ],
+    },
+    {
+      id: 'post-interview',
+      title: '面试后',
+      items: [
+        {
+          id: 'debrief',
+          label: '面试复盘',
+          href: '/debrief',
+          icon: <Mic size={16} />,
+          ...(interviewCount > 0 ? { badge: String(interviewCount) } : {}),
+        },
+        { id: 'offer-comparator', label: 'Offer 比对', href: '/offer-comparator', icon: <Scale size={16} /> },
+      ],
+    },
+    {
+      id: 'other',
+      title: '其他',
+      items: [
+        { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true, tourId: 'today' },
+        { id: 'monthly', label: '月刊·面经', href: '/newspaper', icon: <BookOpen size={16} /> },
+        { id: 'overview', label: '求职总览', href: '/overview', icon: <LayoutDashboard size={16} /> },
+        { id: 'career', label: '职业地图', href: '/career', icon: <MapIcon size={16} /> },
+      ],
+    },
   ];
-}
-
-interface ToolNav {
-  core: NavItem[];
-  more: NavItem[];
-}
-
-// 工具区做减法:6 个高频核心常驻,其余收进「更多功能」默认折叠——默认只露核心,消除信息瀑布。
-function buildToolNav(applicationCount: number): ToolNav {
-  const tracker: NavItem = {
-    id: 'tracker',
-    label: '投递追踪',
-    href: '/applications',
-    icon: <Briefcase size={16} />,
-    tourId: 'tracker',
-    ...(applicationCount > 0 ? { badge: String(applicationCount) } : {}),
-  };
-  return {
-    core: [
-      { id: 'resumes', label: '简历馆', href: '/resumes', icon: <FileText size={16} />, tourId: 'resumes' },
-      { id: 'campus', label: '校招诊断', href: '/diagnoses/campus', icon: <GraduationCap size={16} />, tourId: 'campus' },
-      { id: 'mock', label: '模拟面试', href: '/mock', icon: <Play size={16} /> },
-      { id: 'opportunities', label: '机会中心', href: '/opportunities', icon: <Target size={16} /> },
-      tracker,
-      { id: 'cover-letter', label: '求职信', href: '/cover-letter', icon: <Send size={16} /> },
-    ],
-    more: [
-      { id: 'interview-prep', label: '面试备战', href: '/interview-prep', icon: <ClipboardList size={16} /> },
-      { id: 'career', label: '职业地图', href: '/career', icon: <MapIcon size={16} /> },
-      { id: 'learning-roadmap', label: '学习路线', href: '/learning-roadmap', icon: <Route size={16} /> },
-      { id: 'follow-up', label: '跟进消息', href: '/follow-up', icon: <Mail size={16} /> },
-      { id: 'offer-comparator', label: 'Offer 比对', href: '/offer-comparator', icon: <Scale size={16} /> },
-      { id: 'industry-trend', label: '行业趋势', href: '/industry-trend', icon: <TrendingUp size={16} /> },
-    ],
-  };
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -139,7 +150,6 @@ function ShellLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [interviewCount, setInterviewCount] = useState(0);
   const [applicationCount, setApplicationCount] = useState(0);
-  const [showMore, setShowMore] = useState(false);
   const [showCapabilityGuide, setShowCapabilityGuide] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -244,10 +254,6 @@ function ShellLayoutInner({ children }: { children: React.ReactNode }) {
     return pathname?.startsWith(item.href) ?? false;
   }
 
-  // 导航数据 hoist 到渲染作用域,供 JSX 与下方滑动指示器测量共享(buildXxxNav 是纯函数,廉价)。
-  const mainNav = buildMainNav(interviewCount);
-  const toolNav = buildToolNav(applicationCount);
-
   // 给侧栏导航项包悬停说明。link 本身是交互元素(<Link>=<a>),必须用 triggerRender={<span/>} 穿透,
   // 避免 base-ui 把 Trigger 渲染成 <button> 套在 <a> 外形成非法嵌套。span 设 display:block 不塌陷,
   // 且不带定位/边距——保证内部 Link 的 offsetParent 仍是外层 relative 容器,滑动指示器测量不受影响。
@@ -268,24 +274,22 @@ function ShellLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   // ── 浮动磨砂滑动指示器 ────────────────────────────────────────────────
-  // 每组(主导航 / 工具导航)一个共享指示器。容器 position:relative,指示器 position:absolute。
-  // useLayoutEffect 量当前激活项的 offsetTop/offsetHeight,写到指示器 transform/height;CSS transition
-  // 让磨砂块平滑滑动/伸缩到新选中项。无激活项则隐藏(data-active=false)。
-  const mainNavRef = useRef<HTMLDivElement>(null);
-  const toolNavRef = useRef<HTMLDivElement>(null);
-  const mainIndicatorRef = useRef<HTMLDivElement>(null);
-  const toolIndicatorRef = useRef<HTMLDivElement>(null);
-  const mainItemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
-  const toolItemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+  // 四模块各自一个共享指示器(按 group.id 存取,替代旧的 main/tool 两组固定 ref)。容器
+  // position:relative,指示器 position:absolute。useLayoutEffect 量当前激活项的
+  // offsetTop/offsetHeight,写到指示器 transform/height;CSS transition 让磨砂块平滑滑动/
+  // 伸缩到新选中项。无激活项则隐藏(data-active=false)。
+  const groupIndicatorRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // 单个扁平 Map,key 用 `${groupId}:${itemId}` 复合键——避免渲染期间同步读写 ref.current
+  // (react-hooks/refs 规则:ref 只能在 ref 回调/effect 里碰,不能在渲染函数体里直接存取)。
+  const groupItemRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
+
+  // 导航数据 hoist 到渲染作用域,供 JSX 与下方滑动指示器测量共享(buildNavGroups 是纯函数,廉价)。
+  const navGroups = buildNavGroups(interviewCount, applicationCount);
 
   useLayoutEffect(() => {
-    function place(
-      indicator: HTMLDivElement | null,
-      items: Map<string, HTMLAnchorElement>,
-      activeId: string | null,
-    ) {
+    function place(indicator: HTMLDivElement | null | undefined, activeKey: string | null) {
       if (!indicator) return;
-      const el = activeId ? items.get(activeId) : undefined;
+      const el = activeKey ? groupItemRefs.current.get(activeKey) : undefined;
       if (!el) {
         indicator.dataset.active = 'false';
         return;
@@ -295,20 +299,94 @@ function ShellLayoutInner({ children }: { children: React.ReactNode }) {
       indicator.dataset.active = 'true';
     }
     function update() {
-      const mainActive = mainNav.find((i) => isActive(i))?.id ?? null;
-      // 工具组「更多」折叠时,落在 more 里的激活项不可见——此时该组不显示指示器。
-      const visibleTools = [...toolNav.core, ...(showMore ? toolNav.more : [])];
-      const toolActive = visibleTools.find((i) => isActive(i))?.id ?? null;
-      place(mainIndicatorRef.current, mainItemRefs.current, mainActive);
-      place(toolIndicatorRef.current, toolItemRefs.current, toolActive);
+      for (const group of navGroups) {
+        const activeItemId = group.items.find((i) => isActive(i))?.id ?? null;
+        place(groupIndicatorRefs.current[group.id], activeItemId ? `${group.id}:${activeItemId}` : null);
+      }
     }
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-    // pathname 变(切页)、showMore 变(折叠/展开重排)、badge 数变(项高度可能微调)、
-    // guideActiveHref 变(引导切章)时重算落位——指示器平滑滑到新激活项(核心②③)。
+    // pathname 变(切页)、badge 数变(项高度可能微调)、guideActiveHref 变(引导切章)时重算落位——
+    // 指示器平滑滑到新激活项(核心②③)。四组常驻展开,不再有 showMore 折叠依赖。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, showMore, interviewCount, applicationCount, guideActiveHref]);
+  }, [pathname, interviewCount, applicationCount, guideActiveHref]);
+
+  // 单个导航项渲染(四组共用,替代旧的 mainNav/renderTool 两套几乎相同的重复实现)。
+  // groupId 与 item.id 拼成复合键写入 groupItemRefs,供上方滑动指示器测量落位。
+  function renderNavItem(item: NavItem, groupId: string): React.ReactNode {
+    const active = isActive(item);
+    const link = (
+      <Link
+        key={item.id}
+        href={item.href}
+        data-tour={item.tourId}
+        ref={(el) => {
+          const key = `${groupId}:${item.id}`;
+          if (el) groupItemRefs.current.set(key, el);
+          else groupItemRefs.current.delete(key);
+        }}
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '11px',
+          padding: '8px 12px',
+          borderRadius: '10px',
+          fontSize: '13.5px',
+          color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
+          fontWeight: active ? 600 : 500,
+          background: 'transparent',
+          textDecoration: 'none',
+          letterSpacing: '-0.003em',
+          transition: 'color 0.1s',
+        }}
+      >
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            width: '18px',
+            justifyContent: 'center',
+            color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
+            flexShrink: 0,
+          }}
+        >
+          {item.icon}
+        </span>
+        <span style={{ flex: 1 }}>{item.label}</span>
+        {item.dot && (
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: 'var(--color-brand)',
+              flexShrink: 0,
+            }}
+          />
+        )}
+        {item.badge && (
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              color: 'var(--color-ink-3)',
+              background: 'var(--color-surface-3)',
+              padding: '2px 7px',
+              borderRadius: '999px',
+              fontWeight: 600,
+              flexShrink: 0,
+            }}
+          >
+            {item.badge}
+          </span>
+        )}
+      </Link>
+    );
+    return withHint(item.id, link, item.id);
+  }
 
   return (
     <div
@@ -576,228 +654,35 @@ function ShellLayoutInner({ children }: { children: React.ReactNode }) {
           </Link>,
         )}
 
-        {/* Main nav — relative 容器承载浮动磨砂滑动指示器(单块磨砂在组内平滑滑动到激活项) */}
-        <div
-          ref={mainNavRef}
-          style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '2px' }}
-        >
-          <div ref={mainIndicatorRef} className="nav-indicator" data-active="false" aria-hidden="true" />
-          {mainNav.map((item) => {
-            const active = isActive(item);
-            const link = (
-              <Link
-                key={item.id}
-                href={item.href}
-                data-tour={item.tourId}
-                ref={(el) => {
-                  if (el) mainItemRefs.current.set(item.id, el);
-                  else mainItemRefs.current.delete(item.id);
-                }}
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '11px',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  fontSize: '13.5px',
-                  color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
-                  fontWeight: active ? 600 : 500,
-                  background: 'transparent',
-                  textDecoration: 'none',
-                  letterSpacing: '-0.003em',
-                  transition: 'color 0.1s',
-                }}
-              >
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    width: '18px',
-                    justifyContent: 'center',
-                    color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.icon}
-                </span>
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {item.dot && (
-                  <span
-                    style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: 'var(--color-brand)',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-                {item.badge && (
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '10px',
-                      color: 'var(--color-ink-3)',
-                      background: 'var(--color-surface-3)',
-                      padding: '2px 7px',
-                      borderRadius: '999px',
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-            return withHint(item.id, link, item.id);
-          })}
-        </div>
-
-        {/* Tools — 做减法:核心常驻 + 更多默认折叠,默认只露核心 */}
-        {(() => {
-          const { core, more } = toolNav;
-          const renderTool = (item: NavItem) => {
-            const active = isActive(item);
-            const link = (
-              <Link
-                key={item.id}
-                href={item.href}
-                data-tour={item.tourId}
-                ref={(el) => {
-                  if (el) toolItemRefs.current.set(item.id, el);
-                  else toolItemRefs.current.delete(item.id);
-                }}
-                style={{
-                  position: 'relative',
-                  zIndex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '11px',
-                  padding: '8px 12px',
-                  borderRadius: '10px',
-                  fontSize: '13.5px',
-                  color: active ? 'var(--color-ink)' : 'var(--color-ink-2)',
-                  fontWeight: active ? 600 : 500,
-                  background: 'transparent',
-                  textDecoration: 'none',
-                  letterSpacing: '-0.003em',
-                  transition: 'color 0.1s',
-                }}
-              >
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    width: '18px',
-                    justifyContent: 'center',
-                    color: active ? 'var(--color-ink)' : 'var(--color-ink-3)',
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.icon}
-                </span>
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {item.badge && (
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '10px',
-                      color: 'var(--color-ink-3)',
-                      background: 'var(--color-surface-3)',
-                      padding: '2px 7px',
-                      borderRadius: '999px',
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-            return withHint(item.id, link, item.id);
-          };
-          return (
-            <>
+        {/* 四模块常驻导航:面试前/面试中/面试后/其他(替代旧的「主导航4项 + 工具区core6+more6折叠」)。
+            各组默认全展开,不设折叠;组内浮动磨砂滑动指示器按 group.id 存取对应 ref(核心②③)。 */}
+        {navGroups.map((group) => (
+          <div key={group.id}>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'var(--color-ink-4)',
+                fontWeight: 600,
+                margin: '14px 10px 4px',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {group.title}
+            </div>
+            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <div
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--color-ink-4)',
-                  fontWeight: 600,
-                  margin: '14px 10px 4px',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
+                ref={(el) => {
+                  groupIndicatorRefs.current[group.id] = el;
                 }}
-              >
-                工具
-              </div>
-              {/* relative 容器承载本组浮动磨砂滑动指示器(更多折叠/展开时 useLayoutEffect 重算落位) */}
-              <div
-                ref={toolNavRef}
-                style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '2px' }}
-              >
-                <div ref={toolIndicatorRef} className="nav-indicator" data-active="false" aria-hidden="true" />
-                {core.map(renderTool)}
-                <button
-                  data-guide-real="more"
-                  onClick={() => setShowMore((v) => !v)}
-                  style={{
-                    position: 'relative',
-                    zIndex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '11px',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    fontSize: '13.5px',
-                    color: 'var(--color-ink-3)',
-                    fontWeight: 500,
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontFamily: 'inherit',
-                    letterSpacing: '-0.003em',
-                  }}
-                >
-                  <span
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      width: '18px',
-                      justifyContent: 'center',
-                      color: 'var(--color-ink-3)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {showMore ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                  </span>
-                  <span style={{ flex: 1 }}>{showMore ? '收起' : '更多功能'}</span>
-                  {!showMore && (
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '10px',
-                        color: 'var(--color-ink-3)',
-                        background: 'var(--color-surface-3)',
-                        padding: '2px 7px',
-                        borderRadius: '999px',
-                        fontWeight: 600,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {more.length}
-                    </span>
-                  )}
-                </button>
-                {showMore && more.map(renderTool)}
-              </div>
-            </>
-          );
-        })()}
+                className="nav-indicator"
+                data-active="false"
+                aria-hidden="true"
+              />
+              {group.items.map((item) => renderNavItem(item, group.id))}
+            </div>
+          </div>
+        ))}
 
         {/* 管理后台入口:仅 admin 可见(由 /auth/me 的 role 驱动) */}
         {user?.role === 'admin' && (

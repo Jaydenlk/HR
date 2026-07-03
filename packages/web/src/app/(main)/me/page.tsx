@@ -28,8 +28,6 @@ const ENDPOINT_LABELS: Record<string, string> = {
   '/interview-prep/case-coach': '案例练习',
   '/follow-up/generate': '跟进消息',
   '/offer-comparator/compare': 'Offer 比对',
-  '/learning-roadmap/build': '学习路线',
-  '/industry-trend/analyze': '行业趋势',
   '/networking/message': '人脉消息',
   '/networking/referral-strategy': '内推策略',
   '/career': '职业地图',
