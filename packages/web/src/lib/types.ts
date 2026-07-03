@@ -1079,57 +1079,6 @@ export interface CaseCoachResult extends InterviewPrepEnvelope {
   }>;
 }
 
-// ─── Learning Roadmap ──────────────────────────────────────────────────────────
-
-export interface RoadmapPhase {
-  phase_name: string;
-  goal: string;
-  estimated_weeks: number;
-  activities?: string[];
-  completion_criteria: string;
-  output_artifact?: string;
-}
-
-export interface RoadmapItem {
-  skill_name: string;
-  priority?: number;
-  total_weeks?: number;
-  phases: RoadmapPhase[];
-}
-
-export interface RoadmapResource {
-  skill_name: string;
-  resource_type: 'official_docs' | 'chinese_community' | 'book' | 'video' | 'open_source' | 'practice_platform';
-  description: string;
-  quality_criteria: string;
-  language?: 'zh' | 'en' | 'both';
-  for_level?: 'beginner' | 'intermediate' | 'advanced';
-}
-
-export interface BuildRoadmapRequest {
-  skill_gaps: string[];
-  profile?: string;
-  weekly_hours?: number;
-  preferred_language?: string;
-}
-
-export interface BuildRoadmapResult {
-  skill_name: string;
-  skill_version: string;
-  summary: string;
-  confidence: 'high' | 'medium' | 'low' | 'insufficient';
-  evidence_used: { field: string; value: string; relevance: string }[];
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-  total_estimated_weeks?: number;
-  roadmap: RoadmapItem[];
-  resource_list: RoadmapResource[];
-  backlog?: string[];
-}
-
 // ─── Question Bank ────────────────────────────────────────────────────────────
 
 export type QuestionCategory =
@@ -1194,56 +1143,6 @@ export interface FollowUpResult {
   message_draft: string;
   timing_advice: FollowUpTimingAdvice;
   tone_guide: FollowUpToneGuide;
-}
-
-// ── Industry Trend ─────────────────────────────────────────────────────────────
-
-export type IndustryTrendConfidence = 'high' | 'medium' | 'low' | 'insufficient';
-export type IndustryHiringOutlook = 'strong' | 'growing' | 'stable' | 'declining' | 'contracting' | 'unknown';
-export type SignalStrength = 'strong' | 'moderate' | 'weak';
-export type SignalSeverity = 'high' | 'medium' | 'low';
-export type DemandLevel = 'high' | 'medium' | 'low' | 'unknown';
-
-export interface IndustryGrowthSignal {
-  signal: string;
-  // 后端 OUTPUT_SCHEMA 未将这些枚举列入 required,AI 可能漏返 → 标为可选,前端必须对 undefined 兜底文案。
-  strength?: SignalStrength;
-  source: string;
-  date: string;
-}
-
-export interface IndustryRiskSignal {
-  signal: string;
-  severity?: SignalSeverity;
-  source: string;
-  date: string;
-}
-
-export interface IndustryEntryRole {
-  role_name: string;
-  rationale: string;
-  demand_level?: DemandLevel;
-}
-
-export interface IndustryTrendResult {
-  skill_name: string;
-  skill_version: string;
-  summary: string;
-  confidence: IndustryTrendConfidence;
-  evidence_used: Array<{ source: string; url?: string; date?: string; verified?: boolean }>;
-  recommendations: string[];
-  risks: string[];
-  next_actions: string[];
-  follow_up_questions: string[];
-  cannot_determine: string[];
-  trend_summary: string;
-  growth_signals: IndustryGrowthSignal[];
-  risk_signals: IndustryRiskSignal[];
-  hiring_outlook: IndustryHiringOutlook;
-  recommended_entry_roles: IndustryEntryRole[];
-  market_radar_used: boolean;
-  // 来源声明：说明是否含博查联网实时搜索来源
-  evidence_source_disclaimer?: string;
 }
 
 // ─── Application Strategy ─────────────────────────────────────────────────────
