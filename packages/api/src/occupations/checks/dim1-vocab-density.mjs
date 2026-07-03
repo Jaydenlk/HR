@@ -160,7 +160,9 @@ if (process.argv[1] && process.argv[1].endsWith('dim1-vocab-density.mjs')) {
   if (process.argv[2]) {
     raw = readFileSync(resolve(process.argv[2]), 'utf-8');
   } else {
-    raw = readFileSync('/dev/stdin', 'utf-8');
+    // 用文件描述符 0 而非 '/dev/stdin' 字面路径读 stdin——后者在 Windows 上不存在,
+    // fd 0 是跨平台(Windows/macOS/Linux)都支持的同步读法。
+    raw = readFileSync(0, 'utf-8');
   }
   const occupation = JSON.parse(raw);
   const result = checkDim1(occupation);
