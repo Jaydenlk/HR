@@ -54,7 +54,7 @@
 |------|------|------|------|------|------|------|
 | T1 | ✅ | ✅ | ✅ | ✅ | ✅(23f8fc3) | ☐ |
 | T6 | ✅ | ✅ | ✅ | ✅ | ✅(fb79545) | ☐ |
-| T5 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
+| T5 | ✅ | ✅ | ✅ | ✅ | ✅(e2b326f) | ☐ |
 | T2 | ✅ | ☐ | ☐ | ☐ | ☐ | ☐ |
 | T4 | ✅ | ◐ H0✅+S0+D1✅ / 防护+清理批待 | ◐ H0✅ S0+D1✅ | ◐ H0✅ S0+D1✅ | ◐ H0(c02ed37) S0+D1(b4682eb) | ☐ |
 | T3 | ✅ | ☐(先焊schema) | ☐ | ☐ | ☐ | ☐ |
@@ -96,6 +96,12 @@
 - 质量链:开发自验全绿→独立审计 PASS(11 找茬重点、4 个 blocking 检查点全有代码证据)但抓 1 major+2 minor→**修复第 1 轮**(缓存候选被拒自动 force 重搜一次闭环设计定稿4后半句;upsert 跨请求唯一冲突双库形态自愈)→delta 复审确认闭环→合并树一致性为空→冒烟三门全绿(单测 564/0、e2e 1057/0、web build 28 页)。
 - 测验战果:本任务抓修 3 只真 bug(同批 upsert 竞态 500=开发自抓、缓存拒绝无重搜=审计抓、跨请求 upsert 竞态=审计抓)。
 - **遗留(非阻断)**:消歧层②(GLM rankByContext,含 3 单测)生产不可达——checkCompany 未传 jd_text,恒走层③。脚本明文豁免("缺上下文进层③是合理降级");T5 接入投递详情或后续把 jd_text 接进 company-check 时激活,勿删。
+
+**✅ T5 投递追踪二级页:已完成合并(merge `e2b326f`,dev+main,2026-07-04,agent team 第三单,本轮最大体量 +2637/-191)**
+- 交付:数据打通(mock_sessions/cover_letters 补真外键+归属校验、interviews GET 移除 relations 堵隐私泄露、applications 加 resume_version_id/company_research_id 软引用)+related/link/link-suggestions 三端点(ApplicationLinksService)+详情页 842 行(AI 建议横幅仅显式采纳/五聚合区块/跟进面板真实文本/删除入口)+审计校准六项全落地(含 tracker-stages.ts 六处标签共享化)。
+- 质量链:开发自验(单测 571/0、e2e 1090/0 净增 33、Playwright 门6 全流程两次过)→独立审计 PASS(迁移安全五点全过、六 blocking 核点全绿,2 minor 均裁合理:resume_id 联动写回/ wishlist 配色统一)→合并树一致性空→冒烟三门绿(web build 含 /applications/[id] 路由)。
+- 测验战果:真机迁移抓修 1 只真 bug(mock_sessions/cover_letters.application_id 历史建表为 varchar 非 uuid,FK 建不上;防御性 SET NULL 清洗+USING 转型,零 DELETE 零回填)。累计 7 只真 bug 合并前拦截。
+- **⚠️ 部署注意**:迁移 1782700000000 含列类型转换(varchar→uuid)与存量脏值置 NULL——上线执行前必须先备份数据库(全局红线本就要求,此处特别提醒)。
 
 ## 全局红线(超出即停,找用户)
 
