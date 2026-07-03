@@ -1,5 +1,7 @@
 /**
- * Smoke 验证脚本(改造自 p2lib career-explore/phase1/checks/smoke.mjs)
+ * Smoke 验证脚本(改造自 p2lib worktree 分支 feat/p2-libB-phase1 下旧 phase1/checks/smoke.mjs;
+ * 该 worktree 里另有一整条已被裁决作废、从未合并进 dev 的老流水线目录,本文件不引用/
+ * 不依赖那条目录下的任何其它代码)
  *
  * 用途:验证 dim1/dim3/dim6/edges 四个校验脚本能在新 8 层骨架下正常运行,并输出符合预期
  * 的结果。样本词条改造为新骨架结构(不再有 A/B 层,不再有 Sourced<T> 包装)。

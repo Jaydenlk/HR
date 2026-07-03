@@ -1,5 +1,7 @@
 /**
- * Dim6 · 字段完整度校验脚本(改造自 p2lib career-explore/phase1/checks/dim6-field-completeness.mjs)
+ * Dim6 · 字段完整度校验脚本(改造自 p2lib worktree 分支 feat/p2-libB-phase1 下
+ * 旧 phase1/checks/dim6-field-completeness.mjs;该 worktree 里另有一整条已被裁决
+ * 作废、从未合并进 dev 的老流水线目录,本文件不引用/不依赖那条目录下的任何其它代码)
  *
  * ⚠️ 降级说明(IMPL 报告已展开):老脚本里的具体数字下限
  * (A.deliverables.value.length≥5 / A.tools_systems.value.length≥5 / A.eval_metrics.value.length≥3 /

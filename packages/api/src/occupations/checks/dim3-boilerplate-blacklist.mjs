@@ -1,5 +1,7 @@
 /**
- * Dim3 · 套话黑名单一票否决校验脚本(改造自 p2lib career-explore/phase1/checks/dim3-boilerplate-blacklist.mjs)
+ * Dim3 · 套话黑名单一票否决校验脚本(改造自 p2lib worktree 分支 feat/p2-libB-phase1 下
+ * 旧 phase1/checks/dim3-boilerplate-blacklist.mjs;该 worktree 里另有一整条已被裁决
+ * 作废、从未合并进 dev 的老流水线目录,本文件不引用/不依赖那条目录下的任何其它代码)
  *
  * 改造说明:黑名单词表内容中性(与 A/B 层结构无关),原样保留自
  * docs/p2-libraryB-standard-v0.1.md §5.3/§6(该文档在 p2lib worktree 里,不在本仓库 docs/ 下)。
