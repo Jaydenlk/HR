@@ -40,17 +40,26 @@ interface NewSessionForm {
   mode: 'text' | 'voice';
 }
 
-interface SearchCandidate {
+interface CompanyCandidate {
+  id: string;
   name: string;
   summary: string;
   source_url: string;
+  source_domain: string;
 }
 
-/** company-check API 返回 */
+/** company-check API 返回(T6:候选数组,破坏性变更;reason 区分"没搜到"与"搜索服务不可用") */
 interface CompanyCheckResult {
   company_known: boolean;
-  search_candidate: SearchCandidate | null;
+  candidates: CompanyCandidate[];
+  reason?: 'no_key' | 'timeout' | 'error';
 }
+
+/** 用户对候选列表的消歧选择：pending=未决定，selected=已选某候选(记 id)，none=都不是(通用模式) */
+type CandidateChoice = { kind: 'pending' } | { kind: 'selected'; id: string } | { kind: 'none' };
+
+/** 前端展示候选数量上限(设计文档:top3-5,呈现层裁剪,不影响后端全量返回) */
+const CANDIDATE_DISPLAY_LIMIT = 5;
 
 export default function MockPage() {
   return (
@@ -106,8 +115,8 @@ function MockPageInner() {
 
   // 公司查询状态
   const [checkResult, setCheckResult] = useState<CompanyCheckResult | null>(null);
-  // 用户已确认/拒绝搜索候选：null=未确认, true=确认, false=拒绝
-  const [candidateConfirmed, setCandidateConfirmed] = useState<boolean | null>(null);
+  // 用户对多候选列表的消歧选择
+  const [candidateChoice, setCandidateChoice] = useState<CandidateChoice>({ kind: 'pending' });
   // latest-wins: 每次发起新请求时中止上一次未完成的请求
   const checkAbortRef = useRef<AbortController | null>(null);
 
@@ -127,7 +136,7 @@ function MockPageInner() {
   async function checkCompany(name: string) {
     if (!name.trim()) {
       setCheckResult(null);
-      setCandidateConfirmed(null);
+      setCandidateChoice({ kind: 'pending' });
       return;
     }
     // latest-wins: 中止上一次未完成的请求，防止旧响应覆盖新状态
@@ -140,11 +149,11 @@ function MockPageInner() {
         { signal: controller.signal },
       );
       setCheckResult(res);
-      setCandidateConfirmed(null);
+      setCandidateChoice({ kind: 'pending' });
     } catch {
       // AbortError 属正常取消，其余失败静默不阻断创建流程
       setCheckResult(null);
-      setCandidateConfirmed(null);
+      setCandidateChoice({ kind: 'pending' });
     }
   }
 
@@ -157,24 +166,17 @@ function MockPageInner() {
       if (form.role.trim()) payload.role = form.role.trim();
       if (form.jd_text.trim()) payload.jd_text = form.jd_text.trim();
 
-      // 若用户已确认搜索候选，带入 confirmed_company_info
-      if (
-        candidateConfirmed === true &&
-        checkResult?.search_candidate
-      ) {
-        payload.confirmed_company_info = {
-          name: checkResult.search_candidate.name,
-          summary: checkResult.search_candidate.summary,
-          source_url: checkResult.search_candidate.source_url,
-          searched_at: new Date().toISOString().slice(0, 10),
-        };
+      // 若用户已从候选列表中选定某公司，只回传候选 id(防伪造 M3：后端按 id 查库取真实字段，
+      // 不接受前端回传的原始 name/summary/source_url 文本)。
+      if (candidateChoice.kind === 'selected') {
+        payload.company_research_id = candidateChoice.id;
       }
 
       const session = await api.post<MockSession & { company_known: boolean }>('/mock-sessions', payload);
       setDialogOpen(false);
       setForm({ company: '', role: '', jd_text: '', mode: 'text' });
       setCheckResult(null);
-      setCandidateConfirmed(null);
+      setCandidateChoice({ kind: 'pending' });
       window.dispatchEvent(new Event('coach:credit-refresh'));
       // 完成回流:若本次源于 handoff,弹提示后跳到面试页
       if (activeHandoffId && activeConvId) {
@@ -392,7 +394,7 @@ function MockPageInner() {
                     setForm((f) => ({ ...f, company: e.target.value }));
                     // 任何变化都重置搜索状态，防止旧确认结果随新公司名一起提交
                     setCheckResult(null);
-                    setCandidateConfirmed(null);
+                    setCandidateChoice({ kind: 'pending' });
                   }}
                   placeholder="如：字节跳动"
                   style={{
@@ -414,11 +416,12 @@ function MockPageInner() {
                   }}
                 />
 
-                {/* 三态提示区 */}
+                {/* 三态提示区(T6:态2 改为多候选点选，态1/3 语义不变) */}
                 {/* 态1：库内命中 → 无感知（不展示任何提示） */}
 
-                {/* 态2：库外 + 有搜索候选 + 用户未确认 → 确认框 */}
-                {checkResult && !checkResult.company_known && checkResult.search_candidate && candidateConfirmed === null && (
+                {/* 态2：库外 + 有候选 + 用户未决定 → 多候选点选列表(消歧三层的呈现层，不论后端走哪层，
+                    都统一列表化展示，永不跳过前端确认——即使只有 1 个候选，也要求显式点选) */}
+                {checkResult && !checkResult.company_known && checkResult.candidates.length > 0 && candidateChoice.kind === 'pending' && (
                   <div style={{
                     marginTop: '8px',
                     padding: '12px 14px',
@@ -429,72 +432,98 @@ function MockPageInner() {
                     color: 'var(--color-ink-2)',
                     lineHeight: 1.6,
                   }}>
-                    <div style={{ marginBottom: '8px' }}>
-                      <span style={{ fontWeight: 600 }}>我查到的是：</span>
-                      {checkResult.search_candidate.name}
-                      {checkResult.search_candidate.summary && (
-                        <span style={{ color: 'var(--color-ink-3)' }}>
-                          {' '}— {checkResult.search_candidate.summary}
-                        </span>
-                      )}
-                      {' '}
-                      <a
-                        href={checkResult.search_candidate.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: 'var(--color-brand)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
-                      >
-                        <ExternalLink size={11} />来源
-                      </a>
+                    <div style={{ marginBottom: '10px', fontWeight: 600 }}>
+                      找到以下可能匹配的公司，请选择：
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setCandidateConfirmed(true)}
-                        style={{
-                          padding: '4px 14px',
-                          borderRadius: '7px',
-                          border: '1px solid var(--color-brand-deep)',
-                          background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
-                          color: '#fff',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
-                        }}
-                      >
-                        是，就是这家
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCandidateConfirmed(false)}
-                        style={{
-                          padding: '4px 14px',
-                          borderRadius: '7px',
-                          border: '1.5px solid var(--color-line)',
-                          background: 'transparent',
-                          color: 'var(--color-ink-3)',
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        不是
-                      </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+                      {checkResult.candidates.slice(0, CANDIDATE_DISPLAY_LIMIT).map((candidate) => (
+                        <div
+                          key={candidate.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '10px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--color-line)',
+                            background: 'var(--color-surface)',
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 600 }}>{candidate.name}</div>
+                            {(candidate.summary || candidate.source_domain) && (
+                              <div style={{ color: 'var(--color-ink-3)', fontSize: '12px', marginTop: '2px' }}>
+                                {candidate.summary}
+                                {candidate.source_url && (
+                                  <>
+                                    {' '}
+                                    <a
+                                      href={candidate.source_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: 'var(--color-brand)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                                    >
+                                      <ExternalLink size={11} />{candidate.source_domain || '来源'}
+                                    </a>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCandidateChoice({ kind: 'selected', id: candidate.id })}
+                            style={{
+                              flexShrink: 0,
+                              padding: '4px 14px',
+                              borderRadius: '7px',
+                              border: '1px solid var(--color-brand-deep)',
+                              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))',
+                              color: '#fff',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              boxShadow: '0 10px 30px -10px var(--au-blue-glow), inset 0 1px 0 rgba(255,255,255,.4)',
+                            }}
+                          >
+                            选择这家
+                          </button>
+                        </div>
+                      ))}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setCandidateChoice({ kind: 'none' })}
+                      style={{
+                        padding: '4px 14px',
+                        borderRadius: '7px',
+                        border: '1.5px solid var(--color-line)',
+                        background: 'transparent',
+                        color: 'var(--color-ink-3)',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      都不是，通用模式
+                    </button>
                   </div>
                 )}
 
-                {/* 已确认：搜索信息将用于出题 */}
-                {candidateConfirmed === true && checkResult?.search_candidate && (
-                  <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--color-brand)', lineHeight: 1.5 }}>
-                    已确认，将使用搜索到的公司信息辅助出题（仅限搜索范围内，不会编造细节）
-                  </p>
-                )}
+                {/* 已选定：搜索信息将用于出题 */}
+                {candidateChoice.kind === 'selected' && (() => {
+                  const picked = checkResult?.candidates.find((c) => c.id === candidateChoice.id);
+                  return picked ? (
+                    <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--color-brand)', lineHeight: 1.5 }}>
+                      已确认「{picked.name}」，将使用搜索到的公司信息辅助出题（仅限搜索范围内，不会编造细节）
+                    </p>
+                  ) : null;
+                })()}
 
-                {/* 态3：库外 + 无候选 / 用户拒绝 → 通用模式明示 */}
+                {/* 态3：库外 + 无候选 / 用户点"都不是" → 通用模式明示；有 reason 时区分"搜索服务不可用"文案(m6 校准) */}
                 {checkResult && !checkResult.company_known && (
-                  (!checkResult.search_candidate || candidateConfirmed === false)
+                  (checkResult.candidates.length === 0) || candidateChoice.kind === 'none'
                 ) && (
                   <p style={{
                     margin: '6px 0 0',
@@ -502,7 +531,9 @@ function MockPageInner() {
                     color: 'var(--color-ink-3)',
                     lineHeight: 1.5,
                   }}>
-                    该公司不在资料库，将以通用面试 + JD 驱动出题（通用模式），不会假装了解这家公司
+                    {checkResult.candidates.length === 0 && candidateChoice.kind !== 'none' && checkResult.reason
+                      ? '公司搜索服务暂时不可用，将以通用面试 + JD 驱动出题（通用模式），不会假装了解这家公司'
+                      : '该公司不在资料库，将以通用面试 + JD 驱动出题（通用模式），不会假装了解这家公司'}
                   </p>
                 )}
               </div>
