@@ -41,6 +41,10 @@ const SOURCE_KIND_LABELS: Record<FeedSourceKind, string> = {
   blog: '博客',
   ugc: '用户内容',
   coach: 'Coach',
+  // T2 三类源不产出 FeedItem,radar 页不会遇到,仅为满足 Record<FeedSourceKind, string> 的完整性。
+  sheet_file: '校招表格',
+  sheet_link: '校招表格(链接)',
+  wechat_dump: '公众号整理稿',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {

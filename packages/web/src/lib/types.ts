@@ -512,7 +512,14 @@ export type FeedSourceKind =
   | 'wechat'
   | 'blog'
   | 'ugc'
-  | 'coach';
+  | 'coach'
+  // T2 月刊校招情报三类适配器,与既有 'wechat'(公众号 RSS 拉取)是两条独立通道。
+  | 'sheet_file'
+  | 'sheet_link'
+  | 'wechat_dump';
+
+// 校招情报三类源:管理员在 /digest 供给页手动创建,仅这三类可通过 POST /feed/sources 创建。
+export type RecruitIntelSourceKind = 'sheet_file' | 'sheet_link' | 'wechat_dump';
 
 export type FeedCategory =
   | 'interview_exp'
@@ -568,6 +575,8 @@ export interface FeedItem {
   created_at: string;
   date_confidence: DateConfidence;
   user?: User | null;
+  /** m23:是否为当前登录用户本人的投稿(用于展示删除按钮),不泄露 user_id 本身。 */
+  is_mine: boolean;
 }
 
 export interface RadarResult {
@@ -852,6 +861,31 @@ export interface NewspaperEdition {
   trending_tags: string[];
   total_count: number;
   categories: Record<string, number>;
+  recruit_intel: RecruitBoardData;
+}
+
+// ── T2 月刊校招情报 ───────────────────────────────────────────────────────────
+
+export interface RecruitEventView {
+  id: string;
+  company: string;
+  role_hint: string | null;
+  event_type: string;
+  event_date: string | null;
+  city: string | null;
+  apply_url: string | null;
+}
+
+export interface RecruitBoardData {
+  upcoming: RecruitEventView[];
+  unscheduled: RecruitEventView[];
+}
+
+export interface RecruitUploadResult {
+  run: DigestRun;
+  total_rows: number;
+  saved: number;
+  skipped: number;
 }
 
 // ── Offer Comparator ───────────────────────────────────────────────────────────
