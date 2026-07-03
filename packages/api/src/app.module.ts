@@ -27,9 +27,7 @@ import { IntelligenceModule } from './intelligence/intelligence.module';
 import { OfferComparatorModule } from './offer-comparator/offer-comparator.module';
 import { NetworkingModule } from './networking/networking.module';
 import { InterviewPrepModule } from './interview-prep/interview-prep.module';
-import { LearningRoadmapModule } from './learning-roadmap/learning-roadmap.module';
 import { FollowUpModule } from './follow-up/follow-up.module';
-import { IndustryTrendModule } from './industry-trend/industry-trend.module';
 import { QuotaModule } from './quota/quota.module';
 import { CreditModule } from './credit/credit.module';
 import { AdminModule } from './admin/admin.module';
@@ -106,9 +104,7 @@ import { AnnouncementsModule } from './announcements/announcements.module';
     OfferComparatorModule,
     NetworkingModule,
     InterviewPrepModule,
-    LearningRoadmapModule,
     FollowUpModule,
-    IndustryTrendModule,
     // AiUsageInterceptor 仍由各 AI feature module 经 QuotaModule 传递性 import(运营口径 ai_usage);
     // QuotaGuard 已退役,但 QuotaModule 仍导出 AiUsageInterceptor,故保留挂载。
     QuotaModule,
