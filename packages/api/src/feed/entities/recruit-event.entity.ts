@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import { TIMESTAMP_COLUMN_TYPE } from '../../database/column-types';
 import type { FeedConfidence } from '../types/newspaper.types';
 import type { RecruitEventType } from '../types/feed.types';
@@ -40,7 +40,10 @@ export class RecruitEvent {
   @Column({ type: 'varchar', default: 'medium' })
   confidence: FeedConfidence;
 
-  /** 去重键:归一化公司名 + event_type + event_date,唯一索引(见 migration)。 */
+  /** 去重键:归一化公司名 + event_type + event_date。实体侧唯一索引让 sqlite e2e
+   * (synchronize 按实体建表)与生产 Postgres(migration 建 IDX_recruit_events_dedup_key)
+   * 双端约束一致——并发同 key 插入这类竞态才能在 e2e 环境暴露,不留"测试比生产宽松"的盲区。 */
+  @Index({ unique: true })
   @Column({ type: 'varchar' })
   dedup_key: string;
 

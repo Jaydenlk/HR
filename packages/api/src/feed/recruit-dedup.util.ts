@@ -13,8 +13,10 @@ const COMPANY_SUFFIXES = [
   '公司',
 ];
 
-/** 归一化公司名:去空白、去大小写差异、剥离法律实体后缀。仅用于去重键计算,不用于展示。 */
-export function normalizeCompanyName(name: string): string {
+/** 归一化公司名:去空白、去大小写差异、剥离法律实体后缀。仅用于去重键计算,不用于展示。
+ * 命名刻意区别于 common/normalize-company-name.ts 的共享版 normalizeCompanyName——
+ * 两者行为不同(共享版会进一步剥行业词,本版为防误合并故意保守),同名会埋误 import 隐患。 */
+export function normalizeCompanyForDedup(name: string): string {
   let normalized = name.trim().toLowerCase().replace(/\s+/g, '');
   for (const suffix of COMPANY_SUFFIXES) {
     if (normalized.endsWith(suffix)) {
@@ -34,7 +36,7 @@ export function computeDedupKey(
   eventDate: Date | null,
 ): string {
   const dateKey = eventDate ? eventDate.toISOString().slice(0, 10) : NO_DATE_PLACEHOLDER;
-  const raw = `${normalizeCompanyName(company)}|${eventType}|${dateKey}`;
+  const raw = `${normalizeCompanyForDedup(company)}|${eventType}|${dateKey}`;
   return createHash('sha256').update(raw).digest('hex');
 }
 

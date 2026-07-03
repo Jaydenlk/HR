@@ -1,19 +1,19 @@
-import { computeDedupKey, normalizeCompanyName, resolveDedupConflict } from '../src/feed/recruit-dedup.util';
+import { computeDedupKey, normalizeCompanyForDedup, resolveDedupConflict } from '../src/feed/recruit-dedup.util';
 
-describe('normalizeCompanyName', () => {
+describe('normalizeCompanyForDedup', () => {
   it('strips common corporate suffixes', () => {
-    expect(normalizeCompanyName('字节跳动有限公司')).toBe('字节跳动');
-    expect(normalizeCompanyName('阿里巴巴集团')).toBe('阿里巴巴');
+    expect(normalizeCompanyForDedup('字节跳动有限公司')).toBe('字节跳动');
+    expect(normalizeCompanyForDedup('阿里巴巴集团')).toBe('阿里巴巴');
     // 只剥离法律实体后缀"有限公司",不进一步剥离"科技"这类行业描述词(避免过度归一化误合并)。
-    expect(normalizeCompanyName('腾讯科技有限公司')).toBe('腾讯科技');
+    expect(normalizeCompanyForDedup('腾讯科技有限公司')).toBe('腾讯科技');
   });
 
   it('trims whitespace and lowercases ascii', () => {
-    expect(normalizeCompanyName('  ByteDance  ')).toBe('bytedance');
+    expect(normalizeCompanyForDedup('  ByteDance  ')).toBe('bytedance');
   });
 
   it('does not collapse distinct company names into the same value', () => {
-    expect(normalizeCompanyName('字节跳动')).not.toBe(normalizeCompanyName('阿里巴巴'));
+    expect(normalizeCompanyForDedup('字节跳动')).not.toBe(normalizeCompanyForDedup('阿里巴巴'));
   });
 });
 
