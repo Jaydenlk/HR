@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CoverLetter, CoverLetterTone } from './entities/cover-letter.entity';
 import { CreateCoverLetterDto } from './dto/create-cover-letter.dto';
 import { AiService } from '../ai/ai.service';
 import { ResumesService } from '../resumes/resumes.service';
+import { ApplicationsService } from '../applications/applications.service';
 
 @Injectable()
 export class CoverLettersService {
@@ -13,11 +14,26 @@ export class CoverLettersService {
     private readonly repo: Repository<CoverLetter>,
     private readonly ai: AiService,
     private readonly resumes: ResumesService,
+    private readonly applications: ApplicationsService,
   ) {}
 
   async generate(userId: string, dto: CreateCoverLetterDto): Promise<CoverLetter> {
     if (!dto.jd_text?.trim()) {
       throw new BadRequestException('请提供目标职位描述（JD），求职信必须针对具体岗位撰写');
+    }
+
+    // 归属校验(比照 follow-up.service.ts 的 NotFound/Forbidden 归一模式,B2/M12 审计校准):
+    // dto.application_id 非空时必须先确认它属于当前用户,不能只靠外键保证目标行存在——外键管不住
+    // "存在但不属于我"。regenerate() 把 existing.application_id 原样传回本方法,天然复用这条校验。
+    if (dto.application_id) {
+      try {
+        await this.applications.findOne(dto.application_id, userId);
+      } catch (err) {
+        if (err instanceof NotFoundException || err instanceof ForbiddenException) {
+          throw new ForbiddenException('application_id 不属于当前用户');
+        }
+        throw err;
+      }
     }
 
     let resumeText = '';

@@ -11,6 +11,7 @@ import { QuotaModule } from '../quota/quota.module';
 import { CreditModule } from '../credit/credit.module';
 import { SpeechModule } from '../speech/speech.module';
 import { InterviewTranscribeTask } from '../speech/entities/transcribe-task.entity';
+import { ApplicationsModule } from '../applications/applications.module';
 
 @Module({
   // forFeature 再次注册转写任务实体:同一实体在本模块作用域内拿到仓库,供 InterviewsService 注入
@@ -22,6 +23,7 @@ import { InterviewTranscribeTask } from '../speech/entities/transcribe-task.enti
     QuotaModule,
     CreditModule,
     SpeechModule,
+    ApplicationsModule,
   ],
   controllers: [InterviewsController, QrUploadController],
   providers: [InterviewsService, QrUploadTokenService, DebriefService],

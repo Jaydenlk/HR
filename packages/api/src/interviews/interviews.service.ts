@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  ForbiddenException,
   BadRequestException,
   ConflictException,
   HttpException,
@@ -28,6 +29,7 @@ import { OpsEventsService } from '../ops/ops-events.service';
 import { isAiCallFailure } from '../quota/ai-usage.interceptor';
 import { AiService } from '../ai/ai.service';
 import type { TranscriptSegment } from '../speech/providers/speech.provider';
+import { ApplicationsService } from '../applications/applications.service';
 
 // 转写扣点端点标识:写入 credit_transactions.endpoint / ai_usage.endpoint(与控制器路由模板同口径)。
 const TRANSCRIBE_ENDPOINT = '/api/interviews/:id/transcribe';
@@ -129,9 +131,32 @@ export class InterviewsService {
     private readonly qrToken: QrUploadTokenService,
     private readonly opsEvents: OpsEventsService,
     private readonly ai: AiService,
+    private readonly applications: ApplicationsService,
   ) {}
 
+  /**
+   * 归属校验(比照 follow-up.service.ts 的 NotFound/Forbidden 归一模式,B4/M2 审计校准):
+   * applicationId 非空时必须先确认它属于当前用户,不能等 debrief.analyze()(AI 调用,会计费)
+   * 出完复盘才发现越权。
+   */
+  private async assertApplicationOwnership(
+    applicationId: string | undefined,
+    userId: string,
+  ): Promise<void> {
+    if (!applicationId) return;
+    try {
+      await this.applications.findOne(applicationId, userId);
+    } catch (err) {
+      if (err instanceof NotFoundException || err instanceof ForbiddenException) {
+        throw new ForbiddenException('application_id 不属于当前用户');
+      }
+      throw err;
+    }
+  }
+
   async create(userId: string, dto: CreateInterviewDto): Promise<Interview> {
+    await this.assertApplicationOwnership(dto.application_id, userId);
+
     const interview = this.repo.create({
       user_id: userId,
       round: dto.round,
@@ -161,10 +186,13 @@ export class InterviewsService {
     return this.repo.save(interview);
   }
 
+  // B4 审计校准:不预加载 application 关系——伪造 application_id 曾经可以借这个 relation
+  // 把他人 Application 的 notes/salary_range/referrer/deadline/location 整行回读出来。
+  // 前端从未消费过 interview.application 字段(只用 application_id),故直接收窄 relations,
+  // 而非另建投影 DTO(更简单,且从根上堵死这条隐私泄露路径)。
   findAllByUser(userId: string): Promise<Interview[]> {
     return this.repo.find({
       where: { user_id: userId },
-      relations: { application: true },
       order: { created_at: 'DESC' },
     });
   }
@@ -172,13 +200,14 @@ export class InterviewsService {
   async findOne(id: string, userId: string): Promise<Interview> {
     const interview = await this.repo.findOne({
       where: { id, user_id: userId },
-      relations: { application: true },
     });
     if (!interview) throw new NotFoundException();
     return interview;
   }
 
   async update(id: string, userId: string, dto: UpdateInterviewDto): Promise<Interview> {
+    await this.assertApplicationOwnership(dto.application_id, userId);
+
     const interview = await this.findOne(id, userId);
     const hadTranscript = !!interview.transcript?.trim();
 

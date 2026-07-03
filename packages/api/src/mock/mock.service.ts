@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AiService } from '../ai/ai.service';
@@ -6,6 +6,7 @@ import { SpeechService } from '../speech/speech.service';
 import type { SynthesizedAudio } from '../speech/providers/speech.provider';
 import { CompanyRegistryService } from '../feed/company-registry.service';
 import { CompanyResearchService, CompanyResearchCandidate } from '../company-research/company-research.service';
+import { ApplicationsService } from '../applications/applications.service';
 import type { Company } from '../feed/entities/company.entity';
 import { MockSession, Question, Answer, Evaluation } from './entities/mock-session.entity';
 import { CreateMockSessionDto } from './dto/create-mock-session.dto';
@@ -77,6 +78,7 @@ export class MockService {
     private readonly speech: SpeechService,
     private readonly companyRegistry: CompanyRegistryService,
     private readonly companyResearch: CompanyResearchService,
+    private readonly applications: ApplicationsService,
   ) {}
 
   /** 查库：name 为空直接返回未命中 */
@@ -351,6 +353,20 @@ ${qaList}
       throw new BadRequestException(
         '请提供职位描述（JD）或更具体的岗位名称，以便生成有针对性的面试题。',
       );
+    }
+
+    // 归属校验(比照 follow-up.service.ts 的 NotFound/Forbidden 归一模式):dto.application_id 非空时
+    // 必须先确认它属于当前用户,校验不过直接拒绝——不能等 generateQuestions() 出完题(AI 调用,会计费)
+    // 才发现越权,那样会白白烧掉一次 AI 额度(B2/M12 同款审计校准的越权洞,mock 场景一并堵上)。
+    if (dto.application_id) {
+      try {
+        await this.applications.findOne(dto.application_id, userId);
+      } catch (err) {
+        if (err instanceof NotFoundException || err instanceof ForbiddenException) {
+          throw new ForbiddenException('application_id 不属于当前用户');
+        }
+        throw err;
+      }
     }
 
     const count = dto.question_count ?? 5;
