@@ -1,0 +1,23 @@
+{
+  "source_type": "wechat_dump",
+  "account_name": "字节跳动招聘",
+  "batch_note": "2026年7月第1周人工整理",
+  "articles": [
+    {
+      "title": "2027届校园招聘正式开启，覆盖研发/产品/设计等50+岗位",
+      "content": "字节跳动2027届校园招聘正式开启，投递岗位涵盖后端开发、前端开发、产品经理、UI设计等50+岗位方向。网申截止时间为2026年9月30日，工作地点覆盖北京、上海、深圳、杭州。请通过官网投递简历。",
+      "url": "https://mp.weixin.qq.com/s/bytedance-2027-campus",
+      "publish_time": "2026-07-01T09:00:00+08:00",
+      "author": "字节跳动招聘",
+      "digest": "网申将于9月30日截止，覆盖北京/上海/深圳/杭州"
+    },
+    {
+      "title": "内部分享：新人培养体系与团队文化",
+      "content": "本文分享字节跳动的新人培养体系，不涉及具体招聘节点信息，仅作为企业文化介绍。",
+      "url": "https://mp.weixin.qq.com/s/bytedance-culture-share",
+      "publish_time": "2026-07-02T10:00:00+08:00",
+      "author": "字节跳动招聘",
+      "digest": null
+    }
+  ]
+}

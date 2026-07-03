@@ -2,6 +2,7 @@ import { Repository } from 'typeorm';
 import { NewspaperService, RadarQuery } from '../src/feed/newspaper.service';
 import { EvidenceService } from '../src/intelligence/evidence.service';
 import { CompanyRegistryService } from '../src/feed/company-registry.service';
+import { RecruitIntelService } from '../src/feed/recruit-intel.service';
 import { FeedItem } from '../src/feed/entities/feed-item.entity';
 
 // Radar 分页 limit 服务端钳制(OOM 护栏)的单元级验证。
@@ -39,7 +40,8 @@ describe('Radar limit clamp (OOM 护栏,service 级)', () => {
     } as unknown as Repository<FeedItem>;
     const evidence = {} as unknown as EvidenceService;
     const companyRegistry = {} as unknown as CompanyRegistryService;
-    service = new NewspaperService(feedRepo, evidence, companyRegistry);
+    const recruitIntel = {} as unknown as RecruitIntelService;
+    service = new NewspaperService(feedRepo, evidence, companyRegistry, recruitIntel);
   });
 
   async function takeArgFor(query: RadarQuery): Promise<number> {

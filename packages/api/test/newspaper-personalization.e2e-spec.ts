@@ -3,6 +3,7 @@ import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NewspaperService } from '../src/feed/newspaper.service';
 import { CompanyRegistryService } from '../src/feed/company-registry.service';
+import { RecruitIntelService } from '../src/feed/recruit-intel.service';
 import { EvidenceService } from '../src/intelligence/evidence.service';
 import { IntelligenceModule } from '../src/intelligence/intelligence.module';
 
@@ -87,7 +88,16 @@ describe('NewspaperService personalization (standalone)', () => {
         ]),
         IntelligenceModule,
       ],
-      providers: [NewspaperService, CompanyRegistryService],
+      providers: [
+        NewspaperService,
+        CompanyRegistryService,
+        // T2:本套件测的是月刊个性化排序逻辑,与校招情报板块无关,给个空板块桩即可,
+        // 不必把 recruit_events 全套依赖(GLM 解析/去重)拉进这个 standalone 模块。
+        {
+          provide: RecruitIntelService,
+          useValue: { getBoardData: jest.fn(async () => ({ upcoming: [], unscheduled: [] })) },
+        },
+      ],
     }).compile();
 
     newspaperService = moduleRef.get(NewspaperService);

@@ -113,7 +113,7 @@
 
 ## 待用户输入的遗留项(执行到对应节点时索要,不阻塞其他工作)
 
-1. T2:公众号工具——用户已知候选 `https://github.com/cooderl/wewe-rss` 但疑不合适;**2026-07-03 已派 Sonnet 调研**(wewe-rss+替代品对比,产出 `T2-wechat-source-research-2026-07-03.md`),结论出来后定 wechat_dump 适配器对齐格式;此前按通用摄入实现。
+1. T2:公众号工具——用户已知候选 `https://github.com/cooderl/wewe-rss` 但疑不合适;**2026-07-03 已派 Sonnet 调研**(wewe-rss+替代品对比,产出 `T2-wechat-source-research-2026-07-03.md`,结论:wewe-rss 已归档停止维护不建议采用,推荐人工把关+GLM5.1);**2026-07-04 已按该结论实现** wechat_dump 适配器(管理页上传通用 json,结构见调研报告§4.2),自动化抓取工具仍待用户提供才对齐格式。
 2. T4-D8:阿里云老站下线,需用户点头。
 3. T3:注册表 v1 与经济验证批 go/no-go,两处用户过目节点。
 4. ~~evidence_used 拍板(audit M6)~~ **已裁决(用户 2026-07-03 授权"看着办",leader 裁:删)**:4 个 AI 功能的 evidence_used 字段从 schema/prompt 删除——前端从未渲染、用户从未见过,却在每次调用烧输出 token;"诚实可溯源"卖点未来由 T3 维基的证据侧表承载(那里有完整设计),不靠这个死字段。归入 T4 第三段清理批执行。
