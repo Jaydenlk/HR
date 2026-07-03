@@ -1,0 +1,67 @@
+{
+  "slug": "geotechnical-engineer-fixture",
+  "name": "岩土工程师(测试fixture)",
+  "l0": "工程技术",
+  "l1_family": "建筑工程",
+  "l2_scene": "房建住宅",
+  "l3_flag": false,
+  "axis": "project_delivery",
+  "prose": "岩土工程师负责地基处理与基坑支护(散文渲染占位,Stage0 不做内容量产)。",
+  "cost_tokens": 8000,
+  "skeleton": {
+    "positioning": {
+      "one_liner": "负责地基处理、基坑支护与地质勘察成果转化为可施工的基础方案。",
+      "problem_solved": "解决建筑物地基承载力与变形控制问题,保证上部结构安全落地。",
+      "social_rationale": "地质条件千差万别,需要专业判断把勘察数据转化为可靠的基础设计。"
+    },
+    "coordinates": {
+      "occupation_family": "建筑工程",
+      "industry_scenes": ["房建住宅", "基础设施"],
+      "adjacent_occupations": ["结构工程师", "地质勘察工程师", "施工工程师"],
+      "upstream": ["地质勘察单位"],
+      "downstream": ["结构工程师(接收基础方案)"]
+    },
+    "boundary": {
+      "adjacent_diffs": [
+        { "occupation": "结构工程师", "diff": "结构工程师聚焦上部结构配筋,岩土工程师聚焦地基与基坑。" },
+        { "occupation": "地质勘察工程师", "diff": "勘察工程师负责现场取样与地质报告,岩土工程师负责把报告转化为设计方案。" },
+        { "occupation": "施工工程师", "diff": "施工工程师负责现场组织实施,岩土工程师负责方案设计与验算。" }
+      ]
+    },
+    "operations": {
+      "workflow": {
+        "daily": "复核地勘报告参数,建立基坑支护计算模型,出具基础设计图。",
+        "project": "方案阶段确定基础形式,施工图阶段出具支护图纸,施工阶段配合监测。",
+        "cycle": "随项目地质条件复杂度,周期从数周到数月不等。"
+      },
+      "deliverables": ["地基基础设计图", "基坑支护方案", "沉降观测建议"],
+      "tools_systems": ["理正岩土", "Midas GTS", "AutoCAD"],
+      "eval_metrics": ["地基承载力验算是否满足规范", "基坑变形是否在预警值内"]
+    },
+    "entry": {
+      "eligible_majors": ["岩土工程", "土木工程"],
+      "non_major_route": "地质学背景可通过补修土力学课程入行。",
+      "campus_recruitment_signals": ["有岩土设计院实习经历"],
+      "resume_valid_experiences": ["基坑支护实习项目经验"],
+      "resume_looks_relevant_but_useless": ["纯地质调查经历(不等于设计能力)"]
+    },
+    "variation": {
+      "industry_diffs": [{ "scene": "房建住宅", "diff": "常规基坑,标准化程度较高。" }],
+      "org_nature_diffs": [{ "org_nature": "民企", "diff": "私营设计院项目节奏快。" }]
+    },
+    "threshold": {
+      "hidden_cost": "复杂地质条件下方案反复修改,现场变更频繁。",
+      "attrition_reality": "长期驻场配合施工的岗位流动率较高。",
+      "income_structure": "底薪加项目绩效,项目周期波动影响收入。",
+      "common_misconceptions": "外行常以为地基处理很简单,实际地质条件差异极大。",
+      "who_should_not": "不适合无法接受频繁出差驻场的人。"
+    },
+    "trend": {
+      "ai_tasks_replaced": ["常规计算书模板生成"],
+      "ai_tasks_augmented": ["地质数据可视化分析"],
+      "ai_new_skills": ["岩土数值模拟软件使用"]
+    },
+    "axis": "project_delivery",
+    "domain_specifics": []
+  }
+}

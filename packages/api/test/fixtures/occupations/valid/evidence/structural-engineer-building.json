@@ -1,0 +1,18 @@
+[
+  {
+    "field_path": "positioning.one_liner",
+    "claim": "结构工程师负责把建筑方案转化为可施工的配筋图",
+    "source_excerpt": "岗位职责:负责结构专业施工图设计,配合建筑专业完成方案深化。",
+    "source_url": "https://example.com/jd/structural-001",
+    "tier": "A2",
+    "verdict": "confirmed"
+  },
+  {
+    "field_path": "threshold.income_structure",
+    "claim": "设计院采用底薪加绩效模式,绩效挂钩项目产值",
+    "source_excerpt": "行业访谈:多数设计院采用基本工资加项目提成的薪酬结构。",
+    "source_url": "https://example.com/article/design-institute-salary",
+    "tier": "A3",
+    "verdict": "demoted_to_b"
+  }
+]
