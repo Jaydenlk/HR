@@ -77,6 +77,12 @@
 - **⚠️ 部署注意(非阻断遗留)**:线上老用户 DB 里可能存旧裸 key 格式 avatar_url,部署后其 getBlob 拼出畸形 URL→静默降级文字头像(比裂图净改善、不崩),但不自动恢复旧头像、无重传提示。本次热修范围外,部署时知悉;若要恢复需另做数据处理或引导重传。
 - 现场:测试留了 coach-postgres 容器(部署前本就在跑)+ api(:3002)/web(:3001)dev 进程,后续任务的 Playwright 可复用(注意端口占用,t4-s0-d1 脚本会处理冲突)。
 
+**🔄 T4-S0+D1:closeout 完成,修复第 1 轮进行中(2026-07-03 晚)**
+- 历程:opus 实现三撞配额→半成品抢救提交 0722155→派工体系9处bug升级(f1af2e9)→closeout workflow(缺口审计R1-R9→opus补完→双验证,总耗791k token/4代理)。
+- 缺口审计:R1-R6/R9 全 DONE(后端状态机/migration/409顺序/chat解耦/防僵尸/D1 skipLimiter 全在半成品里),R7 前端恢复 MISSING、R8 测试 PARTIAL——补完代理已全部补齐(前端 hook+卡片+409转视图、7用例 S0 e2e+skipLimiter 单测+chat断开落库),另抓修一处 R1 回归(UPDATE 不回填 mode 默认值,buildJdMatchEntity 显式 mode)。补完后 e2e 全量 1123/0 失败。
+- 验证:review PASS(1 minor);gates 6/8——门6 web build FAIL 判环境非代码(worktree .git 指针+pnpm 软链触发 Next16 Turbopack 误判 root;主仓库同代码构建绿、webpack 构建绿),门8③ **抓到真缺陷(blocking)**:同用户 74-99ms 并发双发诊断,409 防重复失效、双建行双扣费(2/2 复现)。根因=findRunningConflict 裸 SELECT 与 insertRunningRow(被推迟到后台任务)非原子。门8①②(断开恢复/刷新不丢回复)真实浏览器 PASS。
+- 处置:修复第 1 轮已派 opus 代理(原子化 check+insert+真并发回归用例),完成后重验→合并。worktree Turbopack 限制记入 02 注意事项。
+
 ## 全局红线(超出即停,找用户)
 
 - 线上有真实用户。任何 migration 前先备份(运维手册在 `E:\coach-deploy\运维手册.md`,坐标密钥不在仓库);postgres 容器/数据卷永不触碰重建。

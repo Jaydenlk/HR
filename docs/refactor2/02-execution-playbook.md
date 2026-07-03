@@ -133,6 +133,7 @@ weekly 配额吃紧,从 T1 起不再用 workflow 四段扇出(侦察/实现/测�
 - **Playwright 门的环境前置**:涉前端/e2e 的脚本要在 worktree 里补 `packages/api/.env` 与 `packages/web/.env.local`(gitignored 不随 worktree 带过来,缺了服务起不来);需要本机 Docker Postgres(coach-postgres)与端口 3001/3002/5432 空闲。脚本已写"起不来就如实 FAIL"兜底——真起不来时那是环境问题,不是代码 FAIL,按 STOP 处理别误判。
 - **REVIEW 判据以「通过判据」节为准**:verdict=PASS 且无 blocking 才放行;major 记遗留不阻断,minor 只记录。各脚本 review prompt 已统一对齐这个口径(2026-07-03 修正:此前 t3 脚本写的"findings 非空即 FAIL"会让 minor 触发假 FAIL 修复循环,已改)。
 - **分支预检查**:`feat/<key>` 若因上次残留已存在,`git checkout -b` 会报错;脚本侦察阶段会如实报告,你先确认该分支已清理或改为续跑。
+- **worktree 里 Next 16 Turbopack build 必挂(2026-07-03 实测)**:worktree 的 .git 是指针文件+pnpm 软链 node_modules 指回主仓库,Turbopack 误判 workspace root 报 "couldn't find next/package.json"。这是环境限制不是代码回归:在 worktree 用 `npx next build --webpack` 验证,或以合并后主仓库的 `npm run build` 为权威判定(合并冒烟必跑)。别让它把门6误判成代码 FAIL。
 
 ## 交接自检(Opus 开工前确认)
 
