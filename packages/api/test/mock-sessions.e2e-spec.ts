@@ -710,6 +710,45 @@ describe('Mock Sessions (e2e, mocked AI)', () => {
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('company_known', false);
     }, 30000);
+
+    // 公司背调二级页新增可选参数(消歧层② rankByContext 用):city/industry。
+    it('携带 city+industry(公司背调二级页场景) → 200,不影响库内已知公司命中', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/mock-sessions/company-check?name=字节跳动&city=北京&industry=互联网')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.company_known).toBe(true);
+      expect(res.body.candidates).toEqual([]);
+    });
+
+    it('携带 city+industry(未知公司) → 200,candidates 仍为数组(无 BOCHA key 的测试环境降级为 no_key,不阻断消歧上下文的接收)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/mock-sessions/company-check?name=量子翻斗云科技乙&city=上海&industry=金融')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.company_known).toBe(false);
+      expect(Array.isArray(res.body.candidates)).toBe(true);
+    }, 30000);
+
+    it('city 超过 50 字符 → 400(输入校验)', async () => {
+      const longCity = 'C'.repeat(51);
+      const res = await request(app.getHttpServer())
+        .get(`/api/mock-sessions/company-check?name=字节跳动&city=${longCity}`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+    });
+
+    it('industry 超过 50 字符 → 400(输入校验)', async () => {
+      const longIndustry = 'D'.repeat(51);
+      const res = await request(app.getHttpServer())
+        .get(`/api/mock-sessions/company-check?name=字节跳动&industry=${longIndustry}`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+    });
   });
 
   // ── company-check 缓存与 force 强制刷新(审计修复1:缓存候选被拒可触发新搜索) ──
