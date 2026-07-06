@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
-import type { DailyTask, Resume, Diagnosis, Conversation } from '@/lib/types';
+import type { DailyTask, Resume, Diagnosis, Conversation, DashboardData } from '@/lib/types';
 import StarterChecklist from '@/components/onboarding/starter-checklist';
 import DiscoverCards from '@/components/onboarding/discover-cards';
 import { hasCompletedDiagnosis } from '@/components/onboarding/starter-items';
+import { FunnelChart } from '@/components/overview/funnel-chart';
+import { StatCard } from '@/components/overview/stat-card';
 import {
   CalendarDays,
   RefreshCw,
@@ -18,6 +21,12 @@ import {
   FileText,
   Brain,
   Loader2,
+  Mic,
+  Stethoscope,
+  MessageSquare,
+  ArrowRight,
+  TrendingUp,
+  LayoutDashboard,
 } from 'lucide-react';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -82,6 +91,73 @@ function getTypeMeta(type: string) {
       color: 'var(--color-ink-3)',
       icon: <Clock size={11} />,
     }
+  );
+}
+
+// ── 求职全局(原 /overview 并入)helpers ────────────────────────────────────────
+
+// 面试评级日期短格式(仅月/日)。与上方 formatDate(接收 Date)区分:此处接收后端返回的日期字符串。
+function formatGradeDate(d: string): string {
+  return new Date(d).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+}
+
+function gradeColor(grade: string): string {
+  const g = grade.toUpperCase();
+  if (g === 'A+' || g === 'S') return 'var(--color-success)';
+  if (g.startsWith('A')) return 'var(--color-success)';
+  if (g.startsWith('B')) return 'var(--color-warn)';
+  if (g.startsWith('C')) return 'var(--color-danger)';
+  return 'var(--color-danger)';
+}
+
+// 求职全局分区卡:标题 + 右上可选跳转链接 + 内容(原 /overview 页 SectionCard 原样并入)。
+function SectionCard({
+  title,
+  children,
+  action,
+}: {
+  title: string;
+  children: React.ReactNode;
+  action?: { label: string; href: string };
+}) {
+  return (
+    <div
+      className="lg"
+      style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: '16px' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <h3
+          style={{
+            margin: 0,
+            fontFamily: 'var(--serif)',
+            fontSize: '16px',
+            fontWeight: 700,
+            letterSpacing: '-0.012em',
+            color: 'var(--color-ink)',
+          }}
+        >
+          {title}
+        </h3>
+        {action && (
+          <Link
+            href={action.href}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: 'var(--color-brand)',
+              textDecoration: 'none',
+            }}
+          >
+            {action.label}
+            <ArrowRight size={12} />
+          </Link>
+        )}
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -304,6 +380,9 @@ export default function TodayPage() {
   // 启动清单进度:供 DiscoverCards 判断默认展开/折叠,与 StarterChecklist 共用同一批 GET。
   const [starterAllDone, setStarterAllDone] = useState(false);
 
+  // 求职全局(原 /overview 并入):鸟瞰数据,失败/空则不渲染该分区(新用户由上方启动清单引导)。
+  const [overview, setOverview] = useState<DashboardData | null>(null);
+
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -346,6 +425,12 @@ export default function TodayPage() {
         conversations.length > 0;
       setStarterAllDone(done);
     });
+
+    // 求职全局数据(原 /overview 页数据源,端点保留):作页面下半区展示,失败静默不影响今日任务。
+    api
+      .get<DashboardData>('/overview')
+      .then((d) => setOverview(d))
+      .catch(() => {});
   }, []);
 
   const handleGenerate = async () => {
@@ -386,6 +471,15 @@ export default function TodayPage() {
   const remainMin = tasks
     .filter((t) => t.status === 'todo')
     .reduce((s, t) => s + (t.duration_min ?? 0), 0);
+
+  // 求职全局是否全为空:全空则不渲染分区(避免与启动清单/发现区重复引导新用户)。
+  const overviewEmpty =
+    overview != null &&
+    Object.values(overview.funnel).every((v) => v === 0) &&
+    overview.interviews.total === 0 &&
+    overview.resumes.total === 0 &&
+    overview.activity.totalDiagnoses === 0 &&
+    overview.activity.totalConversations === 0;
 
   const today = new Date();
 
@@ -741,6 +835,147 @@ export default function TodayPage() {
               生成今日任务
             </button>
             <span style={{ fontSize: '11px', color: 'var(--color-ink-4)', fontWeight: 500 }}>消耗 1 点</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── 求职全局(原 /overview 并入):求职鸟瞰,数据充足时展示于今日任务之下;
+          全空时不渲染(新用户由上方启动清单/发现区引导,不重复空态 CTA)。 ── */}
+      {overview && !overviewEmpty && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 2px' }}>
+            <LayoutDashboard size={17} style={{ color: 'var(--color-ink-3)' }} />
+            <span
+              style={{
+                fontFamily: 'var(--serif)',
+                fontSize: '18px',
+                fontWeight: 700,
+                color: 'var(--color-ink)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              求职全局
+            </span>
+          </div>
+
+          {/* Row 1: 求职漏斗 + 面试表现 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <SectionCard title="求职漏斗" action={{ label: '投递追踪', href: '/applications' }}>
+              <FunnelChart funnel={overview.funnel} />
+            </SectionCard>
+
+            <SectionCard title="面试表现" action={{ label: '查看复盘', href: '/debrief' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <StatCard label="面试总场次" value={overview.interviews.total} icon={<Mic size={11} />} />
+                <StatCard
+                  label="平均评级"
+                  value={overview.interviews.avgGrade ?? '—'}
+                  icon={<TrendingUp size={11} />}
+                />
+              </div>
+
+              {overview.interviews.recentGrades.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: 'var(--color-ink-3)',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    最近面试
+                  </div>
+                  {overview.interviews.recentGrades.slice(0, 4).map((g, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        background: 'rgba(47,143,255,.05)',
+                        border: '1px solid var(--hair)',
+                        borderRadius: '10px',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontWeight: 600, color: 'var(--color-ink)' }}>{g.company}</span>
+                        <span style={{ marginLeft: '8px', fontSize: '11.5px', color: 'var(--color-ink-3)' }}>
+                          {formatGradeDate(g.date)}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono, monospace)',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          color: gradeColor(g.grade),
+                        }}
+                      >
+                        {g.grade}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+          </div>
+
+          {/* Row 2: 简历状态 + 使用记录 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <SectionCard title="简历状态" action={{ label: '简历馆', href: '/resumes' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <StatCard label="简历数量" value={overview.resumes.total} icon={<FileText size={11} />} />
+                <StatCard
+                  label="最新诊断分"
+                  value={
+                    overview.resumes.latestDiagnosisScore != null
+                      ? `${overview.resumes.latestDiagnosisScore}分`
+                      : '暂无'
+                  }
+                  icon={<Stethoscope size={11} />}
+                />
+              </div>
+              {overview.resumes.primaryTitle && (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    background: 'rgba(47,143,255,.05)',
+                    border: '1px solid var(--hair)',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    color: 'var(--color-ink-2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <FileText size={13} style={{ color: 'var(--color-ink-3)', flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    主简历：{overview.resumes.primaryTitle}
+                  </span>
+                </div>
+              )}
+            </SectionCard>
+
+            <SectionCard title="使用记录">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <StatCard
+                  label="诊断次数"
+                  value={overview.activity.totalDiagnoses}
+                  icon={<Stethoscope size={11} />}
+                />
+                <StatCard
+                  label="对话次数"
+                  value={overview.activity.totalConversations}
+                  icon={<MessageSquare size={11} />}
+                />
+              </div>
+            </SectionCard>
           </div>
         </div>
       )}
