@@ -67,7 +67,7 @@ export default function MainError({
           重试
         </button>
         <a
-          href="/overview"
+          href="/today"
           className="lg-sm"
           style={{
             padding: '10px 20px',
@@ -79,7 +79,7 @@ export default function MainError({
             textDecoration: 'none',
           }}
         >
-          返回总览
+          返回首页
         </a>
       </div>
     </div>

@@ -20,7 +20,7 @@ import {
   CalendarDays,
   BookOpen,
   Mic,
-  LayoutDashboard,
+  Newspaper,
   FileText,
   Play,
   Briefcase,
@@ -58,10 +58,20 @@ interface NavGroup {
   items: NavItem[];
 }
 
-// 四模块常驻展开结构(替代旧的「主导航4项 + 工具区core6+more6折叠」):
-// 面试前/面试中/面试后/其他,共 15 项分四组,信息量可控,不再需要「更多功能」折叠收纳。
+// 顶部常驻两项 +四模块常驻展开结构:
+// 「今天」「月刊·面经」提到最上方作无标题常驻组(用户高频入口,不归入面试阶段模块);
+// 其下面试前/面试中/面试后/其他四组各自展开,信息量可控,不再需要「更多功能」折叠收纳。
 function buildNavGroups(interviewCount: number, applicationCount: number): NavGroup[] {
   return [
+    {
+      // 顶部常驻组:无分组标题(title 为空 → 渲染时跳过标题栏),两项永远在四模块之上。
+      id: 'top',
+      title: '',
+      items: [
+        { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true, tourId: 'today' },
+        { id: 'monthly', label: '月刊·面经', href: '/newspaper', icon: <BookOpen size={16} /> },
+      ],
+    },
     {
       id: 'pre-interview',
       title: '面试前',
@@ -108,9 +118,7 @@ function buildNavGroups(interviewCount: number, applicationCount: number): NavGr
       id: 'other',
       title: '其他',
       items: [
-        { id: 'today', label: '今天', href: '/today', icon: <CalendarDays size={16} />, dot: true, tourId: 'today' },
-        { id: 'monthly', label: '月刊·面经', href: '/newspaper', icon: <BookOpen size={16} /> },
-        { id: 'overview', label: '求职总览', href: '/overview', icon: <LayoutDashboard size={16} /> },
+        // 今天/月刊已提到顶部常驻组;求职总览已并入「今天」页并删除独立页(见 today/page.tsx)。
         { id: 'career', label: '职业地图', href: '/career', icon: <MapIcon size={16} /> },
       ],
     },
@@ -658,18 +666,21 @@ function ShellLayoutInner({ children }: { children: React.ReactNode }) {
             各组默认全展开,不设折叠;组内浮动磨砂滑动指示器按 group.id 存取对应 ref(核心②③)。 */}
         {navGroups.map((group) => (
           <div key={group.id}>
-            <div
-              style={{
-                fontSize: '11px',
-                color: 'var(--color-ink-4)',
-                fontWeight: 600,
-                margin: '14px 10px 4px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}
-            >
-              {group.title}
-            </div>
+            {/* 顶部常驻组 title 为空 → 不渲染标题栏,两项直接置顶;四模块组照常显示分组标题。 */}
+            {group.title && (
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--color-ink-4)',
+                  fontWeight: 600,
+                  margin: '14px 10px 4px',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {group.title}
+              </div>
+            )}
             <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <div
                 ref={(el) => {
@@ -774,6 +785,46 @@ function ShellLayoutInner({ children }: { children: React.ReactNode }) {
                 <Megaphone size={16} />
               </span>
               <span style={{ flex: 1 }}>公告管理</span>
+            </Link>
+            {/* 情报月刊供给页(/digest):T1 导航重组后失去所有入口,补 admin-only 入口。
+                页面本身已有 isAdmin 内部门控;此处入口同样仅 role==='admin' 可见,普通用户看不到。 */}
+            <Link
+              href="/digest"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '11px',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                fontSize: '13.5px',
+                color: (pathname?.startsWith('/digest') ?? false)
+                  ? 'var(--color-ink)'
+                  : 'var(--color-ink-2)',
+                fontWeight: (pathname?.startsWith('/digest') ?? false) ? 600 : 500,
+                background: (pathname?.startsWith('/digest') ?? false)
+                  ? 'var(--color-surface)'
+                  : 'transparent',
+                boxShadow: (pathname?.startsWith('/digest') ?? false)
+                  ? '0 1px 2px rgba(0,0,0,0.04)'
+                  : 'none',
+                textDecoration: 'none',
+                letterSpacing: '-0.003em',
+                transition: 'background 0.1s, color 0.1s',
+              }}
+            >
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '18px',
+                  justifyContent: 'center',
+                  color: 'var(--color-ink-3)',
+                  flexShrink: 0,
+                }}
+              >
+                <Newspaper size={16} />
+              </span>
+              <span style={{ flex: 1 }}>情报供给</span>
             </Link>
           </>
         )}
