@@ -87,7 +87,7 @@ test.describe('线1: 点数同步 bug 修复', () => {
 
   test('线1-A: 侧边栏显示初始余额', async ({ page }) => {
     await injectToken(page, token);
-    await page.goto(`${BASE_URL}/overview`);
+    await page.goto(`${BASE_URL}/today`);
 
     const balance = await getSidebarBalance(page);
     console.log('[线1-A] 侧边栏余额:', balance, '期望:', initialBalance);
@@ -202,7 +202,7 @@ test.describe('线1: 点数同步 bug 修复', () => {
   test('线1-D: 触发 coach:credit-refresh 事件后侧边栏立即刷新余额', async ({ page }) => {
     // 用 JS 直接 dispatch 事件模拟扣点广播，验证侧边栏监听是否连接
     await injectToken(page, token);
-    await page.goto(`${BASE_URL}/overview`);
+    await page.goto(`${BASE_URL}/today`);
     await page.waitForTimeout(2000);
 
     const balanceBefore = await getSidebarBalance(page);
@@ -353,15 +353,15 @@ test.describe('回归: 核心流程', () => {
     token = await devLogin('pw-regression@coach.dev');
   });
 
-  test('回归-A: 登录流程正常（dev-login → 进入 /overview）', async ({ page }) => {
+  test('回归-A: 登录流程正常（dev-login → 进入 /today）', async ({ page }) => {
     await injectToken(page, token);
-    await page.goto(`${BASE_URL}/overview`);
+    await page.goto(`${BASE_URL}/today`);
     await page.waitForTimeout(2000);
 
     // 不应重定向到 /login（未认证情况才会跳）
     const url = page.url();
     expect(url).not.toContain('/login');
-    expect(url).toContain('/overview');
+    expect(url).toContain('/today');
 
     await page.screenshot({ path: 'playwright-report/regression-login.png' });
   });
