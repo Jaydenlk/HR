@@ -4,7 +4,7 @@
 
 - **先读 `docs/AGENT-HANDBOOK.md`**(干活手册:代码地图/命令/坑位清单/prompt 模板/部署概要),再动手。
 - **再读 `docs/FABLE-PLAYBOOK.md`**(作业法移植手册:做事风格八习惯/重点排序/编队设计六队形/经济与效率平衡/熔断线)——前任模型的隐性经验全部显性化在那里,照着执行可以直接继承产出水准。
-- **线上有真实用户**:产品已上线免费试运行。线上坐标与密钥不在仓库里,见本机记忆与 `E:\coach-deploy\运维手册.md`。
+- **线上有真实用户**:产品已上线免费试运行。线上坐标与密钥不在 git 里,见本机记忆与 `_local\coach-deploy\运维手册.md`(2026-07-04 由 E:\coach-deploy 归集至仓库目录内的 gitignored 本地区,版本隔离不变)。
 - **主代理不写产品代码**:产品代码一律经 subagent 完成;主代理只做分解、派工、质量门、集成、提交。文档/配置/运维操作可直接做。
 - 沟通与汇报用中文,说人话:先结论后展开,少黑话,多打比方。
 
@@ -86,7 +86,7 @@
 
 ## 提交与部署纪律
 - 推送模式:`git push origin dev && git push origin dev:main`(main 直推已获用户授权)
-- 密钥永不入库:`.env` / `.env.production` / `E:\coach-deploy\` 内容不进提交、不进文档
+- 密钥永不入库:`.env` / `.env.production` / `_local\coach-deploy\`(原 E:\coach-deploy,已归集且整个 `_local/` 在 .gitignore)内容不进提交、不进文档
 - 数据库变更一律手写 migration(`migration:generate` 伪 diff 不可信),命名与冒烟见 `deploy/README.md` §2.1
 - 生产部署顺序铁律:先 migration/seed(`run --rm`)后 `up -d`
 - 生产 `DEV_LOGIN=0`,无例外

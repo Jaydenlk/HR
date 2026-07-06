@@ -3,7 +3,7 @@
 > 读者:接手本项目的 AI 编码代理(Opus 4.8 或任何后继模型)与人类协作者。
 > 目的:在零会话记忆的前提下,读完本文即可安全动手——知道全图、知道命令、知道坑在哪。
 > 配套:`CLAUDE.md`(行为铁律,自动加载)、`.claude/rules/`(团队协议,自动加载)、
-> `deploy/README.md`(生产部署细节)、本机 `E:\coach-deploy\运维手册.md`(服务器坐标与密钥位置,**不入库**)。
+> `deploy/README.md`(生产部署细节)、本机 `_local\coach-deploy\运维手册.md`(服务器坐标与密钥位置,**不入库**)。
 
 ---
 
@@ -12,7 +12,7 @@
 1. 记忆索引(MEMORY.md)已自动加载——把与今日任务相关的记忆文件用 Read 展开,别凭印象。
 2. 读本手册相关章节 + `CLAUDE.md` 行为内核 + `docs/FABLE-PLAYBOOK.md`(做事风格/编队设计/经济效率平衡的完整方法论)。
 3. `git status` + `git log --oneline -5`,确认在 `dev` 分支、工作区干净。
-4. 涉及线上操作 → 先读本机 `E:\coach-deploy\运维手册.md`(服务器 IP/SSH/密钥位置全在那,仓库里故意不写)。
+4. 涉及线上操作 → 先读本机 `_local\coach-deploy\运维手册.md`(服务器 IP/SSH/密钥位置全在那,仓库里故意不写)。
 5. **线上有真实用户**。任何改动想清楚回滚路径再动手。
 
 ---
@@ -194,17 +194,17 @@ FAIL 就写 FAIL,不许软化成"小建议"。
 
 ```
 本机: docker compose -f docker-compose.prod.yml --env-file .env.production build api web
-      (api 的 env_file 指向仓库根 .env.production —— 从 E:\coach-deploy\ 临时拷一份,
+      (api 的 env_file 指向仓库根 .env.production —— 从 _local\coach-deploy\ 临时拷一份,
        先 git check-ignore 验证被忽略,构建完立刻删)
 本机: docker save coach-api:latest coach-web:latest | gzip > coach-update.tar.gz
 scp 上服务器 → docker load → (有 schema 变更先跑 migration) → up -d api web
 验证: curl http://<服务器>/api/health 看 version 字段 = 新 sha,db=ok
 ```
 
-服务器坐标、SSH 命令、本机路由修复(Clash TUN 坑)、回滚步骤:见本机 `E:\coach-deploy\运维手册.md`(故意不入库)。
+服务器坐标、SSH 命令、本机路由修复(Clash TUN 坑)、回滚步骤:见本机 `_local\coach-deploy\运维手册.md`(故意不入库)。
 完整首次部署/备份/恢复流程:`deploy/README.md`。
 
-**密钥纪律**:`.env`、`.env.production`、`E:\coach-deploy\` 任何内容永不入库、永不出现在提交信息和文档里。
+**密钥纪律**:`.env`、`.env.production`、`_local\coach-deploy\` 任何内容永不入库、永不出现在提交信息和文档里。
 
 ---
 
@@ -214,7 +214,7 @@ scp 上服务器 → docker load → (有 schema 变更先跑 migration) → up 
 2. **Caddy 起不来:`unrecognized global option`** → DOMAIN 注入了空串,Caddy 把空站点名的块当全局配置块 → compose 用 `${DOMAIN:-:80}` 兜底,Caddyfile 写 `{$DOMAIN}`;**永远别给 Caddy 传空串站点名**。
 3. **API 容器崩溃循环且 exec 不进去** → 先 `up` 后迁移的顺序反了 → 见 §7 铁律。
 4. **本机 5432 绑不上(重启后)** → Windows winnat 排除端口区间吞了 5432 → 管理员:`net stop winnat` → `netsh int ipv4 add excludedportrange protocol=tcp startport=5432 numberofports=1` → `net start winnat`。
-5. **SSH 国内服务器超时(banner exchange)** → Clash TUN 网卡接管了默认路由 → 加直连主机路由(命令在 E:\coach-deploy\运维手册.md;**Windows 重启后路由失效要重加**)。
+5. **SSH 国内服务器超时(banner exchange)** → Clash TUN 网卡接管了默认路由 → 加直连主机路由(命令在 _local\coach-deploy\运维手册.md;**Windows 重启后路由失效要重加**)。
 6. **web dev 模式页面打不开/OOM** → next dev 单页编译 100s+ 且吃爆内存 → 验收用 `build` + `start`(62ms 级响应)。
 7. **PowerShell 5.1 没有 `&&`/`??`/三元** → 复杂脚本一律走 Bash 工具;PS 里用 `;` + `if ($?)`。
 8. **Playwright 脚本 `Cannot find module '@playwright/test'`** → 脚本在 Temp 目录解析不了裸包名 → require 绝对路径 `E:/Agent program/HRBP/packages/web/node_modules/@playwright/test`。

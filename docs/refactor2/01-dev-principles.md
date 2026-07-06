@@ -29,7 +29,7 @@
 | SSH 绕 Clash | 需要 `route add <服务器IP> mask 255.255.255.255 <物理网关>`;网关随用户网络漂移,用 `Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway }` 查当前网关再加。 |
 | 部署顺序 | 先备份 → 先 migration/seed(`run --rm`)→ 后 `up -d`。部署后必测登录。 |
 | migration | 一律手写(`migration:generate` 伪 diff 不可信),命名与冒烟见 `deploy/README.md` §2.1。 |
-| 服务器坐标/密钥 | 在 `E:\coach-deploy\运维手册.md` 与本机记忆,不在仓库。 |
+| 服务器坐标/密钥 | 在 `_local\coach-deploy\运维手册.md`(原 E:\coach-deploy,2026-07-04 归集;整个 `_local/` 已 gitignore)与本机记忆,不进 git。 |
 
 ## 四、危险代码区(改动前必读,改完必跑指定测试)
 

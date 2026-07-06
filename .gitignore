@@ -41,3 +41,6 @@ CV/
 
 # 本地工件,永不入库
 .claude/plans/cv-synthetic-gen.js
+
+# 本地区:密钥/个人文件/历史截图,永不入库
+_local/
