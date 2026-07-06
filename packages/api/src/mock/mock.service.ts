@@ -93,8 +93,16 @@ export class MockService {
    * 返回 {company_known, candidates, reason?, from_cache?} 供前端展示多候选消歧确认框
    * (破坏性 API 变更：不再是单一 search_candidate，reason 透传搜索不可用原因，供前端区分文案，m6 校准)。
    * forceRefresh=true:缓存候选被用户拒绝后的强制重搜通道(绕缓存两路真实搜索,设计定稿4)。
+   *
+   * context.city/industry:公司背调二级页(模拟面试创建流程内的"完善公司信息"入口)传入的消歧线索，
+   * 喂给 company-research 消歧层②(rankByContext)做 GLM 候选打分排序，不参与出题 prompt 拼接。
+   * 未传或传空字符串时按原行为透传 undefined 给 search()——不改变既有调用方(mock 主弹窗未传 city/industry)的搜索结果。
    */
-  async checkCompany(name: string, forceRefresh = false): Promise<{
+  async checkCompany(
+    name: string,
+    forceRefresh = false,
+    context?: { city?: string; industry?: string },
+  ): Promise<{
     company_known: boolean;
     candidates: CompanyResearchCandidate[];
     reason?: 'no_key' | 'timeout' | 'error';
@@ -106,7 +114,8 @@ export class MockService {
     }
 
     // 库外：追加统一公司搜索(候选全量返回，不截断)
-    const outcome = await this.companyResearch.search(name.trim(), undefined, forceRefresh);
+    const searchContext = context?.city?.trim() || context?.industry?.trim() ? context : undefined;
+    const outcome = await this.companyResearch.search(name.trim(), searchContext, forceRefresh);
     return { company_known: false, ...outcome };
   }
 
