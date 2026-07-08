@@ -118,6 +118,13 @@
 
 执行顺序:1(修 bug)→2(导航/合并页)→3(背调页,涉后端)。主树串行,一次一个分支。T3-Stage0 在独立 worktree 不受影响。
 
+**✅ 公司背调二级页 + 验收基建:已完成合并(merge `623a630` + `8184c35`,dev+main,2026-07-08)**
+- 二级页:/mock/company-detail=消歧上下文补充页(mock 创建流跳入→填城市/行业→company-check 激活消歧层② rankByContext→候选经 sessionStorage bridge 回填;防伪造链路核验完整:前端只传 company_research_id,后端按 id 查库拼 prompt)。收口代理修 ESLint 两处+删死表单字段(是否上市/规模/官网,收而不用)+补 Playwright 5 用例;六门自验全绿(单测610/0、e2e 1110/0、Playwright 14/14 真实博查)。
+- 验收基建:`scripts/run-gates.mjs`(六门确定性一键跑门,stats 行缺失即 FAIL 防静默假绿)+ `.claude/skills/verify-coach-change`(验收单一真相源)。合并后冒烟即用它跑,六门全绿(head=623a630)。
+- 合并前对抗审计:两分支 PASS;唯一 minor 遗留:**city/industry 后端缺枚举白名单校验**(仅 @MaxLength(50),绕前端可注入 50 字内文本进重排 prompt;有结构化输出+用户确认双兜底,非可利用漏洞)→ 并入下一单搜索调优一起修。
+- 下一单(搜索调优,待派):基准集 30-50 家(简称/同名/生僻)先量化 hit@1/hit@5→count 15/级联/城市行业拼进搜索词/域名先验/高频别名表;**把删掉的"是否上市/规模"以"接进 rankByContext 证据"方式请回**(不再做死表单);顺带补白名单校验。
+- 现场:本地 coach-postgres 重建+迁移到最新(CreateRecruitEvents);api:3002/web:3001 已用 623a630 产物重启(脱离会话进程);verify-infra worktree 目录被文件锁卡住未删(分支 feat/verify-infra 随之保留),归磁盘清理批。
+
 ## 全局红线(超出即停,找用户)
 
 - 线上有真实用户。任何 migration 前先备份(运维手册在 `_local\coach-deploy\运维手册.md`——2026-07-04 由 E:\coach-deploy 归集,gitignored 坐标密钥仍不进 git);postgres 容器/数据卷永不触碰重建。
