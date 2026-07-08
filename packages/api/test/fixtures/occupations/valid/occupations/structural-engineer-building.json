@@ -1,0 +1,82 @@
+{
+  "slug": "structural-engineer-building",
+  "name": "房建结构工程师",
+  "l0": "工程技术",
+  "l1_family": "建筑工程",
+  "l2_scene": "房建住宅",
+  "l3_flag": false,
+  "axis": "project_delivery",
+  "prose": "房建结构工程师是连接建筑方案与施工现场的关键角色……(散文渲染占位,Stage0 不做内容量产)。",
+  "cost_tokens": 12000,
+  "aliases": [
+    { "alias": "结构工程师(房建)", "weight": 1 },
+    { "alias": "房建结构设计师", "weight": 0.6 }
+  ],
+  "edges": [
+    { "to_slug": "geotechnical-engineer-fixture", "type": "adjacent", "note": "岩土工程师聚焦地基处理与基坑支护,结构工程师聚焦主体结构配筋与整体稳定性验算。" }
+  ],
+  "skeleton": {
+    "positioning": {
+      "one_liner": "在开发商与施工单位之间,把建筑师方案转化为可施工的钢筋混凝土配筋图,并对结构安全和规范合规负责。",
+      "problem_solved": "解决「建筑方案能否在结构上安全落地」的核心工程问题,在国家规范约束下产出配筋计算书和施工图。",
+      "social_rationale": "建筑师负责空间与美学,结构工程师负责把方案转化为经得起地震和风荷载考验的物理结构,这条专业分工是建筑行业规模化交付的前提。"
+    },
+    "coordinates": {
+      "occupation_family": "建筑工程",
+      "industry_scenes": ["房建住宅", "公共建筑", "基础设施"],
+      "adjacent_occupations": ["岩土工程师", "建筑设计师", "机电工程师", "造价工程师"],
+      "upstream": ["建筑专业(提供建筑方案图及荷载条件)", "岩土专业(提供地勘报告与基础方案)"],
+      "downstream": ["施工单位(执行施工图)", "审图机构(施工图审查)", "造价工程师(钢筋量化)"]
+    },
+    "boundary": {
+      "adjacent_diffs": [
+        { "occupation": "岩土工程师", "diff": "岩土工程师聚焦地基处理与基坑支护,结构工程师聚焦主体结构配筋与整体稳定性验算,两者在地下室节点交接但职责边界清晰。" },
+        { "occupation": "建筑设计师", "diff": "建筑设计师定义空间形态、立面与功能布局,结构工程师把这份形态转译为可承重的构件尺寸与配筋方案。" },
+        { "occupation": "造价工程师", "diff": "造价工程师核算钢筋、混凝土用量对应的工程造价,结构工程师产出配筋方案本身,不介入结构安全判断。" }
+      ]
+    },
+    "operations": {
+      "workflow": {
+        "daily": "接收建筑专业底图,在 PKPM 或 YJK 中建立结构计算模型,输入荷载组合,依据 GB50010、GB50011 调整截面和配筋,出 AutoCAD 施工图,回应审图意见。",
+        "project": "方案阶段完成结构选型和柱网布置,初步设计阶段用 SAP2000/ETABS 完成整体计算,施工图阶段逐层出图,施工配合阶段处理设计变更。",
+        "cycle": "按项目交付周期推进,一个住宅项目从方案到施工图定稿通常跨 2-4 个季度。"
+      },
+      "deliverables": ["结构施工图", "结构计算书", "地基基础方案报告", "专项设计说明", "图纸会审纪要与设计变更单"],
+      "tools_systems": ["PKPM结构设计软件", "YJK盈建科", "AutoCAD", "SAP2000", "ETABS"],
+      "eval_metrics": ["施工图审查一次通过率", "设计变更率", "结构计算轴压比与剪压比是否满足规范限值"]
+    },
+    "entry": {
+      "eligible_majors": ["土木工程", "建筑工程", "结构工程(硕士方向)"],
+      "non_major_route": "机械工程或工程力学背景可通过补修混凝土结构课程加施工图实习入行。",
+      "campus_recruitment_signals": ["参与过全国大学生结构设计竞赛", "有设计院或地产公司施工图实习", "PKPM/YJK 操作经验"],
+      "resume_valid_experiences": ["施工图实习经历", "结构竞赛获奖", "毕业设计基于实际工程项目"],
+      "resume_looks_relevant_but_useless": ["BIM 建模课程证书", "建筑学背景描述", "CAD 绘图证书"]
+    },
+    "variation": {
+      "industry_diffs": [
+        { "scene": "房建住宅", "diff": "标准化程度高,配筋图可复用模板,但甲方催工期导致设计变更频繁。" },
+        { "scene": "公共建筑", "diff": "超限高层和大跨空间结构更常见,需完成抗震性能化设计报告和超限审查。" }
+      ],
+      "org_nature_diffs": [
+        { "org_nature": "民企", "diff": "私营设计院或地产公司出图节奏快,薪资弹性较高但加班普遍。" },
+        { "org_nature": "国企", "diff": "大型国有设计院持有甲级资质,职称晋升体系健全,但薪资天花板偏低。" }
+      ]
+    },
+    "threshold": {
+      "hidden_cost": "施工图审查被打回需要快速返工,深化设计冲刺阶段常见日均工作十小时以上。",
+      "attrition_reality": "入行前三年主要做标准层配筋这类重复性工作,熬不过这个阶段的人多半会转岗。",
+      "income_structure": "底薪加绩效,绩效挂钩项目产值,房地产行情下行期项目减少收入随之缩水。",
+      "common_misconceptions": "应届生常以为把 PKPM、YJK 用熟就够了,实际上规范理解和工程判断力才是核心壁垒;PKPM、YJK、AutoCAD、SAP2000、ETABS 之间的模型互导误差,以及 GB50010、GB50011 两本规范的边界条件差异,是新人最容易踩的技术坑。",
+      "who_should_not": "对图纸细节合规缺乏耐心、或希望三年内转向产品与运营方向的人不适合走这条技术路线。"
+    },
+    "trend": {
+      "ai_tasks_replaced": ["标准层配筋图的模板化生成", "审图意见分类汇总"],
+      "ai_tasks_augmented": ["计算软件辅助截面优化", "规范条文智能检索"],
+      "ai_new_skills": ["BIM协同与AI出图工具使用", "结构优化算法基础理解"]
+    },
+    "axis": "project_delivery",
+    "domain_specifics": [
+      { "key": "超限高层抗震性能目标", "value": "超限高层项目需额外完成抗震性能化设计报告并通过超限审查。" }
+    ]
+  }
+}

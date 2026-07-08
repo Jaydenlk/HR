@@ -15,3 +15,12 @@ import type { ColumnType } from 'typeorm';
 /** 当前驱动支持的「日期时间」列类型:postgres → 'timestamp',其余(better-sqlite3)→ 'datetime'。 */
 export const TIMESTAMP_COLUMN_TYPE: ColumnType =
   (process.env.DB_TYPE ?? 'sqlite') === 'postgres' ? 'timestamp' : 'datetime';
+
+/**
+ * 当前驱动支持的「结构化 JSON」列类型:postgres → 'jsonb'(可被 ->>/@> 等操作符查询,
+ * T3 职业维基 occupation_entries.skeleton 需要这个能力供未来推荐系统查询结构化字段);
+ * 其余(better-sqlite3,仅 e2e 用)→ 'simple-json'(与仓库其它 JSON 列一致落 text,
+ * TypeORM 仍自动做 JS 对象 ↔ 字符串的序列化/反序列化,应用层代码无需感知差异)。
+ */
+export const JSONB_COLUMN_TYPE: ColumnType =
+  (process.env.DB_TYPE ?? 'sqlite') === 'postgres' ? 'jsonb' : 'simple-json';
