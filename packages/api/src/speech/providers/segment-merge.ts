@@ -31,6 +31,9 @@ export const MAX_SENTENCE_CHARS = 120;
 /** 句末标点(辅助):片段以其一结尾即视为一句自然结束。仅辅助,非主依据、非必需。 */
 const SENTENCE_END_PUNCT = /[。！？；…!?;]$/;
 
+/** ASCII 字母/数字:相邻片段的尾字符与首字符都命中此类才需要补空格(拉丁词间分隔)。 */
+const ASCII_WORD_CHAR = /[A-Za-z0-9]/;
+
 /** 平均文本字长阈值:段平均字长 ≤ 此值判为「字级脏数据」(中文单字 utterance)。 */
 export const CHAR_LEVEL_AVG_TEXT_LEN = 2;
 
@@ -101,7 +104,12 @@ export function mergeAdjacentSegments<T>(
       curEnd = seg.endMs;
       curSpeaker = seg.speaker;
     } else {
-      curText += pieceText;
+      // 拉丁文本(ASCII 字母/数字)片段间需要空格分隔,否则逐段 trim 后直接拼接会把词粘连
+      // (如 "Hi" + "OK" → "HiOK")。CJK 字符本就不靠空格分词,拼接行为不变。
+      const prevChar = curText.charAt(curText.length - 1);
+      const nextChar = pieceText.charAt(0);
+      const needsSpace = ASCII_WORD_CHAR.test(prevChar) && ASCII_WORD_CHAR.test(nextChar);
+      curText += (needsSpace ? ' ' : '') + pieceText;
       curEnd = Math.max(curEnd, seg.endMs);
     }
     prevEnd = seg.endMs;
