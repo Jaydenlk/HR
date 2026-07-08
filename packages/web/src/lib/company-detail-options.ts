@@ -2,6 +2,10 @@
  * 公司背调二级页(/mock/company-detail)的下拉选项清单。
  * 产品判断(未在设计定稿中逐条列出，按合理默认给出，见任务报告)：
  * 城市/行业均为下拉不手输，含"其他"兜底；覆盖主要校招城市与常见行业即可，不追求穷举。
+ *
+ * 仅保留 city/industry：这两者是后端 company-check 端点(CompanyCheckQueryDto)唯一接受的
+ * 消歧上下文参数(见 df1846b)。是否上市/公司规模/官网未进入后端契约，前端收了也无处可用，
+ * 属于半成品提交时的范围外表单项，已在收口时移除(company-detail-closeout 任务)。
  */
 
 export const CITY_OPTIONS: string[] = [
@@ -43,13 +47,3 @@ export const INDUSTRY_OPTIONS: string[] = [
   '其他',
 ];
 
-export type ListedStatus = 'unknown' | 'listed' | 'unlisted' | 'nq_bse';
-
-export const LISTED_OPTIONS: { value: ListedStatus; label: string }[] = [
-  { value: 'unknown', label: '不确定' },
-  { value: 'listed', label: '已上市' },
-  { value: 'unlisted', label: '未上市' },
-  { value: 'nq_bse', label: '新三板或北交所' },
-];
-
-export const SIZE_OPTIONS: string[] = ['<100', '100-500', '500-2000', '2000+'];

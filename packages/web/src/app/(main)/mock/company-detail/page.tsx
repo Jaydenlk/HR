@@ -10,14 +10,8 @@ import {
   type CompanyCheckResult,
   type CandidateChoice,
 } from '@/lib/company-detail-bridge';
-import {
-  CITY_OPTIONS,
-  INDUSTRY_OPTIONS,
-  LISTED_OPTIONS,
-  SIZE_OPTIONS,
-  type ListedStatus,
-} from '@/lib/company-detail-options';
-import { ArrowLeft, MapPin, Briefcase, Globe, Users, ExternalLink, Loader2, Search } from 'lucide-react';
+import { CITY_OPTIONS, INDUSTRY_OPTIONS } from '@/lib/company-detail-options';
+import { ArrowLeft, MapPin, Briefcase, ExternalLink, Loader2, Search } from 'lucide-react';
 
 /** 前端展示候选数量上限(与 mock 主创建流程一致:top3-5,呈现层裁剪,不影响后端全量返回) */
 const CANDIDATE_DISPLAY_LIMIT = 5;
@@ -63,9 +57,6 @@ export default function CompanyDetailPage() {
   const [company, setCompany] = useState('');
   const [city, setCity] = useState('');
   const [industry, setIndustry] = useState('');
-  const [listed, setListed] = useState<ListedStatus>('unknown');
-  const [size, setSize] = useState('');
-  const [website, setWebsite] = useState('');
 
   const [checking, setChecking] = useState(false);
   const [reSearching, setReSearching] = useState(false);
@@ -241,75 +232,6 @@ export default function CompanyDetailPage() {
                   <option key={i} value={i}>{i}</option>
                 ))}
               </select>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <label style={labelStyle}>是否上市</label>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {LISTED_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setListed(opt.value)}
-                style={{
-                  padding: '7px 14px',
-                  borderRadius: '999px',
-                  border: listed === opt.value ? '1.5px solid var(--color-brand)' : '1.5px solid var(--color-line)',
-                  background: listed === opt.value ? 'var(--color-brand-soft)' : 'transparent',
-                  color: listed === opt.value ? 'var(--color-brand)' : 'var(--color-ink-2)',
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'border-color 0.12s, background 0.12s',
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '14px' }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>公司规模（选填）</label>
-            <div style={{ position: 'relative' }}>
-              <Users
-                size={15}
-                color="var(--color-ink-3)"
-                style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
-              />
-              <select
-                aria-label="公司规模"
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
-                style={selectStyle}
-              >
-                <option value="">不限（选填）</option>
-                {SIZE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s} 人</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>官网（选填）</label>
-            <div style={{ position: 'relative' }}>
-              <Globe
-                size={15}
-                color="var(--color-ink-3)"
-                style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
-              />
-              <input
-                type="text"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="https://…"
-                style={{ ...inputBaseStyle, padding: '10px 14px 10px 38px' }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-brand)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-line)'; }}
-              />
             </div>
           </div>
         </div>
