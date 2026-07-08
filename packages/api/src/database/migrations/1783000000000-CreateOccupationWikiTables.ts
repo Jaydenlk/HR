@@ -34,8 +34,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * 双端说明:e2e 走 better-sqlite3 in-memory + synchronize,不执行本迁移;
  * 本迁移仅在生产 Postgres 上执行。纯加法,不碰任何既有表。回滚(down):逆序 DROP。
  */
-export class CreateOccupationWikiTables1782900000000 implements MigrationInterface {
-  name = 'CreateOccupationWikiTables1782900000000';
+export class CreateOccupationWikiTables1783000000000 implements MigrationInterface {
+  name = 'CreateOccupationWikiTables1783000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // ── occupation_slugs ──────────────────────────────────────────────

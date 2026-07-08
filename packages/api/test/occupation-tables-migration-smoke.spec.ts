@@ -10,7 +10,7 @@
  *  - down() 逆序回滚:aliases → evidence → edges → entries → slugs。
  */
 import { QueryRunner } from 'typeorm';
-import { CreateOccupationWikiTables1782900000000 } from '../src/database/migrations/1782900000000-CreateOccupationWikiTables';
+import { CreateOccupationWikiTables1783000000000 } from '../src/database/migrations/1783000000000-CreateOccupationWikiTables';
 
 type RecordingRunner = Pick<QueryRunner, 'query'>;
 
@@ -29,11 +29,11 @@ function findCreateTable(sql: string[], table: string): string | undefined {
   return sql.find((q) => new RegExp(`CREATE TABLE "${table}"\\s*\\(`).test(q));
 }
 
-describe('CreateOccupationWikiTables1782900000000 迁移结构', () => {
-  const migration = new CreateOccupationWikiTables1782900000000();
+describe('CreateOccupationWikiTables1783000000000 迁移结构', () => {
+  const migration = new CreateOccupationWikiTables1783000000000();
 
   it('类可实例化且 name 与文件时间戳一致', () => {
-    expect(migration.name).toBe('CreateOccupationWikiTables1782900000000');
+    expect(migration.name).toBe('CreateOccupationWikiTables1783000000000');
   });
 
   describe('up()', () => {
