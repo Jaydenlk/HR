@@ -586,8 +586,10 @@ export class InterviewsService {
     }));
 
     // 幂等写回:字级 → 句级只发生一次;写回后下次读取 looksCharLevel=false 不再进此分支。
+    // 只更新 segments_json 单字段(而非整实体 save):避免用内存里可能过期的 task 实体
+    // 覆写 status/analysis_charged 等其它列(它们可能被并发的其它写路径改动过)。
     task.segments_json = merged;
-    await this.taskRepo.save(task);
+    await this.taskRepo.update(task.id, { segments_json: merged });
     return merged;
   }
 
