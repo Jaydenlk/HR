@@ -567,6 +567,10 @@ export class InterviewsService {
    *
    * 幂等:聚合后不再满足字级特征(平均字长远 > 2),下次 looksCharLevel 返回 false,直接返回不重写。
    * 已是句级的正常数据 looksCharLevel=false,原样返回、零副作用。返回值恒非空且与库内一致。
+   *
+   * 退化形状(minor②,2026-07-08 审计):全短应答对话(如连续「嗯」「好」「是」,句间大停顿不合并)
+   * 聚合后平均字长仍 ≤ 2,下次 looksCharLevel 对 merged 结果依然为 true,会反复进入此分支重复
+   * 冗余写库。写回前比较 merged 与现存 stored 是否等值(JSON 串比较),相同则跳过写库。
    */
   private async reaggregateSegmentsIfCharLevel(
     task: InterviewTranscribeTask,
@@ -585,10 +589,17 @@ export class InterviewsService {
       speaker: (m.speaker === 'interviewer' ? 'interviewer' : 'candidate') as SpeakerRole,
     }));
 
+    task.segments_json = merged;
+
+    // 退化形状短路:聚合结果与库内现存值等价(如全短应答场景反复聚合出相同结果)时跳过写库,
+    // 避免每次 GET 都冗余 save。仅在真正变化(字级 → 句级首次落地)时才写。
+    if (JSON.stringify(merged) === JSON.stringify(stored)) {
+      return merged;
+    }
+
     // 幂等写回:字级 → 句级只发生一次;写回后下次读取 looksCharLevel=false 不再进此分支。
     // 只更新 segments_json 单字段(而非整实体 save):避免用内存里可能过期的 task 实体
     // 覆写 status/analysis_charged 等其它列(它们可能被并发的其它写路径改动过)。
-    task.segments_json = merged;
     await this.taskRepo.update(task.id, { segments_json: merged });
     return merged;
   }
