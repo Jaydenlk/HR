@@ -30,6 +30,10 @@ export interface CompanyResearchCandidate {
 
 export interface CompanySearchContext {
   jdText?: string;
+  /** 消歧层②新增维度(公司背调二级页):目标城市,仅用于 GLM 候选打分排序,不回填出题 prompt。 */
+  city?: string;
+  /** 消歧层②新增维度(公司背调二级页):目标行业,仅用于 GLM 候选打分排序,不回填出题 prompt。 */
+  industry?: string;
 }
 
 export interface CompanyResearchOutcome {
@@ -115,9 +119,11 @@ export class CompanyResearchService {
     // 候选全量落库:upsert by canonical_name,取得真实数据库 id(前端确认阶段回传 id 靠此)。
     const persisted = await this.upsertMerged(extracted);
 
-    // 层②:多候选 + 有上下文 → GLM 打分排序,高置信取首位(仍需前端确认,不跳过)。
-    if (persisted.length > 1 && context?.jdText?.trim()) {
-      const ordered = await this.rankByContext(persisted, context.jdText.trim());
+    // 层②:多候选 + 有上下文(JD文本 / 城市 / 行业,任一存在即可)→ GLM 打分排序,
+    // 高置信取首位(仍需前端确认,不跳过)。
+    const contextText = this.buildContextText(context);
+    if (persisted.length > 1 && contextText) {
+      const ordered = await this.rankByContext(persisted, contextText);
       if (ordered) return { candidates: ordered.map((c) => this.toDto(c)) };
     }
 
@@ -232,13 +238,27 @@ export class CompanyResearchService {
   }
 
   /**
-   * GLM 上下文匹配:候选列表 + JD 文本交给 AiService 打分排序。
+   * 拼接消歧层②的上下文文本:JD 文本 / 目标城市 / 目标行业,任一存在即可触发 GLM 排序。
+   * 三者都只是"用户自述的检索线索"，只用于给候选打分排序，不是待验证事实——
+   * 不得被当作公司背景信息回填进出题 prompt(防编造立场不变，见 mock.service.ts buildCompanyContext)。
+   */
+  private buildContextText(context?: CompanySearchContext): string {
+    if (!context) return '';
+    const parts: string[] = [];
+    if (context.city?.trim()) parts.push(`目标城市：${context.city.trim()}`);
+    if (context.industry?.trim()) parts.push(`目标行业：${context.industry.trim()}`);
+    if (context.jdText?.trim()) parts.push(`职位描述：${context.jdText.trim()}`);
+    return parts.join('\n');
+  }
+
+  /**
+   * GLM 上下文匹配:候选列表 + 消歧上下文文本(JD文本 / 城市 / 行业,见 buildContextText)交给 AiService 打分排序。
    * 高置信(≥0.85 且分差≥0.15)→ 返回按置信度降序排列的候选数组(首位=AI 最看好);
    * 否则返回 null,调用方保持原顺序进入层③人工消歧。
    */
   private async rankByContext(
     candidates: CompanyResearch[],
-    jdText: string,
+    contextText: string,
   ): Promise<CompanyResearch[] | null> {
     const list = candidates
       .map((c, i) => `${i}. ${c.display_name} —— ${c.summary}（来源：${c.source_domain}）`)
@@ -266,8 +286,8 @@ export class CompanyResearchService {
     let result: { rankings: { index: number; confidence: number }[] };
     try {
       result = await this.ai.completeStructured<{ rankings: { index: number; confidence: number }[] }>({
-        system: '你是求职场景下的公司名消歧助手，根据职位描述上下文判断候选公司列表中哪一个最可能是用户所指的公司。只依据提供的候选简介与职位描述，不得编造候选列表之外的信息。',
-        prompt: `候选公司列表：\n${list}\n\n职位描述：\n${jdText}\n\n请使用 rank_candidates 工具，为每个候选按序号给出置信度打分。`,
+        system: '你是求职场景下的公司名消歧助手，根据用户提供的背景信息(可能包含职位描述、目标城市、目标行业)判断候选公司列表中哪一个最可能是用户所指的公司。只依据提供的候选简介与背景信息，不得编造候选列表之外的信息。',
+        prompt: `候选公司列表：\n${list}\n\n背景信息：\n${contextText}\n\n请使用 rank_candidates 工具，为每个候选按序号给出置信度打分。`,
         toolName: 'rank_candidates',
         toolDescription: '为候选公司列表按置信度打分排序',
         schema,

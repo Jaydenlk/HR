@@ -45,7 +45,11 @@ export class MockController {
   @Get('company-check')
   companyCheck(@Query() query: CompanyCheckQueryDto) {
     // force=true:缓存候选被拒后的强制重搜(绕缓存走两路真实博查);同受上方 @Throttle 约束。
-    return this.mock.checkCompany(query.name ?? '', query.force === true);
+    // city/industry:公司背调二级页传入的消歧线索,激活消歧层② rankByContext(m6 后一直因无上下文不可达)。
+    return this.mock.checkCompany(query.name ?? '', query.force === true, {
+      city: query.city,
+      industry: query.industry,
+    });
   }
 
   @Get()

@@ -22,4 +22,18 @@ export class CompanyCheckQueryDto {
   })
   @IsBoolean()
   force?: boolean;
+
+  /**
+   * 公司背调二级页传入的消歧线索(城市/行业)，喂给消歧层② rankByContext 做 GLM 候选打分排序。
+   * 均为前端下拉选择的受控值，长度上限只做兜底防御，不代表真实业务上限。
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(50, { message: 'city 不能超过 50 个字符' })
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50, { message: 'industry 不能超过 50 个字符' })
+  industry?: string;
 }

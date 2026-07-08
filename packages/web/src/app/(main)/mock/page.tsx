@@ -10,8 +10,14 @@ import {
   HandoffConfirmDialog,
   ReturnToCoachBanner,
 } from '@/components/chat/handoff-reception';
-import { Play, X, ExternalLink, MessageSquare, Volume2, Info } from 'lucide-react';
+import { Play, X, ExternalLink, MessageSquare, Volume2, Info, Building2 } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
+import {
+  saveCompanyDetailDraft,
+  consumeCompanyDetailResult,
+  type CompanyCheckResult,
+  type CandidateChoice,
+} from '@/lib/company-detail-bridge';
 
 function LoadingSkeleton() {
   return (
@@ -40,25 +46,8 @@ interface NewSessionForm {
   mode: 'text' | 'voice';
 }
 
-interface CompanyCandidate {
-  id: string;
-  name: string;
-  summary: string;
-  source_url: string;
-  source_domain: string;
-}
-
-/** company-check API 返回(T6:候选数组,破坏性变更;reason 区分"没搜到"与"搜索服务不可用") */
-interface CompanyCheckResult {
-  company_known: boolean;
-  candidates: CompanyCandidate[];
-  reason?: 'no_key' | 'timeout' | 'error';
-  /** 候选来自 7 天缓存时为 true:用户拒绝缓存候选("都不是")会自动触发一次强制新搜索(设计定稿4) */
-  from_cache?: boolean;
-}
-
-/** 用户对候选列表的消歧选择：pending=未决定，selected=已选某候选(记 id)，none=都不是(通用模式) */
-type CandidateChoice = { kind: 'pending' } | { kind: 'selected'; id: string } | { kind: 'none' };
+// CompanyCandidate / CompanyCheckResult / CandidateChoice 类型已收口到 lib/company-detail-bridge.ts
+// (公司背调二级页与本页共用同一份候选/选择类型，靠 sessionStorage 桥接双向传递)。
 
 /** 前端展示候选数量上限(设计文档:top3-5,呈现层裁剪,不影响后端全量返回) */
 const CANDIDATE_DISPLAY_LIMIT = 5;
@@ -136,6 +125,26 @@ function MockPageInner() {
         setLoading(false);
       });
   }, []);
+
+  // 公司背调二级页(/mock/company-detail)返回时回填结果:重开创建弹窗，恢复公司名/岗位/JD/模式，
+  // 并把二级页确认的候选结果(或"都不是"通用模式)一并应用，不需要用户重新走一遍公司查询。
+  // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题(与 handoff 接待同一模式)。
+  useEffect(() => {
+    const result = consumeCompanyDetailResult();
+    if (!result) return;
+    setTimeout(() => {
+      setForm({ company: result.company, role: result.role, jd_text: result.jd_text, mode: result.mode });
+      setCheckResult(result.checkResult);
+      setCandidateChoice(result.candidateChoice);
+      setDialogOpen(true);
+    }, 0);
+  }, []);
+
+  /** 跳转公司背调二级页前，把当前表单存入草稿，供二级页返回时原样恢复。 */
+  function openCompanyDetail() {
+    saveCompanyDetailDraft({ company: form.company, role: form.role, jd_text: form.jd_text, mode: form.mode });
+    router.push('/mock/company-detail');
+  }
 
   /**
    * 公司查询。force=true:缓存候选被用户拒绝后的强制重搜(绕过后端 7 天缓存,设计定稿4)。
@@ -390,19 +399,45 @@ function MockPageInner() {
               </div>
 
               <div>
-                <label
+                <div
                   style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--color-ink-3)',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                     marginBottom: '6px',
                   }}
                 >
-                  公司（选填）
-                </label>
+                  <label
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--color-ink-3)',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    公司（选填）
+                  </label>
+                  <button
+                    type="button"
+                    onClick={openCompanyDetail}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      color: 'var(--color-brand)',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Building2 size={12} />
+                    完善公司信息 · 背景调研
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={form.company}

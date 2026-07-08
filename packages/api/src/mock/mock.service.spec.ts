@@ -190,6 +190,29 @@ describe('MockService — checkCompany() 返回候选数组', () => {
     await svc.checkCompany('某公司');
     expect(research.search).toHaveBeenLastCalledWith('某公司', undefined, false);
   });
+
+  it('未传 city/industry 时透传 undefined(公司背调二级页新增参数,不改变既有调用方行为)', async () => {
+    const research = makeCompanyResearch();
+    const svc = makeService({ research });
+
+    await svc.checkCompany('某公司', false, {});
+    expect(research.search).toHaveBeenLastCalledWith('某公司', undefined, false);
+
+    await svc.checkCompany('某公司', false, { city: '  ', industry: '' });
+    expect(research.search).toHaveBeenLastCalledWith('某公司', undefined, false);
+  });
+
+  it('传 city/industry(公司背调二级页) → 透传给 companyResearch.search 作为消歧上下文', async () => {
+    const research = makeCompanyResearch();
+    const svc = makeService({ research });
+
+    await svc.checkCompany('某公司', false, { city: '上海', industry: '互联网' });
+    expect(research.search).toHaveBeenLastCalledWith(
+      '某公司',
+      { city: '上海', industry: '互联网' },
+      false,
+    );
+  });
 });
 
 describe('MockService — create() 按 company_research_id 查库(防伪造 M3)', () => {

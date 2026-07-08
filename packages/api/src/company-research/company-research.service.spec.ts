@@ -391,6 +391,48 @@ describe('CompanyResearchService — GLM 上下文匹配', () => {
     // 未采信 GLM 排序，保持博查合并原序(候选A 在前)
     expect(result.candidates[0].name).toBe('候选A');
   });
+
+  it('无 jdText 但有 city/industry(公司背调二级页场景) → 同样触发 GLM 打分排序', async () => {
+    const bocha = makeBocha(async () => ({
+      available: true,
+      items: [
+        { name: '候选A', url: 'https://a.com', summary: 'A' },
+        { name: '候选B', url: 'https://b.com', summary: 'B' },
+      ],
+    }));
+    const ai = makeAi(async () => ({
+      rankings: [
+        { index: 1, confidence: 0.95 },
+        { index: 0, confidence: 0.2 },
+      ],
+    }));
+    const { svc } = makeService({ bocha, ai });
+
+    const result = await svc.search('候选', { city: '上海', industry: '互联网' });
+
+    expect(ai.completeStructured).toHaveBeenCalledTimes(1);
+    const promptArg = (ai.completeStructured as jest.Mock).mock.calls[0][0] as { prompt: string };
+    expect(promptArg.prompt).toContain('目标城市：上海');
+    expect(promptArg.prompt).toContain('目标行业：互联网');
+    expect(result.candidates[0].name).toBe('候选B');
+  });
+
+  it('city/industry 为空字符串时视为无上下文，不触发 GLM 排序', async () => {
+    const bocha = makeBocha(async () => ({
+      available: true,
+      items: [
+        { name: '候选A', url: 'https://a.com', summary: 'A' },
+        { name: '候选B', url: 'https://b.com', summary: 'B' },
+      ],
+    }));
+    const ai = makeAi();
+    const { svc } = makeService({ bocha, ai });
+
+    const result = await svc.search('候选', { city: '  ', industry: '' });
+
+    expect(ai.completeStructured).not.toHaveBeenCalled();
+    expect(result.candidates).toHaveLength(2);
+  });
 });
 
 describe('CompanyResearchService — findById(防伪造用)', () => {
