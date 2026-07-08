@@ -125,6 +125,12 @@
 - 下一单(搜索调优,待派):基准集 30-50 家(简称/同名/生僻)先量化 hit@1/hit@5→count 15/级联/城市行业拼进搜索词/域名先验/高频别名表;**把删掉的"是否上市/规模"以"接进 rankByContext 证据"方式请回**(不再做死表单);顺带补白名单校验。
 - 现场:本地 coach-postgres 重建+迁移到最新(CreateRecruitEvents);api:3002/web:3001 已用 623a630 产物重启(脱离会话进程);verify-infra worktree 目录被文件锁卡住未删(分支 feat/verify-infra 随之保留),归磁盘清理批。
 
+**🚀 生产部署 + 数据融合(2026-07-08,Azure 主服务器,version=2db62e9)**
+- ASR 聚句修复+三视图 merge `2db62e9`(审计 PASS,4 minor 记遗留:退化形状冗余写/GET内写库无降级/理论并发窗口/拉丁拼接空格;第②条列下批小修);run-gates 冒烟六门全绿(单测626/0、e2e 1112/0)后推送 dev+main。
+- **Azure(4.190.163.228,jaydenpark.fun)部署全程绿**:预部署备份 coach-pg-predeploy-20260708-064727.dump(328K)→回滚tag(coach-api/web:rollback-pre2db62e9)→本地构建镜像(Dockerfile直构,176MB tar)→scp→load→5迁移(1782500000000~1782900000000)→up -d;postgres 指纹 PRE==POST(0cd4071b…/2026-06-28T04:13:08)零触碰;health version=2db62e9 db=ok;dev-login 404(生产拦截铁律)。
+- **阿里云→Azure 数据融合**:用户 32***@qq.com(users 行,验证码登录无密码)+interviews 77c147d8+转写任务 4a8e0091(segments 523272B 完整)单事务 COPY,零冲突;PII 中转文件即插即清。该用户在 jaydenpark.fun 登录打开复盘确认页即触发读取层再聚合自愈,无需重传。**阿里云 139.224.248.44 自此转只读遗留,不再部署**。
+- 本轮 = "除 T3 全部可部署"目标达成并已上线;剩余:T3(量产等 go/no-go)、搜索调优单(基准集+上市/规模接进重排+白名单校验)、ASR minor 小修批、磁盘清理批(含 verify-infra/debrief-minutes worktree)。
+
 ## 全局红线(超出即停,找用户)
 
 - 线上有真实用户。任何 migration 前先备份(运维手册在 `_local\coach-deploy\运维手册.md`——2026-07-04 由 E:\coach-deploy 归集,gitignored 坐标密钥仍不进 git);postgres 容器/数据卷永不触碰重建。
