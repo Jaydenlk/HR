@@ -1,7 +1,9 @@
 /**
- * InterviewsService.getTranscribeStatus 单测 —— 存量字级脏数据再聚合写回 minor
+ * InterviewsService.getTranscribeStatus 单测 —— 存量字级脏数据再聚合写回三条 minor
  * (2026-07-08 审计报告 file:line 实锤):
  *
+ *  ① interviews.service.ts:599-613 —— GET 状态端点内嵌自愈写库且此前无 try-catch:
+ *     写库失败应降级为日志告警,照常返回聚合结果,不让确认页轮询因此 500。
  *  ② interviews.service.ts:585-590 —— 退化形状(全短应答对话聚合后平均字长仍 ≤ 2)下,
  *     "幂等写回只发生一次"不成立;写回前应比较聚合结果与现存 segments_json,相同则不写。
  *  ③ interviews.service.ts:590 —— 写回应只更新 segments_json 单字段(repo.update),
@@ -87,7 +89,27 @@ function makeTask(segments: LabeledSegment[]): InterviewTranscribeTask {
   } as unknown as InterviewTranscribeTask;
 }
 
-describe('InterviewsService.getTranscribeStatus — 字级再聚合写回 minor②③', () => {
+describe('InterviewsService.getTranscribeStatus — 字级再聚合写回 minor①②③', () => {
+  it('minor①: 写库失败时降级为日志告警,GET 仍 200 返回聚合结果(不 500)', async () => {
+    const q1 = charLevel('先做个自我介绍吧', 'interviewer', 0, 0);
+    const q1End = q1[q1.length - 1].endMs;
+    const a1 = charLevel('我叫小明本科计算机做过两个全栈项目', 'candidate', q1End + 1000, q1.length);
+    const task = makeTask([...q1, ...a1]);
+
+    const updateImpl = jest.fn().mockRejectedValue(new Error('db connection lost'));
+    const { service } = makeService(task, { updateImpl });
+
+    const result = await service.getTranscribeStatus(INTERVIEW_ID, USER_ID);
+
+    // 写库失败被吞掉降级,不上抛;GET 路径正常返回聚合后的句级结果。
+    expect(result.segmentsJson).toHaveLength(2);
+    expect(result.segmentsJson?.map((s) => s.text)).toEqual([
+      '先做个自我介绍吧',
+      '我叫小明本科计算机做过两个全栈项目',
+    ]);
+    expect(updateImpl).toHaveBeenCalledTimes(1);
+  });
+
   it('minor②: 退化形状(全短应答,聚合后平均字长仍≤2)二次 GET 不再冗余写库', async () => {
     // 三段极短应答,句间大停顿(不会被聚合合并),聚合后每段仍是单字/双字 → 平均字长≤2。
     const seg1 = charLevel('嗯', 'candidate', 0, 0);

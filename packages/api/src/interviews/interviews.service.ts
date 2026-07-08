@@ -571,6 +571,11 @@ export class InterviewsService {
    * 退化形状(minor②,2026-07-08 审计):全短应答对话(如连续「嗯」「好」「是」,句间大停顿不合并)
    * 聚合后平均字长仍 ≤ 2,下次 looksCharLevel 对 merged 结果依然为 true,会反复进入此分支重复
    * 冗余写库。写回前比较 merged 与现存 stored 是否等值(JSON 串比较),相同则跳过写库。
+   *
+   * 写库降级(minor①,2026-07-08 审计):本方法挂在【读端点】GET status 内部,此前写库无
+   * try-catch —— 写失败会让纯读路径跟着抛错(确认页轮询 500)。写回是"锦上添花"的自愈优化,
+   * 不是这次读请求的必需前提;写失败仅记 warn 降级,照常返回本次已算出的聚合结果(下次读取
+   * stored 仍是旧值,再次触发聚合再试一次写,不影响正确性,只是暂时没省下这次重复计算)。
    */
   private async reaggregateSegmentsIfCharLevel(
     task: InterviewTranscribeTask,
@@ -600,7 +605,16 @@ export class InterviewsService {
     // 幂等写回:字级 → 句级只发生一次;写回后下次读取 looksCharLevel=false 不再进此分支。
     // 只更新 segments_json 单字段(而非整实体 save):避免用内存里可能过期的 task 实体
     // 覆写 status/analysis_charged 等其它列(它们可能被并发的其它写路径改动过)。
-    await this.taskRepo.update(task.id, { segments_json: merged });
+    // 写失败降级为 warn(见上方 minor① 注释):不让读端点因自愈写库失败而 500。
+    try {
+      await this.taskRepo.update(task.id, { segments_json: merged });
+    } catch (err) {
+      this.logger.warn(
+        `字级脏数据再聚合写回失败(降级,不影响本次读取)taskId=${task.id}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
     return merged;
   }
 
