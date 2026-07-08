@@ -398,6 +398,8 @@ export interface Interview {
   transcript: string | null;
   overall_grade: string | null;
   overall_note: string | null;
+  // 面试全过程客观总结;旧数据(本字段上线前生成的复盘)为 null,前端据此优雅降级不白屏。
+  summary?: string | null;
   scores: InterviewScore[] | null;
   questions: InterviewQuestion[] | null;
   prediction: InterviewPrediction | null;

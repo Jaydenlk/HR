@@ -8,6 +8,7 @@ import {
   TranscriptSegment,
 } from './speech.provider';
 import { TRANSCODED_FORMAT, transcodeToOggOpus } from './audio-transcode';
+import { mergeAdjacentSegments } from './segment-merge';
 
 // SSE delta 事件:增量句子 + 句级毫秒时间戳(实测 probe.py 跑通的字段形态)。
 interface StepFunDeltaEvent {
@@ -352,8 +353,14 @@ export class StepFunProvider implements SpeechProvider {
     }
 
     // 句级片段优先;无片段则用 done 全文兜底成单段(start=0,end=0,交 LLM 打标)。
+    // 归并:真实录音下 StepFun 逐字推 delta(每字一段),这里聚成句级片段,兑现门面「出句级」契约。
+    // provider 层输入无 speaker(speaker 由后续 label.service 打标),故按「停顿+长度」聚句、标点辅助。
     if (segments.length > 0) {
-      return segments;
+      return mergeAdjacentSegments<TranscriptSegment>(segments, (m) => ({
+        text: m.text,
+        startMs: m.startMs,
+        endMs: m.endMs,
+      }));
     }
     if (fullText.trim().length > 0) {
       return [{ text: fullText.trim(), startMs: 0, endMs: 0 }];

@@ -12,7 +12,7 @@ import { AudioUploader } from '@/components/interview/audio-uploader';
 import { TranscriptProgress } from '@/components/interview/transcript-progress';
 import { useTranscribeStatusPolling } from '@/components/interview/use-transcribe-status-polling';
 import { SpeakerLabelSection } from '@/components/interview/speaker-label-section';
-import { ArrowLeft, Calendar, Clock, User, Sparkles, RefreshCw, Mic, Zap, Info, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Users, Sparkles, RefreshCw, Mic, Zap, Info, Trash2, AlertTriangle, FileText, ClipboardList } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 
 function gradeColors(grade: string | null): { bg: string; text: string } {
@@ -22,6 +22,30 @@ function gradeColors(grade: string | null): { bg: string; text: string } {
   if (g.startsWith('B')) return { bg: 'var(--color-brand)', text: '#fff' };
   if (g.startsWith('C')) return { bg: 'var(--color-warn)', text: '#fff' };
   return { bg: 'var(--color-danger)', text: '#fff' };
+}
+
+// 转写全文对话行:角色 + 整句文本。
+interface TranscriptLine {
+  speaker: 'interviewer' | 'candidate' | null;
+  text: string;
+}
+
+// 解析 completed 态 interview.transcript(每行形如 `[面试官] 文本` / `[用户] 文本`,
+// 前缀与后端 SPEAKER_PREFIX 一致)为对话行。无前缀的行按 null 角色原样渲染(容错,不丢内容)。
+function parseTranscript(transcript: string): TranscriptLine[] {
+  return transcript
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      if (line.startsWith('[面试官]')) {
+        return { speaker: 'interviewer' as const, text: line.slice('[面试官]'.length).trim() };
+      }
+      if (line.startsWith('[用户]')) {
+        return { speaker: 'candidate' as const, text: line.slice('[用户]'.length).trim() };
+      }
+      return { speaker: null, text: line };
+    });
 }
 
 function LoadingState() {
@@ -61,6 +85,9 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
   // 复盘记录删除:inline 两态确认(镜像 resume-detail 的删除模式)。
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // 复盘完成态三视图切换:转写全文 / 面试总结 / 复盘评析。默认停在「评析」(用户最关心的分析结果)。
+  const [resultView, setResultView] = useState<'transcript' | 'summary' | 'analysis'>('analysis');
 
   // 录音转写态:taskId 为当前活动任务(轮询中);segments 为待确认标注。
   const [showUploader, setShowUploader] = useState(false);
@@ -724,65 +751,224 @@ export function DebriefDetail({ params }: DebriefDetailProps) {
         onStarted={handleTranscribeStarted}
       />
 
-      {/* Score bars */}
-      {iv.scores && iv.scores.length > 0 && (
-        <div
-          className="lg"
-          style={{
-            borderRadius: 'var(--radius-default)',
-            padding: '22px 24px',
-            marginBottom: '20px',
-          }}
-        >
+      {/* ── 复盘完成态三视图:转写全文 / 面试总结 / 复盘评析(会议纪要式)── */}
+      {hasAnalysis && (
+        <>
+          {/* View tabs */}
           <div
+            className="lg"
+            role="tablist"
+            aria-label="复盘视图切换"
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'baseline',
-              marginBottom: '16px',
+              gap: '4px',
+              padding: '5px',
+              marginBottom: '20px',
             }}
           >
-            <div style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
-              能力分布 · {iv.scores.length} 个维度
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
-              基于转写 + 题库对比
-            </div>
+            {([
+              { key: 'transcript', label: '转写全文', icon: <FileText size={14} /> },
+              { key: 'summary', label: '面试总结', icon: <ClipboardList size={14} /> },
+              { key: 'analysis', label: '复盘评析', icon: <Sparkles size={14} /> },
+            ] as const).map((tab) => {
+              const active = resultView === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setResultView(tab.key)}
+                  style={{
+                    flex: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--radius-default)',
+                    border: 'none',
+                    background: active
+                      ? 'linear-gradient(135deg, var(--color-brand), var(--color-brand-deep))'
+                      : 'transparent',
+                    color: active ? '#fff' : 'var(--color-ink-3)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    letterSpacing: '-0.005em',
+                    transition: 'color 0.12s',
+                    boxShadow: active ? '0 6px 18px -8px var(--au-blue-glow)' : 'none',
+                  }}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
-          <ScoreRadar scores={iv.scores} />
-        </div>
-      )}
 
-      {/* Questions */}
-      {iv.questions && iv.questions.length > 0 && (
-        <div style={{ marginBottom: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'baseline',
-              marginBottom: '14px',
-            }}
-          >
-            <div style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
-              逐题复盘 · {iv.questions.length} 道
+          {/* View ① 转写全文:解析 [面试官]/[用户] 前缀渲染为对话行。 */}
+          {resultView === 'transcript' && (
+            <div style={{ marginBottom: '20px' }}>
+              {iv.transcript && iv.transcript.trim().length > 0 ? (
+                <div className="lg" style={{ borderRadius: 'var(--radius-default)', padding: '22px 24px' }}>
+                  <div
+                    style={{
+                      fontFamily: 'var(--serif)',
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      color: 'var(--color-ink)',
+                      letterSpacing: '-0.01em',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    转写全文
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {parseTranscript(iv.transcript).map((line, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'auto 1fr',
+                          gap: '10px',
+                          alignItems: 'flex-start',
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3px 9px',
+                            borderRadius: '999px',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            border: `1.5px solid ${line.speaker === 'candidate' ? 'var(--color-success)' : line.speaker === 'interviewer' ? 'var(--color-brand)' : 'var(--color-line)'}`,
+                            background: line.speaker === 'candidate' ? 'var(--color-success-soft)' : line.speaker === 'interviewer' ? 'var(--color-brand-soft)' : 'transparent',
+                            color: line.speaker === 'candidate' ? 'var(--color-success)' : line.speaker === 'interviewer' ? 'var(--color-brand-ink)' : 'var(--color-ink-4)',
+                          }}
+                        >
+                          {line.speaker === 'candidate' ? <User size={11} /> : line.speaker === 'interviewer' ? <Users size={11} /> : null}
+                          {line.speaker === 'candidate' ? '用户' : line.speaker === 'interviewer' ? '面试官' : '—'}
+                        </span>
+                        <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--color-ink)', lineHeight: 1.65 }}>
+                          {line.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="lg"
+                  style={{ borderRadius: 'var(--radius-default)', padding: '32px', textAlign: 'center', color: 'var(--color-ink-3)', fontSize: '13.5px' }}
+                >
+                  该复盘为直接分析文字记录生成，暂无逐句转写全文。
+                </div>
+              )}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
-              {iv.questions.filter((q) => q.tone === 'good').length} 亮点 ·{' '}
-              {iv.questions.filter((q) => q.tone === 'warn').length} 可改 ·{' '}
-              {iv.questions.filter((q) => q.tone === 'bad').length} 盲点
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {iv.questions.map((q, i) => (
-              <QuestionCard key={i} question={q} index={i} />
-            ))}
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Prediction */}
-      {iv.prediction && <PredictionCard prediction={iv.prediction} />}
+          {/* View ② 面试总结:渲染 summary;为空/null(旧数据)优雅降级。 */}
+          {resultView === 'summary' && (
+            <div style={{ marginBottom: '20px' }}>
+              {iv.summary && iv.summary.trim().length > 0 ? (
+                <div className="lg" style={{ borderRadius: 'var(--radius-default)', padding: '22px 24px' }}>
+                  <div
+                    style={{
+                      fontFamily: 'var(--serif)',
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      color: 'var(--color-ink)',
+                      letterSpacing: '-0.01em',
+                      marginBottom: '14px',
+                    }}
+                  >
+                    面试总结
+                  </div>
+                  <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--color-ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                    {iv.summary}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className="lg"
+                  style={{ borderRadius: 'var(--radius-default)', padding: '32px', textAlign: 'center', color: 'var(--color-ink-3)', fontSize: '13.5px' }}
+                >
+                  该复盘生成于旧版本，暂无面试总结。重新上传录音生成新分析即可获得总结。
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* View ③ 复盘评析:原有 能力分布 / 逐题复盘 / 下一轮预测 原样归入此视图。 */}
+          {resultView === 'analysis' && (
+            <>
+              {/* Score bars */}
+              {iv.scores && iv.scores.length > 0 && (
+                <div
+                  className="lg"
+                  style={{
+                    borderRadius: 'var(--radius-default)',
+                    padding: '22px 24px',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <div style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
+                      能力分布 · {iv.scores.length} 个维度
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
+                      基于转写 + 题库对比
+                    </div>
+                  </div>
+                  <ScoreRadar scores={iv.scores} />
+                </div>
+              )}
+
+              {/* Questions */}
+              {iv.questions && iv.questions.length > 0 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'baseline',
+                      marginBottom: '14px',
+                    }}
+                  >
+                    <div style={{ fontFamily: 'var(--serif)', fontSize: '15px', fontWeight: 700, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
+                      逐题复盘 · {iv.questions.length} 道
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-ink-3)', fontWeight: 500 }}>
+                      {iv.questions.filter((q) => q.tone === 'good').length} 亮点 ·{' '}
+                      {iv.questions.filter((q) => q.tone === 'warn').length} 可改 ·{' '}
+                      {iv.questions.filter((q) => q.tone === 'bad').length} 盲点
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {iv.questions.map((q, i) => (
+                      <QuestionCard key={i} question={q} index={i} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Prediction */}
+              {iv.prediction && <PredictionCard prediction={iv.prediction} />}
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }
