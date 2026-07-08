@@ -152,7 +152,10 @@ function runGate(def) {
 
   const result = spawnSync(def.cmd, def.cmdArgs, {
     cwd: def.cwd,
-    shell: true, // Windows 上 npx/npm 是 .cmd,必须 shell:true 才能被 spawnSync 找到
+    // Windows 上 npx/npm 是 .cmd 垫片,必须 shell:true 才能被 spawnSync 找到(不加会 ENOENT)。
+    // 前提:六门命令的参数本身都不含空格/需转义字符,shell:true 的重新分词不会破坏它们
+    // ——若未来改动本文件新增参数,不要往 cmdArgs 里塞带空格的路径(那类值应走 cwd 或 env 传递)。
+    shell: true,
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 64,
   });
@@ -192,8 +195,12 @@ function runGate(def) {
 // ---------- git 元信息(实读,防幻影提交) ----------
 
 function gitInfo(repo) {
-  const rev = spawnSync('git', ['-C', repo, 'rev-parse', 'HEAD'], { encoding: 'utf8', shell: true });
-  const branch = spawnSync('git', ['-C', repo, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8', shell: true });
+  // 注意:git.exe 是真实可执行文件,不能加 shell:true —— 加了之后 spawnSync 会把参数交给
+  // cmd.exe 重新分词,repo 路径里的空格(本仓库路径 "E:\Agent program\..." 本身就带空格)
+  // 会被截断,导致 `git -C` 收到半截路径而报 "cannot change to 'E:/Agent'"。
+  // (npx/npm 相反:它们是 .cmd 垫片,不加 shell:true 会 ENOENT——两者机制不同,不可混用同一约定。)
+  const rev = spawnSync('git', ['-C', repo, 'rev-parse', 'HEAD'], { encoding: 'utf8' });
+  const branch = spawnSync('git', ['-C', repo, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' });
   return {
     head_commit: (rev.stdout || '').trim() || null,
     branch: (branch.stdout || '').trim() || null,
