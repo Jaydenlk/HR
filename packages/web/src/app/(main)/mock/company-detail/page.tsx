@@ -74,13 +74,16 @@ export default function CompanyDetailPage() {
   const [candidateChoice, setCandidateChoice] = useState<CandidateChoice>({ kind: 'pending' });
 
   // 挂载后读草稿(sessionStorage 只在客户端可用，不能放进初始 state 避免 SSR 报错)。
+  // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题(与 mock/page.tsx 同一模式)。
   useEffect(() => {
     const draft = readCompanyDetailDraft();
     if (draft) {
-      setCompany(draft.company);
-      setDraftRole(draft.role);
-      setDraftJd(draft.jd_text);
-      setDraftMode(draft.mode);
+      setTimeout(() => {
+        setCompany(draft.company);
+        setDraftRole(draft.role);
+        setDraftJd(draft.jd_text);
+        setDraftMode(draft.mode);
+      }, 0);
     }
   }, []);
 

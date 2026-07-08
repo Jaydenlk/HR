@@ -15,7 +15,6 @@ import { Tooltip } from '@/components/ui/tooltip';
 import {
   saveCompanyDetailDraft,
   consumeCompanyDetailResult,
-  type CompanyCandidate,
   type CompanyCheckResult,
   type CandidateChoice,
 } from '@/lib/company-detail-bridge';
@@ -129,13 +128,16 @@ function MockPageInner() {
 
   // 公司背调二级页(/mock/company-detail)返回时回填结果:重开创建弹窗，恢复公司名/岗位/JD/模式，
   // 并把二级页确认的候选结果(或"都不是"通用模式)一并应用，不需要用户重新走一遍公司查询。
+  // Defer via setTimeout 避免 set-state-in-effect 同步 cascade 问题(与 handoff 接待同一模式)。
   useEffect(() => {
     const result = consumeCompanyDetailResult();
     if (!result) return;
-    setForm({ company: result.company, role: result.role, jd_text: result.jd_text, mode: result.mode });
-    setCheckResult(result.checkResult);
-    setCandidateChoice(result.candidateChoice);
-    setDialogOpen(true);
+    setTimeout(() => {
+      setForm({ company: result.company, role: result.role, jd_text: result.jd_text, mode: result.mode });
+      setCheckResult(result.checkResult);
+      setCandidateChoice(result.candidateChoice);
+      setDialogOpen(true);
+    }, 0);
   }, []);
 
   /** 跳转公司背调二级页前，把当前表单存入草稿，供二级页返回时原样恢复。 */
