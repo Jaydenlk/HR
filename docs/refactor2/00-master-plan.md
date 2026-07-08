@@ -57,7 +57,7 @@
 | T5 | ✅ | ✅ | ✅ | ✅ | ✅(e2b326f) | ☐ |
 | T2 | ✅ | ✅ | ✅ | ✅ | ✅(6ffc579) | ☐ |
 | T4 | ✅ | ◐ H0✅+S0+D1✅ / 防护+清理批待 | ◐ H0✅ S0+D1✅ | ◐ H0✅ S0+D1✅ | ◐ H0(c02ed37) S0+D1(b4682eb) | ☐ |
-| T3 | ✅ | ☐(先焊schema) | ☐ | ☐ | ☐ | ☐ |
+| T3 | ✅ | ◐ Stage0✅骨架焊死 / 量产待go | ◐ Stage0✅ | ◐ Stage0✅ | ◐ Stage0✅(18b81ea) | ☐ |
 
 ## 执行进展与已知问题(2026-07-02 自主执行,Fable 值守)
 
@@ -130,6 +130,11 @@
 - **Azure(4.190.163.228,jaydenpark.fun)部署全程绿**:预部署备份 coach-pg-predeploy-20260708-064727.dump(328K)→回滚tag(coach-api/web:rollback-pre2db62e9)→本地构建镜像(Dockerfile直构,176MB tar)→scp→load→5迁移(1782500000000~1782900000000)→up -d;postgres 指纹 PRE==POST(0cd4071b…/2026-06-28T04:13:08)零触碰;health version=2db62e9 db=ok;dev-login 404(生产拦截铁律)。
 - **阿里云→Azure 数据融合**:用户 32***@qq.com(users 行,验证码登录无密码)+interviews 77c147d8+转写任务 4a8e0091(segments 523272B 完整)单事务 COPY,零冲突;PII 中转文件即插即清。该用户在 jaydenpark.fun 登录打开复盘确认页即触发读取层再聚合自愈,无需重传。**阿里云 139.224.248.44 自此转只读遗留,不再部署**。
 - 本轮 = "除 T3 全部可部署"目标达成并已上线;剩余:T3(量产等 go/no-go)、搜索调优单(基准集+上市/规模接进重排+白名单校验)、ASR minor 小修批、磁盘清理批(含 verify-infra/debrief-minutes worktree)。
+
+**✅ T3 Stage0 骨架焊死 + 注册表 v1 草案(2026-07-08 夜,agent team 全 sonnet)**
+- **Stage0 已合并上线 dev**(merge `18b81ea`,dev=main):8 层骨架 schema+axis 10 值+校验器(证据字段深扫拒绝)+确定性检查脚本(dim1/3/6 改造+edges 引用完整性)+5 表 migration(1783000000000,纯加法)+seed 导入器;合规/5 类违规样例各判对。审计 PASS 零 blocking,2 minor 遗留:①枚举列(edges.type/status/axis/tier 等)DB 端无 CHECK 约束=全表一致的架构取舍(完整性归应用层 validator+seed 落库前校验,设计文档明示);②seed 幂等靠 edges/aliases/evidence 先删后插。api 四门全绿(单测 665/0、e2e 1112/0),web 门 N/A(纯后端零前端)。迁移撞车已修:原 1782900000000 与已上生产的 AddInterviewSummary 撞,让位 1783000000000。**本地库 1783000000000 迁移待补**(Docker 掉线,下次预览重启时 migration:run)。
+- **注册表 v1 草案完成待用户过目**(§7 第 2 门=用户批准):分支 `feat/t3-registry`(已推远端,未并 dev),`data/occupations/registry-v1.csv` 369 条 + `docs/refactor2/t3-registry-v1-review.md` 评审稿。6 个 L0 板块(通用职能132/产业专业103/工程技术69/公共制度27/创意服务24/AI新兴14),42 个 L1 族;既有 90 职业库 100% 收编零走样;距 700-800 目标 46-53%,诚实标注差距(未拆水凑数)。**5 条开放问题待拍板**:①45 条 L3 行业场景拆分是否认可 ②AI 新兴仅 14 条是否扩容 ③考公考编收敛母条边界 ④产业专业板块是否按行业再细分 L1 ⑤边缘小众职业取舍标准。
+- **后续路线(§7 门控,均需用户节点)**:注册表 v1 批准 → 回归 5 条(老试点稿重灌新骨架,盲测 5/5)→ 经济验证批 30-50 条(全流水线真跑,成本≤5万/条+盲测≥90%+闸效统计,**go/no-go 用户拍板**)→ 量产 150→300→700-800。**§8 Agent B(前端+API)批 4 后启动**。量产内容生产未经 go/no-go 不自启(用户红线)。
 
 ## 全局红线(超出即停,找用户)
 
