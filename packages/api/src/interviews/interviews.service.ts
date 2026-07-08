@@ -19,6 +19,7 @@ import { LabelService } from '../speech/label.service';
 import {
   InterviewTranscribeTask,
   LabeledSegment,
+  SpeakerRole,
   TranscribeStatus,
 } from '../speech/entities/transcribe-task.entity';
 import { LabelCorrectionDto } from '../speech/dto/confirm-labels.dto';
@@ -29,6 +30,10 @@ import { OpsEventsService } from '../ops/ops-events.service';
 import { isAiCallFailure } from '../quota/ai-usage.interceptor';
 import { AiService } from '../ai/ai.service';
 import type { TranscriptSegment } from '../speech/providers/speech.provider';
+import {
+  mergeAdjacentSegments,
+  looksCharLevel,
+} from '../speech/providers/segment-merge';
 import { ApplicationsService } from '../applications/applications.service';
 
 // 转写扣点端点标识:写入 credit_transactions.endpoint / ai_usage.endpoint(与控制器路由模板同口径)。
@@ -553,8 +558,43 @@ export class InterviewsService {
   }
 
   /**
+   * 存量字级脏数据防御性再聚合(+幂等写回)。
+   *
+   * 线上 provider 层聚句修复前落库的 segments_json 是字级(一字一段,如「然」「后」…);
+   * 这些历史任务停在 awaiting_confirm,用户不该被迫重传 22MB 才能用。读取/确认路径检测到字级特征
+   * (段平均 text 长度 ≤ 2)即在此按【speaker 变化 + 停顿 + 长度】聚成句级(带 speaker 的 LabeledSegment,
+   * idx 从 0 重编号),并【幂等写回】——下次读取就是干净的、无需再聚合。
+   *
+   * 幂等:聚合后不再满足字级特征(平均字长远 > 2),下次 looksCharLevel 返回 false,直接返回不重写。
+   * 已是句级的正常数据 looksCharLevel=false,原样返回、零副作用。返回值恒非空且与库内一致。
+   */
+  private async reaggregateSegmentsIfCharLevel(
+    task: InterviewTranscribeTask,
+  ): Promise<LabeledSegment[] | null> {
+    const stored = task.segments_json;
+    if (!stored || stored.length === 0) return stored;
+    if (!looksCharLevel(stored)) return stored;
+
+    // 按 speaker 变化 + 停顿 + 长度聚句;idx 由 mergeAdjacentSegments 的 index 从 0 重编号。
+    // speaker 变化本就是切句点,故聚合段的 speaker 唯一;缺失(理论不达,存量必带)兜底 candidate。
+    const merged = mergeAdjacentSegments<LabeledSegment>(stored, (m, index) => ({
+      idx: index,
+      text: m.text,
+      startMs: m.startMs,
+      endMs: m.endMs,
+      speaker: (m.speaker === 'interviewer' ? 'interviewer' : 'candidate') as SpeakerRole,
+    }));
+
+    // 幂等写回:字级 → 句级只发生一次;写回后下次读取 looksCharLevel=false 不再进此分支。
+    task.segments_json = merged;
+    await this.taskRepo.save(task);
+    return merged;
+  }
+
+  /**
    * 轮询任务状态。返回最新一条该面试的转写任务(按创建时间倒序),非本人面试 → 404。
    * segmentsJson 仅在 awaiting_confirm 及之后非空(供前端渲染可纠正列表)。
+   * 存量字级脏数据在返回前防御性再聚合并幂等写回(见 reaggregateSegmentsIfCharLevel)。
    */
   async getTranscribeStatus(
     id: string,
@@ -569,12 +609,15 @@ export class InterviewsService {
     });
     if (!task) throw new NotFoundException();
 
+    // 存量字级脏数据:返回给前端渲染可纠正列表前先聚成句级并幂等写回(否则前端渲染逐字标注列表)。
+    const segmentsJson = await this.reaggregateSegmentsIfCharLevel(task);
+
     return {
       taskId: task.id,
       status: task.status,
       errorMessage: task.error_message,
       failedAtStage: task.failed_at_stage,
-      segmentsJson: task.segments_json,
+      segmentsJson,
       // 上传元数据回执(非音频内容):桌面端据此即时渲染「已收到上传」。
       originalFilename: task.original_filename,
       fileSizeBytes: task.file_size_bytes,
@@ -629,7 +672,9 @@ export class InterviewsService {
     });
     if (!task) throw new NotFoundException();
 
-    const stored = task.segments_json;
+    // 存量字级脏数据防御:若该任务从未经 getTranscribeStatus 聚合(理论罕见,前端轮询必先调),
+    // 此处再保险聚合一次(幂等:已句级则原样返回),确保 applyCorrections 的 idx 与前端所见句级一致。
+    const stored = await this.reaggregateSegmentsIfCharLevel(task);
     if (!stored || stored.length === 0) {
       throw new BadRequestException('该转写任务尚无可确认的标注内容');
     }

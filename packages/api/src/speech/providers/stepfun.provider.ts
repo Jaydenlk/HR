@@ -8,6 +8,7 @@ import {
   TranscriptSegment,
 } from './speech.provider';
 import { TRANSCODED_FORMAT, transcodeToOggOpus } from './audio-transcode';
+import { mergeAdjacentSegments } from './segment-merge';
 
 // SSE delta 事件:增量句子 + 句级毫秒时间戳(实测 probe.py 跑通的字段形态)。
 interface StepFunDeltaEvent {
@@ -59,14 +60,6 @@ export class StepFunProvider implements SpeechProvider {
   private static readonly RETRYABLE_SSE_FRAGMENT = 'internal error';
   // 重试基线退避(ms):第 n 次重试前等 RETRY_BASE_DELAY_MS × 2^(n-1)(指数退避)。
   private static readonly RETRY_BASE_DELAY_MS = 800;
-
-  // 逐字→句级归并的切句停顿阈值(ms):当前片段起点与上一片段终点间隔 ≥ 此值即视为句间停顿、切句。
-  // 700ms 取 VAD 常用句间静音经验区间(~500-800ms 为自然停顿),既能切开句子又不误切句内正常字间隔。
-  private static readonly PAUSE_GAP_MS = 700;
-  // 句子累积字数上限:无停顿无标点的连续长串(如快语速独白)达此长度即强制断句,防单句撑爆(兜底)。
-  private static readonly MAX_SENTENCE_CHARS = 120;
-  // 句末标点:片段文本以其一结尾即视为一句自然结束(ITN 若带标点则用作辅助切句依据)。
-  private static readonly SENTENCE_END_PUNCT = /[。！？；…!?;]$/;
 
   readonly capabilities: SpeechCapabilities = {
     diarization: false,
@@ -361,8 +354,13 @@ export class StepFunProvider implements SpeechProvider {
 
     // 句级片段优先;无片段则用 done 全文兜底成单段(start=0,end=0,交 LLM 打标)。
     // 归并:真实录音下 StepFun 逐字推 delta(每字一段),这里聚成句级片段,兑现门面「出句级」契约。
+    // provider 层输入无 speaker(speaker 由后续 label.service 打标),故按「停顿+长度」聚句、标点辅助。
     if (segments.length > 0) {
-      return this.mergeSegmentsIntoSentences(segments);
+      return mergeAdjacentSegments<TranscriptSegment>(segments, (m) => ({
+        text: m.text,
+        startMs: m.startMs,
+        endMs: m.endMs,
+      }));
     }
     if (fullText.trim().length > 0) {
       return [{ text: fullText.trim(), startMs: 0, endMs: 0 }];
@@ -414,73 +412,6 @@ export class StepFunProvider implements SpeechProvider {
       return { error: (ev as StepFunErrorEvent).message ?? '未知错误' };
     }
     return {};
-  }
-
-  /**
-   * 逐字/碎片 delta → 句级片段归并。兑现门面「transcribeFile 出句级片段」契约。
-   *
-   * 真实录音下 StepFun 逐字推 delta(每字一个带 start_time 的事件),若原样返回会得到成百上千个
-   * 单字 utterance,后续 LLM 逐段打标必乱。此处按序累积当前句,遇下列任一即结束当前句、开新句:
-   *   1) 上一片段以句末标点结尾(SENTENCE_END_PUNCT)——ITN 若带标点则用作辅助;
-   *   2) 当前片段起点与上一片段终点的停顿间隔 ≥ PAUSE_GAP_MS(主依据,不依赖标点);
-   *   3) 当前句累积字数 ≥ MAX_SENTENCE_CHARS(兜底,防无停顿无标点的长串撑爆)。
-   * 句级 delta(每个 delta 已是整句 + 句间停顿大)天然各自成段,不被误并也不被切碎。
-   * 每段 startMs 取该句首片段起点、endMs 取该句末片段终点,且恒有 endMs ≥ startMs。
-   */
-  private mergeSegmentsIntoSentences(
-    raw: TranscriptSegment[],
-  ): TranscriptSegment[] {
-    const merged: TranscriptSegment[] = [];
-    let curText = '';
-    let curStart = 0;
-    let curEnd = 0;
-    let prevEnd = 0;
-    let hasCur = false;
-
-    const flush = (): void => {
-      if (!hasCur) return;
-      const text = curText.trim();
-      if (text.length > 0) {
-        merged.push({
-          text,
-          startMs: curStart,
-          endMs: Math.max(curEnd, curStart),
-        });
-      }
-      hasCur = false;
-      curText = '';
-    };
-
-    for (const seg of raw) {
-      const pieceText = seg.text.trim();
-      if (pieceText.length === 0) continue;
-
-      if (hasCur) {
-        // 停顿间隔 = 本片段起点 − 上一片段终点;负值(时间戳重叠/回退)按 0 处理,不误判为停顿。
-        const gap = seg.startMs - prevEnd;
-        const prevEndsSentence = StepFunProvider.SENTENCE_END_PUNCT.test(curText.trim());
-        const tooLong = curText.length >= StepFunProvider.MAX_SENTENCE_CHARS;
-        if (prevEndsSentence || gap >= StepFunProvider.PAUSE_GAP_MS || tooLong) {
-          flush();
-        }
-      }
-
-      if (!hasCur) {
-        hasCur = true;
-        curText = pieceText;
-        curStart = seg.startMs;
-        curEnd = seg.endMs;
-      } else {
-        curText += pieceText;
-        curEnd = Math.max(curEnd, seg.endMs);
-      }
-      prevEnd = seg.endMs;
-    }
-    flush();
-
-    // 极端兜底:所有片段 text 归并后仍为空(理论不达,raw 已过 handleSseLine 的非空过滤),
-    // 返回空数组交由 consumeSse 的 done 全文兜底 / 空结果抛错逻辑处理。
-    return merged;
   }
 
   /** 区分 abort(超时)与一般错误,给出可读信息。 */
