@@ -81,6 +81,11 @@ export class Interview {
   @Column('text', { nullable: true })
   overall_note: string;
 
+  // 面试全过程客观总结(问了什么/聊了什么/关键信息);只基于转写,无内容则空。
+  // nullable:旧数据(本列上线前生成的复盘)为 null,前端据此优雅降级不白屏。
+  @Column('text', { nullable: true })
+  summary: string;
+
   @Column('simple-json', { nullable: true })
   scores: ScoreItem[];
 

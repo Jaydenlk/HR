@@ -5,6 +5,8 @@ import type { ScoreItem, QuestionItem, InterviewPrediction } from './entities/in
 export interface DebriefResult {
   overall_grade: string;
   overall_note: string;
+  // 面试全过程客观总结;防编造:AI 只基于转写产出,无法总结时返回空字符串(故非必填、可为空串)。
+  summary: string;
   scores: ScoreItem[];
   questions: QuestionItem[];
   prediction: InterviewPrediction;
@@ -38,6 +40,9 @@ export class DebriefService {
 5. 从6个维度评分（0-100分）：技术深度、清晰表达、结构化思考、行为面试STAR、反问环节、气场自信
 6. 给出综合字母等级：A+/A/B+/B/B-/C+/C/D
 7. 预测下一轮面试可能考察的核心主题及概率（%）
+8. 产出「面试总结」：客观概括整场面试问了什么、聊了什么、暴露的关键信息。
+   【防编造铁律】只许基于转写内容进行总结，缺失的信息一律不猜、不编、不脑补；
+   若转写内容不足以支撑有意义的总结，summary 直接返回空字符串（""），绝不虚构。
 
 请基于面试记录做出客观分析，不要过度美化或贬低，帮助候选人真实了解自己的水平和改进方向。`;
 
@@ -67,6 +72,11 @@ ${transcript}
         overall_note: {
           type: 'string',
           description: '整体点评（200字以内），总结优势和主要改进方向',
+        },
+        summary: {
+          type: 'string',
+          description:
+            '面试全过程客观总结：问了什么、聊了什么、关键信息；只基于转写，无内容则留空',
         },
         scores: {
           type: 'array',
