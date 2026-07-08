@@ -140,4 +140,38 @@ describe('mergeAdjacentSegments — 读取层(带 speaker)字级归并', () => {
       expect(s.text.length).toBeLessThanOrEqual(121);
     }
   });
+
+  // minor④(2026-07-08 审计):逐段 trim 后无分隔拼接,相邻拉丁片段会粘连词("Hi"+"OK"→"HiOK")。
+  // 修复:相邻片段前段尾字符与后段首字符都是 ASCII 字母/数字时以单空格连接;CJK 行为不变。
+  it('中英混排:拉丁词片段间补空格,与紧邻的中文片段间不补空格', () => {
+    const raw: MergeableSegment[] = [
+      { text: 'Hi', startMs: 0, endMs: 200, speaker: 'candidate' },
+      { text: 'OK', startMs: 250, endMs: 400, speaker: 'candidate' },
+      { text: '好的', startMs: 450, endMs: 700, speaker: 'candidate' },
+    ];
+    const merged = mergeAdjacentSegments<LabeledLike>(raw, buildLabeled);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].text).toBe('Hi OK好的');
+  });
+
+  it('纯英文多段:每两段拉丁片段间恰好一个空格,不产生多余空格', () => {
+    const raw: MergeableSegment[] = [
+      { text: 'I', startMs: 0, endMs: 100, speaker: 'candidate' },
+      { text: 'am', startMs: 150, endMs: 300, speaker: 'candidate' },
+      { text: 'fine', startMs: 350, endMs: 500, speaker: 'candidate' },
+    ];
+    const merged = mergeAdjacentSegments<LabeledLike>(raw, buildLabeled);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].text).toBe('I am fine');
+  });
+
+  it('纯中文多段:相邻片段间不补空格,拼接行为与修复前一致', () => {
+    const raw = charSegments('你好世界', 'candidate', 0);
+    const merged = mergeAdjacentSegments<LabeledLike>(raw, buildLabeled);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0].text).toBe('你好世界');
+  });
 });
