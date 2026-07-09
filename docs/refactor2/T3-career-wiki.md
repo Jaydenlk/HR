@@ -33,7 +33,8 @@
 4. **每道闸在经济验证批自证价值**:统计各闸抓到的真问题数;抓不到真错的闸,量产时砍掉。
 
 ## 3. 骨架 schema(焊死为常量,Stage 0 的交付物)
-- **8 层固定骨架**(所有职业一致):定位 / 坐标 / 边界(≥3 相邻对比) / 实操 / 入行 / 差异 / 门槛 / 趋势——字段明细以原稿第一、二部分为准,Stage 0 落成 TS 类型+JSON Schema。
+- **9 层固定骨架**(所有职业一致):定位 / 坐标 / 边界(≥3 相邻对比) / 实操 / 入行 / 差异 / 门槛 / **发展** / 趋势——字段明细以原稿第一、二部分为准(发展层为 2026-07-09 用户增补,原稿无),Stage 0 落成 TS 类型+JSON Schema。
+  - **发展层(2026-07-09 用户拍板增补,唯一一次动焊死骨架后重新冻结)**:插在门槛层与趋势层之间。字段:`promotion_path`(晋升阶梯,逐级+年限档)/ `ceiling`(职业天花板/瓶颈)/ `lateral_moves`(横向转型出口)。理由:晋升路径对校招读者是刚需信息,老 90 职业预设库有、新骨架初版遗漏;趁 0 词条量产前补,零重刷成本。
 - **axis 枚举草案**(Stage 0 定稿,封死后量产不改):`product_lifecycle / project_delivery / accreditation_cycle / crop_cycle / case_cycle / patient_flow / fiscal_cycle / academic_cycle / campaign_cycle / ops_routine`。
 - **domain_specifics**:封顶 5 条/词条,超出回落固定骨架。
 - **彻底移出正文**:source_ref/A1A2A3/蕴含日志/自查表/维度分数/inferred 前缀——全部进证据侧表。
@@ -75,7 +76,7 @@
 ## 7. 分批节奏与验收门(每道门是真门,不过不进下一步)
 1. **Stage 0 焊 schema**(编码任务):TS 类型+JSON Schema+校验器+确定性检查脚本(改造 p2lib 的 checks/*.mjs)+5 张表 migration+seed 导入器 → verify: schema 校验器对合规/违规样例各判对;脚本套件跑通。
 2. **注册表 v1**(workflow):700–800 slug 坑位+L0-L3+职业族聚簇+edges 草案+别名初表 → verify: 引用完整性脚本零悬空;**用户过目批准**。
-3. **回归 5 条**:老试点稿重灌新骨架+重渲染 → verify: 文体统一、正文零审计噪音、axis 语义一致;读者盲测 5/5 过三问。
+3. **回归 5 条**:老试点稿(p2lib 6 份:ai-product-manager/clinical-physician/hrbp/lawyer/smart-agriculture-engineer/university-counselor)重灌**新 9 层骨架(含发展层,老稿无此层须新生成 promotion_path/ceiling/lateral_moves)**+重渲染 → verify: 9 层齐(缺发展层=缺层,校验器拒)、文体统一、正文零审计噪音、axis 语义一致;读者盲测 5/5 过三问。
 4. **经济验证批 30–50 条**(1–2 个职业族):全流水线真跑 → verify: 平均成本 ≤5 万/条、盲测通过率 ≥90%、每道闸真错统计出炉(决定砍哪道闸)、**go/no-go 报用户拍板**。
 5. **量产 150 → 300 → 700–800**:每批 S10 收口 + 成本/盲测双指标周报;任一指标劣化 >20% 即停批排查。
 6. **前端/检索**(与批 4-5 并行,编码任务):§4 表+§5 页面与 API → verify: Playwright 搜索→消歧→词条→相邻跳转全流程;词条页展示核验时间与来源说明。
