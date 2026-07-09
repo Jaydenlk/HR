@@ -4,7 +4,8 @@
  * 权威源:docs/refactor2/T3-career-wiki.md §3§4 + docs/refactor2/T3-总体设计-原稿.md 第一、二部分。
  *
  * 架构要点(与 p2lib 老 phase1/occupation.types.ts 的关键区别):
- *  - 结构主干(skeleton)固定 8 层,所有职业完全一致,不许各写各的。
+ *  - 结构主干(skeleton)固定 9 层(2026-07-09 用户拍板新增发展层,骨架焊死后唯一一次
+ *    动结构的变更,已获批,变更后重新冻结),所有职业完全一致,不许各写各的。
  *  - 骨架字段是纯值(字符串 / 字符串数组 / 结构化子对象),不携带任何来源信息——
  *    不使用老脚手架 Sourced<T>(value + 来源引用两件套内嵌)包装模式。
  *  - 证据侧的溯源/分级/校验结论一律不进本文件:那些概念只属于证据表行类型,
@@ -212,7 +213,22 @@ export interface ThresholdLayer {
 }
 
 /**
- * 8. 趋势层:AI 影响(被替代 / 被增强 / 新技能)。
+ * 8. 发展层:典型晋升阶梯 / 职业天花板 / 常见横向转型出口。
+ * 2026-07-09 用户拍板新增(骨架焊死后唯一一次动结构的变更,已获批),插在门槛层之后、
+ * 趋势层之前——门槛层讲清楚"进得来、留得下"的现实约束,发展层接着讲"留下之后能走多远",
+ * 顺理成章地过渡到趋势层讨论"这条路径会被 AI 怎样改写"。
+ */
+export interface DevelopmentLayer {
+  /** 典型晋升阶梯,逐级(如 专员→主管→经理→总监),可含大致年限档 */
+  promotion_path: string[];
+  /** 职业天花板/上升瓶颈:能做到的最高位置、卡在哪 */
+  ceiling: string;
+  /** 常见横向转型出口:转去哪些相邻/下游职业 */
+  lateral_moves: string[];
+}
+
+/**
+ * 9. 趋势层:AI 影响(被替代 / 被增强 / 新技能)。
  */
 export interface TrendLayer {
   /** 可能被 AI 替代的任务 */
@@ -224,7 +240,7 @@ export interface TrendLayer {
 }
 
 /**
- * 结构主干(skeleton)顶层类型:8 层固定骨架 + axis 微调枚举 + domain_specifics 专有槽。
+ * 结构主干(skeleton)顶层类型:9 层固定骨架 + axis 微调枚举 + domain_specifics 专有槽。
  * 这是 occupation_entries.skeleton(jsonb)列的行内结构,也是生成/校验唯一作用的对象。
  */
 export interface OccupationSkeleton {
@@ -235,12 +251,13 @@ export interface OccupationSkeleton {
   entry: EntryLayer;
   variation: VariationLayer;
   threshold: ThresholdLayer;
+  development: DevelopmentLayer;
   trend: TrendLayer;
   axis: Axis;
   domain_specifics: DomainSpecific[];
 }
 
-/** 骨架 8 层的键名清单(顺序即定位/坐标/边界/实操/入行/差异/门槛/趋势),供校验器遍历。 */
+/** 骨架 9 层的键名清单(顺序即定位/坐标/边界/实操/入行/差异/门槛/发展/趋势),供校验器遍历。 */
 export const SKELETON_LAYER_KEYS = [
   'positioning',
   'coordinates',
@@ -249,6 +266,7 @@ export const SKELETON_LAYER_KEYS = [
   'entry',
   'variation',
   'threshold',
+  'development',
   'trend',
 ] as const;
 
