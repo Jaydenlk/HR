@@ -56,6 +56,12 @@ describe('dim6(字段完整度,已降级为非空+类型正确)对真实 fixture
     expect(r.failures.some((f) => f.includes('trend'))).toBe(true);
   });
 
+  it('①缺层 fixture 同时缺失 development(发展层),失败信息含 development', () => {
+    const r = runCheck('dim6-field-completeness.mjs', 'invalid-missing-layer/occupations/broken.json');
+    expect(r.pass).toBe(false);
+    expect(r.failures.some((f) => f.includes('development'))).toBe(true);
+  });
+
   it('④domain_specifics 超 5 条 fixture 被判定失败', () => {
     const r = runCheck('dim6-field-completeness.mjs', 'invalid-domain-specifics/occupations/broken.json');
     expect(r.pass).toBe(false);
