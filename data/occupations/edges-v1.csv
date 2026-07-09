@@ -825,3 +825,15 @@ ai-evals-engineer,ai-safety-red-teamer,adjacent,"评测体系设计与安全红�
 ai-evals-engineer,mlops-engineer,adjacent,评测流水线接入生产监控是MLOps的常见协作面
 mcn-talent-operations,newmedia,adjacent,"MCN达人运营与企业新媒体运营同族相邻,内容生产/涨粉方法论同源(注册表草案,详细差异待边界层论证)"
 mcn-talent-operations,live-streaming-operations,adjacent,"达人孵化与直播运营在MCN机构内高频协同,常见职业转换路径"
+private-hospital-management,hospital-nursing-manager,adjacent,"社会办医管理岗与公立医院护理管理岗同属医疗机构运营序列,组织性质是差异层承接"
+private-hospital-management,hospital-purchasing-specialist,adjacent,民营医院运营管理与医院采购物资同属医疗机构后勤管理协作面
+auto-4s-dealer-management-trainee,automotive-aftersales-service-advisor,adjacent,"4S店管培生轮岗常落地到售后服务顾问岗,同一4S店组织内协作"
+auto-4s-dealer-management-trainee,sales-auto-consultant,adjacent,"4S店管培与汽车销售顾问同处经销商体系,管培轮岗覆盖销售条线"
+ad-agency-account-executive,ad-optimizer,adjacent,广告代理AE与广告投放优化师在代理商项目组高频协同
+ad-agency-account-executive,key-account-manager,adjacent,"AE的客户关系维护与大客户经理技能高度重合,同为客户服务导向岗"
+smart-manufacturing-systems-integration-engineer,equipment-engineer-manufacturing,adjacent,智能制造系统集成与产线设备工程师同处工厂自动化改造项目协作面
+smart-manufacturing-systems-integration-engineer,automation-engineer,adjacent,系统集成工程师与自动化工程师技能栈同源(PLC/工业软件/产线联调)
+game-publishing-specialist,game-operations,adjacent,游戏发行专员与游戏运营在上线后的用户增长/买量环节紧密协作
+game-publishing-specialist,gamedev,adjacent,"发行专员对接研发方进行版本适配与本地化,与游戏开发同处发行链条"
+food-agri-product-inspector,agricultural-product-trader,adjacent,"农产品食品检验与农产品贸易同处农产品流通链条,质检结果直接影响贸易定级"
+food-agri-product-inspector,food-safety-qa-specialist,adjacent,"农产品源头检验与食品加工端QA同为食品安全链条上下游环节,组织性质(农业端vs工厂端)是差异层承接"

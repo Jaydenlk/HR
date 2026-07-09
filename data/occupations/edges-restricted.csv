@@ -44,3 +44,5 @@ tax-bureau-officer,tax,adjacent,税务局岗与企业税务知识互为镜像
 court-enforcement-officer,public-security-police,adjacent,执行与公安同具执法属性
 prison-police,public-security-police,adjacent,同L1族相邻岗(注册表草案,详细差异待边界层论证)
 rural-special-post-teacher,selected-graduate,adjacent,特岗与选调同为应届基层定向项目
+public-sector-accountant,civil-servant-generalist,adjacent,"公共部门会计与综合管理类公务员同属行政事业单位编制体系,报考渠道部分重叠"
+public-sector-accountant,accountant-gl,adjacent,"公共部门会计与企业会计核算技能栈同源(记账/报表/预算),组织性质(财政系统vs企业)是差异层承接"
