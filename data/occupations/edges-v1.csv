@@ -823,3 +823,5 @@ gpu-cluster-reliability-engineer,ai-infra-engineer,adjacent,"GPU集群可靠性�
 gpu-cluster-reliability-engineer,mlops-engineer,adjacent,"集群硬件可靠性与MLOps的服务稳定性目标一致,故障排查链路重叠"
 ai-evals-engineer,ai-safety-red-teamer,adjacent,"评测体系设计与安全红队测试同为AI质量保障两翼,方法论互通"
 ai-evals-engineer,mlops-engineer,adjacent,评测流水线接入生产监控是MLOps的常见协作面
+mcn-talent-operations,newmedia,adjacent,"MCN达人运营与企业新媒体运营同族相邻,内容生产/涨粉方法论同源(注册表草案,详细差异待边界层论证)"
+mcn-talent-operations,live-streaming-operations,adjacent,"达人孵化与直播运营在MCN机构内高频协同,常见职业转换路径"
