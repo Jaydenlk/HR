@@ -98,8 +98,6 @@ facility-management,物业设施管理(企业后勤),通用职能,职能支持,,
 front-desk-receptionist,前台/接待,通用职能,职能支持,,0,planned
 logistics-specialist,物流专员,通用职能,职能支持,,0,planned
 procurement,采购,通用职能,职能支持,,0,planned
-procurement-direct-material,直接采购(生产物料),通用职能,职能支持,直接采购,1,planned
-procurement-indirect-material,间接采购(行政/IT类),通用职能,职能支持,间接采购,1,planned
 procurement-strategic-sourcing,战略采购/寻源专员,通用职能,职能支持,,0,planned
 project-management,项目管理(PMO),通用职能,职能支持,,0,planned
 project-management-construction,工程项目经理(建筑),通用职能,职能支持,建筑工程,1,planned
@@ -113,9 +111,7 @@ accountant-gl,会计核算,通用职能,财务,,0,planned
 accountant-manufacturing-cost,制造业成本会计核算,通用职能,财务,制造业,1,planned
 accounts-payable,应付账款专员,通用职能,财务,,0,planned
 accounts-receivable,应收账款专员,通用职能,财务,,0,planned
-auditor-big4,四大审计师(外资所),通用职能,财务,外资所,1,planned
 auditor-firm,审计(事务所),通用职能,财务,,0,planned
-auditor-local-firm,本土会计师事务所审计师,通用职能,财务,本土所,1,planned
 budget-analyst,预算管理专员,通用职能,财务,,0,planned
 cashier,出纳/资金,通用职能,财务,,0,planned
 cost-accounting,成本会计,通用职能,财务,,0,planned
@@ -125,8 +121,6 @@ finance-management-trainee,财务管培生,通用职能,财务,,0,planned
 financial-controller,财务经理/Controller,通用职能,财务,,0,planned
 financial-reporting,财务报告/合并报表,通用职能,财务,,0,planned
 fpa-analyst,财务分析/FP&A,通用职能,财务,,0,planned
-fpa-analyst-internet,互联网行业FP&A,通用职能,财务,互联网,1,planned
-fpa-analyst-manufacturing,制造业FP&A,通用职能,财务,制造业,1,planned
 internal-audit,内审/内控,通用职能,财务,,0,planned
 ma-financial-due-diligence,并购财务尽调专员,通用职能,财务,,0,planned
 tax,税务,通用职能,财务,,0,planned
@@ -168,9 +162,6 @@ bi-engineer,BI工程师,工程技术,算法与数据,,0,planned
 bigdata-eng,大数据开发,工程技术,算法与数据,,0,planned
 computer-vision-engineer,计算机视觉算法工程师,工程技术,算法与数据,,0,planned
 data-analyst,数据分析师,工程技术,算法与数据,,0,planned
-data-analyst-finance-risk,金融风控数据分析师,工程技术,算法与数据,金融,1,planned
-data-analyst-internet-growth,互联网增长数据分析师,工程技术,算法与数据,互联网,1,planned
-data-analyst-retail-supply-chain,零售供应链数据分析师,工程技术,算法与数据,零售,1,planned
 data-mining-engineer,数据挖掘工程师,工程技术,算法与数据,,0,planned
 data-science,数据科学,工程技术,算法与数据,,0,planned
 data-warehouse-dev,数据开发(数仓/ETL),工程技术,算法与数据,,0,planned
@@ -394,7 +385,6 @@ registered-nurse,注册护士,公共制度,医疗临床,,0,planned
 rehabilitation-therapist,康复治疗师,公共制度,医疗临床,,0,planned
 court-enforcement-officer,法院执行局执行员,公共制度,司法系统,,0,planned
 judge-assistant,法院书记员/法官助理,公共制度,司法系统,,0,planned
-lawyer,执业律师,公共制度,司法系统,,0,planned
 lawyer-corporate-nonlitigation,非诉律师(公司/资本市场),公共制度,司法系统,非诉,1,planned
 lawyer-litigation,诉讼律师,公共制度,司法系统,诉讼,1,planned
 notary-public,公证员,公共制度,司法系统,,0,planned
