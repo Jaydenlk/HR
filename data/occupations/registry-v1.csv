@@ -381,3 +381,7 @@ postdoc-researcher,博士后研究员,公共制度,高校科研,,0,planned
 research-institute-assistant,科研院所助理研究员,公共制度,高校科研,,0,planned
 university-lecturer,高校专任教师(讲师/助理教授),公共制度,高校科研,,0,planned
 university-teaching-assistant,高校辅导员,公共制度,高校科研,,0,planned
+fde-forward-deployed-engineer,前向部署工程师(FDE),AI新兴,AI产品与运营,,0,planned
+embodied-ai-algorithm-engineer,具身智能算法工程师,AI新兴,AI产品与运营,,0,planned
+gpu-cluster-reliability-engineer,GPU集群可靠性工程师,AI新兴,AI产品与运营,,0,planned
+ai-evals-engineer,AI评测工程师(Evals),AI新兴,AI产品与运营,,0,planned

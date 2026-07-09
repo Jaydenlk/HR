@@ -815,3 +815,11 @@ marketing,sales,upstream,市场获客线索流向销售转化
 real-estate-investment-expansion,real-estate,upstream,投拓拿地在营销策划上游
 architect-assistant,civil-construction-site-engineer,upstream,建筑设计在现场施工上游
 product-manager,qa-automation-engineer,downstream,产品需求流向测试验证下游
+fde-forward-deployed-engineer,ai-application-engineer,adjacent,"FDE要把Agent产品做客户现场部署落地,技能栈同源"
+fde-forward-deployed-engineer,ai-sales-solution-consultant,adjacent,"FDE与AI解决方案售前都是客户侧交付角色,常互为职业转换路径"
+embodied-ai-algorithm-engineer,robotics-algorithm-engineer,adjacent,具身智能算法与机器人算法共享感知决策建模基础
+embodied-ai-algorithm-engineer,autonomous-driving-perception-engineer,adjacent,具身智能与自动驾驶感知同属实体环境感知决策技术谱系
+gpu-cluster-reliability-engineer,ai-infra-engineer,adjacent,"GPU集群可靠性是AI基础设施工程师上游的硬件底座保障,同团队常见协作"
+gpu-cluster-reliability-engineer,mlops-engineer,adjacent,"集群硬件可靠性与MLOps的服务稳定性目标一致,故障排查链路重叠"
+ai-evals-engineer,ai-safety-red-teamer,adjacent,"评测体系设计与安全红队测试同为AI质量保障两翼,方法论互通"
+ai-evals-engineer,mlops-engineer,adjacent,评测流水线接入生产监控是MLOps的常见协作面
