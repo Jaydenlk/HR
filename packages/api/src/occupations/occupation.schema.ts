@@ -34,6 +34,7 @@ export const OCCUPATION_SKELETON_SCHEMA = {
     'entry',
     'variation',
     'threshold',
+    'development',
     'trend',
     'axis',
     'domain_specifics',
@@ -175,7 +176,18 @@ export const OCCUPATION_SKELETON_SCHEMA = {
         who_should_not: { type: 'string', minLength: 1 },
       },
     },
-    // 8. 趋势层
+    // 8. 发展层
+    development: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['promotion_path', 'ceiling', 'lateral_moves'],
+      properties: {
+        promotion_path: { ...stringArray, minItems: 1 },
+        ceiling: { type: 'string', minLength: 1 },
+        lateral_moves: { ...stringArray, minItems: 1 },
+      },
+    },
+    // 9. 趋势层
     trend: {
       type: 'object',
       additionalProperties: false,

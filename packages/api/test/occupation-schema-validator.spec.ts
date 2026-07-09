@@ -42,6 +42,13 @@ describe('validateSkeleton', () => {
     expect(result.errors.some((e) => e.field === 'trend' && e.message.includes('缺层'))).toBe(true);
   });
 
+  it('①缺层(发展层):同一 fixture 本就同时缺失 development 层,应一并被拒绝且定位到 "development"', () => {
+    const fixture = loadFixture('invalid-missing-layer/occupations/broken.json');
+    const result = validateSkeleton(fixture.skeleton);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.field === 'development' && e.message.includes('缺层'))).toBe(true);
+  });
+
   it('②混入被禁字段:骨架 positioning 层混入 tier,应被拒绝且定位到 "positioning.tier"', () => {
     const fixture = loadFixture('invalid-forbidden-field/occupations/broken.json');
     const result = validateSkeleton(fixture.skeleton);

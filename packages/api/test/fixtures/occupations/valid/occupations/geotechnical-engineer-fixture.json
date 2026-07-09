@@ -56,6 +56,11 @@
       "common_misconceptions": "外行常以为地基处理很简单,实际地质条件差异极大。",
       "who_should_not": "不适合无法接受频繁出差驻场的人。"
     },
+    "development": {
+      "promotion_path": ["岩土设计师(0-3年)", "专业负责人(3-6年)", "岩土专业总工(6年以上)"],
+      "ceiling": "多数人止步于专业负责人一级,岩土专业总工岗位数量少,晋升瓶颈明显。",
+      "lateral_moves": ["转岗结构工程师", "转岗地质勘察工程师"]
+    },
     "trend": {
       "ai_tasks_replaced": ["常规计算书模板生成"],
       "ai_tasks_augmented": ["地质数据可视化分析"],

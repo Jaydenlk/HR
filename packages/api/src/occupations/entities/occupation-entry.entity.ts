@@ -18,7 +18,7 @@ export class OccupationEntry {
   @JoinColumn({ name: 'slug' })
   slugRef: OccupationSlug;
 
-  // 结构主干:8 层固定骨架 + axis + domain_specifics,生成与校验唯一作用的对象。
+  // 结构主干:9 层固定骨架 + axis + domain_specifics,生成与校验唯一作用的对象。
   @Column({ type: JSONB_COLUMN_TYPE })
   skeleton: OccupationSkeleton;
 

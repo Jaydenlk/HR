@@ -97,7 +97,7 @@ function requireStringArray(
 function getLayer(candidate: Record<string, unknown>, key: string, errors: ValidationError[]): Record<string, unknown> | null {
   const v = candidate[key];
   if (!isPlainObject(v)) {
-    errors.push({ field: key, message: '缺层:骨架 8 层固定结构中该层缺失或不是对象' });
+    errors.push({ field: key, message: '缺层:骨架 9 层固定结构中该层缺失或不是对象' });
     return null;
   }
   return v;
@@ -219,6 +219,13 @@ export function validateSkeleton(candidate: unknown): ValidationResult {
     requireNonEmptyString(threshold, 'threshold', 'who_should_not', errors);
   }
 
+  const development = getLayer(candidate, 'development', errors);
+  if (development) {
+    requireStringArray(development, 'development', 'promotion_path', 1, errors);
+    requireNonEmptyString(development, 'development', 'ceiling', errors);
+    requireStringArray(development, 'development', 'lateral_moves', 1, errors);
+  }
+
   const trend = getLayer(candidate, 'trend', errors);
   if (trend) {
     requireStringArray(trend, 'trend', 'ai_tasks_replaced', 1, errors);
@@ -253,12 +260,12 @@ export function validateSkeleton(candidate: unknown): ValidationResult {
     });
   }
 
-  // 顶层键集合里不应出现 8 层 + axis + domain_specifics 之外的多余键(与 JSON Schema
+  // 顶层键集合里不应出现 9 层 + axis + domain_specifics 之外的多余键(与 JSON Schema
   // additionalProperties:false 语义对齐,防止「顺手扩展」骨架)。
   const allowedTopKeys = new Set<string>([...SKELETON_LAYER_KEYS, 'axis', 'domain_specifics']);
   for (const key of Object.keys(candidate)) {
     if (!allowedTopKeys.has(key)) {
-      errors.push({ field: key, message: `骨架顶层出现未定义的多余字段 "${key}"(8 层固定骨架焊死,不许自行增删)` });
+      errors.push({ field: key, message: `骨架顶层出现未定义的多余字段 "${key}"(9 层固定骨架焊死,不许自行增删)` });
     }
   }
 
