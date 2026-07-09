@@ -176,7 +176,16 @@ export function checkDim6(occupation) {
     }
   }
 
-  // ── 8. 趋势层 ──
+  // ── 8. 发展层 ──
+  const development = skeleton.development;
+  if (!development) failures.push('skeleton.development: 整层缺失');
+  else {
+    if (!isNonEmptyStringArray(development.promotion_path)) failures.push('skeleton.development.promotion_path: 缺失或为空数组');
+    if (!isNonEmptyString(development.ceiling)) failures.push('skeleton.development.ceiling: 缺失或不是非空字符串');
+    if (!isNonEmptyStringArray(development.lateral_moves)) failures.push('skeleton.development.lateral_moves: 缺失或为空数组');
+  }
+
+  // ── 9. 趋势层 ──
   const trend = skeleton.trend;
   if (!trend) failures.push('skeleton.trend: 整层缺失');
   else {
