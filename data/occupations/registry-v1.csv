@@ -15,11 +15,8 @@ newmedia,新媒体运营,通用职能,产品运营,,0,planned
 operations,运营,通用职能,产品运营,,0,planned
 platform-operations,内容安全运营,通用职能,产品运营,,0,planned
 product-manager,互联网产品经理,通用职能,产品运营,,0,planned
-product-manager-b2b-saas,B2B SaaS产品经理,通用职能,产品运营,B2B SaaS,1,planned
-product-manager-fintech,金融科技产品经理,通用职能,产品运营,金融科技,1,planned
 product-manager-hardware-iot,硬件/IoT产品经理,通用职能,产品运营,硬件IoT,1,planned
 product-manager-healthcare,医疗健康产品经理,通用职能,产品运营,医疗健康,1,planned
-product-manager-industrial-software,工业软件产品经理,通用职能,产品运营,工业软件,1,planned
 product-operations,产品运营专员,通用职能,产品运营,,0,planned
 strategy-product-manager,策略产品经理,通用职能,产品运营,,0,planned
 user-operations,用户运营,通用职能,产品运营,,0,planned
@@ -33,13 +30,9 @@ hr-director,人力资源总监,通用职能,人力资源,,0,planned
 hr-ssc,HR共享服务(SSC),通用职能,人力资源,,0,planned
 hr-trainee,HR管培生,通用职能,人力资源,,0,planned
 hrbp,HRBP,通用职能,人力资源,,0,planned
-hrbp-manufacturing,制造业HRBP(含蓝领用工),通用职能,人力资源,制造业,1,planned
-hrbp-retail-chain,连锁零售HRBP,通用职能,人力资源,连锁零售,1,planned
 labor-relations-specialist,劳动关系专员,通用职能,人力资源,,0,planned
 org-development,组织发展(OD),通用职能,人力资源,,0,planned
 recruiter,招聘/校园招聘,通用职能,人力资源,,0,planned
-recruiter-blue-collar,蓝领/普工招聘专员,通用职能,人力资源,蓝领,1,planned
-recruiter-tech-specialized,技术岗招聘专员,通用职能,人力资源,技术岗,1,planned
 recruiting-coordinator,招聘协调员/HR助理,通用职能,人力资源,,0,planned
 recruitment-consultant,招聘顾问/猎头,通用职能,人力资源,,0,planned
 talent-development,人才发展专员,通用职能,人力资源,,0,planned
@@ -66,19 +59,11 @@ market-research,市场研究/用户研究,通用职能,市场销售,,0,planned
 marketing,市场营销,通用职能,市场销售,,0,planned
 marketing-b2b-industrial,B2B工业品市场营销,通用职能,市场销售,B2B工业品,1,planned
 marketing-b2c-consumer,消费品市场营销(B2C),通用职能,市场销售,消费品,1,planned
-marketing-digital-performance,数字营销/效果营销专员,通用职能,市场销售,数字营销,1,planned
 sales,销售,通用职能,市场销售,,0,planned
-sales-auto-consultant,汽车销售顾问,通用职能,市场销售,汽车,1,planned
 sales-development-rep,销售开发代表(SDR),通用职能,市场销售,,0,planned
-sales-education-course-consultant,教育课程顾问,通用职能,市场销售,教育培训,1,planned
-sales-enterprise-b2b-it,企业级IT解决方案销售,通用职能,市场销售,企业IT,1,planned
-sales-fmcg-channel,快消渠道销售,通用职能,市场销售,快消渠道,1,planned
-sales-industrial-equipment,工业设备销售,通用职能,市场销售,工业设备,1,planned
 sales-insurance-agent,保险代理人,通用职能,市场销售,保险,1,planned
 sales-operations,销售运营,通用职能,市场销售,,0,planned
 sales-pharma-medical-device,医疗器械销售,通用职能,市场销售,医疗器械,1,planned
-sales-real-estate-agent-newhome,地产销售顾问(新房),通用职能,市场销售,地产新房,1,planned
-sales-saas,SaaS软件销售,通用职能,市场销售,SaaS软件,1,planned
 seo-sem-specialist,SEO/SEM专员,通用职能,市场销售,,0,planned
 telemarketing,电话销售,通用职能,市场销售,,0,planned
 compliance-privacy,合规/数据隐私,通用职能,法务合规,,0,planned
@@ -91,8 +76,6 @@ paralegal,律师助理,通用职能,法务合规,,0,planned
 admin,行政,通用职能,职能支持,,0,planned
 customer-service-rep,客服专员(呼叫中心),通用职能,职能支持,,0,planned
 customer-success,客服/客户成功,通用职能,职能支持,,0,planned
-customer-success-ecommerce,电商客服主管,通用职能,职能支持,电商,1,planned
-customer-success-saas,SaaS客户成功经理,通用职能,职能支持,SaaS,1,planned
 executive-assistant,行政助理/文秘,通用职能,职能支持,,0,planned
 facility-management,物业设施管理(企业后勤),通用职能,职能支持,,0,planned
 front-desk-receptionist,前台/接待,通用职能,职能支持,,0,planned
@@ -103,12 +86,9 @@ project-management,项目管理(PMO),通用职能,职能支持,,0,planned
 project-management-construction,工程项目经理(建筑),通用职能,职能支持,建筑工程,1,planned
 project-management-it-implementation,IT实施项目经理,通用职能,职能支持,IT实施,1,planned
 supply-chain,供应链/物流,通用职能,职能支持,,0,planned
-supply-chain-ecommerce,电商供应链专员,通用职能,职能支持,电商,1,planned
-supply-chain-manufacturing-scm,制造业供应链管理,通用职能,职能支持,制造业,1,planned
 vendor-management-specialist,供应商管理专员,通用职能,职能支持,,0,planned
 warehouse-management,仓储管理,通用职能,职能支持,,0,planned
 accountant-gl,会计核算,通用职能,财务,,0,planned
-accountant-manufacturing-cost,制造业成本会计核算,通用职能,财务,制造业,1,planned
 accounts-payable,应付账款专员,通用职能,财务,,0,planned
 accounts-receivable,应收账款专员,通用职能,财务,,0,planned
 auditor-firm,审计(事务所),通用职能,财务,,0,planned
