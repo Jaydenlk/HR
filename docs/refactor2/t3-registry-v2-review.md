@@ -1,12 +1,14 @@
-# T3 注册表 v2.1 · 评审稿(用户 2026-07-09 裁决落地版,v2 的 Q1-Q5 拍板结果 + 敏感隔离 + 补量 + 司法系统族追加隔离已执行)
+# T3 注册表 v2.1 · 评审稿(用户 2026-07-09 裁决落地版,v2 的 Q1-Q5 拍板结果 + 敏感隔离 + 补量 + 司法系统族追加隔离 + Q2 弱 L3 整批裁决已执行)
 
-> 对应文件:主表 `data/occupations/registry-v1.csv`(389 条,已隔离敏感内容)/ `data/occupations/edges-v1.csv`(829 条)/ `data/occupations/aliases-v1.csv`(139 条);受限表(新建,不进生产 seed)`data/occupations/registry-restricted.csv`(23 条,新增 `access_category` 列)/ `data/occupations/edges-restricted.csv`(56 条)/ `data/occupations/aliases-restricted.csv`(1 条)。分支 `feat/t3-registry`,未合并未推送。v2 评审稿内容在此基础上原地更新为 v2.1,不再另存历史版本(v1 评审稿仍保留)。**本次更新(同日追加裁决)**:用户对司法系统族追加裁决,4 条政法编制岗从主表移入受限表,详见 §②.5。
+> 对应文件:主表 `data/occupations/registry-v1.csv`(369 条,已隔离敏感内容 + Q2 弱 L3 收回 20 条)/ `data/occupations/edges-v1.csv`(768 条)/ `data/occupations/aliases-v1.csv`(138 条);受限表(新建,不进生产 seed)`data/occupations/registry-restricted.csv`(23 条,新增 `access_category` 列)/ `data/occupations/edges-restricted.csv`(56 条)/ `data/occupations/aliases-restricted.csv`(1 条)。分支 `feat/t3-registry`,未合并未推送。v2 评审稿内容在此基础上原地更新为 v2.1,不再另存历史版本(v1 评审稿仍保留)。**本次更新(同日追加裁决)**:①用户对司法系统族追加裁决,4 条政法编制岗从主表移入受限表,详见 §②.5;②leader 对 Q2「36 条 L3 拆分」整批裁决(用户已授权 leader 拍板)——保留 16 条 + 收回 20 条弱拆分回母条,主表 389→369、edges 829→768、aliases 139→138,详见 §⑤ Q2 与新增 §②.6「L3 收回→母条差异层覆盖清单」。
 
 ## 一句话结论(v2.1)
 
 用户 2026-07-09 对 v2 逐项裁决并已全部落地:①**敏感隔离**——公务员族 11 条 + 国企专属体系族 7 条(共 18 条,来自 v2 基线)+ TOP12-30 补判本轮新增的公共部门会计 1 条(考编敏感,直入受限表不进主表),合计 19 条移入 `registry-restricted.csv`,`status=parked`,永不进生产 seed;相应 45(隔离移出)+2(本轮补判新增)= 47 条 edges 移入 `edges-restricted.csv`。主表数字变化:400(v2基线)− 18(隔离移出)+ 4(AI新兴扩容)+ 1(MCN收录)+ 6(TOP12-30补判净增,5条入主表+食品农产品检验1条)= 393 条。②**AI 新兴扩容 4 条**(FDE/具身智能算法/GPU 集群可靠性/AI 评测),每条附"为什么是长期战略需求"论证。③**MCN 达人运营转正收录** 1 条。④**产业颗粒度维持现状**,不做结构变更。⑤**TOP12-30 十项补判**:明确 6 项全部采纳(其中 1 条因考编敏感直入 restricted 表,5 条入主表)+ 半漏 4 项逐条判定(2 项确认实质覆盖不新增、1 项确认同池不新增、1 项确认真实缺口采纳新增入主表)。⑥**edges 引用完整性**主表与受限表分开验证,均 pass=true dangling=0。军队文职维持不收录(用户明确裁决,不再是开放问题)。
 
 **⑦【本次追加,2026-07-09 同日】司法系统族分离裁决**:用户裁决司法系统族里 4 条政法编制岗(法院执行局执行员/法院书记员-法官助理/检察院检察官助理/监狱人民警察)本质是"考公",从主表移入受限表并打 `access_category=考公` 标签;公证员/诉讼律师/非诉律师 3 条为市场化职业,用户明确留主表公开。移动后主表 **393→389**,受限表 **19→23**。受限表新增 `access_category` 列(取值仅"考公"/"国企"二选一),对既有 19 条 + 新增 4 条逐行补齐标签,分账**考公 16 条 / 国企 7 条**。详见 §②.5、§③.5、§④.5(访问控制语义追加)。
+
+**⑧【本次追加,2026-07-09 同日】Q2 弱 L3 拆分整批裁决**(用户已授权 leader 拍板):对 v1 遗留的 36 条 `l3_flag=1` L3 变体逐条按"≥4/9 骨架层实质差异 + 独立 JD 池"判据分档——**保留 16 条**(行业差异深达实操/入行/门槛/发展多层,有独立 JD 池)+**收回 20 条**(仅服务行业/客户不同、核心方法论相通,不达标)。收回的 20 条删除 L3 独立行,行业差异不丢、登记为母条量产时 `variation.industry_diffs` 差异层必覆盖项(见新增 §②.6)。主表 **389→369**、edges **829→768**(删除 61 条触及收回 slug 的边:含 40 条以收回 slug 为 from + 21 条以其为 to)、aliases **139→138**(删除 1 条悬空别名"置业顾问→sales-real-estate-agent-newhome")。edges 对 369 主表 slug 集重跑引用完整性 pass=true / dangling=0;aliases 重跑零悬空。`l3_flag=1` 从 36 降至 16。详见 §⑤ Q2 与 §②.6。
 
 ---
 
@@ -32,7 +34,7 @@
 - `procurement-direct-material`、`procurement-indirect-material` → 收回 `procurement`(直接/间接采购是同一职业内的品类分工,JD 常合并招聘)
 - `lawyer`(执业律师母条)→ **收编**。诉讼/非诉是公认执业分野(客户对象/工作流/产出物/入行竞争 4 层以上实锤差异),保留 `lawyer-litigation` 与 `lawyer-corporate-nonlitigation` 两条 L3;"执业律师"这个泛称不再占词条位,由检索层消歧页承接(搜"律师"→列出诉讼/非诉两条各自的一句话定位)。
 
-保留不动的 L3 共 36 条(product-manager×5、hrbp×2、sales×11 等,清单可从 CSV `l3_flag=1` 直接过滤)——这批是 v1 已提案、审计未点名要收的,**是否整批复核确认见开放问题 Q2**。
+保留不动的 L3 共 36 条(product-manager×5、hrbp×2、sales×11 等,清单可从 CSV `l3_flag=1` 直接过滤)——这批是 v1 已提案、审计未点名要收的。**【2026-07-09 更新】这 36 条已由 leader 对 Q2 整批裁决**:保留 16 条 + 收回 20 条弱拆分回母条,`l3_flag=1` 现为 16 条,详见 §②.6 与 §⑤ Q2。本节文字保留作历史(描述裁决前的 36 条状态)。
 
 ---
 
@@ -48,21 +50,25 @@
 | MCN收录(§四) | mcn-talent-operations | +1 | 0 |
 | TOP12-30补判(§六) | 明确6项:5条入主表+1条(公共部门会计)直入受限表;半漏4项仅1条(食品农产品检验)入主表 | +6 | +1 |
 | v2.1(隔离/扩容/补判后) | | 393 | 19 |
-| 司法系统族追加隔离(§②.5,本次) | 法院执行局执行员/法院书记员-法官助理/检察院检察官助理/监狱人民警察,共4条移出 | −4 | +4 |
-| **v2.1 最终合计** | | **389** | **23** |
-| **主表+受限表 grand total** | | | **412** |
+| 司法系统族追加隔离(§②.5) | 法院执行局执行员/法院书记员-法官助理/检察院检察官助理/监狱人民警察,共4条移出 | −4 | +4 |
+| 小计(隔离全部完成) | | 389 | 23 |
+| Q2 弱 L3 整批裁决(§②.6,本次) | 保留16条+收回20条弱拆分回母条(删L3独立行,行业并入母条差异层) | −20 | 0 |
+| **v2.1 最终合计** | | **369** | **23** |
+| **主表+受限表 grand total** | | | **392** |
 
-### 主表 L0 分布(389 条)
+### 主表 L0 分布(369 条,Q2 收回后)
 
 | L0 板块 | 词条数 | 占比 | vs v2(400条基线) |
 |---|---:|---:|---|
-| 通用职能 | 129 | 33.2% | 127→129(+AE广告代理+MCN达人运营) |
-| 产业专业 | 119 | 30.6% | 116→119(+社会办医+4S店管培+食品农产品检验) |
-| 工程技术 | 73 | 18.8% | 71→73(+智能制造系统集成+游戏发行专员) |
-| 公共制度 | 26 | 6.7% | 48→30(隔离18)→26(本次追加隔离司法系统族4条,393→389 口径下的公共制度剩余量);占比回落是隔离的直接结果,非收缩公共制度覆盖意愿 |
-| 创意服务 | 24 | 6.2% | 不变 |
-| AI新兴 | 18 | 4.6% | 14→18(+FDE/具身智能算法/GPU集群可靠性/AI评测) |
-| **主表合计** | **389** | 100% | 400→393→389 |
+| 产业专业 | 119 | 32.2% | 116→119(+社会办医+4S店管培+食品农产品检验);Q2 收回不涉及本板块 |
+| 通用职能 | 109 | 29.5% | 127→129(+AE广告代理+MCN达人运营)→109(Q2 收回 20 条弱 L3 全部落在通用职能:产品运营3/人力资源4/市场销售8/职能支持4/财务1) |
+| 工程技术 | 73 | 19.8% | 71→73(+智能制造系统集成+游戏发行专员);Q2 收回不涉及(backend-fintech/-gaming 属保留16条) |
+| 公共制度 | 26 | 7.0% | 48→30(隔离18)→26(追加隔离司法系统族4条);占比回落是隔离的直接结果,非收缩公共制度覆盖意愿 |
+| 创意服务 | 24 | 6.5% | 不变 |
+| AI新兴 | 18 | 4.9% | 14→18(+FDE/具身智能算法/GPU集群可靠性/AI评测) |
+| **主表合计** | **369** | 100% | 400→393→389→369 |
+
+> Q2 收回的 20 条全部来自通用职能板块(其余 5 板块不受影响):产品运营族 3(B2B SaaS/金融科技/工业软件 PM)、人力资源族 4(制造/连锁零售 HRBP + 蓝领/技术岗招聘)、市场销售族 8(数字营销 + 汽车/教育/快消/工业设备/地产/企业IT/SaaS 销售)、职能支持族 4(电商/SaaS 客户成功 + 电商/制造供应链)、财务族 1(制造业成本会计)。故通用职能 129→109(−20)。
 
 ### 受限表 L1 构成(23 条,`registry-restricted.csv`,status 全 `parked`)
 - **公务员 12**:综合管理母条 / 选调生 / 税务系统 / 海关关员 / 海关商检 / 公安民警 / 人民银行 / 证监会序列 / 移民管理边检 / 消防救援 / 海事系统 /(本轮补判新增)公共部门会计
@@ -72,7 +78,7 @@
 **红线复述(用户 2026-07-09 裁决)**:以上 23 条不删除、留存但不启用,`status=parked` 且永不进生产 seed;绝不上线上服务器;未来仅限特殊权限访问通道 + Coach AI 对相关内容拒答。教师体系/医疗临床/事业单位(含空管/气象)按裁决维持主表公开(leader 默认判断,已报备用户可纠)。军队文职维持不收录。
 
 ### 距 700-800 目标(维持 v2 判断,未变)
-389(主表)距下限 700 还差 311,补量路径不变,详见 §7(未因本轮隔离/补判调整)。隔离表的 23 条不计入"距 700-800"的分母——它们 parked 不进生产,不是可用词条。
+369(主表,Q2 收回后)距下限 700 还差 331,补量路径不变,详见 §7(未因本轮隔离/补判/Q2 收回调整目标)。Q2 收回的 20 条弱 L3 不是"减少覆盖"——这 20 个行业颗粒转为母条差异层内的必覆盖项,量产时仍逐行业产出内容,只是不再各占一个独立词条位。隔离表的 23 条同样不计入"距 700-800"的分母——它们 parked 不进生产,不是可用词条。
 
 ## ②.5 司法系统族追加隔离(用户 2026-07-09 同日追加裁决,本次落地)
 
@@ -102,11 +108,52 @@
 - **edges**:`edges-v1.csv` 里 from/to 任一指向这 4 条 slug 的边,共 9 条(`court-enforcement-officer↔judge-assistant` 双向、`judge-assistant→prosecutor-assistant`、`judge-assistant→lawyer-litigation`、`lawyer-litigation→judge-assistant`、`notary-public→judge-assistant`、`prison-police→court-enforcement-officer`、`prosecutor-assistant→judge-assistant`、`prosecutor-assistant→lawyer-litigation`)整行移入 `edges-restricted.csv`。主表 edges 838→829(本次追加隔离前的 v2.1 中间态是 838,追加隔离后为 829);受限表 edges 47→56。**跨边界边保留不删**:`lawyer-litigation→judge-assistant`、`notary-public→judge-assistant` 这两条一端在主表(诉讼律师/公证员)一端在受限表(法官助理),按"任一指向被隔离 slug 即移入受限表"的既定规则整行移入,note 原样保留,零悬空校验已把主表+受限表并集纳入验证范围(见 §③.5)。
 - **aliases**:`aliases-v1.csv` 里仅 1 条别名命中这 4 个 slug——`书记员,judge-assistant,1`,已移入 `aliases-restricted.csv`。主表别名 140→139,受限表别名 0→1。
 
-### 机械核对结果(本次追加隔离后,原文见交付报告)
-- 主表 389 条全部 `status=planned`
+### 机械核对结果(司法系统族追加隔离后的快照,原文见交付报告;Q2 收回后的最新核对见 §②.6 与 §⑨)
+- 主表 389 条全部 `status=planned`(此为追加隔离后、Q2 收回前的中间态数字;Q2 收回 20 条后主表为 369,见 §②.6)
 - 受限表 23 条全部 `status=parked`
 - 受限表 `access_category` 23/23 全部有值,分布 {考公: 16, 国企: 7}
 - 主表∩受限表 slug 交集为空(0 条重叠)
+
+---
+
+## ②.6 L3 收回→母条差异层覆盖清单(用户 2026-07-09 授权 leader 对 Q2 整批裁决,本次落地)
+
+### 裁决与判据
+对 v1 遗留 36 条 `l3_flag=1` L3 变体,按设计裁决 §1 条2 的判据逐条分档:**L3 独立成条门槛 = 该变体在 ≥4/9 骨架层(定位/坐标/边界/实操/入行/差异/门槛/发展/趋势)有实质差异 且 有独立 JD 池**;仅"服务行业/客户不同、核心方法论相通"的不达标,收回母条。收回后行业差异**不丢失**——登记为母条量产时差异层(`variation.industry_diffs`)必须覆盖项,量产内容必须逐行业写出实操/入行/门槛的具体区别。
+
+- **保留 16 条**(A 组,`l3_flag` 维持 1):`product-manager-hardware-iot`、`product-manager-healthcare`、`marketing-b2b-industrial`、`marketing-b2c-consumer`、`sales-insurance-agent`、`sales-pharma-medical-device`、`securities-research-buyside`、`securities-research-sellside`、`lawyer-litigation`、`lawyer-corporate-nonlitigation`、`project-management-construction`、`project-management-it-implementation`、`legal-internet-compliance`、`legal-ma-capital-markets`、`backend-fintech`、`backend-gaming`。
+- **收回 20 条**(B 组,删 L3 独立行,行业并入母条量产差异层),母条承接如下。
+
+### 母条存在性核实(执行前 grep 确认)
+8 个母条全部已存在于 `registry-v1.csv` 且 `l3_flag=0`,**无需新建**:`product-manager`、`hrbp`、`recruiter`、`marketing`、`sales`、`customer-success`、`supply-chain`;会计/成本会计组承接母条选用 `cost-accounting`(成本会计,`accountant-manufacturing.制造业成本会计核算`更贴近成本会计而非会计核算 `accountant-gl`)。
+
+### 母条差异层必覆盖行业清单
+
+| 母条 slug | 母条 name | 收回的 L3(行业颗粒) | 量产时 `variation.industry_diffs` 必覆盖行业 |
+|---|---|---|---|
+| `product-manager` | 互联网产品经理 | product-manager-b2b-saas / -fintech / -industrial-software | [B2B SaaS,金融科技,工业软件] |
+| `hrbp` | HRBP | hrbp-manufacturing / hrbp-retail-chain | [制造业(含蓝领用工),连锁零售] |
+| `recruiter` | 招聘/校园招聘 | recruiter-blue-collar / recruiter-tech-specialized | [蓝领/普工,技术岗] |
+| `marketing` | 市场营销 | marketing-digital-performance | [数字营销/效果营销] |
+| `sales` | 销售 | sales-auto-consultant / -education-course-consultant / -fmcg-channel / -industrial-equipment / -real-estate-agent-newhome / -enterprise-b2b-it / -saas | [汽车,教育课程,快消渠道,工业设备,地产新房,企业IT解决方案,SaaS] |
+| `customer-success` | 客服/客户成功 | customer-success-ecommerce / customer-success-saas | [电商,SaaS] |
+| `supply-chain` | 供应链/物流 | supply-chain-ecommerce / supply-chain-manufacturing-scm | [电商,制造业SCM] |
+| `cost-accounting` | 成本会计 | accountant-manufacturing-cost | [制造业(成本核算)] |
+
+> 说明:`sales-enterprise-b2b-it` 与 `sales-saas` 在裁决中被判为高度重叠(同为解决方案/软件销售),二者一并收回 `sales` 母条,量产差异层用两个行业条目("企业IT解决方案"/"SaaS")表达其细分,不再各占词条位。
+
+### 删变体的连带处理(edges/aliases)
+**策略:直接删除**(不重定向母条)。理由:①重定向会产生自环(如 `hrbp-manufacturing→hrbp` 泛化后变 `hrbp→hrbp`)或与已有母条级边重复;②重定向需逐边判断语义是否可泛化,不是"简单一致"的机械操作;③母条级的关键关系(如 `hrbp↔recruiter`、`marketing→sales`)在 edges 表里**已有独立母条级边**(已 grep 核实),删除 L3 专属边不切断图连通性,只清掉冗余重复。
+- **edges**:`edges-v1.csv` 里 from/to 任一命中这 20 个 slug 的边共 **61 条**整行删除(40 条以收回 slug 为 from + 21 条以其为 to)。删后主表 edges **829→768**。对 369 主表 slug 集重跑 `edges-referential-integrity.mjs`:`pass=true`,`dangling_reference_count=0`,`bad_type_count=0`(输出原文见交付报告)。
+- **aliases**:`aliases-v1.csv` 里 1 条别名的 slug 列命中收回 slug——`置业顾问,sales-real-estate-agent-newhome,1`(悬空),整行删除(不重定向 `sales`:"置业顾问"是地产专有术语,泛化到通用"销售"母条语义失真,与 edges 删除策略保持一致)。删后主表别名 **139→138**,重跑别名 slug 零悬空校验 pass。restricted 三件套本任务不碰。
+
+### 异议清单(leader 分档复核结果)
+评审代理独立用判据(≥4/9 骨架层实质差异 + 独立 JD 池)复核 A/B 分档,并核实相关承接节点是否存在,结论:**leader 保留 16 / 收回 20 分档全部认可,无硬异议。**
+
+复核要点(佐证分档正确):
+- **收回侧被独立节点覆盖**:多条被收回的 L3,其行业深度已由主表内独立节点承接——`sales-real-estate-agent-newhome` 有 `real-estate-agent`(房产经纪人,产业专业/地产建筑)、`sales-fmcg-channel` 有 `channel-sales`+`trade-marketing-specialist`、`sales-enterprise-b2b-it`/`sales-saas` 有 `key-account-manager`、`marketing-digital-performance` 有 `ad-optimizer`+`seo-sem-specialist`+`growth`、`supply-chain-manufacturing-scm` 有 `supply-chain-planner`+`logistics-manager-manufacturing`(均产业专业/制造供应链)、`recruiter-tech-specialized` 有 `recruitment-consultant`。收回它们不丢覆盖,只清冗余重复。
+- **保留侧的 4 层差异属实**:`product-manager-hardware-iot`(硬件 NPI/BOM/打样量产 vs 软件敏捷)、`product-manager-healthcare`(NMPA 注册/临床验证)、`project-management-construction`(建造师证/四控/现场)vs `-it-implementation`(甲乙方交付/PMP)、`legal-internet-compliance`(数据合规/网信办)vs `-ma-capital-markets`(尽调/证监会/IPO)、`backend-fintech`(对账/风控/低延迟)vs `-gaming`(高并发/帧同步/防作弊)——均在实操/入行/门槛/工具 ≥4 层可写出实锤差异,保留成立。
+- **唯一贴线的软注**(非异议):`sales-real-estate-agent-newhome` 是最贴近门槛的一条收回(房产经纪人资格证/案场坐销工作流可勉强凑 4 层);但因主表已有专职的 `real-estate-agent` 节点(产业专业深度)承接地产销售全域,新房变体在通用 `sales` 下属冗余,收回正确。此点仅作透明记录,不构成翻案建议。
 
 ---
 
@@ -188,7 +235,9 @@
 
 **零悬空验证(dev Stage0 官方脚本真跑,追加隔离后重新验证,原文)**:
 
-主表(对主表 389 slugs 跑):
+> **【2026-07-09 更新】以下主表 JSON 是 Q2 收回前(edges 829/slugs 389)的历史快照。Q2 收回 20 条弱 L3 后主表最新为 edges 768/slugs 369,重新真跑 `edges-referential-integrity.mjs` 仍 `pass=true` / `dangling=0`,最新原文见 §②.6 与交付报告。受限表未受 Q2 影响(Q2 不碰 restricted 三件套),下方受限表 JSON 仍有效。**
+
+主表(对主表 389 slugs 跑,Q2 收回前历史快照):
 ```json
 {
   "dim": "edges",
@@ -226,9 +275,9 @@
 
 `data/occupations/aliases-v1.csv`,格式 `alias,slug,weight`(1=标准同义/缩写,0.8=行话但指向唯一):
 
-- **规模**:139 条(140 − 1 条 `书记员,judge-assistant,1` 随 `judge-assistant` 移入受限表)。此前隔离/扩容批次(公务员族11+国企7+公共部门会计1,共19条)均未涉及别名,`aliases-v1.csv` 一度维持 140 条不变;本次追加隔离司法系统族 4 条 slug 时,发现其中 `judge-assistant` 命中别名"书记员",按同一规则整行移入 `aliases-restricted.csv`
+- **规模**:**138 条**。演进链:140 →(司法系统族追加隔离)139(140 − 1 条 `书记员,judge-assistant,1` 随 `judge-assistant` 移入受限表)→(**Q2 收回,2026-07-09 本次**)138(139 − 1 条 `置业顾问,sales-real-estate-agent-newhome,1` 随收回 slug `sales-real-estate-agent-newhome` 删除;因该 slug 收回母条 `sales`,而"置业顾问"是地产专有术语,泛化到通用销售母条语义失真,故删不重定向)。
 - **纪律**:只收无歧义别名。**明确不收**(留给 pg_trgm 兜底或消歧页):程序员/公务员/PM/TD/BP/幼师/用户研究员/客服/合规专员/UX设计师/大模型算法/投顾/乘务员/软件测试/客户端开发——这些词映射到多个词条,硬收会污染精确命中层
-- **核验**:139 条的 slug 全部存在于主表注册表(悬空 0),无一对多歧义映射(同一 alias 只指向一个 slug),weight 全部在 (0,1] 值域;`aliases-restricted.csv` 的 1 条(`书记员,judge-assistant,1`)slug 存在于受限表(悬空 0)
+- **核验**:**138 条**的 slug 全部存在于主表 369 条注册表(悬空 0,Q2 收回后重跑别名 slug 零悬空校验 pass),无一对多歧义映射(同一 alias 只指向一个 slug),weight 全部在 (0,1] 值域;`aliases-restricted.csv` 的 1 条(`书记员,judge-assistant,1`)slug 存在于受限表(悬空 0)
 
 ## ④.5 受限内容访问控制(用户 2026-07-09 裁决,新增·产品需求记录;同日追加"开关式索引控制"语义)
 
@@ -257,8 +306,8 @@
 ### Q1 【已裁决,2026-07-09】军队文职收不收?
 **用户裁决:不收,维持不收录,不再是开放问题。** 消防救援维持挂在"公务员"族下(未单设族);但整个"公务员"族(含消防救援)本轮已按敏感隔离规则整体移入 `registry-restricted.csv`,`status=parked`,详见 ④.5 与交付报告。
 
-### Q2 【未在本轮裁决范围内,维持开放】v1 遗留 36 条 L3 拆分是否整批确认?
-用户本轮裁决未触及此问题,**Q2 继续保持开放状态**,留待下一轮拍板。本轮未对这 36 条做任何改动。
+### Q2 【已裁决,2026-07-09,用户授权 leader 拍板】v1 遗留 36 条 L3 拆分是否整批确认?
+**已整批裁决,不再开放。** leader 按"≥4/9 骨架层实质差异 + 独立 JD 池"判据逐条分档:**保留 16 条 + 收回 20 条弱拆分回母条**。收回条的行业差异不丢,转为母条量产时 `variation.industry_diffs` 差异层必覆盖项。执行结果:主表 389→369、edges 829→768、aliases 139→138,`l3_flag=1` 从 36 降至 16。完整分档清单、母条差异层覆盖表、连带 edges/aliases 处理、零悬空重验输出见新增 **§②.6** 与交付报告。
 
 ### Q3 【已被 2026-07-09 裁决部分回答】AI新兴板块扩容与否?
 **用户裁决:可扩,标准=大规模需求+明确发展路径,短时炒作规避。** 已按此标准扩容 4 条(FDE/具身智能算法/GPU集群可靠性/AI评测),每条附论证,详见 §③新增。是否继续扩容超出本轮范围的问题(如 Q2 式的"是否还有更多候选")留待后续。
@@ -342,30 +391,30 @@
 
 ## ⑦ 距 700-800 的收敛路径(供拍板,不自作主张;§7.2 已按用户裁决更新)
 
-1. **Q2 拆分口径放开**(对银行保险/医药医疗/地产建筑等 16 个产业族比照 12 个高热族做行业场景 L3):估 +80~120 条。Q2 仍开放(§⑤),此路径待 Q2 拍板后启用。
+1. ~~**Q2 拆分口径放开**(对银行保险/医药医疗/地产建筑等 16 个产业族比照 12 个高热族做行业场景 L3):估 +80~120 条。~~ **【2026-07-09 Q2 已裁决,本路径方向被否】** leader 对 Q2 的裁决是**收紧** L3 标准(≥4/9 骨架层实质差异 + 独立 JD 池),把 36 条弱 L3 里的 20 条收回母条,而非放开口径批量增拆。故"比照高热族批量做行业场景 L3"与已裁决的标准相悖,不再作为补量路径;行业颗粒差异改由母条 `variation.industry_diffs` 差异层承接(见 §②.6),不占独立词条位。补量应转向 O*NET 反查发现真实整族盲区(第 3 条)。
 2. **【用户 2026-07-09 裁决:维持现状,本条暂不启用】产业颗粒度细分**(能源化工拆 3 子族、物流交通拆客运/货运等):估 +60~100 条。**裁决原文**:产业颗粒度维持现状,数据驱动延后——经济验证批(真实用户使用数据)暴露"族内词条边界打架"的具体证据后,再针对性细分对应的族,不预先拆分。此路径的估算数字保留作参考,但不作为近期补量依据。
 3. **O*NET 反查系统性查漏**(用职业分类学做负清单核对,而不是靠经验列举):估 +50~80 条,这是唯一能发现"整族盲区"的方法(本轮的通信技术/船舶/环评就是典型盲区,靠审计才抓出来)
-4. 三项全开的理论上限约 **590-700**,800 仍要靠放宽"独立 JD 池"标准才够得着。**建议把 O*NET 反查(第 3 条)作为量产前的固定动作**;第 2 条(产业颗粒度)按用户裁决暂缓,第 1 条(Q2)待拍板。
+4. 现状:第 1 条(Q2 拆分放开)已被裁决否决、方向反转为收紧;第 2 条(产业颗粒度)按用户裁决暂缓;唯一活跃的系统性补量路径是第 3 条 O*NET 反查。**建议把 O*NET 反查作为量产前的固定动作**——在 L3 标准已收紧(靠"独立 JD 池 + ≥4/9 层差异"而非行业颗粒堆量)的前提下,够 700-800 更依赖发现真实整族盲区,而非放宽拆分口径。
 
 ## ⑧ 给未来 CSV 导入器的两条输入条件(镜头 A 记录,防返工)
 
-1. **`l2_scene` 空值语义**:CSV 里空字符串 = "无行业场景"(l3_flag=0 的母条一律为空),**不是缺失数据**。未来把注册表 CSV 灌进 `occupation_slugs` 表的导入器不能把空串当校验失败;机械核对的一致性规则是 `l3_flag=1 ⟺ l2_scene 非空`(v2.1 已脚本验证主表 389/389、受限表 23/23 通过,详见 §2、§9)。
+1. **`l2_scene` 空值语义**:CSV 里空字符串 = "无行业场景"(l3_flag=0 的母条一律为空),**不是缺失数据**。未来把注册表 CSV 灌进 `occupation_slugs` 表的导入器不能把空串当校验失败;机械核对的一致性规则是 `l3_flag=1 ⟺ l2_scene 非空`(Q2 收回后已脚本验证主表 369/369、受限表 23/23 通过,详见 §2、§9)。
 2. **类型转换必须显式**:CSV 的 `l3_flag` 是字符 `'1'/'0'`,入库列是 boolean——导入器要写显式转换;`status` 全部 `planned`。**不许直接复用 `seed-importer.ts` 的 `isNonEmptyString` 校验链**:那套是给 content JSON(生产产物)设计的,`l2_scene` 在它手里会被"非空字符串"断言误杀,`l3_flag` 也不经过 string→boolean 通道。注册表 CSV 导入是另一条独立路径,需要自己的校验器(可复用 `validateEdgesReferentialIntegrity`,它吃的是结构化行,无此问题)。
 
-## ⑨ 自查清单(v2.1 刷新;末次更新=司法系统族追加隔离后)
+## ⑨ 自查清单(v2.1 刷新;末次更新=Q2 弱 L3 整批裁决收回 20 条后)
 
-- [x] slug 唯一性:主表 389/389、受限表 23/23、主表∩受限表交集为空(无重复)——机械核对脚本 pass=true,failures=[](输出原文在交付报告)
-- [x] kebab-case 格式:主表 389 条 + 受限表 23 条全部通过(脚本验证,0 违例)
-- [x] L0 六值域:主表六值全部落在 {通用职能/产业专业/工程技术/公共制度/创意服务/AI新兴},0 违例;受限表 23 条全部为"公共制度"(隔离逻辑决定,无越域),0 违例
-- [x] status 值域:主表全部 `planned`(389/389),受限表全部 `parked`(23/23,隔离规则要求的状态转换已生效,无遗漏)
-- [x] l3_flag↔l2_scene 双向一致:主表 389/389、受限表 23/23 通过,零违例(脚本重新验证)
-- [x] `access_category` 完整性(本次新增列):受限表 23/23 全部有值,分布 {考公: 16, 国企: 7},取值仅"考公"/"国企"二选一,无第三值;主表确认无此列(7 列 header 不变)
-- [x] edges 零悬空(主表/受限表分开验证,§③.5 原文,末次重新验证):主表 829 edges/389 slugs pass=true dangling=0;受限表 56 edges/412 slugs(主表+受限表并集)pass=true dangling=0
-- [x] aliases 零悬空/零歧义映射:主表 139/139(1 条随 `judge-assistant` 迁出);受限表 1/1(`书记员,judge-assistant,1`,slug 存在于受限表,不悬空)
+- [x] slug 唯一性:主表 **369/369**、受限表 23/23、主表∩受限表交集为空(无重复)——机械核对脚本 pass=true,failures=[](输出原文在交付报告)
+- [x] kebab-case 格式:主表 **369 条** + 受限表 23 条全部通过(脚本验证,0 违例)
+- [x] L0 六值域:主表六值全部落在 {通用职能/产业专业/工程技术/公共制度/创意服务/AI新兴},0 违例(Q2 收回 20 条全部在通用职能板块内,不引入新值域);受限表 23 条全部为"公共制度"(隔离逻辑决定,无越域),0 违例
+- [x] status 值域:主表全部 `planned`(**369/369**),受限表全部 `parked`(23/23,隔离规则要求的状态转换已生效,无遗漏)
+- [x] l3_flag↔l2_scene 双向一致:主表 **369/369**(l3_flag=1 现为 16 条,均 l2_scene 非空;353 条母条/普通条 l2_scene 空)、受限表 23/23 通过,零违例(脚本用 `Boolean()` 包裹空串重新验证)
+- [x] `access_category` 完整性(受限表列):受限表 23/23 全部有值,分布 {考公: 16, 国企: 7},取值仅"考公"/"国企"二选一,无第三值;主表确认无此列(7 列 header 不变)
+- [x] edges 零悬空(Q2 收回后对主表 369 slug 集重新真跑,末次验证):主表 **768 edges/369 slugs pass=true dangling=0 bad_type=0**(原文见 §②.6/交付报告);受限表未受 Q2 影响,仍 56 edges/412 slugs(主表+受限表并集)pass=true dangling=0(§③.5 历史快照有效)
+- [x] aliases 零悬空/零歧义映射:主表 **138/138**(Q2 收回删 1 条悬空别名"置业顾问→sales-real-estate-agent-newhome";此前司法隔离已迁出 1 条"书记员");受限表 1/1(`书记员,judge-assistant,1`,slug 存在于受限表,不悬空)
 - [x] 90 既有职业库收编不变(本轮敏感隔离/扩容/补判/司法系统追加隔离均未改动其中任何 slug/name)
-- [x] 新增条目零编造:AI新兴4条+MCN1条+TOP12-30补判6条,合计11条新增,每条对应真实可检索的校招JD池/国家职业技能标准/政策文件(FDE/具身智能已附引用来源,详见交付报告);本次司法系统族追加隔离**只移动不新增**,零新 slug
+- [x] 新增条目零编造:AI新兴4条+MCN1条+TOP12-30补判6条,合计11条新增,每条对应真实可检索的校招JD池/国家职业技能标准/政策文件(FDE/具身智能已附引用来源,详见交付报告);司法系统族追加隔离**只移动不新增**,Q2 弱 L3 整批裁决**只删除收回不新增**(20 条弱拆分回母条),两批均零新 slug、零编造真实职业
 - [x] 司法系统族裁决边界核实:`notary-public`/`lawyer-litigation`/`lawyer-corporate-nonlitigation` 三条按用户明确指示留主表,未被误移动(逐行核对见 §②.5)
 - [x] 未触碰 `packages/`(只读取 checks 脚本做验证)、未跑迁移、未合并未推送
 - [x] **v2 遗留 commit message 勘误**:commit `90e5bc3`(标题"公共制度扩容27→49条")的"49条"与代码实际落盘的 48 条(即 v2 评审稿 §2 记录的口径)不一致,系撰写commit message时的笔误,以代码实际行数为准(v2 时点 48 条属实,已用脚本反复核验)。本轮隔离 18 条移出后公共制度回落到 30 条,本次司法系统族追加隔离 4 条后进一步回落到 26 条(§2 已说明),该笔误不影响任何数据完整性,仅作勘误存档不改历史commit。
 - [x] 受限内容访问控制三条硬性输入条件 + 开关式索引控制语义已记录(④.5),供 Agent B/API 阶段对照验收
-- [ ] 用户过目批准(门 2 的最后一关,Q1/Q4/Q5 已本轮拍板,Q2/Q3 部分/全部悬留,注册表冻结前仍需最终确认)
+- [ ] 用户过目批准(门 2 的最后一关,Q1/Q2/Q4/Q5 已拍板[Q2 由用户授权 leader 拍板],Q3 部分悬留,注册表冻结前仍需最终确认)
