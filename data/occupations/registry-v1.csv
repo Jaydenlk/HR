@@ -130,6 +130,7 @@ fpa-analyst-manufacturing,制造业FP&A,通用职能,财务,制造业,1,planned
 internal-audit,内审/内控,通用职能,财务,,0,planned
 ma-financial-due-diligence,并购财务尽调专员,通用职能,财务,,0,planned
 tax,税务,通用职能,财务,,0,planned
+tax-advisory-firm,税务咨询(税务师事务所/四大税务线),通用职能,财务,,0,planned
 treasury,资金管理/司库,通用职能,财务,,0,planned
 cloud-solutions-architect,云解决方案架构师,工程技术,云计算与基础设施,,0,planned
 database-administrator,数据库管理员(DBA),工程技术,云计算与基础设施,,0,planned
@@ -138,6 +139,7 @@ automation-engineer,自动化工程师,工程技术,制造工程,,0,planned
 electrical-engineer,电气工程师,工程技术,制造工程,,0,planned
 equipment-engineer-manufacturing,设备工程师(制造业产线设备),工程技术,制造工程,,0,planned
 industrial-engineer-ie,工业工程师(IE),工程技术,制造工程,,0,planned
+marine-shipbuilding-engineer,船舶工程师(设计/建造),工程技术,制造工程,,0,planned
 materials-engineer,材料工程师,工程技术,制造工程,,0,planned
 mechanical-engineer,机械工程师,工程技术,制造工程,,0,planned
 optical-engineer,光学工程师,工程技术,制造工程,,0,planned
@@ -203,6 +205,7 @@ devops-sre,运维/SRE,工程技术,运维安全,,0,planned
 network-engineer,网络工程师,工程技术,运维安全,,0,planned
 penetration-tester,渗透测试工程师,工程技术,运维安全,,0,planned
 security,网络安全,工程技术,运维安全,,0,planned
+telecom-network-engineer,通信工程师(无线/传输/核心网),工程技术,通信技术,,0,planned
 audio-podcast-producer,播客/音频节目制作人,创意服务,内容与传媒制作,,0,planned
 film-tv-production-assistant,影视制作/剧组执行,创意服务,内容与传媒制作,,0,planned
 photographer-commercial,商业摄影师,创意服务,内容与传媒制作,,0,planned
@@ -257,6 +260,7 @@ hospital-nursing-manager,医院护理部管理岗,产业专业,医药医疗,,0,p
 hospital-purchasing-specialist,医院采购/物资专员,产业专业,医药医疗,,0,planned
 medical-affairs-msl,医学联络官(MSL),产业专业,医药医疗,,0,planned
 medical-rep,医药代表,产业专业,医药医疗,,0,planned
+medical-writer,医学写作/医学编辑(CRO/药企),产业专业,医药医疗,,0,planned
 pharma-market-access-specialist,药品市场准入专员,产业专业,医药医疗,,0,planned
 pharmacist-retail,执业药师(零售药房),产业专业,医药医疗,,0,planned
 pharmacovigilance-specialist,药物警戒专员,产业专业,医药医疗,,0,planned
@@ -265,6 +269,7 @@ architect-assistant,建筑设计师(建筑学),产业专业,地产建筑,,0,plan
 civil-construction-site-engineer,工地现场工程师(土建),产业专业,地产建筑,,0,planned
 civil-engineer,土木工程师,产业专业,地产建筑,,0,planned
 construction-project-manager,建筑项目经理,产业专业,地产建筑,,0,planned
+construction-supervision-engineer,工程监理(监理员起步),产业专业,地产建筑,,0,planned
 cost-engineer-quantity-surveyor,造价工程师,产业专业,地产建筑,,0,planned
 hvac-mep-engineer,机电工程师(暖通/给排水),产业专业,地产建筑,,0,planned
 property-management,物业管理,产业专业,地产建筑,,0,planned
@@ -276,6 +281,7 @@ apparel-merchandiser,服装跟单/买手,产业专业,快消零售,,0,planned
 beauty-cosmetics-brand-specialist,美妆品牌专员,产业专业,快消零售,,0,planned
 category-buyer-merchandiser,商品采购/买手,产业专业,快消零售,,0,planned
 fmcg-mt,快消管培生,产业专业,快消零售,,0,planned
+food-rd-engineer,食品研发工程师,产业专业,快消零售,,0,planned
 food-safety-qa-specialist,食品安全质量专员,产业专业,快消零售,,0,planned
 retail-visual-merchandiser,零售陈列/橱窗设计,产业专业,快消零售,,0,planned
 store-manager-trainee,门店管培/储备店长,产业专业,快消零售,,0,planned
@@ -296,7 +302,9 @@ automotive-rd-engineer,汽车研发工程师(整车),产业专业,汽车产业,,
 new-energy-vehicle-battery-test-engineer,新能源汽车电池测试工程师,产业专业,汽车产业,,0,planned
 airline-ground-service,航空地勤,产业专业,物流交通,,0,planned
 courier-station-manager,快递网点站长,产业专业,物流交通,,0,planned
+flight-attendant,航空乘务员(空乘),产业专业,物流交通,,0,planned
 freight-forwarder,货运代理,产业专业,物流交通,,0,planned
+logistics-management-trainee,物流管培生(快递/物流企业),产业专业,物流交通,,0,planned
 logistics-warehouse-supervisor,仓储主管(第三方物流),产业专业,物流交通,,0,planned
 port-terminal-operations,港口码头操作管理,产业专业,物流交通,,0,planned
 rail-transit-operations,轨道交通运营管理,产业专业,物流交通,,0,planned
@@ -305,6 +313,7 @@ supply-chain-analyst-logistics,物流供应链分析师,产业专业,物流交�
 supply-chain-cold-chain-specialist,冷链物流专员,产业专业,物流交通,,0,planned
 battery-materials-rd-engineer,电池材料研发工程师,产业专业,能源化工,,0,planned
 chemical-process-engineer,化工工艺工程师,产业专业,能源化工,,0,planned
+environmental-assessment-engineer,环评工程师(环境影响评价),产业专业,能源化工,,0,planned
 hse-engineer,安全环保工程师(HSE),产业专业,能源化工,,0,planned
 new-energy-battery-engineer,新能源电池工程师,产业专业,能源化工,,0,planned
 nuclear-power-engineer,核电工程师,产业专业,能源化工,,0,planned
@@ -330,6 +339,7 @@ actuary,精算,产业专业,银行保险,,0,planned
 bancassurance-sales,银保渠道销售,产业专业,银行保险,,0,planned
 bank-corporate-account-manager,银行对公客户经理,产业专业,银行保险,,0,planned
 bank-credit-officer,银行信贷客户经理,产业专业,银行保险,,0,planned
+bank-it-officer,银行信息科技岗,产业专业,银行保险,,0,planned
 bank-teller,银行柜员,产业专业,银行保险,,0,planned
 bank-wealth-manager,银行理财经理,产业专业,银行保险,,0,planned
 banking,银行(管培/综合岗),产业专业,银行保险,,0,planned
