@@ -1,8 +1,6 @@
 slug,name,l0,l1_family,l2_scene,l3_flag,status
 carbon-management-specialist,碳管理/碳交易专员,通用职能,ESG与可持续发展,,0,planned
 esg-sustainability-specialist,ESG/可持续发展专员,通用职能,ESG与可持续发展,,0,planned
-business-continuity-specialist,业务连续性管理专员,通用职能,IT支持与内部服务,,0,planned
-facility-management,物业设施管理(企业后勤),通用职能,IT支持与内部服务,,0,planned
 it-helpdesk-support,IT支持/桌面运维,通用职能,IT支持与内部服务,,0,planned
 community-operations,社群运营,通用职能,产品运营,,0,planned
 content-operations,内容运营,通用职能,产品运营,,0,planned
@@ -14,8 +12,8 @@ growth,增长运营,通用职能,产品运营,,0,planned
 live-streaming-operations,直播运营,通用职能,产品运营,,0,planned
 membership-operations,会员运营,通用职能,产品运营,,0,planned
 newmedia,新媒体运营,通用职能,产品运营,,0,planned
-operations,运营(含AIGC),通用职能,产品运营,,0,planned
-platform-operations,平台治理运营,通用职能,产品运营,,0,planned
+operations,运营,通用职能,产品运营,,0,planned
+platform-operations,内容安全运营,通用职能,产品运营,,0,planned
 product-manager,互联网产品经理,通用职能,产品运营,,0,planned
 product-manager-b2b-saas,B2B SaaS产品经理,通用职能,产品运营,B2B SaaS,1,planned
 product-manager-fintech,金融科技产品经理,通用职能,产品运营,金融科技,1,planned
@@ -47,6 +45,7 @@ recruitment-consultant,招聘顾问/猎头,通用职能,人力资源,,0,planned
 talent-development,人才发展专员,通用职能,人力资源,,0,planned
 training-development,培训发展(TD),通用职能,人力资源,,0,planned
 business-analyst,商业分析(BA),通用职能,咨询战略,,0,planned
+business-continuity-specialist,业务连续性管理专员,通用职能,咨询战略,,0,planned
 consulting,管理咨询,通用职能,咨询战略,,0,planned
 corporate-strategy,企业战略,通用职能,咨询战略,,0,planned
 digital-transformation-consulting,数字化转型咨询(IT),通用职能,咨询战略,,0,planned
@@ -95,6 +94,7 @@ customer-success,客服/客户成功,通用职能,职能支持,,0,planned
 customer-success-ecommerce,电商客服主管,通用职能,职能支持,电商,1,planned
 customer-success-saas,SaaS客户成功经理,通用职能,职能支持,SaaS,1,planned
 executive-assistant,行政助理/文秘,通用职能,职能支持,,0,planned
+facility-management,物业设施管理(企业后勤),通用职能,职能支持,,0,planned
 front-desk-receptionist,前台/接待,通用职能,职能支持,,0,planned
 logistics-specialist,物流专员,通用职能,职能支持,,0,planned
 procurement,采购,通用职能,职能支持,,0,planned
@@ -136,6 +136,7 @@ database-administrator,数据库管理员(DBA),工程技术,云计算与基础�
 site-reliability-platform-engineer,平台工程师,工程技术,云计算与基础设施,,0,planned
 automation-engineer,自动化工程师,工程技术,制造工程,,0,planned
 electrical-engineer,电气工程师,工程技术,制造工程,,0,planned
+equipment-engineer-manufacturing,设备工程师(制造业产线设备),工程技术,制造工程,,0,planned
 industrial-engineer-ie,工业工程师(IE),工程技术,制造工程,,0,planned
 materials-engineer,材料工程师,工程技术,制造工程,,0,planned
 mechanical-engineer,机械工程师,工程技术,制造工程,,0,planned
@@ -147,6 +148,7 @@ production-engineer,生产工艺工程师,工程技术,制造工程,,0,planned
 quality-engineer,质量工程师(SQE/QE),工程技术,制造工程,,0,planned
 rd-hardware-engineer,硬件研发工程师,工程技术,制造工程,,0,planned
 reliability-test-engineer,可靠性测试工程师,工程技术,制造工程,,0,planned
+semiconductor-equipment-engineer,半导体设备工程师,工程技术,制造工程,,0,planned
 semiconductor-process-engineer,半导体制程工程师,工程技术,制造工程,,0,planned
 audio-algorithm-engineer,音频算法工程师,工程技术,多媒体技术,,0,planned
 multimedia-dev,音视频/多媒体开发,工程技术,多媒体技术,,0,planned
@@ -193,6 +195,7 @@ full-stack-dev,全栈开发,工程技术,软件研发,,0,planned
 infra-middleware,基础架构/中间件,工程技术,软件研发,,0,planned
 mobile-android-dev,Android开发,工程技术,软件研发,,0,planned
 mobile-ios-dev,iOS开发,工程技术,软件研发,,0,planned
+qa-automation-engineer,自动化测试工程师,工程技术,软件研发,,0,planned
 qa-manual-tester,测试工程师(手工测试),工程技术,软件研发,,0,planned
 test-dev,测试开发,工程技术,软件研发,,0,planned
 cloud-platform-engineer,云平台工程师,工程技术,运维安全,,0,planned
@@ -229,6 +232,7 @@ wedding-event-planner,婚庆/庆典策划师,产业专业,会展与活动产业,
 hotel-management-trainee,酒店管培生,产业专业,体育文旅,,0,planned
 sports-event-operations,体育赛事运营,产业专业,体育文旅,,0,planned
 tour-guide-planner,文旅/导游产品策划,产业专业,体育文旅,,0,planned
+internet-giant-management-trainee,互联网大厂管培生(综合轮岗类),产业专业,互联网,,0,planned
 agribusiness-management-trainee,农业企业管培生,产业专业,农业,,0,planned
 agricultural-product-trader,农产品贸易专员,产业专业,农业,,0,planned
 agricultural-technology-extension,农业技术推广员,产业专业,农业,,0,planned
@@ -242,6 +246,7 @@ journalist-reporter,新闻记者/编辑,产业专业,出版传媒,,0,planned
 tv-broadcast-editor,广电节目编导,产业专业,出版传媒,,0,planned
 logistics-manager-manufacturing,物流经理(制造业),产业专业,制造供应链,,0,planned
 plant-manager-trainee,工厂管培生,产业专业,制造供应链,,0,planned
+pmc-production-planning,生产计划与物料控制(PMC),产业专业,制造供应链,,0,planned
 procurement-engineer-manufacturing,采购工程师(制造业),产业专业,制造供应链,,0,planned
 supply-chain-planner,供应链计划专员(制造业),产业专业,制造供应链,,0,planned
 clinical-data-manager,临床数据管理员,产业专业,医药医疗,,0,planned
@@ -264,6 +269,7 @@ cost-engineer-quantity-surveyor,造价工程师,产业专业,地产建筑,,0,pla
 hvac-mep-engineer,机电工程师(暖通/给排水),产业专业,地产建筑,,0,planned
 property-management,物业管理,产业专业,地产建筑,,0,planned
 real-estate,地产(营销策划),产业专业,地产建筑,,0,planned
+real-estate-investment-expansion,地产投拓(投资拓展),产业专业,地产建筑,,0,planned
 real-estate-agent,房产经纪人,产业专业,地产建筑,,0,planned
 urban-planner,城市规划师,产业专业,地产建筑,,0,planned
 apparel-merchandiser,服装跟单/买手,产业专业,快消零售,,0,planned
@@ -282,6 +288,7 @@ k12-subject-teacher,K12学科教师,产业专业,教育培训,,0,planned
 private-tutor-online-teacher,在线教育主讲教师,产业专业,教育培训,,0,planned
 special-education-teacher,特殊教育教师,产业专业,教育培训,,0,planned
 study-abroad-consultant,留学顾问,产业专业,教育培训,,0,planned
+vocational-school-teacher,中职高职教师,产业专业,教育培训,,0,planned
 vocational-trainer,职业培训讲师,产业专业,教育培训,,0,planned
 automotive-aftersales-service-advisor,汽车售后服务顾问,产业专业,汽车产业,,0,planned
 automotive-quality-engineer,汽车质量工程师,产业专业,汽车产业,,0,planned
@@ -321,7 +328,10 @@ foreign-trade-sales,外贸业务员,产业专业,跨境与国际贸易,,0,planne
 international-trade-specialist,国际贸易/单证专员,产业专业,跨境与国际贸易,,0,planned
 actuary,精算,产业专业,银行保险,,0,planned
 bancassurance-sales,银保渠道销售,产业专业,银行保险,,0,planned
+bank-corporate-account-manager,银行对公客户经理,产业专业,银行保险,,0,planned
 bank-credit-officer,银行信贷客户经理,产业专业,银行保险,,0,planned
+bank-teller,银行柜员,产业专业,银行保险,,0,planned
+bank-wealth-manager,银行理财经理,产业专业,银行保险,,0,planned
 banking,银行(管培/综合岗),产业专业,银行保险,,0,planned
 credit-analysis,信贷/信用分析,产业专业,银行保险,,0,planned
 insurance-claims-adjuster,保险理赔,产业专业,银行保险,,0,planned
@@ -346,6 +356,10 @@ library-museum-staff,图书馆/博物馆管理员,公共制度,事业单位,,0,p
 public-hospital-administrative-staff,事业单位(医院行政岗),公共制度,事业单位,,0,planned
 public-institution-researcher,事业单位科研岗,公共制度,事业单位,,0,planned
 state-owned-enterprise-management-trainee,央国企管培生(综合类),公共制度,事业单位,,0,planned
+soe-power-grid-management-trainee,电网系统管培生(国网/南网统考),公共制度,国企专属体系,,0,planned
+soe-tobacco-management-trainee,烟草系统管培生(烟草专卖统一考试),公共制度,国企专属体系,,0,planned
+soe-petroleum-management-trainee,石油系统管培生(中石油/中石化校招统考),公共制度,国企专属体系,,0,planned
+soe-railway-management-trainee,铁路系统管培生(铁路局集团校招统考),公共制度,国企专属体系,,0,planned
 civil-servant-generalist,"公务员(综合管理类,含选调生/乡镇岗)",公共制度,公务员,,0,planned
 customs-inspection-officer,海关商检/检验检疫官,公共制度,公务员,,0,planned
 customs-officer,海关关员,公共制度,公务员,,0,planned
