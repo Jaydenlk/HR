@@ -20,8 +20,8 @@ export class OccupationSlug {
   @Column({ type: 'varchar' })
   l1_family: string;
 
-  @Column({ type: 'varchar' })
-  l2_scene: string;
+  @Column({ type: 'varchar', nullable: true })
+  l2_scene: string | null;
 
   // 是否为「拆条判据」下独立生成的 L3 变体(默认一条职业一条词条,仅当行业变体在
   // ≥4/8 骨架层有实质差异且有独立 JD 池时才拆为独立 L3 词条)。
