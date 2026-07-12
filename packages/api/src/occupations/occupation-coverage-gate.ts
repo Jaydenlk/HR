@@ -167,7 +167,7 @@ export function computeFieldValueHash(value: unknown): string {
 // 骨架叶子枚举(可见事实叶子)
 // ─────────────────────────────────────────────
 
-/** 一个「可见事实叶子」:骨架内某个具体路径上的非 null 字符串值,需要 claim 覆盖。 */
+/** 一个「可见事实叶子」:骨架内某个具体路径上的非 null 值,需要 claim 覆盖。 */
 interface SkeletonLeaf {
   fieldPath: string;
   /** 该叶子的规范化字符串值(用于 hash/span 校验) */
@@ -178,10 +178,22 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+function isStringArray(v: unknown): v is string[] {
+  return Array.isArray(v) && v.every((item) => typeof item === 'string');
+}
+
 /**
- * 深度遍历骨架,收集全部「非 null 可见事实叶子」——字符串叶子(含数组内的字符串元素、
- * 复合对象数组内每个对象的各个字符串字段)按元素级展开(而非整数组作为一个叶子),
- * 与 CLAIM_COVERAGE_INCOMPLETE 反例(单字段两 claim 只验其一)的判定粒度一致。
+ * 深度遍历骨架,收集全部「非 null 可见事实叶子」。粒度规则:
+ *  - 纯字符串数组(如 coordinates.adjacent_occupations / entry.eligible_majors /
+ *    operations.eval_metrics / development.lateral_moves 等):同时注册「整数组」一个
+ *    叶子(供整体一条 claim 覆盖的证据风格)与「每个元素」各一个叶子(供逐条 claim
+ *    覆盖的证据风格)——覆盖完整性判定(第 6 步)只要整数组叶子或全部元素叶子二者之一
+ *    被覆盖即视为该字段已覆盖,不强制两种风格都要满足。
+ *  - 复合对象数组(如 boundary.adjacent_diffs / variation.industry_diffs /
+ *    org_nature_diffs):按元素级展开,每个对象内的字符串字段各自成叶子(与
+ *    CLAIM_COVERAGE_INCOMPLETE 反例"单字段两 claim 只验其一"的判定粒度一致),不额外
+ *    注册整数组级别的叶子(对象数组没有单一字符串值可供整体一条 claim 直接覆盖)。
+ *  - YearRange 对象(development 各分支 typical_years):整体作为一个叶子。
  *
  * 横切字段 axis/domain_specifics 是分类/调参槽而非源自文档的事实断言,不纳入覆盖闸
  * 叶子枚举范围(与 positioning/coordinates/boundary/operations/entry/variation/
@@ -201,12 +213,17 @@ function collectVisibleLeaves(skeleton: OccupationSkeleton): SkeletonLeaf[] {
       // 对象整体作为一个叶子处理(见下方 isYearRangeLike 分支),此处不重复收集。
       return;
     }
-    if (Array.isArray(value)) {
-      value.forEach((item, i) => walk(item, `${path}[${i}]`));
-      return;
-    }
     if (isYearRangeLike(value)) {
       leaves.push({ fieldPath: path, normalizedValue: normalizeLeafValue(value) });
+      return;
+    }
+    if (Array.isArray(value)) {
+      if (isStringArray(value) && value.length > 0) {
+        // 整数组叶子(整体一条 claim 覆盖的证据风格)。
+        leaves.push({ fieldPath: path, normalizedValue: normalizeLeafValue(value) });
+      }
+      // 逐元素叶子(逐条 claim 覆盖的证据风格;复合对象数组也走这条路径继续深入)。
+      value.forEach((item, i) => walk(item, `${path}[${i}]`));
       return;
     }
     if (isPlainObject(value)) {
@@ -231,6 +248,13 @@ function collectVisibleLeaves(skeleton: OccupationSkeleton): SkeletonLeaf[] {
     walk(skeleton[key], key);
   }
   return leaves;
+}
+
+/** 提取「数组家族」的基路径:若 fieldPath 形如 "a.b[3]" 且 "a.b" 本身是已知的整数组叶子路径,返回 "a.b";否则返回 null。 */
+function arrayFamilyBasePath(fieldPath: string, knownArrayBasePaths: ReadonlySet<string>): string | null {
+  const m = fieldPath.match(/^(.+)\[\d+\]$/);
+  if (!m) return null;
+  return knownArrayBasePaths.has(m[1]) ? m[1] : null;
 }
 
 // ─────────────────────────────────────────────
@@ -323,12 +347,15 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
     return { validated: false, status: 'draft', errors };
   }
 
+  // narrowed 非空引用:供下方内层函数闭包使用(inner function 声明不继承外层窄化)。
+  const evidenceList = evidence;
+
   const leaves = collectVisibleLeaves(skeleton);
   const leafByPath = new Map(leaves.map((l) => [l.fieldPath, l]));
-  const claimById = new Map(evidence.map((e) => [e.claim_id, e]));
+  const claimById = new Map(evidenceList.map((e) => [e.claim_id, e]));
 
   // 2) 逐条证据的自身合法性:claim_id / claim_text 原子性 / span。
-  for (const item of evidence) {
+  for (const item of evidenceList) {
     if (!isValidClaimId(item.claim_id)) {
       errors.push({ code: 'CLAIM_ID_INVALID', field: `evidence[${item.claim_id}].claim_id`, message: `claim_id "${item.claim_id}" 不是合法 UUIDv7` });
     }
@@ -351,7 +378,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   }
 
   // 3) 无 pending。
-  for (const item of evidence) {
+  for (const item of evidenceList) {
     if (item.verdict === 'pending') {
       errors.push({ code: 'PENDING_CLAIM', field: `evidence[${item.claim_id}]`, message: 'verdict=pending 的断言不允许存在,覆盖闸拒绝' });
     }
@@ -360,7 +387,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   // 4) rejected 断言:hash/path 不得匹配当前 skeleton,claim_text 不得出现在 prose/facets。
   const normalizedProse = normalizeString(prose ?? '');
   const normalizedFacets = (facets ?? []).map((f) => normalizeString(f));
-  for (const item of evidence) {
+  for (const item of evidenceList) {
     if (item.verdict !== 'rejected') continue;
     const leaf = leafByPath.get(item.field_path);
     const hashMatchesSkeleton = leaf !== undefined && computeFieldValueHash(leaf.normalizedValue) === item.field_value_hash;
@@ -384,7 +411,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   }
 
   // 5) 非 rejected/pending 证据的 field_value_hash 必须与当前 skeleton 一致(防改写复用旧 hash)。
-  for (const item of evidence) {
+  for (const item of evidenceList) {
     if (item.verdict === 'rejected' || item.verdict === 'pending') continue;
     const leaf = leafByPath.get(item.field_path);
     if (!leaf) continue; // 找不到对应叶子的覆盖不完整问题在第 6 步统一报告
@@ -399,23 +426,65 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   }
 
   // 6) 覆盖完整性:每个非 null 可见事实叶子必须被至少一条 accepted(directly/inference)
-  //    claim 的 span 并集覆盖到全部非空白字符。
+  //    claim 的 span 并集覆盖到全部非空白字符。纯字符串数组同时存在「整数组叶子」与
+  //    「逐元素叶子」两种粒度(见 collectVisibleLeaves 注释),覆盖满足其一即可,不强制
+  //    两种风格都要覆盖(证据可以整体引用数组,也可以逐条引用每个元素)。
   const acceptedVerdicts = new Set<EvidenceVerdict>(['directly_supported', 'inference_supported']);
+  // 整数组叶子的判定:该 fieldPath 存在对应的 "fieldPath[0]" 兄弟叶子(即 collectVisibleLeaves
+  // 对同一个纯字符串数组同时注册了整体叶子与逐元素叶子)。
+  const leafPathSet = new Set(leaves.map((l) => l.fieldPath));
+  const arrayBasePaths = new Set<string>();
   for (const leaf of leaves) {
-    const coveringClaims = evidence.filter((e) => e.field_path === leaf.fieldPath && acceptedVerdicts.has(e.verdict));
-    if (coveringClaims.length === 0) {
-      errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `该叶子没有任何 directly_supported/inference_supported 断言覆盖` });
+    if (leafPathSet.has(`${leaf.fieldPath}[0]`)) arrayBasePaths.add(leaf.fieldPath);
+  }
+
+  function isLeafCovered(leaf: SkeletonLeaf): boolean {
+    const coveringClaims = evidenceList.filter((e) => e.field_path === leaf.fieldPath && acceptedVerdicts.has(e.verdict));
+    if (coveringClaims.length === 0) return false;
+    return isSpanUnionCoveringNonWhitespace(leaf.normalizedValue, coveringClaims.map((c) => [c.span_start, c.span_end]));
+  }
+
+  for (const leaf of leaves) {
+    const isWholeArrayLeaf = arrayBasePaths.has(leaf.fieldPath);
+    const isElementOfArrayFamily = arrayFamilyBasePath(leaf.fieldPath, arrayBasePaths) !== null;
+
+    if (isWholeArrayLeaf) {
+      // 整数组叶子:自身被覆盖,或者其全部逐元素叶子都被覆盖,视为满足。
+      const elementLeaves = leaves.filter((l) => arrayFamilyBasePath(l.fieldPath, arrayBasePaths) === leaf.fieldPath);
+      const coveredAsWhole = isLeafCovered(leaf);
+      const coveredAsElements = elementLeaves.length > 0 && elementLeaves.every((el) => isLeafCovered(el));
+      if (!coveredAsWhole && !coveredAsElements) {
+        errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `该数组字段既没有整体覆盖也没有逐元素全覆盖` });
+      }
       continue;
     }
-    if (!isSpanUnionCoveringNonWhitespace(leaf.normalizedValue, coveringClaims.map((c) => [c.span_start, c.span_end]))) {
-      errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `已接受断言的 span 并集未覆盖该叶子规范化串的全部非空白字符` });
+    if (isElementOfArrayFamily) {
+      // 逐元素叶子:若其所属整数组叶子已被整体覆盖,则该元素视为已满足,不重复报告
+      // (避免"整体一条 claim 覆盖"风格被误判为逐元素缺失)。
+      const basePath = arrayFamilyBasePath(leaf.fieldPath, arrayBasePaths)!;
+      const baseLeaf = leaves.find((l) => l.fieldPath === basePath);
+      if (baseLeaf && isLeafCovered(baseLeaf)) continue;
+      if (!isLeafCovered(leaf)) {
+        errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `该叶子没有任何 directly_supported/inference_supported 断言覆盖(整数组也未整体覆盖)` });
+      }
+      continue;
+    }
+
+    // 普通叶子(非数组家族成员):常规逐一判定。
+    if (!isLeafCovered(leaf)) {
+      const coveringClaims = evidenceList.filter((e) => e.field_path === leaf.fieldPath && acceptedVerdicts.has(e.verdict));
+      if (coveringClaims.length === 0) {
+        errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `该叶子没有任何 directly_supported/inference_supported 断言覆盖` });
+      } else {
+        errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `已接受断言的 span 并集未覆盖该叶子规范化串的全部非空白字符` });
+      }
     }
   }
 
   // 7) 正文之外多余的 claim(其 field_path 不对应任何当前骨架可见叶子)——
   //    UNSUPPORTED_VISIBLE_CLAIM:accepted 断言指向的字段值在当前骨架里根本不存在
   //    (指向已不存在的叶子路径,可能是骨架改写后遗留的孤立证据)。
-  for (const item of evidence) {
+  for (const item of evidenceList) {
     if (item.verdict === 'rejected' || item.verdict === 'pending') continue;
     if (!leafByPath.has(item.field_path)) {
       errors.push({
@@ -431,7 +500,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   for (const leaf of leaves) {
     const highRisk = isHighRiskFieldPath(leaf.fieldPath) || NUMERIC_CONTENT_RE.test(leaf.normalizedValue);
     if (!highRisk) continue;
-    const coveringClaims = evidence.filter((e) => e.field_path === leaf.fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
+    const coveringClaims = evidenceList.filter((e) => e.field_path === leaf.fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
     for (const claim of coveringClaims) {
       if (claim.verdict !== 'directly_supported') {
         errors.push({ code: 'HIGH_RISK_NOT_DIRECT', field: `evidence[${claim.claim_id}]`, message: `高危字段 "${leaf.fieldPath}" 的断言必须 directly_supported,不得降级为 inference_supported` });
@@ -441,7 +510,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
 
   // 9) 数字同口径核对:claim_text 中出现的数字必须在 source_excerpt 中同样出现
   //    (同单位异范围如 2024 vs 2023 判为不一致)。
-  for (const item of evidence) {
+  for (const item of evidenceList) {
     if (item.verdict === 'rejected' || item.verdict === 'pending') continue;
     const claimNumbers = extractNumbers(item.claim_text);
     if (claimNumbers.length === 0) continue;
@@ -462,7 +531,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
     const fieldPath = leaf.fieldPath;
     const highRisk = isHighRiskFieldPath(fieldPath) || NUMERIC_CONTENT_RE.test(leaf.normalizedValue);
     const needsA2 = requiresA2OrHigher(fieldPath);
-    const coveringClaims = evidence.filter((e) => e.field_path === fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
+    const coveringClaims = evidenceList.filter((e) => e.field_path === fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
     if (coveringClaims.length === 0) continue;
 
     if (highRisk && coveringClaims.every((c) => c.tier === 'A3')) {
@@ -489,7 +558,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   // 11) 年限字段(typical_years 非 null)须 ≥2 不同 URL 且 ≥2 不同 host。
   for (const leaf of leaves) {
     if (!isYearRangeFieldPath(leaf.fieldPath)) continue;
-    const coveringClaims = evidence.filter((e) => e.field_path === leaf.fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
+    const coveringClaims = evidenceList.filter((e) => e.field_path === leaf.fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
     const distinctUrls = new Set(coveringClaims.map((c) => c.source_url));
     const distinctHosts = new Set(coveringClaims.map((c) => normalizeHost(c.source_url)));
     if (distinctUrls.size < 2 || distinctHosts.size < 2) {
@@ -503,7 +572,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
 
   // 12) inference_supported 推理链校验:chain 非空、premises 全部 directly_supported、
   //     conclusion 与 claim_text 规范化相等、bridge_rule/scope_limit 非空、禁自引用。
-  for (const item of evidence) {
+  for (const item of evidenceList) {
     if (item.verdict !== 'inference_supported') continue;
     const chain = item.reasoning_chain;
     if (!chain) {
@@ -540,7 +609,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   }
 
   // 13) inference_supported 占比 ≤0.30(按有效证据条目数计,不含 rejected/pending)。
-  const effectiveEvidence = evidence.filter((e) => e.verdict === 'directly_supported' || e.verdict === 'inference_supported');
+  const effectiveEvidence = evidenceList.filter((e) => e.verdict === 'directly_supported' || e.verdict === 'inference_supported');
   const inferenceCount = effectiveEvidence.filter((e) => e.verdict === 'inference_supported').length;
   if (effectiveEvidence.length > 0 && inferenceCount / effectiveEvidence.length > 0.3) {
     errors.push({
