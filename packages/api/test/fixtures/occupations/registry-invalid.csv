@@ -1,0 +1,6 @@
+slug,name,l0,l1_family,l2_scene,l3_flag,status
+carbon-management-specialist,碳管理/碳交易专员,通用职能,ESG与可持续发展,,0,planned
+carbon-management-specialist,碳管理/碳交易专员(重复),通用职能,ESG与可持续发展,,0,planned
+bad-l0-occupation,坏L0职业,不存在的板块,某某家族,,0,planned
+bad-l3-flag-occupation,坏L3标记职业,通用职能,某某家族,,yes,planned
+bad-status-occupation,坏状态职业,通用职能,某某家族,,0,draft
