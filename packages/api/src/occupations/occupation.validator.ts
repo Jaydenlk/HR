@@ -1,15 +1,24 @@
 /**
- * 职业维基 · Stage0 · 骨架校验器(手写零依赖,不引入 ajv/zod/joi)
+ * 职业维基 · Stage0 · 骨架校验器
  *
- * 依赖纪律:本仓库现有验证栈只有 class-validator(用于 DTO class,不适合校验从 JSON 文件
- * 读入的任意结构 jsonb)。手写校验器覆盖本次全部需求(缺层/被禁字段/枚举/计数上限/悬空引用),
- * 无需 ajv 的 schema 编译能力,遂不引入新依赖。
+ * TC-01(docs/refactor2/t3-gate-a-taskcards-2026-07-10.md)重写:结构约束(缺层/类型/枚举/
+ * 计数上限/nullable)全部下沉给 Ajv 编译 occupation.schema.ts 里的唯一 Schema 执行
+ * (`ajv.compile(OCCUPATION_SKELETON_SCHEMA)`),本文件不再手写任何逐字段结构规则
+ * (老版本的 getLayer/requireNonEmptyString/requireStringArray 已删除)。
  *
- * 两个入口:
- *  - validateSkeleton(candidate):校验单条 skeleton 是否合规,返回结构化错误列表。
- *  - validateEdgesReferentialIntegrity(edges, knownSlugs):校验一批 edges 有无悬空引用。
+ * 本文件只保留 Ajv 表达不了的跨字段/跨文件语义:
+ *  - 被禁证据字段深扫(骨架正文混入 source_ref/tier/verdict 等证据侧概念)
+ *  - 哨兵文案深扫(禁止用"暂无数据/待补充/未知/TBD/不详/视情况而定"冒充有值,trim 后
+ *    整值等于禁词才拒,不做子串误杀)
+ *  - boundary.adjacent_diffs 与 coordinates.adjacent_occupations 双向一致(集合相等)
+ *  - development.promotion_path 各分支每级 typical_years.min<=max
+ *  - occupation_edges 引用完整性(不设数据库级外键,脚本保证零悬空引用)
+ *
+ * 年限多源规则(≥2 独立来源)不在本卡,归 TC-02(claim-evidence 覆盖闸)。
  */
-import { AXIS_VALUES, DOMAIN_SPECIFICS_MAX, SKELETON_LAYER_KEYS, type OccupationEdgeRow } from './occupation.types';
+import Ajv, { type ErrorObject } from 'ajv';
+import { OCCUPATION_SKELETON_SCHEMA } from './occupation.schema';
+import type { OccupationEdgeRow } from './occupation.types';
 
 export interface ValidationError {
   /** 定位到具体字段的点号路径,如 "coordinates.adjacent_occupations" */
@@ -21,6 +30,9 @@ export interface ValidationResult {
   valid: boolean;
   errors: ValidationError[];
 }
+
+const ajv = new Ajv({ allErrors: true, strict: true });
+const validateStructure = ajv.compile(OCCUPATION_SKELETON_SCHEMA);
 
 /**
  * 骨架正文禁止出现的字段名——T3-career-wiki.md §3「彻底移出正文」红线的运行时防线
@@ -65,208 +77,165 @@ function scanForbiddenFields(value: unknown, path: string, hits: ValidationError
   }
 }
 
-function requireNonEmptyString(obj: Record<string, unknown>, layerPath: string, field: string, errors: ValidationError[]): void {
-  const v = obj[field];
-  if (typeof v !== 'string' || v.trim().length === 0) {
-    errors.push({ field: `${layerPath}.${field}`, message: '缺失或不是非空字符串' });
+/**
+ * 哨兵文案黑名单——禁止用"看似有值"的套话冒充证据支撑的真实内容。trim 后整值必须
+ * 与禁词完全相等才拒绝(不做子串匹配,防止把"待补充材料清单"这类真实业务文本误杀)。
+ */
+const SENTINEL_VALUES = new Set(['暂无数据', '待补充', '未知', 'TBD', '不详', '视情况而定']);
+
+/** 深度扫描任意结构,收集所有字符串叶子命中哨兵文案的路径。 */
+function scanSentinelValues(value: unknown, path: string, hits: ValidationError[]): void {
+  if (typeof value === 'string') {
+    if (SENTINEL_VALUES.has(value.trim())) {
+      hits.push({ field: path, message: `字段值 "${value.trim()}" 是哨兵文案,禁止用套话冒充有证据支撑的内容(应改为 null 表达"证据不足")` });
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, i) => scanSentinelValues(item, `${path}[${i}]`, hits));
+    return;
+  }
+  if (isPlainObject(value)) {
+    for (const [key, val] of Object.entries(value)) {
+      scanSentinelValues(val, path ? `${path}.${key}` : key, hits);
+    }
   }
 }
 
-function requireStringArray(
-  obj: Record<string, unknown>,
-  layerPath: string,
-  field: string,
-  minItems: number,
-  errors: ValidationError[],
-): void {
-  const v = obj[field];
-  if (!Array.isArray(v)) {
-    errors.push({ field: `${layerPath}.${field}`, message: '缺失或不是数组' });
-    return;
-  }
-  if (v.length < minItems) {
-    errors.push({ field: `${layerPath}.${field}`, message: `数组长度 ${v.length} 低于下限 ${minItems}` });
-  }
-  v.forEach((item, i) => {
-    if (typeof item !== 'string' || item.trim().length === 0) {
-      errors.push({ field: `${layerPath}.${field}[${i}]`, message: '数组元素必须是非空字符串' });
+/**
+ * Ajv 错误对象转为本模块的点号路径 ValidationError,并把 Ajv 的英文 keyword 消息翻译为
+ * 中文(保持与本校验器其余部分一致的错误文案风格,供调用方/测试按中文关键词断言)。
+ */
+function ajvErrorsToValidationErrors(errors: ErrorObject[] | null | undefined): ValidationError[] {
+  if (!errors) return [];
+  return errors.map((err) => {
+    // instancePath 形如 "/coordinates/adjacent_occupations",转点号路径且去掉开头的 "/"。
+    const dotPath = err.instancePath.length > 0 ? err.instancePath.slice(1).replace(/\//g, '.') : '';
+
+    switch (err.keyword) {
+      case 'required': {
+        // 缺层/缺字段:field 定位到缺失的那个属性名本身(与旧校验器 getLayer 的定位习惯一致)。
+        const missingProperty = (err.params as { missingProperty: string }).missingProperty;
+        const field = dotPath ? `${dotPath}.${missingProperty}` : missingProperty;
+        return { field, message: `缺层:骨架固定结构中该层缺失或不是对象` };
+      }
+      case 'additionalProperties': {
+        const additionalProperty = (err.params as { additionalProperty: string }).additionalProperty;
+        const field = dotPath ? `${dotPath}.${additionalProperty}` : additionalProperty;
+        return { field, message: `骨架顶层出现未定义的多余字段 "${additionalProperty}"(9 层固定骨架焊死,不许自行增删)` };
+      }
+      case 'enum': {
+        const allowedValues = (err.params as { allowedValues: unknown[] }).allowedValues;
+        const field = dotPath || '(root)';
+        return { field, message: `取值不在允许的 ${allowedValues.length} 个枚举内` };
+      }
+      case 'maxItems': {
+        const limit = (err.params as { limit: number }).limit;
+        const field = dotPath || '(root)';
+        return { field, message: `条数超过封顶 ${limit} 条,超出必须回落固定骨架` };
+      }
+      case 'minItems': {
+        const limit = (err.params as { limit: number }).limit;
+        const field = dotPath || '(root)';
+        return { field, message: `数量低于下限 ${limit}` };
+      }
+      default: {
+        const field = dotPath || '(root)';
+        return { field, message: err.message ?? 'Ajv 校验失败' };
+      }
     }
   });
 }
 
-function getLayer(candidate: Record<string, unknown>, key: string, errors: ValidationError[]): Record<string, unknown> | null {
-  const v = candidate[key];
-  if (!isPlainObject(v)) {
-    errors.push({ field: key, message: '缺层:骨架 9 层固定结构中该层缺失或不是对象' });
-    return null;
+interface YearRangeLike {
+  min: number;
+  max: number;
+}
+
+function isYearRangeLike(v: unknown): v is YearRangeLike {
+  return isPlainObject(v) && typeof v.min === 'number' && typeof v.max === 'number';
+}
+
+/** 深扫 development.promotion_path 三分支,检查每一级 typical_years.min<=max。 */
+function checkDevelopmentYearRanges(candidate: Record<string, unknown>, errors: ValidationError[]): void {
+  const development = candidate.development;
+  if (!isPlainObject(development)) return;
+  const promotionPath = development.promotion_path;
+  if (!isPlainObject(promotionPath)) return;
+
+  for (const branchKey of ['professional_ic', 'management', 'independent'] as const) {
+    const branch = promotionPath[branchKey];
+    if (!Array.isArray(branch)) continue;
+    branch.forEach((step, i) => {
+      if (!isPlainObject(step)) return;
+      const typicalYears = step.typical_years;
+      if (!isYearRangeLike(typicalYears)) return;
+      if (typicalYears.min > typicalYears.max) {
+        errors.push({
+          field: `development.promotion_path.${branchKey}[${i}].typical_years`,
+          message: `min(${typicalYears.min}) 大于 max(${typicalYears.max}),年限区间非法`,
+        });
+      }
+    });
   }
-  return v;
+}
+
+/**
+ * boundary.adjacent_diffs 与 coordinates.adjacent_occupations 双向一致:两个集合的
+ * 职业名称必须相等(骨架内描述性字段自身的一致性,不涉及 occupation_edges 表)。
+ */
+function checkBoundaryCoordinatesConsistency(candidate: Record<string, unknown>, errors: ValidationError[]): void {
+  const coordinates = candidate.coordinates;
+  const boundary = candidate.boundary;
+  if (!isPlainObject(coordinates) || !isPlainObject(boundary)) return;
+
+  const adjacentOccupations = coordinates.adjacent_occupations;
+  const adjacentDiffs = boundary.adjacent_diffs;
+  if (!Array.isArray(adjacentOccupations) || !Array.isArray(adjacentDiffs)) return;
+
+  const coordinatesSet = new Set(adjacentOccupations.filter((v): v is string => typeof v === 'string'));
+  const boundarySet = new Set(
+    adjacentDiffs
+      .map((d) => (isPlainObject(d) ? d.occupation : undefined))
+      .filter((v): v is string => typeof v === 'string'),
+  );
+
+  const missingInBoundary = [...coordinatesSet].filter((name) => !boundarySet.has(name));
+  const missingInCoordinates = [...boundarySet].filter((name) => !coordinatesSet.has(name));
+
+  if (missingInBoundary.length > 0 || missingInCoordinates.length > 0) {
+    errors.push({
+      field: 'boundary.adjacent_diffs',
+      message:
+        `boundary.adjacent_diffs 与 coordinates.adjacent_occupations 相邻职业集合不一致` +
+        `(boundary 缺: [${missingInBoundary.join(', ')}]；coordinates 缺: [${missingInCoordinates.join(', ')}])`,
+    });
+  }
 }
 
 /**
  * 校验单条 skeleton 是否合规。
- * 抓取维度:①缺层 ②混入被禁字段 ③axis 不在枚举内 ④domain_specifics 超过 5 条
- * (⑤edges 悬空引用由 validateEdgesReferentialIntegrity 单独负责,不属于单条 skeleton 校验)。
+ * 结构约束(缺层/类型/枚举/计数上限/nullable)由 Ajv 单一执行;本函数只补做 Ajv 表达
+ * 不了的跨字段语义:被禁字段深扫、哨兵文案深扫、boundary↔coordinates 一致、development
+ * min<=max。
  */
 export function validateSkeleton(candidate: unknown): ValidationResult {
   const errors: ValidationError[] = [];
 
+  const structurallyValid = validateStructure(candidate);
+  errors.push(...ajvErrorsToValidationErrors(validateStructure.errors));
+
   if (!isPlainObject(candidate)) {
-    return { valid: false, errors: [{ field: '(root)', message: 'skeleton 必须是一个对象' }] };
+    return { valid: false, errors: errors.length > 0 ? errors : [{ field: '(root)', message: 'skeleton 必须是一个对象' }] };
   }
 
-  // ② 被禁字段深度扫描(覆盖全树,不止顶层)
   scanForbiddenFields(candidate, '', errors);
+  scanSentinelValues(candidate, '', errors);
 
-  // ① 缺层检查 + 逐层字段
-  const positioning = getLayer(candidate, 'positioning', errors);
-  if (positioning) {
-    requireNonEmptyString(positioning, 'positioning', 'one_liner', errors);
-    requireNonEmptyString(positioning, 'positioning', 'problem_solved', errors);
-    requireNonEmptyString(positioning, 'positioning', 'social_rationale', errors);
-  }
-
-  const coordinates = getLayer(candidate, 'coordinates', errors);
-  if (coordinates) {
-    requireNonEmptyString(coordinates, 'coordinates', 'occupation_family', errors);
-    requireStringArray(coordinates, 'coordinates', 'industry_scenes', 1, errors);
-    // 相邻职业 ≥3(原稿:没有相邻对比就不是百科,只是介绍)
-    requireStringArray(coordinates, 'coordinates', 'adjacent_occupations', 3, errors);
-    requireStringArray(coordinates, 'coordinates', 'upstream', 1, errors);
-    requireStringArray(coordinates, 'coordinates', 'downstream', 1, errors);
-  }
-
-  const boundary = getLayer(candidate, 'boundary', errors);
-  if (boundary) {
-    const diffs = boundary.adjacent_diffs;
-    if (!Array.isArray(diffs)) {
-      errors.push({ field: 'boundary.adjacent_diffs', message: '缺失或不是数组' });
-    } else {
-      if (diffs.length < 3) {
-        errors.push({ field: 'boundary.adjacent_diffs', message: `与相邻职业的差异条目 ${diffs.length} 低于下限 3(百科最核心模块,强制 ≥3 个相邻对比)` });
-      }
-      diffs.forEach((d, i) => {
-        if (!isPlainObject(d) || typeof d.occupation !== 'string' || d.occupation.trim().length === 0) {
-          errors.push({ field: `boundary.adjacent_diffs[${i}].occupation`, message: '缺失或不是非空字符串' });
-        }
-        if (!isPlainObject(d) || typeof d.diff !== 'string' || d.diff.trim().length === 0) {
-          errors.push({ field: `boundary.adjacent_diffs[${i}].diff`, message: '缺失或不是非空字符串' });
-        }
-      });
-    }
-  }
-
-  const operations = getLayer(candidate, 'operations', errors);
-  if (operations) {
-    const workflow = operations.workflow;
-    if (!isPlainObject(workflow)) {
-      errors.push({ field: 'operations.workflow', message: '缺失或不是对象' });
-    } else {
-      requireNonEmptyString(workflow, 'operations.workflow', 'daily', errors);
-      requireNonEmptyString(workflow, 'operations.workflow', 'project', errors);
-      requireNonEmptyString(workflow, 'operations.workflow', 'cycle', errors);
-    }
-    requireStringArray(operations, 'operations', 'deliverables', 1, errors);
-    requireStringArray(operations, 'operations', 'tools_systems', 1, errors);
-    requireStringArray(operations, 'operations', 'eval_metrics', 1, errors);
-  }
-
-  const entry = getLayer(candidate, 'entry', errors);
-  if (entry) {
-    requireStringArray(entry, 'entry', 'eligible_majors', 1, errors);
-    requireNonEmptyString(entry, 'entry', 'non_major_route', errors);
-    requireStringArray(entry, 'entry', 'campus_recruitment_signals', 1, errors);
-    requireStringArray(entry, 'entry', 'resume_valid_experiences', 1, errors);
-    requireStringArray(entry, 'entry', 'resume_looks_relevant_but_useless', 1, errors);
-  }
-
-  const variation = getLayer(candidate, 'variation', errors);
-  if (variation) {
-    const industryDiffs = variation.industry_diffs;
-    if (!Array.isArray(industryDiffs) || industryDiffs.length < 1) {
-      errors.push({ field: 'variation.industry_diffs', message: '缺失或为空数组(行业差异 ≥1 条)' });
-    } else {
-      industryDiffs.forEach((d, i) => {
-        if (!isPlainObject(d) || typeof d.scene !== 'string' || d.scene.trim().length === 0) {
-          errors.push({ field: `variation.industry_diffs[${i}].scene`, message: '缺失或不是非空字符串' });
-        }
-        if (!isPlainObject(d) || typeof d.diff !== 'string' || d.diff.trim().length === 0) {
-          errors.push({ field: `variation.industry_diffs[${i}].diff`, message: '缺失或不是非空字符串' });
-        }
-      });
-    }
-    const orgDiffs = variation.org_nature_diffs;
-    if (!Array.isArray(orgDiffs) || orgDiffs.length < 1) {
-      errors.push({ field: 'variation.org_nature_diffs', message: '缺失或为空数组(组织性质差异 ≥1 条)' });
-    } else {
-      orgDiffs.forEach((d, i) => {
-        if (!isPlainObject(d) || typeof d.org_nature !== 'string' || d.org_nature.trim().length === 0) {
-          errors.push({ field: `variation.org_nature_diffs[${i}].org_nature`, message: '缺失或不是非空字符串' });
-        }
-        if (!isPlainObject(d) || typeof d.diff !== 'string' || d.diff.trim().length === 0) {
-          errors.push({ field: `variation.org_nature_diffs[${i}].diff`, message: '缺失或不是非空字符串' });
-        }
-      });
-    }
-  }
-
-  const threshold = getLayer(candidate, 'threshold', errors);
-  if (threshold) {
-    requireNonEmptyString(threshold, 'threshold', 'hidden_cost', errors);
-    requireNonEmptyString(threshold, 'threshold', 'attrition_reality', errors);
-    requireNonEmptyString(threshold, 'threshold', 'income_structure', errors);
-    requireNonEmptyString(threshold, 'threshold', 'common_misconceptions', errors);
-    requireNonEmptyString(threshold, 'threshold', 'who_should_not', errors);
-  }
-
-  const development = getLayer(candidate, 'development', errors);
-  if (development) {
-    requireStringArray(development, 'development', 'promotion_path', 1, errors);
-    requireNonEmptyString(development, 'development', 'ceiling', errors);
-    requireStringArray(development, 'development', 'lateral_moves', 1, errors);
-  }
-
-  const trend = getLayer(candidate, 'trend', errors);
-  if (trend) {
-    requireStringArray(trend, 'trend', 'ai_tasks_replaced', 1, errors);
-    requireStringArray(trend, 'trend', 'ai_tasks_augmented', 1, errors);
-    requireStringArray(trend, 'trend', 'ai_new_skills', 1, errors);
-  }
-
-  // ③ axis 枚举检查
-  const axis = candidate.axis;
-  if (typeof axis !== 'string' || !(AXIS_VALUES as readonly string[]).includes(axis)) {
-    errors.push({ field: 'axis', message: `axis 取值 "${String(axis)}" 不在允许的 10 个枚举内` });
-  }
-
-  // ④ domain_specifics 封顶 5 条
-  const domainSpecifics = candidate.domain_specifics;
-  if (!Array.isArray(domainSpecifics)) {
-    errors.push({ field: 'domain_specifics', message: '缺失或不是数组' });
-  } else {
-    if (domainSpecifics.length > DOMAIN_SPECIFICS_MAX) {
-      errors.push({
-        field: 'domain_specifics',
-        message: `专有槽条数 ${domainSpecifics.length} 超过封顶 ${DOMAIN_SPECIFICS_MAX} 条,超出必须回落固定骨架`,
-      });
-    }
-    domainSpecifics.forEach((item, i) => {
-      if (!isPlainObject(item) || typeof item.key !== 'string' || item.key.trim().length === 0) {
-        errors.push({ field: `domain_specifics[${i}].key`, message: '缺失或不是非空字符串' });
-      }
-      if (!isPlainObject(item) || typeof item.value !== 'string' || item.value.trim().length === 0) {
-        errors.push({ field: `domain_specifics[${i}].value`, message: '缺失或不是非空字符串' });
-      }
-    });
-  }
-
-  // 顶层键集合里不应出现 9 层 + axis + domain_specifics 之外的多余键(与 JSON Schema
-  // additionalProperties:false 语义对齐,防止「顺手扩展」骨架)。
-  const allowedTopKeys = new Set<string>([...SKELETON_LAYER_KEYS, 'axis', 'domain_specifics']);
-  for (const key of Object.keys(candidate)) {
-    if (!allowedTopKeys.has(key)) {
-      errors.push({ field: key, message: `骨架顶层出现未定义的多余字段 "${key}"(9 层固定骨架焊死,不许自行增删)` });
-    }
+  // 跨字段语义只在结构本身合法时才有意义做深扫(避免对不成形的数据做无意义的深扫报重复噪音)。
+  if (structurallyValid) {
+    checkDevelopmentYearRanges(candidate, errors);
+    checkBoundaryCoordinatesConsistency(candidate, errors);
   }
 
   return { valid: errors.length === 0, errors };

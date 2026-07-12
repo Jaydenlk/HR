@@ -8,18 +8,29 @@
  * 硬拗进一个假定固定路径的脚本里。故新开文件,导出一个可被测试直接调用的函数
  * (不是又一个 `xxx().catch(...)` 式的 CLI 脚本),源目录经参数显式传入。
  *
- * 输入约定(content/ 目录本次不存在,属于正常情况,量产阶段才会有真实数据):
- *  - <sourceDir>/occupations/<slug>.json:单个职业的注册表元数据 + 结构主干 + 散文
- *    (T3-career-wiki.md §4「生产产物同时落 git:content/occupations/<slug>.json(主干+散文)」;
- *    本次按「2 个源文件类型 → 写 5 张表」的字面要求,把 occupation_slugs 的登记元数据、
- *    occupation_edges 的出边、occupation_aliases 的别名一并归入该文件——每个 slug 的生产
- *    产物是一份自包含的「关于这个职业的一切」,而不需要额外的全局注册表文件)。
- *  - <sourceDir>/evidence/<slug>.json:该 slug 的证据条目数组,可选(缺失按空证据处理,
- *    不视为失败——证据补齐是可增量进行的后续工作,不阻断骨架落库)。
+ * TC-05(docs/refactor2/t3-gate-a-taskcards-2026-07-10.md)定稿重写,替换 TC-01~04 遗留的
+ * 旧契约。核心变化:
+ *  - registry 先行(TC-03):occupation_slugs 的登记元数据(name/l0/l1_family/l2_scene/
+ *    l3_flag/status)只属于 registry-v1.csv,本文件消费的 content/occupations/<slug>.json
+ *    收缩为 {slug,axis,skeleton,prose,cost_tokens?,aliases?,edges?}——**不再包含**那些注册
+ *    表字段,本文件也**绝不调用 slugRepo** 建/改 occupation_slugs 行。每个内容文件的 slug
+ *    必须已存在于 occupation_slugs,否则整批失败(未注册 slug 不再被"顺手建一行"接纳)。
+ *  - evidence 文件从"可选,缺失按空处理"改为**必需**:文件不存在、文件内容为空数组,
+ *    都是失败,不再放行"骨架落库、证据后补"的旧容忍契约。
+ *  - evidence 形状改为 TC-02 定稿字段(claim_id/field_value_hash/span_start/span_end/
+ *    claim_text/reasoning_chain/verdict 新四态枚举),claim_id 在导入过程中原样保留
+ *    (不重新生成),体现"claim ID 全程沿用"的设计意图。
+ *  - validated 不再是硬编码常量,而是由 occupation-coverage-gate.ts 的
+ *    evaluateOccupationCoverageGate 对 {skeleton,prose,evidence} 计算得出;
+ *    entry.status = gateResult.status('validated'|'draft'),last_verified 门A 阶段一律
+ *    写 null(不用 new Date();门B 才引入真实 verified_at 语义)。
+ *  - edges 悬空引用检查的 knownSlugs 只来自 DB 已注册 slug,不把同批内容文件的 slug
+ *    自动并入——与 registry 先行的设计一致:内容文件不能靠"互相引用"绕过注册表权威性。
  *
- * 校验通过才在一个事务里写入 5 张表;任何一个文件校验失败,整批(而不仅仅该文件)
- * 一条都不写——批内 edges 可能互相引用同批其它 slug,必须先收集全部候选 slug 再统一
- * 校验悬空引用,因此原子性天然是「整批」而不是「逐文件」。
+ * 校验通过才在一个事务里写入 4 张表(entries/edges/aliases/evidence,不碰
+ * occupation_slugs);任何一个文件校验失败,整批(而不仅仅该文件)一条都不写——批内
+ * edges 可能互相引用同批其它 slug,必须先收集全部候选 slug 再统一校验悬空引用,因此
+ * 原子性天然是「整批」而不是「逐文件」。
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -30,20 +41,20 @@ import { OccupationEdge } from './entities/occupation-edge.entity';
 import { OccupationAlias } from './entities/occupation-alias.entity';
 import { OccupationEvidence } from './entities/occupation-evidence.entity';
 import { validateSkeleton, validateEdgesReferentialIntegrity, type ValidationError } from './occupation.validator';
-import type { L0Board, Axis, OccupationSkeleton, OccupationEdgeType, OccupationEdgeRow } from './occupation.types';
-import type { EvidenceSourceLevel, EvidenceVerdict } from './occupation-evidence.types';
+import { evaluateOccupationCoverageGate, type CoverageGateEvidenceItem } from './occupation-coverage-gate';
+import type { Axis, OccupationSkeleton, OccupationEdgeType, OccupationEdgeRow } from './occupation.types';
+import type { EvidenceSourceLevel, EvidenceVerdict, ReasoningChain } from './occupation-evidence.types';
 
 const VALID_TIERS = new Set<EvidenceSourceLevel>(['A1', 'A2', 'A3']);
-const VALID_VERDICTS = new Set<EvidenceVerdict>(['confirmed', 'demoted_to_b', 'rejected']);
+const VALID_VERDICTS = new Set<EvidenceVerdict>(['pending', 'directly_supported', 'inference_supported', 'rejected']);
 
-/** content/occupations/<slug>.json 的文件形状。 */
+/**
+ * content/occupations/<slug>.json 的文件形状(TC-05 收缩定稿)。
+ * 不含 name/l0/l1_family/l2_scene/l3_flag——那些字段只属于 registry-v1.csv/occupation_slugs,
+ * 由 registry-importer.ts(TC-03)独立管理,本文件绝不写、也绝不读这些字段。
+ */
 export interface OccupationSeedFile {
   slug: string;
-  name: string;
-  l0: L0Board;
-  l1_family: string;
-  l2_scene: string;
-  l3_flag: boolean;
   axis: Axis;
   skeleton: OccupationSkeleton;
   prose: string;
@@ -52,14 +63,19 @@ export interface OccupationSeedFile {
   edges?: { to_slug: string; type: OccupationEdgeType; note?: string }[];
 }
 
-/** content/evidence/<slug>.json 单条条目形状。 */
+/** content/evidence/<slug>.json 单条条目形状(TC-02 定稿字段,claim_id 全程沿用不重新生成)。 */
 export interface OccupationEvidenceSeedItem {
+  claim_id: string;
   field_path: string;
-  claim: string;
+  field_value_hash: string;
+  claim_text: string;
+  span_start: number;
+  span_end: number;
   source_excerpt: string;
   source_url: string;
   tier: EvidenceSourceLevel;
   verdict: EvidenceVerdict;
+  reasoning_chain: ReasoningChain | null;
 }
 
 export interface SeedImportResult {
@@ -73,6 +89,7 @@ function isNonEmptyString(v: unknown): v is string {
   return typeof v === 'string' && v.trim().length > 0;
 }
 
+/** 逐条校验 evidence 条目自身形状(TC-02 字段完整性),不做 coverage gate 语义判定(那是 evaluateOccupationCoverageGate 的职责)。 */
 function validateEvidenceItems(items: unknown, filePrefix: string): { valid: OccupationEvidenceSeedItem[]; errors: ValidationError[] } {
   const errors: ValidationError[] = [];
   if (!Array.isArray(items)) {
@@ -83,21 +100,46 @@ function validateEvidenceItems(items: unknown, filePrefix: string): { valid: Occ
     const rec = item as Record<string, unknown>;
     const prefix = `${filePrefix}[${i}]`;
     let ok = true;
-    for (const field of ['field_path', 'claim', 'source_excerpt', 'source_url']) {
+    for (const field of ['claim_id', 'field_path', 'field_value_hash', 'claim_text', 'source_excerpt', 'source_url']) {
       if (!isNonEmptyString(rec?.[field])) {
         errors.push({ field: `${prefix}.${field}`, message: '缺失或不是非空字符串' });
         ok = false;
       }
+    }
+    if (!Number.isInteger(rec?.span_start) || !Number.isInteger(rec?.span_end)) {
+      errors.push({ field: `${prefix}.span`, message: 'span_start/span_end 缺失或不是整数' });
+      ok = false;
     }
     if (!VALID_TIERS.has(rec?.tier as EvidenceSourceLevel)) {
       errors.push({ field: `${prefix}.tier`, message: `不在 A1/A2/A3 三选一内(得到 "${String(rec?.tier)}")` });
       ok = false;
     }
     if (!VALID_VERDICTS.has(rec?.verdict as EvidenceVerdict)) {
-      errors.push({ field: `${prefix}.verdict`, message: `不在 confirmed/demoted_to_b/rejected 三选一内(得到 "${String(rec?.verdict)}")` });
+      errors.push({
+        field: `${prefix}.verdict`,
+        message: `不在 pending/directly_supported/inference_supported/rejected 四选一内(得到 "${String(rec?.verdict)}")`,
+      });
       ok = false;
     }
-    if (ok) valid.push(rec as unknown as OccupationEvidenceSeedItem);
+    if (rec?.reasoning_chain !== null && rec?.reasoning_chain !== undefined && typeof rec.reasoning_chain !== 'object') {
+      errors.push({ field: `${prefix}.reasoning_chain`, message: '必须是 null 或推理链对象' });
+      ok = false;
+    }
+    if (ok) {
+      valid.push({
+        claim_id: rec.claim_id as string,
+        field_path: rec.field_path as string,
+        field_value_hash: rec.field_value_hash as string,
+        claim_text: rec.claim_text as string,
+        span_start: rec.span_start as number,
+        span_end: rec.span_end as number,
+        source_excerpt: rec.source_excerpt as string,
+        source_url: rec.source_url as string,
+        tier: rec.tier as EvidenceSourceLevel,
+        verdict: rec.verdict as EvidenceVerdict,
+        reasoning_chain: (rec.reasoning_chain as ReasoningChain | null | undefined) ?? null,
+      });
+    }
   });
   return { valid, errors };
 }
@@ -118,6 +160,10 @@ export async function importOccupationSeedContent(dataSource: DataSource, source
   const parsedFiles: OccupationSeedFile[] = [];
   const evidenceByslug = new Map<string, OccupationEvidenceSeedItem[]>();
 
+  // registry 先行:内容 importer 只消费已注册 slug,绝不调用 slugRepo 建/改行。
+  const existingSlugRows = await dataSource.getRepository(OccupationSlug).find({ select: { slug: true } });
+  const registeredSlugs = new Set<string>(existingSlugRows.map((s) => s.slug));
+
   for (const file of files) {
     const filePath = path.join(occupationsDir, file);
     let parsed: OccupationSeedFile;
@@ -128,13 +174,10 @@ export async function importOccupationSeedContent(dataSource: DataSource, source
       continue;
     }
 
-    for (const field of ['slug', 'name', 'l0', 'l1_family', 'l2_scene', 'axis', 'prose'] as const) {
+    for (const field of ['slug', 'axis', 'prose'] as const) {
       if (!isNonEmptyString(parsed[field])) {
         errors.push({ field: `${file}.${field}`, message: '缺失或不是非空字符串' });
       }
-    }
-    if (typeof parsed.l3_flag !== 'boolean') {
-      errors.push({ field: `${file}.l3_flag`, message: '缺失或不是布尔值' });
     }
     if (parsed.axis !== parsed.skeleton?.axis) {
       errors.push({
@@ -143,14 +186,21 @@ export async function importOccupationSeedContent(dataSource: DataSource, source
       });
     }
 
+    // 未注册 slug 直接拒绝——内容 importer 禁止自动建 slug(那是 registry-importer 的职责)。
+    if (isNonEmptyString(parsed.slug) && !registeredSlugs.has(parsed.slug)) {
+      errors.push({ field: `${file}.slug`, message: `slug "${parsed.slug}" 未注册(未出现在 occupation_slugs),内容 importer 不会自动建 slug` });
+    }
+
     const skeletonResult = validateSkeleton(parsed.skeleton);
     for (const err of skeletonResult.errors) {
       errors.push({ field: `${file}:${err.field}`, message: err.message });
     }
 
-    // 证据文件可选:缺失按空证据处理,不视为失败。
+    // evidence 文件是必需的:缺失文件或内容为空数组都失败(废止旧版"缺失按空证据处理"契约)。
     const evidencePath = path.join(evidenceDir, `${parsed.slug}.json`);
-    if (fs.existsSync(evidencePath)) {
+    if (!fs.existsSync(evidencePath)) {
+      errors.push({ field: evidencePath, message: `证据文件缺失(evidence 是必需的,不再按空处理): ${evidencePath}` });
+    } else {
       let rawEvidence: unknown;
       try {
         rawEvidence = JSON.parse(fs.readFileSync(evidencePath, 'utf-8'));
@@ -158,52 +208,70 @@ export async function importOccupationSeedContent(dataSource: DataSource, source
         errors.push({ field: evidencePath, message: `JSON 解析失败: ${(e as Error).message}` });
         rawEvidence = [];
       }
-      const { valid, errors: evidenceErrors } = validateEvidenceItems(rawEvidence, evidencePath);
-      errors.push(...evidenceErrors);
-      evidenceByslug.set(parsed.slug, valid);
-    } else {
-      evidenceByslug.set(parsed.slug, []);
+      if (Array.isArray(rawEvidence) && rawEvidence.length === 0) {
+        errors.push({ field: evidencePath, message: '证据文件内容为空数组,覆盖闸直接拒绝' });
+      } else {
+        const { valid, errors: evidenceErrors } = validateEvidenceItems(rawEvidence, evidencePath);
+        errors.push(...evidenceErrors);
+        evidenceByslug.set(parsed.slug, valid);
+      }
     }
 
     parsedFiles.push(parsed);
   }
 
-  // 悬空引用校验:批内 slug 并入既有 DB 已注册 slug,edges 悬空引用不许出现在两者之外。
-  const existingSlugRows = await dataSource.getRepository(OccupationSlug).find({ select: { slug: true } });
-  const knownSlugs = new Set<string>([...existingSlugRows.map((s) => s.slug), ...parsedFiles.map((f) => f.slug)]);
-
+  // 悬空引用校验:knownSlugs 只来自 DB 已注册 slug,不把同批内容文件的 slug 自动并入
+  // (与旧版行为的关键区别——旧版把 parsedFiles 的 slug 也加进 knownSlugs,TC-05 废止)。
   const allEdges: OccupationEdgeRow[] = [];
   for (const f of parsedFiles) {
     for (const e of f.edges ?? []) {
       allEdges.push({ from_slug: f.slug, to_slug: e.to_slug, type: e.type, note: e.note ?? '' });
     }
   }
-  const edgesResult = validateEdgesReferentialIntegrity(allEdges, knownSlugs);
+  const edgesResult = validateEdgesReferentialIntegrity(allEdges, registeredSlugs);
   errors.push(...edgesResult.errors);
 
-  // Fail loud:整批只要有一条校验失败,一律不触碰数据库,不写任何部分脏数据。
+  // coverage gate:只有 Schema/跨字段/edges 全部无错时才逐 slug 计算 gate(避免 gate 报告
+  // 淹没更基础的结构错误)。gate 不过 = 加入 errors,整批仍然零写入。
+  const gateStatusBySlug = new Map<string, 'validated' | 'draft'>();
+  if (errors.length === 0) {
+    for (const f of parsedFiles) {
+      const evidenceItems = evidenceByslug.get(f.slug) ?? [];
+      const gateEvidence: CoverageGateEvidenceItem[] = evidenceItems.map((ev) => ({
+        claim_id: ev.claim_id,
+        field_path: ev.field_path,
+        field_value_hash: ev.field_value_hash,
+        claim_text: ev.claim_text,
+        span_start: ev.span_start,
+        span_end: ev.span_end,
+        source_excerpt: ev.source_excerpt,
+        source_url: ev.source_url,
+        tier: ev.tier,
+        verdict: ev.verdict,
+        reasoning_chain: ev.reasoning_chain,
+      }));
+      const gateResult = evaluateOccupationCoverageGate({
+        skeleton: f.skeleton,
+        prose: f.prose,
+        evidence: gateEvidence,
+      });
+      for (const err of gateResult.errors) {
+        errors.push({ field: `${f.slug}:${err.code}:${err.field}`, message: err.message });
+      }
+      gateStatusBySlug.set(f.slug, gateResult.status);
+    }
+  }
+
+  // Fail loud:整批只要有一条校验失败(结构/未注册 slug/证据必需/悬空引用/coverage gate),
+  // 一律不触碰数据库,不写任何部分脏数据。
   if (errors.length > 0) {
     return { importedSlugs: [], errors };
   }
 
   const importedSlugs: string[] = [];
   await dataSource.transaction(async (manager) => {
-    const now = new Date();
     for (const f of parsedFiles) {
-      const slugRepo = manager.getRepository(OccupationSlug);
-      const existingSlugRow = await slugRepo.findOne({ where: { slug: f.slug } });
-      await slugRepo.save(
-        slugRepo.create({
-          ...(existingSlugRow ?? {}),
-          slug: f.slug,
-          name: f.name,
-          l0: f.l0,
-          l1_family: f.l1_family,
-          l2_scene: f.l2_scene,
-          l3_flag: f.l3_flag,
-          status: existingSlugRow?.status ?? 'in_production',
-        }),
-      );
+      // 不调用 slugRepo:occupation_slugs 只能由 registry-importer 建/改。
 
       const entryRepo = manager.getRepository(OccupationEntry);
       await entryRepo.save(
@@ -212,9 +280,11 @@ export async function importOccupationSeedContent(dataSource: DataSource, source
           skeleton: f.skeleton,
           prose: f.prose,
           axis: f.axis,
-          status: 'validated',
+          status: gateStatusBySlug.get(f.slug) ?? 'draft',
           cost_tokens: f.cost_tokens ?? 0,
-          last_verified: now,
+          // 门A 阶段一律 null:last_verified 的真实语义(所有已发布非null claim 的
+          // MIN(verified_at))归门B,严禁用 new Date() 冒充。
+          last_verified: null,
         }),
       );
 
@@ -232,19 +302,26 @@ export async function importOccupationSeedContent(dataSource: DataSource, source
         await aliasRepo.save(aliasRepo.create({ alias: a.alias, slug: f.slug, weight: a.weight ?? 1 }));
       }
 
+      // evidence 幂等重建:claim_id 由源文件带入并原样保留(不重新生成),
+      // 与「claim ID 全程沿用」的设计意图一致——重复导入同一份内容不改变 claim_id。
       const evidenceRepo = manager.getRepository(OccupationEvidence);
       await evidenceRepo.delete({ entry_slug: f.slug });
       for (const ev of evidenceByslug.get(f.slug) ?? []) {
         await evidenceRepo.save(
           evidenceRepo.create({
+            claim_id: ev.claim_id,
             entry_slug: f.slug,
             field_path: ev.field_path,
-            claim: ev.claim,
+            field_value_hash: ev.field_value_hash,
+            claim_text: ev.claim_text,
+            span_start: ev.span_start,
+            span_end: ev.span_end,
             source_excerpt: ev.source_excerpt,
             source_url: ev.source_url,
             tier: ev.tier,
             verdict: ev.verdict,
-            last_verified: now,
+            reasoning_chain: ev.reasoning_chain,
+            last_verified: null,
           }),
         );
       }

@@ -1,5 +1,16 @@
 /**
- * 确定性检查脚本(dim1/dim3/dim6/edges + smoke)单测。
+ * 确定性检查脚本(dim1/dim3/edges + smoke)单测。
+ *
+ * ⚠️ dim6(字段完整度)已删除(docs/refactor2/t3-gate-a-taskcards-2026-07-10.md TC-01 step7):
+ * 结构完整度改由 occupation.schema.ts 唯一 JSON Schema 经 Ajv 单一执行(见
+ * occupation-schema-validator.spec.ts),不再需要与 Ajv 并存的手写完整度检查脚本。
+ *
+ * ⚠️ dim1(专业词汇密度)已移出硬闸(docs/refactor2/t3-gate-a-taskcards-2026-07-10.md
+ * TC-06):dim1 保留为诊断指标脚本(dim1-vocab-density.mjs 本体不删不改),但不再是
+ * smoke.mjs 的通过条件,也不阻断验收或写库——低词汇密度的合规词条(见
+ * fixtures/occupations/diagnostic-low-vocab/occupations/low-vocab.json)应当
+ * Schema 校验通过、dim1 报告 pass=false 且正常给出 metrics,不抛异常、不影响其余
+ * 检查脚本(dim3/edges)的执行。
  *
  * checks/*.mjs 是原生 ESM 脚本(改造自 p2lib,函数签名 checkXxx(occupation) 返回
  * {pass, failures, details} 风格)。本仓库 unit jest.config.json 的 transform 只覆盖
@@ -9,7 +20,9 @@
  * CLI 调用方式(未来量产 workflow 也是这样 shell 出去跑的),覆盖面比 import 更贴近实况。
  */
 import { execFileSync } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
+import { validateSkeleton } from '../src/occupations/occupation.validator';
 
 const CHECKS_DIR = path.join(__dirname, '..', 'src', 'occupations', 'checks');
 const FIXTURES_ROOT = path.join(__dirname, 'fixtures', 'occupations');
@@ -29,10 +42,28 @@ describe('smoke.mjs(自带 SAMPLE_PASS/SAMPLE_FAIL,验证四个检查脚本联�
   });
 });
 
-describe('dim1(专业词汇密度)对真实 fixture 文件的表现', () => {
-  it('合规样例(structural-engineer-building)密度达标', () => {
+describe('dim1 专业词汇密度诊断指标(非阻断)', () => {
+  it('合规样例(structural-engineer-building)密度达标,脚本可运行(仅验证脚本能跑,不作为通过条件)', () => {
     const r = runCheck('dim1-vocab-density.mjs', 'valid/occupations/structural-engineer-building.json');
     expect(r.pass).toBe(true);
+  });
+
+  it('低词汇密度样例(diagnostic-low-vocab/low-vocab):Schema 合法但 dim1 报告 pass=false,不抛异常,仍出 metrics', () => {
+    const fixturePath = path.join(FIXTURES_ROOT, 'diagnostic-low-vocab', 'occupations', 'low-vocab.json');
+    const raw = fs.readFileSync(fixturePath, 'utf-8');
+    const fixture = JSON.parse(raw) as { skeleton: unknown };
+
+    // 断言一:该词条本身是完全合法的骨架(Schema valid),只是文案刻意平凡。
+    const structuralResult = validateSkeleton(fixture.skeleton);
+    expect(structuralResult.valid).toBe(true);
+    expect(structuralResult.errors).toEqual([]);
+
+    // 断言二:dim1 诊断指标对同一份合法词条应报告 pass=false(密度低于阈值),
+    // 且不抛异常、仍能产出完整 metrics——证明 dim1 只是诊断,不再是硬性通过门。
+    const r = runCheck('dim1-vocab-density.mjs', 'diagnostic-low-vocab/occupations/low-vocab.json');
+    expect(r.pass).toBe(false);
+    expect(r.metrics.entity_density_per_300).toBeDefined();
+    expect((r.metrics.entity_density_per_300 as number) < (r.metrics.threshold_density as number)).toBe(true);
   });
 });
 
@@ -41,31 +72,6 @@ describe('dim3(套话黑名单)对真实 fixture 文件的表现', () => {
     const r = runCheck('dim3-boilerplate-blacklist.mjs', 'valid/occupations/structural-engineer-building.json');
     expect(r.pass).toBe(true);
     expect(r.metrics.total_hit_count).toBe(0);
-  });
-});
-
-describe('dim6(字段完整度,已降级为非空+类型正确)对真实 fixture 文件的表现', () => {
-  it('合规样例通过', () => {
-    const r = runCheck('dim6-field-completeness.mjs', 'valid/occupations/structural-engineer-building.json');
-    expect(r.pass).toBe(true);
-  });
-
-  it('①缺层 fixture 被判定失败,失败信息含 trend', () => {
-    const r = runCheck('dim6-field-completeness.mjs', 'invalid-missing-layer/occupations/broken.json');
-    expect(r.pass).toBe(false);
-    expect(r.failures.some((f) => f.includes('trend'))).toBe(true);
-  });
-
-  it('①缺层 fixture 同时缺失 development(发展层),失败信息含 development', () => {
-    const r = runCheck('dim6-field-completeness.mjs', 'invalid-missing-layer/occupations/broken.json');
-    expect(r.pass).toBe(false);
-    expect(r.failures.some((f) => f.includes('development'))).toBe(true);
-  });
-
-  it('④domain_specifics 超 5 条 fixture 被判定失败', () => {
-    const r = runCheck('dim6-field-completeness.mjs', 'invalid-domain-specifics/occupations/broken.json');
-    expect(r.pass).toBe(false);
-    expect(r.failures.some((f) => f.includes('domain_specifics'))).toBe(true);
   });
 });
 

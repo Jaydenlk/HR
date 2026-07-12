@@ -57,8 +57,21 @@
       "who_should_not": "不适合无法接受频繁出差驻场的人。"
     },
     "development": {
-      "promotion_path": ["岩土设计师(0-3年)", "专业负责人(3-6年)", "岩土专业总工(6年以上)"],
-      "ceiling": "多数人止步于专业负责人一级,岩土专业总工岗位数量少,晋升瓶颈明显。",
+      "promotion_path": {
+        "professional_ic": [
+          { "title": "岩土设计师", "typical_years": null },
+          { "title": "专业负责人", "typical_years": null }
+        ],
+        "management": [
+          { "title": "岩土专业总工", "typical_years": null }
+        ],
+        "independent": null
+      },
+      "ceiling": {
+        "professional_ic": "多数人止步于专业负责人一级。",
+        "management": "岩土专业总工岗位数量少,晋升瓶颈明显。",
+        "independent": null
+      },
       "lateral_moves": ["转岗结构工程师", "转岗地质勘察工程师"]
     },
     "trend": {

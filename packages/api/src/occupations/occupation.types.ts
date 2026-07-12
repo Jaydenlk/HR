@@ -103,18 +103,22 @@ export interface PositioningLayer {
  * 用户读完知道它在职业世界里站哪、旁边是谁、上下游是谁。
  * 与 occupation_edges 表是两回事:此处是骨架内的描述性字段(渲染用),
  * occupation_edges 是可查询的关系图(引用完整性由脚本保证)。
+ *
+ * R2 null 语义:industry_scenes/upstream/downstream 允许 null(证据不足时"存在但未知"),
+ * null 与 [] 语义不同——null=证据不足,[]=已核验为无。occupation_family 与
+ * adjacent_occupations(≥3)是骨架核心字段,不允许 null。
  */
 export interface CoordinatesLayer {
   /** 职业族(对应 L1) */
   occupation_family: string;
-  /** 行业场景(对应 L2,可多值) */
-  industry_scenes: string[];
-  /** 相邻职业名称,≥3 */
+  /** 行业场景(对应 L2,可多值);null=证据不足,[]=已核验为无 */
+  industry_scenes: string[] | null;
+  /** 相邻职业名称,≥3,不允许 null(百科核心字段) */
   adjacent_occupations: string[];
-  /** 上游协作方/角色 */
-  upstream: string[];
-  /** 下游交付对象/角色 */
-  downstream: string[];
+  /** 上游协作方/角色;null=证据不足,[]=已核验为无 */
+  upstream: string[] | null;
+  /** 下游交付对象/角色;null=证据不足,[]=已核验为无 */
+  downstream: string[] | null;
 }
 
 /** 与单个相邻职业的真实差异(边界层子结构)。 */
@@ -134,40 +138,46 @@ export interface BoundaryLayer {
   adjacent_diffs: AdjacentDifference[];
 }
 
-/** 真实工作流:日常 / 项目 / 周期三个维度(周期语义由 axis 决定,不再自行造词)。 */
+/**
+ * 真实工作流:日常 / 项目 / 周期三个维度(周期语义由 axis 决定,不再自行造词)。
+ * R2 null 语义:三键键位始终存在,值允许 null(证据不足)。
+ */
 export interface Workflow {
-  daily: string;
-  project: string;
-  cycle: string;
+  daily: string | null;
+  project: string | null;
+  cycle: string | null;
 }
 
 /**
  * 4. 实操层:真实工作流(日/项目/周期) / 典型产出物 / 工具系统 / 考核指标。
+ * R2 null 语义:workflow 对象本身与三键键位始终存在(值可 null);
+ * deliverables/tools_systems/eval_metrics 三数组整体允许 null。
  */
 export interface OperationsLayer {
   workflow: Workflow;
-  /** 典型产出物 */
-  deliverables: string[];
-  /** 真实工具/系统/方法/专业对象 */
-  tools_systems: string[];
-  /** 决定合不合格的考核指标 */
-  eval_metrics: string[];
+  /** 典型产出物;null=证据不足,[]=已核验为无 */
+  deliverables: string[] | null;
+  /** 真实工具/系统/方法/专业对象;null=证据不足,[]=已核验为无 */
+  tools_systems: string[] | null;
+  /** 决定合不合格的考核指标;null=证据不足,[]=已核验为无 */
+  eval_metrics: string[] | null;
 }
 
 /**
  * 5. 入行层:对口专业 / 非对口转入 / 校招信号 / 简历有效经历 / 看似相关实则无用。
+ * R2 null 语义:层对象及全部键存在,五个字段全部可 null。
  */
 export interface EntryLayer {
-  /** 对口专业(本科/硕士层面) */
-  eligible_majors: string[];
-  /** 非对口转入路径描述 */
-  non_major_route: string;
-  /** 校园期有效信号(竞赛/实习/项目经历等) */
-  campus_recruitment_signals: string[];
-  /** 简历上真正有效的经历类型 */
-  resume_valid_experiences: string[];
-  /** 看似相关但 HR/面试官不认的经历 */
-  resume_looks_relevant_but_useless: string[];
+  /** 对口专业(本科/硕士层面);null=证据不足,[]=已核验为无 */
+  eligible_majors: string[] | null;
+  /** 非对口转入路径描述;null=证据不足 */
+  non_major_route: string | null;
+  /** 校园期有效信号(竞赛/实习/项目经历等);null=证据不足,[]=已核验为无 */
+  campus_recruitment_signals: string[] | null;
+  /** 简历上真正有效的经历类型;null=证据不足,[]=已核验为无 */
+  resume_valid_experiences: string[] | null;
+  /** 看似相关但 HR/面试官不认的经历;null=证据不足,[]=已核验为无 */
+  resume_looks_relevant_but_useless: string[] | null;
 }
 
 /** 行业差异条目(差异层子结构)。 */
@@ -188,55 +198,83 @@ export interface OrgNatureDifference {
 /**
  * 6. 差异层:行业差异 / 组织性质差异。
  * 同一个岗位在不同行业、不同性质单位(国企/外企/民企/政府)的真实差异。
+ * R2 null 语义:两数组键存在;整体允许 null(证据不足)或 []([]=已核验为无);
+ * 有条目时 scene/org_nature/diff 仍需非空(不允许"半条"数据)。
  */
 export interface VariationLayer {
-  industry_diffs: IndustryDifference[];
-  org_nature_diffs: OrgNatureDifference[];
+  industry_diffs: IndustryDifference[] | null;
+  org_nature_diffs: OrgNatureDifference[] | null;
 }
 
 /**
  * 7. 门槛层:隐性门槛 / 常见误解(客观事实性的:代价、淘汰、收入结构)。
  * 反优绩主义修正②:硬闸只有防编造一道,此层不做主观匹配打分,
  * 只带一句客观的「哪类人不适合」(原稿二节「关于匹配判断的定位」)。
+ * R2 null 语义:层对象及全部键存在,五字段全部可 null。
  */
 export interface ThresholdLayer {
-  /** 真实代价(工作强度/压力场景,非泛泛「加班」) */
-  hidden_cost: string;
-  /** 淘汰机制现实(到哪个阶段/什么条件下被淘汰) */
-  attrition_reality: string;
-  /** 收入结构(固浮比/发薪节奏/体制内外差异) */
-  income_structure: string;
-  /** 常见误解(外行以为的 vs 内行实际的) */
-  common_misconceptions: string;
-  /** 客观事实性的一句「哪类人不适合」,非主观匹配画像 */
-  who_should_not: string;
+  /** 真实代价(工作强度/压力场景,非泛泛「加班」);null=证据不足 */
+  hidden_cost: string | null;
+  /** 淘汰机制现实(到哪个阶段/什么条件下被淘汰);null=证据不足 */
+  attrition_reality: string | null;
+  /** 收入结构(固浮比/发薪节奏/体制内外差异);null=证据不足 */
+  income_structure: string | null;
+  /** 常见误解(外行以为的 vs 内行实际的);null=证据不足 */
+  common_misconceptions: string | null;
+  /** 客观事实性的一句「哪类人不适合」,非主观匹配画像;null=证据不足 */
+  who_should_not: string | null;
+}
+
+/** 年限区间:发展层晋升阶梯的典型年限档,须≥2 独立来源方可写具体数字,否则 null。 */
+export interface YearRange {
+  min: number;
+  max: number;
+  unit: 'year';
+}
+
+/** 晋升阶梯单级:职级名 + 该级典型年限(证据不足则 typical_years=null)。 */
+export interface DevelopmentStep {
+  title: string;
+  typical_years: YearRange | null;
 }
 
 /**
- * 8. 发展层:典型晋升阶梯 / 职业天花板 / 常见横向转型出口。
+ * 8. 发展层:典型晋升阶梯(三分支)/ 职业天花板(三分支)/ 常见横向转型出口。
  * 2026-07-09 用户拍板新增(骨架焊死后唯一一次动结构的变更,已获批),插在门槛层之后、
  * 趋势层之前——门槛层讲清楚"进得来、留得下"的现实约束,发展层接着讲"留下之后能走多远",
  * 顺理成章地过渡到趋势层讨论"这条路径会被 AI 怎样改写"。
+ *
+ * 三分支定稿(docs/refactor2/t3-codex56-review-2026-07-10.md §R2):专业IC / 管理 / 独立经营
+ * 三条路径互不相同,不能用单一线性阶梯表达。R2 null 语义:promotion_path 三分支键、
+ * ceiling 三分支键、lateral_moves 键始终存在;各分支整体、每级 typical_years、三类 ceiling、
+ * lateral_moves 均允许 null(证据不足)。
  */
 export interface DevelopmentLayer {
-  /** 典型晋升阶梯,逐级(如 专员→主管→经理→总监),可含大致年限档 */
-  promotion_path: string[];
-  /** 职业天花板/上升瓶颈:能做到的最高位置、卡在哪 */
-  ceiling: string;
-  /** 常见横向转型出口:转去哪些相邻/下游职业 */
-  lateral_moves: string[];
+  promotion_path: {
+    professional_ic: DevelopmentStep[] | null;
+    management: DevelopmentStep[] | null;
+    independent: DevelopmentStep[] | null;
+  };
+  ceiling: {
+    professional_ic: string | null;
+    management: string | null;
+    independent: string | null;
+  };
+  /** 常见横向转型出口:转去哪些相邻/下游职业;null=证据不足,[]=已核验为无 */
+  lateral_moves: string[] | null;
 }
 
 /**
  * 9. 趋势层:AI 影响(被替代 / 被增强 / 新技能)。
+ * R2 null 语义:层对象及三键存在,三数组全部可 null。
  */
 export interface TrendLayer {
-  /** 可能被 AI 替代的任务 */
-  ai_tasks_replaced: string[];
-  /** AI 增强的任务 */
-  ai_tasks_augmented: string[];
-  /** 需要掌握的新技能 */
-  ai_new_skills: string[];
+  /** 可能被 AI 替代的任务;null=证据不足,[]=已核验为无 */
+  ai_tasks_replaced: string[] | null;
+  /** AI 增强的任务;null=证据不足,[]=已核验为无 */
+  ai_tasks_augmented: string[] | null;
+  /** 需要掌握的新技能;null=证据不足,[]=已核验为无 */
+  ai_new_skills: string[] | null;
 }
 
 /**
@@ -292,7 +330,8 @@ export interface OccupationSlugRow {
   name: string;
   l0: L0Board;
   l1_family: string;
-  l2_scene: string;
+  /** L2 场景;registry-v1.csv 353 行为空,导入为 DB null(非哨兵空串) */
+  l2_scene: string | null;
   /** 是否为拆条判据下独立生成的 L3 变体 */
   l3_flag: boolean;
   status: OccupationSlugStatus;

@@ -1,0 +1,88 @@
+{
+  "slug": "content-importer-fixture-missing-evidence",
+  "axis": "project_delivery",
+  "prose": "content-importer-fixture-a 是内容 importer 的最小合法词条(测试专用),用于验证 coverage gate 全过后一次事务写库的行为。",
+  "cost_tokens": 5000,
+  "skeleton": {
+    "positioning": {
+      "one_liner": "连接产业需求与技术实现的桥梁角色,负责把抽象业务问题转化为可验证的技术方案。",
+      "problem_solved": "解决业务侧诉求无法直接落地为可执行技术方案的核心问题。",
+      "social_rationale": "专业分工使得业务专家与技术专家各自发挥所长,这条分工是行业规模化交付的前提。"
+    },
+    "coordinates": {
+      "occupation_family": "测试职业族",
+      "industry_scenes": null,
+      "adjacent_occupations": [
+        "相邻职业甲",
+        "相邻职业乙",
+        "相邻职业丙"
+      ],
+      "upstream": null,
+      "downstream": null
+    },
+    "boundary": {
+      "adjacent_diffs": [
+        {
+          "occupation": "相邻职业甲",
+          "diff": "相邻职业甲聚焦前端交互实现,本职业聚焦后端服务与数据一致性保障。"
+        },
+        {
+          "occupation": "相邻职业乙",
+          "diff": "相邻职业乙聚焦基础设施运维,本职业聚焦业务逻辑与领域建模。"
+        },
+        {
+          "occupation": "相邻职业丙",
+          "diff": "相邻职业丙聚焦产品需求定义,本职业聚焦需求到技术实现的转译。"
+        }
+      ]
+    },
+    "operations": {
+      "workflow": {
+        "daily": null,
+        "project": null,
+        "cycle": null
+      },
+      "deliverables": null,
+      "tools_systems": null,
+      "eval_metrics": null
+    },
+    "entry": {
+      "eligible_majors": null,
+      "non_major_route": null,
+      "campus_recruitment_signals": null,
+      "resume_valid_experiences": null,
+      "resume_looks_relevant_but_useless": null
+    },
+    "variation": {
+      "industry_diffs": null,
+      "org_nature_diffs": null
+    },
+    "threshold": {
+      "hidden_cost": null,
+      "attrition_reality": null,
+      "income_structure": null,
+      "common_misconceptions": null,
+      "who_should_not": null
+    },
+    "development": {
+      "promotion_path": {
+        "professional_ic": null,
+        "management": null,
+        "independent": null
+      },
+      "ceiling": {
+        "professional_ic": null,
+        "management": null,
+        "independent": null
+      },
+      "lateral_moves": null
+    },
+    "trend": {
+      "ai_tasks_replaced": null,
+      "ai_tasks_augmented": null,
+      "ai_new_skills": null
+    },
+    "axis": "project_delivery",
+    "domain_specifics": []
+  }
+}
