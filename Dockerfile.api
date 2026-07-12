@@ -54,6 +54,7 @@ COPY --from=prod-deps --chown=node:node /repo/package.json /repo/package.json
 COPY --from=prod-deps --chown=node:node /repo/packages/api/package.json /repo/packages/api/package.json
 # 编译产物 + seed 所需的种子数据。
 COPY --from=build --chown=node:node /repo/packages/api/dist /repo/packages/api/dist
+# restricted 职业资产由 .dockerignore 在 build-context 阶段物理排除;不得依赖 runner 阶段 rm(历史 layer 仍会泄露)。
 COPY --chown=node:node data /repo/data
 # CHANGELOG.md:供 ChangelogReaderService 运行时读取(WORKDIR=/repo/packages/api → ../../CHANGELOG.md)。
 # 构建上下文为仓库根,CHANGELOG.md 在根;.dockerignore 已用 !CHANGELOG.md 豁免 **/*.md 排除。
