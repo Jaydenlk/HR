@@ -1,0 +1,93 @@
+{
+  "slug": "low-vocab-diagnostic-sample",
+  "name": "普通岗位",
+  "l0": "通用职能",
+  "l1_family": "行政后勤",
+  "l2_scene": "综合办公",
+  "l3_flag": false,
+  "axis": "project_delivery",
+  "prose": "这是一个用来测试词汇密度诊断指标的样本词条,文字本身不追求专业性(Stage0 不做内容量产)。",
+  "cost_tokens": 12000,
+  "aliases": [
+    { "alias": "行政助理", "weight": 1 },
+    { "alias": "综合行政岗", "weight": 0.5 }
+  ],
+  "edges": [
+    { "to_slug": "geotechnical-engineer-fixture", "type": "adjacent", "note": "这个岗位和另一个岗位在日常安排上会有一些交叉,但各自负责的事情不一样。" }
+  ],
+  "skeleton": {
+    "positioning": {
+      "one_liner": "这个人在公司里帮大家把日常的事情安排好,让办公室的运转顺畅一些。",
+      "problem_solved": "解决的是办公室里各种琐碎事情没人管的问题,让同事们不用为这些小事操心。",
+      "social_rationale": "公司里总要有人把杂事收拾好,这样其他人才能专心做各自的事情,这是很平常的分工。"
+    },
+    "coordinates": {
+      "occupation_family": "行政后勤",
+      "industry_scenes": ["综合办公", "日常事务", "后勤保障"],
+      "adjacent_occupations": ["前台接待", "人事助理", "办公室文员"],
+      "upstream": ["部门负责人安排的日常事务"],
+      "downstream": ["同事们的日常办公需求"]
+    },
+    "boundary": {
+      "adjacent_diffs": [
+        { "occupation": "前台接待", "diff": "前台主要在门口接待来访的人,这个岗位更多是在办公室里处理各种杂事,两者见面的场合不太一样。" },
+        { "occupation": "人事助理", "diff": "人事助理管的是招人和员工的各种手续,这个岗位管的是日常办公室里的杂事,分工不一样。" },
+        { "occupation": "办公室文员", "diff": "文员更多是整理各种文件和表格,这个岗位更多是安排日常事务和跑腿,两者做的事情有区别。" }
+      ]
+    },
+    "operations": {
+      "workflow": {
+        "daily": "早上到办公室先看看有什么要办的事情,然后一件一件处理,比如订盒饭、收发快递、整理会议室。",
+        "project": "遇到公司要办活动的时候,提前几天开始准备场地和物资,活动当天在现场帮忙照应。",
+        "cycle": "每个月月底要把办公用品清点一遍,该补的补上,这个节奏基本上一直这样。"
+      },
+      "deliverables": ["会议室安排表", "办公用品清单", "活动准备清单"],
+      "tools_systems": ["办公软件", "内部沟通群"],
+      "eval_metrics": ["同事们的满意程度", "事情办得是不是及时"]
+    },
+    "entry": {
+      "eligible_majors": ["不限专业"],
+      "non_major_route": "基本上什么背景都可以做这个岗位,主要看做事细不细心。",
+      "campus_recruitment_signals": ["做过班级里的日常事务安排"],
+      "resume_valid_experiences": ["在学校或社团里负责过日常安排的经历"],
+      "resume_looks_relevant_but_useless": ["和岗位没什么关系的证书"]
+    },
+    "variation": {
+      "industry_diffs": [
+        { "scene": "综合办公", "diff": "普通公司里这个岗位事情比较杂,但节奏相对平稳,不会特别忙。" }
+      ],
+      "org_nature_diffs": [
+        { "org_nature": "民企", "diff": "小公司里这个岗位往往一个人要管很多事情,节奏会紧一些。" }
+      ]
+    },
+    "threshold": {
+      "hidden_cost": "很多时候要处理一些临时冒出来的小事情,时间会被切得比较碎。",
+      "attrition_reality": "做久了容易觉得每天都在重复差不多的事情,一些人会因为这个想换个方向。",
+      "income_structure": "底薪不算高,基本上不会有太多额外的收入,涨幅也比较有限。",
+      "common_misconceptions": "有人觉得这个岗位很轻松,其实杂事多起来也挺费心思的。",
+      "who_should_not": "不喜欢处理琐碎事情、希望天天都做有挑战的事情的人可能不太适合。"
+    },
+    "development": {
+      "promotion_path": {
+        "professional_ic": [
+          { "title": "资深行政人员,能独立安排更多的日常事务", "typical_years": null }
+        ],
+        "management": null,
+        "independent": null
+      },
+      "ceiling": {
+        "professional_ic": "往上走的空间不算大,大多数人会在这个层级待比较久。",
+        "management": null,
+        "independent": null
+      },
+      "lateral_moves": ["转去做人事方面的工作", "转去做前台接待"]
+    },
+    "trend": {
+      "ai_tasks_replaced": ["一些简单的日程安排和信息登记"],
+      "ai_tasks_augmented": ["整理和汇总日常事务的记录"],
+      "ai_new_skills": ["学会用新的办公工具帮自己省点时间"]
+    },
+    "axis": "project_delivery",
+    "domain_specifics": []
+  }
+}
