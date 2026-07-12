@@ -2766,5 +2766,1161 @@
       "validated": false,
       "code": "YEAR_RANGE_SOURCE_INSUFFICIENT"
     }
+  },
+  {
+    "name": "domain-specifics-uncovered",
+    "skeleton": {
+      "positioning": {
+        "one_liner": "把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "problem_solved": "解决企业纳税申报合规与税务风险控制的核心问题。",
+        "social_rationale": "税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。"
+      },
+      "coordinates": {
+        "occupation_family": "财税合规",
+        "industry_scenes": null,
+        "adjacent_occupations": [
+          "会计",
+          "审计师",
+          "财务分析师"
+        ],
+        "upstream": null,
+        "downstream": null
+      },
+      "boundary": {
+        "adjacent_diffs": [
+          {
+            "occupation": "会计",
+            "diff": "会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。"
+          },
+          {
+            "occupation": "审计师",
+            "diff": "审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。"
+          },
+          {
+            "occupation": "财务分析师",
+            "diff": "财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。"
+          }
+        ]
+      },
+      "operations": {
+        "workflow": {
+          "daily": null,
+          "project": null,
+          "cycle": null
+        },
+        "deliverables": null,
+        "tools_systems": null,
+        "eval_metrics": null
+      },
+      "entry": {
+        "eligible_majors": null,
+        "non_major_route": null,
+        "campus_recruitment_signals": null,
+        "resume_valid_experiences": null,
+        "resume_looks_relevant_but_useless": null
+      },
+      "variation": {
+        "industry_diffs": null,
+        "org_nature_diffs": null
+      },
+      "threshold": {
+        "hidden_cost": null,
+        "attrition_reality": null,
+        "income_structure": null,
+        "common_misconceptions": null,
+        "who_should_not": null
+      },
+      "development": {
+        "promotion_path": {
+          "professional_ic": null,
+          "management": null,
+          "independent": null
+        },
+        "ceiling": {
+          "professional_ic": null,
+          "management": null,
+          "independent": null
+        },
+        "lateral_moves": null
+      },
+      "trend": {
+        "ai_tasks_replaced": null,
+        "ai_tasks_augmented": null,
+        "ai_new_skills": null
+      },
+      "axis": "ops_routine",
+      "domain_specifics": [
+        {
+          "key": "执业资格门槛",
+          "value": "注册会计师CPA证书满3年"
+        }
+      ]
+    },
+    "prose": "税务专员把复杂的税务合规要求转化为企业可执行的申报动作。",
+    "evidence": [
+      {
+        "claim_id": "00000000-0000-7000-9000-000001000000",
+        "field_path": "positioning.one_liner",
+        "field_value_hash": "66a1c5294d1f4932d694980e7b65deafcdaf030a07780421d10b1e04026f27ab",
+        "claim_text": "把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "span_start": 0,
+        "span_end": 37,
+        "source_excerpt": "来源摘录:把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-000002000000",
+        "field_path": "positioning.problem_solved",
+        "field_value_hash": "c53cd6b8926699520be7a588688949a0cacce44e90ffe7618a57c55d0ff58409",
+        "claim_text": "解决企业纳税申报合规与税务风险控制的核心问题。",
+        "span_start": 0,
+        "span_end": 23,
+        "source_excerpt": "来源摘录:解决企业纳税申报合规与税务风险控制的核心问题。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-000003000000",
+        "field_path": "positioning.social_rationale",
+        "field_value_hash": "ac825db170d28ecd0dd5c1e5faffbce38b94743803fd016ed7e8bae4594346e9",
+        "claim_text": "税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。",
+        "span_start": 0,
+        "span_end": 41,
+        "source_excerpt": "来源摘录:税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-000004000000",
+        "field_path": "coordinates.occupation_family",
+        "field_value_hash": "303227d1fd0ebaeb34e513ea14da279dc20ca7b16d781c30be77607e6af87ed3",
+        "claim_text": "财税合规",
+        "span_start": 0,
+        "span_end": 4,
+        "source_excerpt": "来源摘录:财税合规",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-000005000000",
+        "field_path": "coordinates.adjacent_occupations[0]",
+        "field_value_hash": "d649e95568caf62d76248cb26b2cdd125829df1e2d39b552d5fa5dc22577e075",
+        "claim_text": "会计",
+        "span_start": 0,
+        "span_end": 2,
+        "source_excerpt": "来源摘录:会计",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-000006000000",
+        "field_path": "coordinates.adjacent_occupations[1]",
+        "field_value_hash": "b7b893aa8429914c5df6dd8582aa6b8ff0908cca20f189d4696b3dffadb84c8e",
+        "claim_text": "审计师",
+        "span_start": 0,
+        "span_end": 3,
+        "source_excerpt": "来源摘录:审计师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-000007000000",
+        "field_path": "coordinates.adjacent_occupations[2]",
+        "field_value_hash": "b289606c445b7ac00e9b3e191c7500b8bb52c18fe2ee8bde3c0787249d42c318",
+        "claim_text": "财务分析师",
+        "span_start": 0,
+        "span_end": 5,
+        "source_excerpt": "来源摘录:财务分析师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-000008000000",
+        "field_path": "boundary.adjacent_diffs[0].occupation",
+        "field_value_hash": "d649e95568caf62d76248cb26b2cdd125829df1e2d39b552d5fa5dc22577e075",
+        "claim_text": "会计",
+        "span_start": 0,
+        "span_end": 2,
+        "source_excerpt": "来源摘录:会计",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-000009000000",
+        "field_path": "boundary.adjacent_diffs[0].diff",
+        "field_value_hash": "cf2eb3850670639e6284967b297414a5b086b871ef5706971d2e6d82df54bffa",
+        "claim_text": "会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。",
+        "span_start": 0,
+        "span_end": 30,
+        "source_excerpt": "来源摘录:会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-00000a000000",
+        "field_path": "boundary.adjacent_diffs[1].occupation",
+        "field_value_hash": "b7b893aa8429914c5df6dd8582aa6b8ff0908cca20f189d4696b3dffadb84c8e",
+        "claim_text": "审计师",
+        "span_start": 0,
+        "span_end": 3,
+        "source_excerpt": "来源摘录:审计师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-00000b000000",
+        "field_path": "boundary.adjacent_diffs[1].diff",
+        "field_value_hash": "9be490d34247d1decc08338a9ed6eebd09e40c4932faa46d2e20a34a27094ceb",
+        "claim_text": "审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。",
+        "span_start": 0,
+        "span_end": 37,
+        "source_excerpt": "来源摘录:审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-00000c000000",
+        "field_path": "boundary.adjacent_diffs[2].occupation",
+        "field_value_hash": "b289606c445b7ac00e9b3e191c7500b8bb52c18fe2ee8bde3c0787249d42c318",
+        "claim_text": "财务分析师",
+        "span_start": 0,
+        "span_end": 5,
+        "source_excerpt": "来源摘录:财务分析师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-00000d000000",
+        "field_path": "boundary.adjacent_diffs[2].diff",
+        "field_value_hash": "ee2f7d34a54c7ae8a8a4ba21e14e36fba8fe2503c09f1d397dc22f6a6f1dba67",
+        "claim_text": "财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。",
+        "span_start": 0,
+        "span_end": 38,
+        "source_excerpt": "来源摘录:财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      }
+    ],
+    "expect": {
+      "validated": false,
+      "code": "CLAIM_COVERAGE_INCOMPLETE"
+    }
+  },
+  {
+    "name": "domain-specifics-covered",
+    "skeleton": {
+      "positioning": {
+        "one_liner": "把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "problem_solved": "解决企业纳税申报合规与税务风险控制的核心问题。",
+        "social_rationale": "税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。"
+      },
+      "coordinates": {
+        "occupation_family": "财税合规",
+        "industry_scenes": null,
+        "adjacent_occupations": [
+          "会计",
+          "审计师",
+          "财务分析师"
+        ],
+        "upstream": null,
+        "downstream": null
+      },
+      "boundary": {
+        "adjacent_diffs": [
+          {
+            "occupation": "会计",
+            "diff": "会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。"
+          },
+          {
+            "occupation": "审计师",
+            "diff": "审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。"
+          },
+          {
+            "occupation": "财务分析师",
+            "diff": "财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。"
+          }
+        ]
+      },
+      "operations": {
+        "workflow": {
+          "daily": null,
+          "project": null,
+          "cycle": null
+        },
+        "deliverables": null,
+        "tools_systems": null,
+        "eval_metrics": null
+      },
+      "entry": {
+        "eligible_majors": null,
+        "non_major_route": null,
+        "campus_recruitment_signals": null,
+        "resume_valid_experiences": null,
+        "resume_looks_relevant_but_useless": null
+      },
+      "variation": {
+        "industry_diffs": null,
+        "org_nature_diffs": null
+      },
+      "threshold": {
+        "hidden_cost": null,
+        "attrition_reality": null,
+        "income_structure": null,
+        "common_misconceptions": null,
+        "who_should_not": null
+      },
+      "development": {
+        "promotion_path": {
+          "professional_ic": null,
+          "management": null,
+          "independent": null
+        },
+        "ceiling": {
+          "professional_ic": null,
+          "management": null,
+          "independent": null
+        },
+        "lateral_moves": null
+      },
+      "trend": {
+        "ai_tasks_replaced": null,
+        "ai_tasks_augmented": null,
+        "ai_new_skills": null
+      },
+      "axis": "ops_routine",
+      "domain_specifics": [
+        {
+          "key": "执业资格门槛",
+          "value": "注册会计师CPA证书满3年"
+        }
+      ]
+    },
+    "prose": "税务专员把复杂的税务合规要求转化为企业可执行的申报动作。",
+    "evidence": [
+      {
+        "claim_id": "00000000-0000-7000-9000-000001000000",
+        "field_path": "positioning.one_liner",
+        "field_value_hash": "66a1c5294d1f4932d694980e7b65deafcdaf030a07780421d10b1e04026f27ab",
+        "claim_text": "把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "span_start": 0,
+        "span_end": 37,
+        "source_excerpt": "来源摘录:把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-000002000000",
+        "field_path": "positioning.problem_solved",
+        "field_value_hash": "c53cd6b8926699520be7a588688949a0cacce44e90ffe7618a57c55d0ff58409",
+        "claim_text": "解决企业纳税申报合规与税务风险控制的核心问题。",
+        "span_start": 0,
+        "span_end": 23,
+        "source_excerpt": "来源摘录:解决企业纳税申报合规与税务风险控制的核心问题。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-000003000000",
+        "field_path": "positioning.social_rationale",
+        "field_value_hash": "ac825db170d28ecd0dd5c1e5faffbce38b94743803fd016ed7e8bae4594346e9",
+        "claim_text": "税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。",
+        "span_start": 0,
+        "span_end": 41,
+        "source_excerpt": "来源摘录:税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-000004000000",
+        "field_path": "coordinates.occupation_family",
+        "field_value_hash": "303227d1fd0ebaeb34e513ea14da279dc20ca7b16d781c30be77607e6af87ed3",
+        "claim_text": "财税合规",
+        "span_start": 0,
+        "span_end": 4,
+        "source_excerpt": "来源摘录:财税合规",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-000005000000",
+        "field_path": "coordinates.adjacent_occupations[0]",
+        "field_value_hash": "d649e95568caf62d76248cb26b2cdd125829df1e2d39b552d5fa5dc22577e075",
+        "claim_text": "会计",
+        "span_start": 0,
+        "span_end": 2,
+        "source_excerpt": "来源摘录:会计",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-000006000000",
+        "field_path": "coordinates.adjacent_occupations[1]",
+        "field_value_hash": "b7b893aa8429914c5df6dd8582aa6b8ff0908cca20f189d4696b3dffadb84c8e",
+        "claim_text": "审计师",
+        "span_start": 0,
+        "span_end": 3,
+        "source_excerpt": "来源摘录:审计师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-000007000000",
+        "field_path": "coordinates.adjacent_occupations[2]",
+        "field_value_hash": "b289606c445b7ac00e9b3e191c7500b8bb52c18fe2ee8bde3c0787249d42c318",
+        "claim_text": "财务分析师",
+        "span_start": 0,
+        "span_end": 5,
+        "source_excerpt": "来源摘录:财务分析师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-000008000000",
+        "field_path": "boundary.adjacent_diffs[0].occupation",
+        "field_value_hash": "d649e95568caf62d76248cb26b2cdd125829df1e2d39b552d5fa5dc22577e075",
+        "claim_text": "会计",
+        "span_start": 0,
+        "span_end": 2,
+        "source_excerpt": "来源摘录:会计",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-000009000000",
+        "field_path": "boundary.adjacent_diffs[0].diff",
+        "field_value_hash": "cf2eb3850670639e6284967b297414a5b086b871ef5706971d2e6d82df54bffa",
+        "claim_text": "会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。",
+        "span_start": 0,
+        "span_end": 30,
+        "source_excerpt": "来源摘录:会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-00000a000000",
+        "field_path": "boundary.adjacent_diffs[1].occupation",
+        "field_value_hash": "b7b893aa8429914c5df6dd8582aa6b8ff0908cca20f189d4696b3dffadb84c8e",
+        "claim_text": "审计师",
+        "span_start": 0,
+        "span_end": 3,
+        "source_excerpt": "来源摘录:审计师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-00000b000000",
+        "field_path": "boundary.adjacent_diffs[1].diff",
+        "field_value_hash": "9be490d34247d1decc08338a9ed6eebd09e40c4932faa46d2e20a34a27094ceb",
+        "claim_text": "审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。",
+        "span_start": 0,
+        "span_end": 37,
+        "source_excerpt": "来源摘录:审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-00000c000000",
+        "field_path": "boundary.adjacent_diffs[2].occupation",
+        "field_value_hash": "b289606c445b7ac00e9b3e191c7500b8bb52c18fe2ee8bde3c0787249d42c318",
+        "claim_text": "财务分析师",
+        "span_start": 0,
+        "span_end": 5,
+        "source_excerpt": "来源摘录:财务分析师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-00000d000000",
+        "field_path": "boundary.adjacent_diffs[2].diff",
+        "field_value_hash": "ee2f7d34a54c7ae8a8a4ba21e14e36fba8fe2503c09f1d397dc22f6a6f1dba67",
+        "claim_text": "财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。",
+        "span_start": 0,
+        "span_end": 38,
+        "source_excerpt": "来源摘录:财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7d01-8000-00000000d001",
+        "field_path": "domain_specifics[0].value",
+        "field_value_hash": "78ea75e22d6a2aa4d2fd2ad2a488308a5c6bb452f250624d696cc51dbf244813",
+        "claim_text": "注册会计师CPA证书满3年",
+        "span_start": 0,
+        "span_end": 13,
+        "source_excerpt": "注册会计师行业管理规定:取得注册会计师CPA证书满3年方可担任本岗位。",
+        "source_url": "https://www.cicpa.org.cn/rules/cpa-practice",
+        "tier": "A1",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      }
+    ],
+    "expect": {
+      "validated": true
+    }
+  },
+  {
+    "name": "a1-category-only-a2",
+    "skeleton": {
+      "positioning": {
+        "one_liner": "把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "problem_solved": "解决企业纳税申报合规与税务风险控制的核心问题。",
+        "social_rationale": "税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。"
+      },
+      "coordinates": {
+        "occupation_family": "财税合规",
+        "industry_scenes": null,
+        "adjacent_occupations": [
+          "会计",
+          "审计师",
+          "财务分析师"
+        ],
+        "upstream": null,
+        "downstream": null
+      },
+      "boundary": {
+        "adjacent_diffs": [
+          {
+            "occupation": "会计",
+            "diff": "会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。"
+          },
+          {
+            "occupation": "审计师",
+            "diff": "审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。"
+          },
+          {
+            "occupation": "财务分析师",
+            "diff": "财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。"
+          }
+        ]
+      },
+      "operations": {
+        "workflow": {
+          "daily": null,
+          "project": null,
+          "cycle": null
+        },
+        "deliverables": null,
+        "tools_systems": null,
+        "eval_metrics": null
+      },
+      "entry": {
+        "eligible_majors": null,
+        "non_major_route": null,
+        "campus_recruitment_signals": null,
+        "resume_valid_experiences": null,
+        "resume_looks_relevant_but_useless": null
+      },
+      "variation": {
+        "industry_diffs": null,
+        "org_nature_diffs": null
+      },
+      "threshold": {
+        "hidden_cost": null,
+        "attrition_reality": null,
+        "income_structure": null,
+        "common_misconceptions": null,
+        "who_should_not": null
+      },
+      "development": {
+        "promotion_path": {
+          "professional_ic": null,
+          "management": null,
+          "independent": null
+        },
+        "ceiling": {
+          "professional_ic": null,
+          "management": null,
+          "independent": null
+        },
+        "lateral_moves": null
+      },
+      "trend": {
+        "ai_tasks_replaced": null,
+        "ai_tasks_augmented": null,
+        "ai_new_skills": null
+      },
+      "axis": "ops_routine",
+      "domain_specifics": [
+        {
+          "key": "执业门槛",
+          "value": "需通过法律职业资格考试后方可执业"
+        }
+      ]
+    },
+    "prose": "税务专员把复杂的税务合规要求转化为企业可执行的申报动作。",
+    "evidence": [
+      {
+        "claim_id": "00000000-0000-7000-9000-000001000000",
+        "field_path": "positioning.one_liner",
+        "field_value_hash": "66a1c5294d1f4932d694980e7b65deafcdaf030a07780421d10b1e04026f27ab",
+        "claim_text": "把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "span_start": 0,
+        "span_end": 37,
+        "source_excerpt": "来源摘录:把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-000002000000",
+        "field_path": "positioning.problem_solved",
+        "field_value_hash": "c53cd6b8926699520be7a588688949a0cacce44e90ffe7618a57c55d0ff58409",
+        "claim_text": "解决企业纳税申报合规与税务风险控制的核心问题。",
+        "span_start": 0,
+        "span_end": 23,
+        "source_excerpt": "来源摘录:解决企业纳税申报合规与税务风险控制的核心问题。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-000003000000",
+        "field_path": "positioning.social_rationale",
+        "field_value_hash": "ac825db170d28ecd0dd5c1e5faffbce38b94743803fd016ed7e8bae4594346e9",
+        "claim_text": "税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。",
+        "span_start": 0,
+        "span_end": 41,
+        "source_excerpt": "来源摘录:税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-000004000000",
+        "field_path": "coordinates.occupation_family",
+        "field_value_hash": "303227d1fd0ebaeb34e513ea14da279dc20ca7b16d781c30be77607e6af87ed3",
+        "claim_text": "财税合规",
+        "span_start": 0,
+        "span_end": 4,
+        "source_excerpt": "来源摘录:财税合规",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-000005000000",
+        "field_path": "coordinates.adjacent_occupations[0]",
+        "field_value_hash": "d649e95568caf62d76248cb26b2cdd125829df1e2d39b552d5fa5dc22577e075",
+        "claim_text": "会计",
+        "span_start": 0,
+        "span_end": 2,
+        "source_excerpt": "来源摘录:会计",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-000006000000",
+        "field_path": "coordinates.adjacent_occupations[1]",
+        "field_value_hash": "b7b893aa8429914c5df6dd8582aa6b8ff0908cca20f189d4696b3dffadb84c8e",
+        "claim_text": "审计师",
+        "span_start": 0,
+        "span_end": 3,
+        "source_excerpt": "来源摘录:审计师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-000007000000",
+        "field_path": "coordinates.adjacent_occupations[2]",
+        "field_value_hash": "b289606c445b7ac00e9b3e191c7500b8bb52c18fe2ee8bde3c0787249d42c318",
+        "claim_text": "财务分析师",
+        "span_start": 0,
+        "span_end": 5,
+        "source_excerpt": "来源摘录:财务分析师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-000008000000",
+        "field_path": "boundary.adjacent_diffs[0].occupation",
+        "field_value_hash": "d649e95568caf62d76248cb26b2cdd125829df1e2d39b552d5fa5dc22577e075",
+        "claim_text": "会计",
+        "span_start": 0,
+        "span_end": 2,
+        "source_excerpt": "来源摘录:会计",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-000009000000",
+        "field_path": "boundary.adjacent_diffs[0].diff",
+        "field_value_hash": "cf2eb3850670639e6284967b297414a5b086b871ef5706971d2e6d82df54bffa",
+        "claim_text": "会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。",
+        "span_start": 0,
+        "span_end": 30,
+        "source_excerpt": "来源摘录:会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-00000a000000",
+        "field_path": "boundary.adjacent_diffs[1].occupation",
+        "field_value_hash": "b7b893aa8429914c5df6dd8582aa6b8ff0908cca20f189d4696b3dffadb84c8e",
+        "claim_text": "审计师",
+        "span_start": 0,
+        "span_end": 3,
+        "source_excerpt": "来源摘录:审计师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-00000b000000",
+        "field_path": "boundary.adjacent_diffs[1].diff",
+        "field_value_hash": "9be490d34247d1decc08338a9ed6eebd09e40c4932faa46d2e20a34a27094ceb",
+        "claim_text": "审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。",
+        "span_start": 0,
+        "span_end": 37,
+        "source_excerpt": "来源摘录:审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-00000c000000",
+        "field_path": "boundary.adjacent_diffs[2].occupation",
+        "field_value_hash": "b289606c445b7ac00e9b3e191c7500b8bb52c18fe2ee8bde3c0787249d42c318",
+        "claim_text": "财务分析师",
+        "span_start": 0,
+        "span_end": 5,
+        "source_excerpt": "来源摘录:财务分析师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-00000d000000",
+        "field_path": "boundary.adjacent_diffs[2].diff",
+        "field_value_hash": "ee2f7d34a54c7ae8a8a4ba21e14e36fba8fe2503c09f1d397dc22f6a6f1dba67",
+        "claim_text": "财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。",
+        "span_start": 0,
+        "span_end": 38,
+        "source_excerpt": "来源摘录:财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7d02-9000-00000000d002",
+        "field_path": "domain_specifics[0].value",
+        "field_value_hash": "29e556ffdb29384d4587b1b457a09d1c0910cff4ffe2199f8a456c2ec9e52bf0",
+        "claim_text": "需通过法律职业资格考试后方可执业",
+        "span_start": 0,
+        "span_end": 16,
+        "source_excerpt": "多家律所校招 JD:需通过法律职业资格考试后方可执业。",
+        "source_url": "https://jobs.lawfirm-example.com/associate-2026",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      }
+    ],
+    "expect": {
+      "validated": false,
+      "code": "SOURCE_TIER_INSUFFICIENT"
+    }
+  },
+  {
+    "name": "a1-category-with-a1",
+    "skeleton": {
+      "positioning": {
+        "one_liner": "把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "problem_solved": "解决企业纳税申报合规与税务风险控制的核心问题。",
+        "social_rationale": "税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。"
+      },
+      "coordinates": {
+        "occupation_family": "财税合规",
+        "industry_scenes": null,
+        "adjacent_occupations": [
+          "会计",
+          "审计师",
+          "财务分析师"
+        ],
+        "upstream": null,
+        "downstream": null
+      },
+      "boundary": {
+        "adjacent_diffs": [
+          {
+            "occupation": "会计",
+            "diff": "会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。"
+          },
+          {
+            "occupation": "审计师",
+            "diff": "审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。"
+          },
+          {
+            "occupation": "财务分析师",
+            "diff": "财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。"
+          }
+        ]
+      },
+      "operations": {
+        "workflow": {
+          "daily": null,
+          "project": null,
+          "cycle": null
+        },
+        "deliverables": null,
+        "tools_systems": null,
+        "eval_metrics": null
+      },
+      "entry": {
+        "eligible_majors": null,
+        "non_major_route": null,
+        "campus_recruitment_signals": null,
+        "resume_valid_experiences": null,
+        "resume_looks_relevant_but_useless": null
+      },
+      "variation": {
+        "industry_diffs": null,
+        "org_nature_diffs": null
+      },
+      "threshold": {
+        "hidden_cost": null,
+        "attrition_reality": null,
+        "income_structure": null,
+        "common_misconceptions": null,
+        "who_should_not": null
+      },
+      "development": {
+        "promotion_path": {
+          "professional_ic": null,
+          "management": null,
+          "independent": null
+        },
+        "ceiling": {
+          "professional_ic": null,
+          "management": null,
+          "independent": null
+        },
+        "lateral_moves": null
+      },
+      "trend": {
+        "ai_tasks_replaced": null,
+        "ai_tasks_augmented": null,
+        "ai_new_skills": null
+      },
+      "axis": "ops_routine",
+      "domain_specifics": [
+        {
+          "key": "执业门槛",
+          "value": "需通过法律职业资格考试后方可执业"
+        }
+      ]
+    },
+    "prose": "税务专员把复杂的税务合规要求转化为企业可执行的申报动作。",
+    "evidence": [
+      {
+        "claim_id": "00000000-0000-7000-9000-000001000000",
+        "field_path": "positioning.one_liner",
+        "field_value_hash": "66a1c5294d1f4932d694980e7b65deafcdaf030a07780421d10b1e04026f27ab",
+        "claim_text": "把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "span_start": 0,
+        "span_end": 37,
+        "source_excerpt": "来源摘录:把复杂的税务合规要求转化为企业可执行的申报动作,是财税与业务之间的翻译官。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-000002000000",
+        "field_path": "positioning.problem_solved",
+        "field_value_hash": "c53cd6b8926699520be7a588688949a0cacce44e90ffe7618a57c55d0ff58409",
+        "claim_text": "解决企业纳税申报合规与税务风险控制的核心问题。",
+        "span_start": 0,
+        "span_end": 23,
+        "source_excerpt": "来源摘录:解决企业纳税申报合规与税务风险控制的核心问题。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-000003000000",
+        "field_path": "positioning.social_rationale",
+        "field_value_hash": "ac825db170d28ecd0dd5c1e5faffbce38b94743803fd016ed7e8bae4594346e9",
+        "claim_text": "税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。",
+        "span_start": 0,
+        "span_end": 41,
+        "source_excerpt": "来源摘录:税制复杂多变,企业需要专职角色持续跟踪合规红线,这条分工是现代企业财务体系的前提。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-000004000000",
+        "field_path": "coordinates.occupation_family",
+        "field_value_hash": "303227d1fd0ebaeb34e513ea14da279dc20ca7b16d781c30be77607e6af87ed3",
+        "claim_text": "财税合规",
+        "span_start": 0,
+        "span_end": 4,
+        "source_excerpt": "来源摘录:财税合规",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-000005000000",
+        "field_path": "coordinates.adjacent_occupations[0]",
+        "field_value_hash": "d649e95568caf62d76248cb26b2cdd125829df1e2d39b552d5fa5dc22577e075",
+        "claim_text": "会计",
+        "span_start": 0,
+        "span_end": 2,
+        "source_excerpt": "来源摘录:会计",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-000006000000",
+        "field_path": "coordinates.adjacent_occupations[1]",
+        "field_value_hash": "b7b893aa8429914c5df6dd8582aa6b8ff0908cca20f189d4696b3dffadb84c8e",
+        "claim_text": "审计师",
+        "span_start": 0,
+        "span_end": 3,
+        "source_excerpt": "来源摘录:审计师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-000007000000",
+        "field_path": "coordinates.adjacent_occupations[2]",
+        "field_value_hash": "b289606c445b7ac00e9b3e191c7500b8bb52c18fe2ee8bde3c0787249d42c318",
+        "claim_text": "财务分析师",
+        "span_start": 0,
+        "span_end": 5,
+        "source_excerpt": "来源摘录:财务分析师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-000008000000",
+        "field_path": "boundary.adjacent_diffs[0].occupation",
+        "field_value_hash": "d649e95568caf62d76248cb26b2cdd125829df1e2d39b552d5fa5dc22577e075",
+        "claim_text": "会计",
+        "span_start": 0,
+        "span_end": 2,
+        "source_excerpt": "来源摘录:会计",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-000009000000",
+        "field_path": "boundary.adjacent_diffs[0].diff",
+        "field_value_hash": "cf2eb3850670639e6284967b297414a5b086b871ef5706971d2e6d82df54bffa",
+        "claim_text": "会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。",
+        "span_start": 0,
+        "span_end": 30,
+        "source_excerpt": "来源摘录:会计侧重日常记账与报表编制,税务专员侧重申报合规与稽查应对。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-a000-00000a000000",
+        "field_path": "boundary.adjacent_diffs[1].occupation",
+        "field_value_hash": "b7b893aa8429914c5df6dd8582aa6b8ff0908cca20f189d4696b3dffadb84c8e",
+        "claim_text": "审计师",
+        "span_start": 0,
+        "span_end": 3,
+        "source_excerpt": "来源摘录:审计师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-b000-00000b000000",
+        "field_path": "boundary.adjacent_diffs[1].diff",
+        "field_value_hash": "9be490d34247d1decc08338a9ed6eebd09e40c4932faa46d2e20a34a27094ceb",
+        "claim_text": "审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。",
+        "span_start": 0,
+        "span_end": 37,
+        "source_excerpt": "来源摘录:审计师核查财务报表真实性,税务专员核查纳税申报的合规性,两者检查对象不同。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-8000-00000c000000",
+        "field_path": "boundary.adjacent_diffs[2].occupation",
+        "field_value_hash": "b289606c445b7ac00e9b3e191c7500b8bb52c18fe2ee8bde3c0787249d42c318",
+        "claim_text": "财务分析师",
+        "span_start": 0,
+        "span_end": 5,
+        "source_excerpt": "来源摘录:财务分析师",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7000-9000-00000d000000",
+        "field_path": "boundary.adjacent_diffs[2].diff",
+        "field_value_hash": "ee2f7d34a54c7ae8a8a4ba21e14e36fba8fe2503c09f1d397dc22f6a6f1dba67",
+        "claim_text": "财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。",
+        "span_start": 0,
+        "span_end": 38,
+        "source_excerpt": "来源摘录:财务分析师关注经营决策支持,税务专员关注法定申报义务履行,两者服务对象不同。",
+        "source_url": "https://hr.example-corp.com/jd/tax-specialist",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      },
+      {
+        "claim_id": "00000000-0000-7d03-a000-00000000d003",
+        "field_path": "domain_specifics[0].value",
+        "field_value_hash": "29e556ffdb29384d4587b1b457a09d1c0910cff4ffe2199f8a456c2ec9e52bf0",
+        "claim_text": "需通过法律职业资格考试后方可执业",
+        "span_start": 0,
+        "span_end": 16,
+        "source_excerpt": "司法部公告:实行国家统一法律职业资格考试制度,通过后方可执业。",
+        "source_url": "https://www.moj.gov.cn/legal-professional-exam",
+        "tier": "A1",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      }
+    ],
+    "expect": {
+      "validated": true
+    }
   }
 ]

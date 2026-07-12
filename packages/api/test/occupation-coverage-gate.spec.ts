@@ -114,6 +114,38 @@ describe('evaluateOccupationCoverageGate', () => {
     expect(result.validated).toBe(false);
     expect(result.errors.some((e) => e.code === 'YEAR_RANGE_SOURCE_INSUFFICIENT')).toBe(true);
   });
+
+  // ── 修复轮1(coordinator 裁决 2026-07-12):domain_specifics 纳入覆盖闸 + A1 强制类目 ──
+
+  it('修复轮1-a:domain_specifics 含数字制度 value(注册会计师CPA证书满3年)零 claim 覆盖 → CLAIM_COVERAGE_INCOMPLETE', () => {
+    const c = findCase(cases, 'domain-specifics-uncovered');
+    const result = evaluateOccupationCoverageGate({ skeleton: c.skeleton, prose: c.prose, evidence: c.evidence });
+    expect(result.validated).toBe(false);
+    expect(result.errors.some((e) => e.code === 'CLAIM_COVERAGE_INCOMPLETE' && e.field === 'domain_specifics[0].value')).toBe(true);
+  });
+
+  it('修复轮1-b:同 value 有 directly_supported+A1 claim 覆盖 → validated', () => {
+    const c = findCase(cases, 'domain-specifics-covered');
+    const result = evaluateOccupationCoverageGate({ skeleton: c.skeleton, prose: c.prose, evidence: c.evidence });
+    expect(result.errors).toEqual([]);
+    expect(result.validated).toBe(true);
+    expect(result.status).toBe('validated');
+  });
+
+  it('修复轮1-c:法律准入类 value(法律职业资格考试)仅 A2 支撑 → SOURCE_TIER_INSUFFICIENT', () => {
+    const c = findCase(cases, 'a1-category-only-a2');
+    const result = evaluateOccupationCoverageGate({ skeleton: c.skeleton, prose: c.prose, evidence: c.evidence });
+    expect(result.validated).toBe(false);
+    expect(result.errors.some((e) => e.code === 'SOURCE_TIER_INSUFFICIENT')).toBe(true);
+  });
+
+  it('修复轮1-d:同 claim 改用 A1 官方来源支撑 → validated', () => {
+    const c = findCase(cases, 'a1-category-with-a1');
+    const result = evaluateOccupationCoverageGate({ skeleton: c.skeleton, prose: c.prose, evidence: c.evidence });
+    expect(result.errors).toEqual([]);
+    expect(result.validated).toBe(true);
+    expect(result.status).toBe('validated');
+  });
 });
 
 describe('evaluateOccupationCoverageGate: 补充规则单元断言(非 fixture 驱动)', () => {
