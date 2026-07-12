@@ -195,9 +195,11 @@ function isStringArray(v: unknown): v is string[] {
  *    注册整数组级别的叶子(对象数组没有单一字符串值可供整体一条 claim 直接覆盖)。
  *  - YearRange 对象(development 各分支 typical_years):整体作为一个叶子。
  *
- * 横切字段 axis/domain_specifics 是分类/调参槽而非源自文档的事实断言,不纳入覆盖闸
- * 叶子枚举范围(与 positioning/coordinates/boundary/operations/entry/variation/
- * threshold/development/trend 九层描述性字段区分对待)——本卡显式假设,详见交付报告。
+ * 横切字段(leader 裁决 2026-07-12 修复轮1,替代本卡最初的双豁免假设):
+ *  - axis 维持豁免:10 值枚举选择器是分类决策不是事实断言,不纳入覆盖闸。
+ *  - domain_specifics[*].value 必须纳入:非空数组时每条的 value 为一个叶子(key 是
+ *    标签不算);value 命中数字/年限/专名/制度规则特征时按高危处理(必须
+ *    directly_supported)——R3 第122行明文"domain_specifics 中数字专名制度"为高危。
  */
 function collectVisibleLeaves(skeleton: OccupationSkeleton): SkeletonLeaf[] {
   const leaves: SkeletonLeaf[] = [];
@@ -247,6 +249,17 @@ function collectVisibleLeaves(skeleton: OccupationSkeleton): SkeletonLeaf[] {
   for (const key of layerKeys) {
     walk(skeleton[key], key);
   }
+
+  // domain_specifics[*].value 纳入叶子枚举(leader 裁决 2026-07-12;key 是标签不算叶子)。
+  const domainSpecifics: unknown = skeleton.domain_specifics;
+  if (Array.isArray(domainSpecifics)) {
+    domainSpecifics.forEach((item, i) => {
+      if (isPlainObject(item) && typeof item.value === 'string') {
+        leaves.push({ fieldPath: `domain_specifics[${i}].value`, normalizedValue: normalizeString(item.value) });
+      }
+    });
+  }
+
   return leaves;
 }
 
@@ -265,6 +278,28 @@ function arrayFamilyBasePath(fieldPath: string, knownArrayBasePaths: ReadonlySet
 const NUMERIC_CONTENT_RE = /\d/;
 
 /**
+ * A1 强制类目关键词(t3-codex56-review-2026-07-10.md §R3 第123行:法规/证照/准入类
+ * claim 须≥1 A1;六类目=法律/准入/证照/编制/考试/监管)。claim_text 或对应叶子值命中
+ * 任一模式 → 该字段的支撑证据里必须至少一条 tier=A1,否则 SOURCE_TIER_INSUFFICIENT。
+ * 写成常量便于后续调整关键词集(leader 裁决 2026-07-12 修复轮1)。
+ * 注意"编制"类刻意用长词形(事业编制/行政编制/编制内/入编),避免误伤"报表编制"等
+ * 日常业务用语。
+ */
+export const A1_REQUIRED_KEYWORDS: readonly RegExp[] = [
+  /法律|法规|条例|司法/, // 法律类
+  /准入|许可|备案|资质/, // 准入类
+  /执业资格|职业资格|资格证|证书|执照|持证|注册[一-龥]{1,6}师/, // 证照类
+  /事业编制|行政编制|编制内|入编/, // 编制类(长词形防误伤"报表编制")
+  /考试|统考|联考/, // 考试类
+  /监管/, // 监管类
+];
+
+/** 文本是否命中 A1 强制类目(法律/准入/证照/编制/考试/监管)任一关键词。 */
+export function matchesA1Category(text: string): boolean {
+  return A1_REQUIRED_KEYWORDS.some((re) => re.test(text));
+}
+
+/**
  * 高危字段路径判定(t3-codex56-review-2026-07-10.md §R3 高危字段清单):
  *  - entry.eligible_majors(对口专业门槛)
  *  - entry.campus_recruitment_signals 中学历/院校/证书门槛信号
@@ -273,7 +308,7 @@ const NUMERIC_CONTENT_RE = /\d/;
  *  - threshold.hidden_cost / threshold.attrition_reality / threshold.income_structure
  *  - development.promotion_path.*[].typical_years(年限,按 YearRange 整体叶子路径匹配)
  *  - development.ceiling.*(具体职位天花板)
- *  - domain_specifics 中数字/专名/制度类(本卡不纳入 domain_specifics 覆盖范围,见上方假设)
+ * domain_specifics 中数字/专名/制度类高危由 isHighRiskLeaf 按值特征判定(路径判不出值特征)。
  * 加上通用规则:任意叶子值本身含数字/比例/金额/日期/频次/排名(NUMERIC_CONTENT_RE)。
  */
 function isHighRiskFieldPath(fieldPath: string): boolean {
@@ -286,6 +321,19 @@ function isHighRiskFieldPath(fieldPath: string): boolean {
   if (fieldPath === 'threshold.income_structure') return true;
   if (/^development\.promotion_path\.(professional_ic|management|independent)\[\d+\]\.typical_years$/.test(fieldPath)) return true;
   if (/^development\.ceiling\.(professional_ic|management|independent)$/.test(fieldPath)) return true;
+  return false;
+}
+
+/**
+ * 叶子级高危判定(路径规则 + 值特征规则):
+ *  - 路径命中 §R3 高危字段清单;或
+ *  - 值含数字/比例/金额/日期/频次/排名(NUMERIC_CONTENT_RE);或
+ *  - domain_specifics 值命中专名/制度规则特征(A1 类目关键词,leader 裁决 2026-07-12)。
+ */
+function isHighRiskLeaf(leaf: SkeletonLeaf): boolean {
+  if (isHighRiskFieldPath(leaf.fieldPath)) return true;
+  if (NUMERIC_CONTENT_RE.test(leaf.normalizedValue)) return true;
+  if (leaf.fieldPath.startsWith('domain_specifics[') && matchesA1Category(leaf.normalizedValue)) return true;
   return false;
 }
 
@@ -487,7 +535,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   // 8) 高危字段:必须 directly_supported,不得降级为 inference;源等级须达标;
   //    含数字/年份/金额/比例的断言:excerpt 须同口径出现该数值(防 2024 vs 2023 误配)。
   for (const leaf of leaves) {
-    const highRisk = isHighRiskFieldPath(leaf.fieldPath) || NUMERIC_CONTENT_RE.test(leaf.normalizedValue);
+    const highRisk = isHighRiskLeaf(leaf);
     if (!highRisk) continue;
     const coveringClaims = evidenceList.filter((e) => e.field_path === leaf.fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
     for (const claim of coveringClaims) {
@@ -515,16 +563,27 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   }
 
   // 10) 源等级:高危/A2 门槛字段的证据 tier 不得为 A3 单独撑起;
-  //     校招门槛/考核/收入/年限须 A2 且要求两个不同 publisher host。
+  //     校招门槛/考核/收入/年限须 A2 且要求两个不同 publisher host;
+  //     法律/准入/证照/编制/考试/监管类内容须≥1 A1(R3 第123行,内容特征触发)。
   for (const leaf of leaves) {
     const fieldPath = leaf.fieldPath;
-    const highRisk = isHighRiskFieldPath(fieldPath) || NUMERIC_CONTENT_RE.test(leaf.normalizedValue);
+    const highRisk = isHighRiskLeaf(leaf);
     const needsA2 = requiresA2OrHigher(fieldPath);
     const coveringClaims = evidenceList.filter((e) => e.field_path === fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
     if (coveringClaims.length === 0) continue;
 
     if (highRisk && coveringClaims.every((c) => c.tier === 'A3')) {
       errors.push({ code: 'SOURCE_TIER_INSUFFICIENT', field: fieldPath, message: `高危字段不得仅由 A3 级来源验证` });
+    }
+    // A1 强制类目:叶子值或任一支撑 claim 的 claim_text 命中法律/准入/证照/编制/考试/监管
+    // 关键词 → 该字段的支撑证据里必须至少一条 tier=A1。
+    const a1Required = matchesA1Category(leaf.normalizedValue) || coveringClaims.some((c) => matchesA1Category(c.claim_text));
+    if (a1Required && !coveringClaims.some((c) => c.tier === 'A1')) {
+      errors.push({
+        code: 'SOURCE_TIER_INSUFFICIENT',
+        field: fieldPath,
+        message: `法律/准入/证照/编制/考试/监管类内容须至少一条 A1 级官方权威来源支撑,当前最高等级不足`,
+      });
     }
     if (needsA2) {
       const meetsA2 = coveringClaims.some((c) => c.tier === 'A1' || c.tier === 'A2');
