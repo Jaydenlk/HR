@@ -264,12 +264,6 @@ function arrayFamilyBasePath(fieldPath: string, knownArrayBasePaths: ReadonlySet
 /** 含数字/比例/金额/日期/频次/排名等的字符串值判定(高危规则之一:"含数字 claim 必须 directly")。 */
 const NUMERIC_CONTENT_RE = /\d/;
 
-function valueContainsNumeric(fieldPath: string, leaves: SkeletonLeaf[]): boolean {
-  const leaf = leaves.find((l) => l.fieldPath === fieldPath);
-  if (!leaf) return false;
-  return NUMERIC_CONTENT_RE.test(leaf.normalizedValue);
-}
-
 /**
  * 高危字段路径判定(t3-codex56-review-2026-07-10.md §R3 高危字段清单):
  *  - entry.eligible_majors(对口专业门槛)
@@ -322,11 +316,6 @@ function normalizeHost(url: string): string {
   } catch {
     return url.trim().toLowerCase();
   }
-}
-
-/** 两个来源是否「独立」:hostname 小写去 www 后不同。 */
-function areSourcesIndependent(urlA: string, urlB: string): boolean {
-  return normalizeHost(urlA) !== normalizeHost(urlB);
 }
 
 // ─────────────────────────────────────────────
