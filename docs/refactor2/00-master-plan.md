@@ -151,9 +151,9 @@
   | TC-03 registry importer | ✅(2提交,10/10+全量695零失败) | ✅ PASS(16项,369/353独立复核) | feat/t3-gate-a-tc03→已并回gate-a |
   | TC-07 restricted隔离 | ✅(4提交含tar双臂加固,镜像双扫描三连PASS) | ✅ PASS(含反向对抗测试)→**已合并dev f5691c6,部署雷拆除** | 已收口 |
   | TC-02 覆盖闸(最重) | ✅(5提交:3+修复轮红绿2,28/28+四spec 75/75) | ✅ **两轮闭环PASS关闭**(轮1击穿domain_specifics零证据validated→修复轮金标准翻转+红灯detached实证+7对抗词探针;minor遗留=A1宽词fail-closed过触发,量产按误拦率精化) | tc02→已并回gate-a(5890364) |
-  | TC-04 GateA迁移 | 🔄 执行中 | — | gate-a worktree,串行 |
-  | TC-05 导入器收口 | ☐ 待 TC-04 | — | 串行 |
-  | TC-08 总验收 | ☐ 待全部 | — | 独立验收代理 |
+  | TC-04 GateA迁移 | ✅(c7a491d,红先绿+PG三连+fail-closed实证) | ✅ PASS(6/6,独立临时容器复证三连+插数据revert正确拒绝且schema零损;coach-postgres全程未碰) | 已关闭 |
+  | TC-05 导入器收口 | 🔄 执行中(清偿seed-importer 2处tsc债+四种零写入+validated只出自gate) | — | gate-a worktree,最后一张实现卡 |
+  | TC-08 总验收 | ☐ 待 TC-05 | — | 独立验收代理 |
   验收 PASS 链:门A 全绿 → 合并 dev → 回归5条(产物只落git)→ **经济验证批30-50 go/no-go 用户闸门** → 首波量产150-250(700-800仅容量上限)。
 
 ## 全局红线(超出即停,找用户)
