@@ -613,3 +613,13 @@ import { AppDataSource } from './test/test-data-source'; // 复用现有测试�
 | lawyer | lawyer-litigation | 公共制度 / 司法系统(诉讼) |
 
 （注：任务书给出的 `ai-product-manager` 老稿实际映射到新 `product-manager`——即"AI产品经理"老稿内容并入通用"产品经理"新词条，不是拆成独立 L3；这是任务书已定的映射，本方案照单执行，不额外论证是否符合 §1 设计裁决②拆条判据，因为该判据只在注册表阶段决定，回归阶段冻结不重开。）
+
+---
+
+## Leader 裁决(2026-07-10,六个未裁决点全部落定,执行期不重开)
+1. **老源复用**:capture_date≤30 天的老证据直接复用不重验;老稿自标弱证据(entailment-log 里 demoted/低置信)的断言按新断言走 R3 配源。真保鲜机制(source_documents/快照/时效)归门B。
+2. **散文护栏**:回归阶段不写脚本;渲染 prompt 内置"散文不得出现主干外数字/专名"红线 + R5/R7 阶段**全量**(5/5 条,非抽样)人肉核验散文数字/专名对照主干白名单。护栏脚本随经济批建设(量足够摊薄)。
+3. **门3 判据**:目标盲测 5/5;任一条 park 则门3 判未过,连同 park 原因、4/5 现状、修复尝试记录一起报用户(与经济批 go/no-go 材料同批),不无限重试不降标准。
+4. **R4 校验 CLI 正式沉淀**:派 implementer 小卡实现 `packages/api/scripts/validate-occupation-content.ts`(读 content/occupations|evidence/<slug>.json → validateSkeleton + evaluateOccupationCoverageGate → JSON 报告+exit code),含 UUIDv7 生成辅助(零依赖手写,~15 行)与单测。回归/经济批/量产三阶段共用。
+5. **edges 占位清理**:不进门3;门B(经济批前)按 Codex R6 时序执行,已在门B 账上。
+6. **claim_id**:统一用 #4 工具的 UUIDv7 函数生成;内容 agent 不得自造 id 格式;coverage gate 的 v7 正则为最终裁判。
