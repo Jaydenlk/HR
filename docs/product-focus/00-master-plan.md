@@ -28,7 +28,7 @@
 | WP-0 | 采纳改写数据破坏修复(span patch+diff 确认) | 中 | **用户批准方案** | 📋 技术文档就绪待批(`docs/product-focus/wp0-adopt-fix.md`) |
 | WP-1 | 入口收编:职业地图隐藏+求职信并入投递+机会中心冻结 | 小 | 无 | 📋 施工卡就绪可执行(`docs/product-focus/wp1-nav-consolidation.md`) |
 | WP-2 | 效果闭环埋点(后台收集):采纳/拒绝(含原因)→版本→投递→是否获面;admin 后台查询 | 中 | 无 | 📋 施工卡就绪(拒绝原因方案待用户裁决,见文档 §8)(`docs/product-focus/wp2-telemetry.md`) |
-| WP-3 | T3 门A→回归5条→"是否让诊断更准"验证 | 大 | 已有完整任务卡包 | ⏸️ 已暂停待用户令(docs/refactor2/t3-gate-a-taskcards-2026-07-10.md) |
+| WP-3 | T3 门A→回归5条→"是否让诊断更准"验证 | 大 | 已有完整任务卡包 | 🔄 执行中(2026-07-10 用户令恢复;进度见 docs/refactor2/t3-gate-a-taskcards-2026-07-10.md 头部状态区) |
 
 执行顺序建议:WP-1(小,先收拾门面)→ WP-2(埋点早一天上早一天攒数据)→ WP-0(需用户批方案)→ WP-3(按其自身门控)。任何 WP 内部按 step→verify,完成一格更新本表。
 
@@ -74,5 +74,5 @@ diagnosis_suggestion 事件:展开/复制/采纳/拒绝(拒绝原因枚举:不�
 ## 6. 现状坐标(2026-07-10 快照)
 
 - 线上:免费试运行 http://139.224.248.44(dev=main=origin,最新 1a2c3a3);生产部署=本地构建镜像→scp,服务器不 build。
-- T3:Stage0+9 层骨架+注册表 v2.1 已上 dev;门A 两卡曾启动被叫停——现场:feat/t3-restricted-isolation 分支有 2 个安全提交(restricted 目录迁移+dockerignore 守卫,**未合并**;剩镜像扫描脚本),feat/t3-gate-a worktree 已建零代码。恢复时勿重做已提交步骤。
+- T3:Stage0+9 层骨架+注册表 v2.1 已上 dev;**门A 已恢复执行(2026-07-10 用户令)**——P1 并行组在跑:TC-01(worktree coach-wt/t3-gate-a,从卡 step1 起)+ TC-07 续跑(feat/t3-restricted-isolation 已有 2 提交[目录迁移+dockerignore 守卫],从扫描脚本步接续,勿重做已提交步骤)。协作运行规则(用户 2026-07-10):**一切开发/审计/验收由 Sonnet 级执行代理承担,leader 只分发任务+判定+记账;所有状态变化实时更新本文档与相关文档并 commit 推送**。
 - 已知 P0 隐患:①采纳改写数据破坏(WP-0,待批)②Dockerfile COPY data 整目录(feat/t3-restricted-isolation 分支已修一半,合并后解除)。

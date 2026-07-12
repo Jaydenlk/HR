@@ -1,5 +1,17 @@
 # T3 门A 修复批 · 降智任务卡包(Codex 5.6 出品,2026-07-10)
 
+## 执行状态(leader 实时维护,接手者以此为准)
+| 卡 | 状态 | 分支/位置 | 备注 |
+|---|---|---|---|
+| TC-01 | 🔄 执行中(2026-07-10 恢复) | worktree coach-wt/t3-gate-a(feat/t3-gate-a) | 首次启动被叫停于零代码;worktree 已建,从 step1 起 |
+| TC-02 | ☐ 待 TC-01 | — | — |
+| TC-03 | ☐ 待 TC-01 | — | — |
+| TC-04 | ☐ 待 TC-02+03 | — | — |
+| TC-05 | ☐ 待 TC-04 | — | — |
+| TC-06 | ☐ 待 TC-01 | — | — |
+| TC-07 | 🔄 续跑中(2026-07-10 恢复) | 主树 feat/t3-restricted-isolation | **已提交 b1d8040(三 CSV 移入 restricted/)+23f1305(dockerignore+Dockerfile 守卫),从「扫描脚本」步接续勿重做** |
+| TC-08 | ☐ 待 TC-01~07 | — | 总验收(由独立 sonnet 验收代理执行) |
+
 > 执行者:Sonnet 级 implementer,照卡执行,不需要也不允许自行设计。上位依据:docs/refactor2/t3-codex56-review-2026-07-10.md(§R1-R3 规格)。
 > 每张卡:先红后绿(TDD 顺序强制),完成即 commit(前缀 `feat(t3-gate-a): TC-XX ...`),附验证原始输出。
 > **leader 编排调整**:TC-07 改在主树独立分支 feat/t3-restricted-isolation 执行(与 TC-01 物理隔离防 git 索引竞争),其余卡在 worktree coach-wt/t3-gate-a(分支 feat/t3-gate-a,基于 dev)。
