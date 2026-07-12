@@ -28,7 +28,7 @@
 | WP-0 | 采纳改写数据破坏修复(span patch+diff 确认) | 中 | **用户批准方案** | 📋 技术文档就绪待批(`docs/product-focus/wp0-adopt-fix.md`) |
 | WP-1 | 入口收编:职业地图隐藏+求职信并入投递+机会中心冻结 | 小 | 无 | 📋 施工卡就绪可执行(`docs/product-focus/wp1-nav-consolidation.md`) |
 | WP-2 | 效果闭环埋点(后台收集):采纳/拒绝(含原因)→版本→投递→是否获面;admin 后台查询 | 中 | 无 | 📋 施工卡就绪(拒绝原因方案待用户裁决,见文档 §8)(`docs/product-focus/wp2-telemetry.md`) |
-| WP-3 | T3 门A→回归5条→"是否让诊断更准"验证 | 大 | 已有完整任务卡包 | 🔄 执行中——**进度账=docs/refactor2/00-master-plan.md「门A进度账」表**(5/8卡开发完,4卡验收PASS,TC-07已合并dev拆除部署雷,TC-02验收中) |
+| WP-3 | T3 门A→回归5条→"是否让诊断更准"验证 | 大 | 已有完整任务卡包 | 🔄 **门A 已全量收官合并 dev(fb76ef7,八卡双盲全 PASS,防编造硬闸焊进代码)**;当前=回归5条编排中(slug映射全齐,产物只落git);经济批30-50仍是用户go/no-go闸门。进度账=docs/refactor2/00-master-plan.md |
 
 执行顺序建议:WP-1(小,先收拾门面)→ WP-2(埋点早一天上早一天攒数据)→ WP-0(需用户批方案)→ WP-3(按其自身门控)。任何 WP 内部按 step→verify,完成一格更新本表。
 

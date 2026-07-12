@@ -153,8 +153,9 @@
   | TC-02 覆盖闸(最重) | ✅(5提交:3+修复轮红绿2,28/28+四spec 75/75) | ✅ **两轮闭环PASS关闭**(轮1击穿domain_specifics零证据validated→修复轮金标准翻转+红灯detached实证+7对抗词探针;minor遗留=A1宽词fail-closed过触发,量产按误拦率精化) | tc02→已并回gate-a(5890364) |
   | TC-04 GateA迁移 | ✅(c7a491d,红先绿+PG三连+fail-closed实证) | ✅ PASS(6/6,独立临时容器复证三连+插数据revert正确拒绝且schema零损;coach-postgres全程未碰) | 已关闭 |
   | TC-05 导入器收口 | ✅(4975e14红/1feb16d绿,9/9;全仓tsc零错债清;四零写入+claim_id往返有断言;全仓738零失败) | (并入TC-08总验收面) | 已完成 |
-  | TC-08 总验收 | ⚠️ 首轮 6/7 绿 1 FAIL:镜像 Gate2 命中 restricted **空目录节点**(零字节零泄露,但"全layer零命中"硬指标未达;根因=dockerignore /**只排内容不排目录本体)。其余全绿:边界/七spec 106/全量tsc-jest-e2e(1次e2e抖动已隔离判环境)/PG三连/web三门/gate反例12 invalid全拒+3 valid全过 | TC-07 修复轮2 已派(dockerignore 加目录本体排除,在 gate-a 上修) | 修复后 TC-08 delta 复验镜像段 |
-  验收 PASS 链:门A 全绿 → 合并 dev → 回归5条(产物只落git)→ **经济验证批30-50 go/no-go 用户闸门** → 首波量产150-250(700-800仅容量上限)。
+  | TC-08 总验收 | ✅ **整卡 PASS**(首轮6/7绿→TC-07修复轮2[dockerignore裸目录模式8ea5df6]→delta复验:独立重建镜像+手工19 blob零命中/双门clean/主表零误伤)。附注:①e2e并行偶发coach-handoffs超时抖动=环境性(串行/隔离均绿)②gate fixture实测12 invalid+3 valid | ✅ | 已关闭 |
+  **✅✅ 门A 全量收官(2026-07-10,merge `fb76ef7`,dev=main)**:八卡全关,每卡 sonnet 开发+独立 sonnet 验收双盲;TC-02 两轮闭环(金标准击穿翻转);TC-08 七段矩阵。里程碑:**零证据词条无法 validated/无源硬数据可写 null/注册表冻结不可绕/敏感数据物理出镜像——防编造硬闸从设计变为代码强制**。
+  **🔄 下一环:回归5条**(编排准备中):5 份 p2lib 老稿重灌 9 层新骨架,slug 映射已全齐(ai-product-manager→product-manager/clinical-physician→clinical-physician[主表公共制度·医疗临床]/hrbp→hrbp/lawyer→lawyer-litigation/smart-agriculture-engineer→smart-agriculture-technician);产物只落 git 不上生产;验收=9层齐+coverage gate 真跑+盲测三问5/5。之后:**经济验证批30-50 go/no-go 用户闸门**→首波量产150-250(700-800仅容量上限)。
 
 ## 全局红线(超出即停,找用户)
 
