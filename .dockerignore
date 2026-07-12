@@ -24,6 +24,9 @@
 **/*.md
 # CHANGELOG 需进镜像供 api 运行时读取(从最近更新生成公告),豁免上面的 **/*.md 排除。
 !CHANGELOG.md
-# restricted 职业资产(受限编制/隔离清单)绝不进镜像:build-context 阶段物理排除,新目录+旧命名兜底。
+# restricted 职业资产(受限编制/隔离清单)绝不进镜像:build-context 阶段物理排除,三条各司其职——
+# 裸目录模式=目录本体+全部内容整体出 context(修复:/** 只排内容,空目录节点仍随 COPY data 进镜像);
+# /** 与 *-restricted.csv 两条保留作冗余防御(分别兜内容级与旧命名散落)。
+data/occupations/restricted
 data/occupations/restricted/**
 **/*-restricted.csv
