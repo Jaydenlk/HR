@@ -155,7 +155,7 @@
   | TC-05 导入器收口 | ✅(4975e14红/1feb16d绿,9/9;全仓tsc零错债清;四零写入+claim_id往返有断言;全仓738零失败) | (并入TC-08总验收面) | 已完成 |
   | TC-08 总验收 | ✅ **整卡 PASS**(首轮6/7绿→TC-07修复轮2[dockerignore裸目录模式8ea5df6]→delta复验:独立重建镜像+手工19 blob零命中/双门clean/主表零误伤)。附注:①e2e并行偶发coach-handoffs超时抖动=环境性(串行/隔离均绿)②gate fixture实测12 invalid+3 valid | ✅ | 已关闭 |
   **✅✅ 门A 全量收官(2026-07-10,merge `fb76ef7`,dev=main)**:八卡全关,每卡 sonnet 开发+独立 sonnet 验收双盲;TC-02 两轮闭环(金标准击穿翻转);TC-08 七段矩阵。里程碑:**零证据词条无法 validated/无源硬数据可写 null/注册表冻结不可绕/敏感数据物理出镜像——防编造硬闸从设计变为代码强制**。
-  **🔄 下一环:回归5条**(编排准备中):5 份 p2lib 老稿重灌 9 层新骨架,slug 映射已全齐(ai-product-manager→product-manager/clinical-physician→clinical-physician[主表公共制度·医疗临床]/hrbp→hrbp/lawyer→lawyer-litigation/smart-agriculture-engineer→smart-agriculture-technician);产物只落 git 不上生产;验收=9层齐+coverage gate 真跑+盲测三问5/5。之后:**经济验证批30-50 go/no-go 用户闸门**→首波量产150-250(700-800仅容量上限)。
+  **🔄 回归5条执行中**(workflow wf_a0865f13-229:R1-R7 全 sonnet,~30 agent;方案=t3-regression5-plan.md+leader六裁决;校验CLI已上dev df61509;产物 content/ 只落git):5 份 p2lib 老稿重灌 9 层新骨架,slug 映射已全齐(ai-product-manager→product-manager/clinical-physician→clinical-physician[主表公共制度·医疗临床]/hrbp→hrbp/lawyer→lawyer-litigation/smart-agriculture-engineer→smart-agriculture-technician);产物只落 git 不上生产;验收=9层齐+coverage gate 真跑+盲测三问5/5。之后:**经济验证批30-50 go/no-go 用户闸门**→首波量产150-250(700-800仅容量上限)。
 
 ## 全局红线(超出即停,找用户)
 
