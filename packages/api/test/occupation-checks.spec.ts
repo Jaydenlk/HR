@@ -1,5 +1,9 @@
 /**
- * 确定性检查脚本(dim1/dim3/dim6/edges + smoke)单测。
+ * 确定性检查脚本(dim1/dim3/edges + smoke)单测。
+ *
+ * ⚠️ dim6(字段完整度)已删除(docs/refactor2/t3-gate-a-taskcards-2026-07-10.md TC-01 step7):
+ * 结构完整度改由 occupation.schema.ts 唯一 JSON Schema 经 Ajv 单一执行(见
+ * occupation-schema-validator.spec.ts),不再需要与 Ajv 并存的手写完整度检查脚本。
  *
  * checks/*.mjs 是原生 ESM 脚本(改造自 p2lib,函数签名 checkXxx(occupation) 返回
  * {pass, failures, details} 风格)。本仓库 unit jest.config.json 的 transform 只覆盖
@@ -41,31 +45,6 @@ describe('dim3(套话黑名单)对真实 fixture 文件的表现', () => {
     const r = runCheck('dim3-boilerplate-blacklist.mjs', 'valid/occupations/structural-engineer-building.json');
     expect(r.pass).toBe(true);
     expect(r.metrics.total_hit_count).toBe(0);
-  });
-});
-
-describe('dim6(字段完整度,已降级为非空+类型正确)对真实 fixture 文件的表现', () => {
-  it('合规样例通过', () => {
-    const r = runCheck('dim6-field-completeness.mjs', 'valid/occupations/structural-engineer-building.json');
-    expect(r.pass).toBe(true);
-  });
-
-  it('①缺层 fixture 被判定失败,失败信息含 trend', () => {
-    const r = runCheck('dim6-field-completeness.mjs', 'invalid-missing-layer/occupations/broken.json');
-    expect(r.pass).toBe(false);
-    expect(r.failures.some((f) => f.includes('trend'))).toBe(true);
-  });
-
-  it('①缺层 fixture 同时缺失 development(发展层),失败信息含 development', () => {
-    const r = runCheck('dim6-field-completeness.mjs', 'invalid-missing-layer/occupations/broken.json');
-    expect(r.pass).toBe(false);
-    expect(r.failures.some((f) => f.includes('development'))).toBe(true);
-  });
-
-  it('④domain_specifics 超 5 条 fixture 被判定失败', () => {
-    const r = runCheck('dim6-field-completeness.mjs', 'invalid-domain-specifics/occupations/broken.json');
-    expect(r.pass).toBe(false);
-    expect(r.failures.some((f) => f.includes('domain_specifics'))).toBe(true);
   });
 });
 

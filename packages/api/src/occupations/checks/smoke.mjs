@@ -3,12 +3,17 @@
  * 该 worktree 里另有一整条已被裁决作废、从未合并进 dev 的老流水线目录,本文件不引用/
  * 不依赖那条目录下的任何其它代码)
  *
- * 用途:验证 dim1/dim3/dim6/edges 四个校验脚本能在新 8 层骨架下正常运行,并输出符合预期
+ * 用途:验证 dim1/dim3/edges 三个校验脚本能在新 9 层骨架下正常运行,并输出符合预期
  * 的结果。样本词条改造为新骨架结构(不再有 A/B 层,不再有 Sourced<T> 包装)。
  *
+ * ⚠️ dim6(字段完整度)已删除(docs/refactor2/t3-gate-a-taskcards-2026-07-10.md TC-01 step7):
+ * 结构完整度(缺层/类型/枚举/计数上限/nullable)现在由 occupation.schema.ts 的唯一
+ * JSON Schema 经 occupation.validator.ts 里的 Ajv 单一执行,不再需要一个手写的
+ * 逐字段完整度检查脚本与 Ajv 并存造成双源漂移。dim6-field-completeness.mjs 已物理删除。
+ *
  * 预期结果:
- *  SAMPLE_PASS: dim1=pass, dim3=pass, dim6=pass
- *  SAMPLE_FAIL: dim3=fail(含套话), dim6=fail(缺层/字段不完整/domain_specifics超5条)
+ *  SAMPLE_PASS: dim1=pass, dim3=pass
+ *  SAMPLE_FAIL: dim3=fail(含套话)
  *  edges 样本: EDGES_PASS 通过,EDGES_FAIL(悬空引用 + 非法 type)失败
  *
  * 用法: node smoke.mjs
@@ -17,7 +22,6 @@
 
 import { checkDim1 } from './dim1-vocab-density.mjs';
 import { checkDim3 } from './dim3-boilerplate-blacklist.mjs';
-import { checkDim6 } from './dim6-field-completeness.mjs';
 import { checkEdgesReferentialIntegrity } from './edges-referential-integrity.mjs';
 
 // ─────────────────────────────────────────────
@@ -232,11 +236,6 @@ console.log('\n[Dim3 结果]');
 console.log(`  total_hit_count: ${passR3.metrics.total_hit_count}`);
 assert(passR3.pass === true, 'SAMPLE_PASS: Dim3 应通过(无套话)');
 
-const passR6 = checkDim6(SAMPLE_PASS);
-console.log('\n[Dim6 结果]');
-if (!passR6.pass) console.log('  failures:', passR6.failures);
-assert(passR6.pass === true, 'SAMPLE_PASS: Dim6 应通过(字段完整)');
-
 console.log('\n========================================');
 console.log('Smoke Test: SAMPLE_FAIL (故意缺陷词条)');
 console.log('========================================');
@@ -247,16 +246,6 @@ console.log(`  total_hit_count: ${failR3.metrics.total_hit_count}`);
 console.log(`  命中词: ${failR3.hits?.map((h) => h.term).join(', ')}`);
 assert(failR3.pass === false, 'SAMPLE_FAIL: Dim3 应失败(含套话词)');
 assert(failR3.metrics.total_hit_count > 0, 'SAMPLE_FAIL: Dim3 应命中至少1个黑名单词');
-
-const failR6 = checkDim6(SAMPLE_FAIL);
-console.log('\n[Dim6 结果]');
-console.log(`  failure_count: ${failR6.metrics.failure_count}`);
-console.log(`  failures(前8条): ${failR6.failures.slice(0, 8).join('\n    ')}`);
-assert(failR6.pass === false, 'SAMPLE_FAIL: Dim6 应失败');
-assert(failR6.failures.some((f) => f.includes('adjacent_occupations')), 'SAMPLE_FAIL: Dim6 应报告 adjacent_occupations 不足3条');
-assert(failR6.failures.some((f) => f.includes('adjacent_diffs')), 'SAMPLE_FAIL: Dim6 应报告 adjacent_diffs 不足3条');
-assert(failR6.failures.some((f) => f.includes('domain_specifics')), 'SAMPLE_FAIL: Dim6 应报告 domain_specifics 超过5条');
-assert(failR6.failures.some((f) => f.includes('threshold.attrition_reality')), 'SAMPLE_FAIL: Dim6 应报告 threshold.attrition_reality 缺失');
 
 console.log('\n========================================');
 console.log('Smoke Test: edges 引用完整性');
