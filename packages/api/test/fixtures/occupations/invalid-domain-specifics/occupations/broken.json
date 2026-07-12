@@ -51,6 +51,11 @@
       "common_misconceptions": "外行常以为地基处理很简单。",
       "who_should_not": "不适合无法接受频繁出差驻场的人。"
     },
+    "development": {
+      "promotion_path": { "professional_ic": null, "management": null, "independent": null },
+      "ceiling": { "professional_ic": null, "management": null, "independent": null },
+      "lateral_moves": null
+    },
     "trend": {
       "ai_tasks_replaced": ["常规计算书模板生成"],
       "ai_tasks_augmented": ["地质数据可视化分析"],

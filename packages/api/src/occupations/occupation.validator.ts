@@ -102,16 +102,48 @@ function scanSentinelValues(value: unknown, path: string, hits: ValidationError[
   }
 }
 
-/** Ajv 错误对象转为本模块的点号路径 ValidationError。 */
+/**
+ * Ajv 错误对象转为本模块的点号路径 ValidationError,并把 Ajv 的英文 keyword 消息翻译为
+ * 中文(保持与本校验器其余部分一致的错误文案风格,供调用方/测试按中文关键词断言)。
+ */
 function ajvErrorsToValidationErrors(errors: ErrorObject[] | null | undefined): ValidationError[] {
   if (!errors) return [];
   return errors.map((err) => {
     // instancePath 形如 "/coordinates/adjacent_occupations",转点号路径且去掉开头的 "/"。
-    const dotPath = err.instancePath.length > 0 ? err.instancePath.slice(1).replace(/\//g, '.') : '(root)';
-    const field = err.keyword === 'additionalProperties' && err.params && 'additionalProperty' in err.params
-      ? `${dotPath === '(root)' ? '' : `${dotPath}.`}${(err.params as { additionalProperty: string }).additionalProperty}`
-      : dotPath;
-    return { field, message: err.message ?? 'Ajv 校验失败' };
+    const dotPath = err.instancePath.length > 0 ? err.instancePath.slice(1).replace(/\//g, '.') : '';
+
+    switch (err.keyword) {
+      case 'required': {
+        // 缺层/缺字段:field 定位到缺失的那个属性名本身(与旧校验器 getLayer 的定位习惯一致)。
+        const missingProperty = (err.params as { missingProperty: string }).missingProperty;
+        const field = dotPath ? `${dotPath}.${missingProperty}` : missingProperty;
+        return { field, message: `缺层:骨架固定结构中该层缺失或不是对象` };
+      }
+      case 'additionalProperties': {
+        const additionalProperty = (err.params as { additionalProperty: string }).additionalProperty;
+        const field = dotPath ? `${dotPath}.${additionalProperty}` : additionalProperty;
+        return { field, message: `骨架顶层出现未定义的多余字段 "${additionalProperty}"(9 层固定骨架焊死,不许自行增删)` };
+      }
+      case 'enum': {
+        const allowedValues = (err.params as { allowedValues: unknown[] }).allowedValues;
+        const field = dotPath || '(root)';
+        return { field, message: `取值不在允许的 ${allowedValues.length} 个枚举内` };
+      }
+      case 'maxItems': {
+        const limit = (err.params as { limit: number }).limit;
+        const field = dotPath || '(root)';
+        return { field, message: `条数超过封顶 ${limit} 条,超出必须回落固定骨架` };
+      }
+      case 'minItems': {
+        const limit = (err.params as { limit: number }).limit;
+        const field = dotPath || '(root)';
+        return { field, message: `数量低于下限 ${limit}` };
+      }
+      default: {
+        const field = dotPath || '(root)';
+        return { field, message: err.message ?? 'Ajv 校验失败' };
+      }
+    }
   });
 }
 
