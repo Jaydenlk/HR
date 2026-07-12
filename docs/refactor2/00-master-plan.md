@@ -150,7 +150,7 @@
   | TC-06 dim1移出硬闸 | ✅(3提交至1250074) | ✅ PASS(14项,dim1本体零diff) | feat/t3-gate-a(TC-01之上) |
   | TC-03 registry importer | ✅(2提交,10/10+全量695零失败) | ✅ PASS(16项,369/353独立复核) | feat/t3-gate-a-tc03→已并回gate-a |
   | TC-07 restricted隔离 | ✅(4提交含tar双臂加固,镜像双扫描三连PASS) | ✅ PASS(含反向对抗测试)→**已合并dev f5691c6,部署雷拆除** | 已收口 |
-  | TC-02 覆盖闸(最重) | ✅(3提交,24/24,17错误码全测) | 🔍 验收中(重点拷domain_specifics豁免假设vs R3高危清单+数组双轨漏洞) | feat/t3-gate-a-tc02 |
+  | TC-02 覆盖闸(最重) | ✅(3提交,24/24)→🔧修复第1轮中 | ⚠️ PASS-with-required-fix:①blocking=domain_specifics零证据可validated(验收实测击穿,R3明文高危)②major=A1强制类目未实现;双轨覆盖/hash/span/推理链全过对抗实测。**leader裁决:axis豁免成立,domain_specifics[*].value必须纳闸+高危;A1=关键词触发机制** | feat/t3-gate-a-tc02 |
   | TC-04 GateA迁移 | ☐ 待 TC-02 验收+tc02并回 | — | 串行 |
   | TC-05 导入器收口 | ☐ 待 TC-04 | — | 串行 |
   | TC-08 总验收 | ☐ 待全部 | — | 独立验收代理 |
