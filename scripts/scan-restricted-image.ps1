@@ -15,6 +15,13 @@
     两道门任一命中 restricted 资产即判定失败(退出码 1)。全部通过退出码 0。
     临时目录固定在系统 TEMP 下,finally 只清理该临时目录,且清理前会核验路径确实位于系统 TEMP 内。
 
+    tar 兼容性:优先用系统 bsdtar(System32 绝对路径,天然不把 C: 盘符冒号当远程主机);
+    不存在才回退 PATH 上的 tar 并加 --force-local。原因(本机双向实测):GNU tar
+    (Git-for-Windows 的 D:\Git\usr\bin\tar.exe 抢占 PATH 时)裸调对 C:\... 报
+    "Cannot connect to C: resolve failed";而 bsdtar 不认识 --force-local 会直接报错,
+    所以旗标不能无条件加。本坑与 CLAUDE.md「PowerShell 构建镜像别用 git-bash
+    (MSYS 路径改写)」同源:都是 Git-for-Windows 工具链对 Windows 路径的误解释。
+
 .PARAMETER Image
     要扫描的本地镜像 tag(必填),例如 coach-api:t3-gate-a。
 
@@ -30,6 +37,17 @@ $ErrorActionPreference = 'Stop'
 
 # restricted 资产的两种命名形态:新目录布局 + 旧命名兜底(与 .dockerignore 规则对齐)。
 $restrictedPatterns = @('*-restricted.csv', '*/occupations/restricted/*')
+
+# tar 解析(见头注"tar 兼容性"):bsdtar 绝对路径优先,回退 PATH tar + --force-local。
+$tarExe = 'tar'
+$tarExtraArgs = @('--force-local')
+if ($env:SystemRoot) {
+    $bsdTar = Join-Path $env:SystemRoot 'System32\tar.exe'
+    if (Test-Path $bsdTar) {
+        $tarExe = $bsdTar
+        $tarExtraArgs = @()
+    }
+}
 
 $tempRoot = $null
 
@@ -73,7 +91,7 @@ try {
         throw "Gate 2: docker image save failed with exit code $LASTEXITCODE."
     }
 
-    tar -xf $imageTar -C $extractDir
+    & $tarExe @tarExtraArgs -xf $imageTar -C $extractDir
     if ($LASTEXITCODE -ne 0) {
         throw "Gate 2: failed to extract image tar ($imageTar)."
     }
@@ -105,7 +123,7 @@ try {
         if (-not (Test-Path $layerTar)) {
             throw "Gate 2: layer archive referenced in manifest not found on disk: $layerTar"
         }
-        $entries = tar -tf $layerTar
+        $entries = & $tarExe @tarExtraArgs -tf $layerTar
         if ($LASTEXITCODE -ne 0) {
             throw "Gate 2: tar -tf failed on layer $layerTar (exit code $LASTEXITCODE)."
         }
