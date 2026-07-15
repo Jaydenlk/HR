@@ -146,6 +146,27 @@ describe('evaluateOccupationCoverageGate', () => {
     expect(result.validated).toBe(true);
     expect(result.status).toBe('validated');
   });
+
+  it('加固-a:占位模板 claim_text 与真实叶子 span 脱钩 → CLAIM_TEXT_SPAN_MISMATCH', () => {
+    const c = findCase(cases, 'placeholder-claim-text-span-mismatch');
+    const result = evaluateOccupationCoverageGate({ skeleton: c.skeleton, prose: c.prose, evidence: c.evidence });
+    expect(result.validated).toBe(false);
+    expect(result.errors.map((e) => e.code)).toContain('CLAIM_TEXT_SPAN_MISMATCH');
+  });
+
+  it('加固-b:整数组 span 指向 194 位 hash 拼接串 → SPAN_INVALID', () => {
+    const c = findCase(cases, 'whole-array-hash-span-target');
+    const result = evaluateOccupationCoverageGate({ skeleton: c.skeleton, prose: c.prose, evidence: c.evidence });
+    expect(result.validated).toBe(false);
+    expect(result.errors.map((e) => e.code)).toContain('SPAN_INVALID');
+  });
+
+  it('加固-c:whole-array 覆盖不得绕过元素文本 A1 类目检查 → SOURCE_TIER_INSUFFICIENT', () => {
+    const c = findCase(cases, 'whole-array-a1-element-only-a2');
+    const result = evaluateOccupationCoverageGate({ skeleton: c.skeleton, prose: c.prose, evidence: c.evidence });
+    expect(result.validated).toBe(false);
+    expect(result.errors.map((e) => e.code)).toContain('SOURCE_TIER_INSUFFICIENT');
+  });
 });
 
 describe('evaluateOccupationCoverageGate: 补充规则单元断言(非 fixture 驱动)', () => {

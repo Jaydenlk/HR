@@ -66,13 +66,14 @@ export interface CoverageGateResult {
   errors: CoverageGateError[];
 }
 
-/** 17 个错误码,定稿见 TC-02 files_allowed 描述,不许新增/改名。 */
+/** 18 个错误码。新增 CLAIM_TEXT_SPAN_MISMATCH:claim_text 必须逐字等于对应叶子 spanTarget 的切片。 */
 export type CoverageGateErrorCode =
   | 'EVIDENCE_MISSING'
   | 'EVIDENCE_EMPTY'
   | 'CLAIM_ID_INVALID'
   | 'CLAIM_NOT_ATOMIC'
   | 'SPAN_INVALID'
+  | 'CLAIM_TEXT_SPAN_MISMATCH'
   | 'CLAIM_COVERAGE_INCOMPLETE'
   | 'PENDING_CLAIM'
   | 'UNSUPPORTED_VISIBLE_CLAIM'
@@ -170,8 +171,10 @@ export function computeFieldValueHash(value: unknown): string {
 /** 一个「可见事实叶子」:骨架内某个具体路径上的非 null 值,需要 claim 覆盖。 */
 interface SkeletonLeaf {
   fieldPath: string;
-  /** 该叶子的规范化字符串值(用于 hash/span 校验) */
+  /** 该叶子的规范化字符串值,只用于 field_value_hash 校验。 */
   normalizedValue: string;
+  /** 该叶子的 span/claim_text 绑定目标;字符串数组使用元素文本而不是元素 hash。 */
+  spanTarget: string;
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -180,6 +183,10 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 
 function isStringArray(v: unknown): v is string[] {
   return Array.isArray(v) && v.every((item) => typeof item === 'string');
+}
+
+function normalizeStringArraySpanTarget(value: readonly string[]): string {
+  return value.map((item) => normalizeString(item)).join('|');
 }
 
 /**
@@ -207,7 +214,8 @@ function collectVisibleLeaves(skeleton: OccupationSkeleton): SkeletonLeaf[] {
   function walk(value: unknown, path: string): void {
     if (value === null || value === undefined) return;
     if (typeof value === 'string') {
-      leaves.push({ fieldPath: path, normalizedValue: normalizeString(value) });
+      const normalizedValue = normalizeString(value);
+      leaves.push({ fieldPath: path, normalizedValue, spanTarget: normalizedValue });
       return;
     }
     if (typeof value === 'number' || typeof value === 'boolean') {
@@ -216,13 +224,18 @@ function collectVisibleLeaves(skeleton: OccupationSkeleton): SkeletonLeaf[] {
       return;
     }
     if (isYearRangeLike(value)) {
-      leaves.push({ fieldPath: path, normalizedValue: normalizeLeafValue(value) });
+      const normalizedValue = normalizeLeafValue(value);
+      leaves.push({ fieldPath: path, normalizedValue, spanTarget: normalizedValue });
       return;
     }
     if (Array.isArray(value)) {
       if (isStringArray(value) && value.length > 0) {
         // 整数组叶子(整体一条 claim 覆盖的证据风格)。
-        leaves.push({ fieldPath: path, normalizedValue: normalizeLeafValue(value) });
+        leaves.push({
+          fieldPath: path,
+          normalizedValue: normalizeLeafValue(value),
+          spanTarget: normalizeStringArraySpanTarget(value),
+        });
       }
       // 逐元素叶子(逐条 claim 覆盖的证据风格;复合对象数组也走这条路径继续深入)。
       value.forEach((item, i) => walk(item, `${path}[${i}]`));
@@ -255,7 +268,8 @@ function collectVisibleLeaves(skeleton: OccupationSkeleton): SkeletonLeaf[] {
   if (Array.isArray(domainSpecifics)) {
     domainSpecifics.forEach((item, i) => {
       if (isPlainObject(item) && typeof item.value === 'string') {
-        leaves.push({ fieldPath: `domain_specifics[${i}].value`, normalizedValue: normalizeString(item.value) });
+        const normalizedValue = normalizeString(item.value);
+        leaves.push({ fieldPath: `domain_specifics[${i}].value`, normalizedValue, spanTarget: normalizedValue });
       }
     });
   }
@@ -332,8 +346,8 @@ function isHighRiskFieldPath(fieldPath: string): boolean {
  */
 function isHighRiskLeaf(leaf: SkeletonLeaf): boolean {
   if (isHighRiskFieldPath(leaf.fieldPath)) return true;
-  if (NUMERIC_CONTENT_RE.test(leaf.normalizedValue)) return true;
-  if (leaf.fieldPath.startsWith('domain_specifics[') && matchesA1Category(leaf.normalizedValue)) return true;
+  if (NUMERIC_CONTENT_RE.test(leaf.spanTarget)) return true;
+  if (leaf.fieldPath.startsWith('domain_specifics[') && matchesA1Category(leaf.spanTarget)) return true;
   return false;
 }
 
@@ -399,6 +413,11 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
     if (!isAtomicClaimText(item.claim_text)) {
       errors.push({ code: 'CLAIM_NOT_ATOMIC', field: `evidence[${item.claim_id}].claim_text`, message: `claim_text 命中复合断言连接词(且/同时/以及/并且),非原子断言` });
     }
+    const spanShapeValid =
+      Number.isInteger(item.span_start) &&
+      Number.isInteger(item.span_end) &&
+      item.span_start >= 0 &&
+      item.span_end > item.span_start;
     if (
       !Number.isInteger(item.span_start) ||
       !Number.isInteger(item.span_end) ||
@@ -408,8 +427,26 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
       errors.push({ code: 'SPAN_INVALID', field: `evidence[${item.claim_id}].span`, message: `span [${item.span_start}, ${item.span_end}) 不是合法的半开区间` });
     } else {
       const leaf = leafByPath.get(item.field_path);
-      if (leaf && item.span_end > leaf.normalizedValue.length) {
-        errors.push({ code: 'SPAN_INVALID', field: `evidence[${item.claim_id}].span`, message: `span 终点 ${item.span_end} 超出叶子规范化串长度 ${leaf.normalizedValue.length}` });
+      if (leaf && item.span_end > leaf.spanTarget.length) {
+        errors.push({ code: 'SPAN_INVALID', field: `evidence[${item.claim_id}].span`, message: `span 终点 ${item.span_end} 超出叶子 spanTarget 长度 ${leaf.spanTarget.length}` });
+      }
+    }
+    const leaf = leafByPath.get(item.field_path);
+    if (
+      leaf &&
+      item.verdict !== 'rejected' &&
+      item.verdict !== 'pending' &&
+      spanShapeValid &&
+      item.span_end <= leaf.spanTarget.length
+    ) {
+      const expectedClaimText = leaf.spanTarget.slice(item.span_start, item.span_end);
+      const normalizedClaimText = normalizeString(item.claim_text);
+      if (normalizedClaimText !== expectedClaimText) {
+        errors.push({
+          code: 'CLAIM_TEXT_SPAN_MISMATCH',
+          field: `evidence[${item.claim_id}].claim_text`,
+          message: `claim_text 规范化后必须等于 field_path "${item.field_path}" 的 spanTarget[${item.span_start}, ${item.span_end}) 切片`,
+        });
       }
     }
   }
@@ -478,7 +515,17 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   function isLeafCovered(leaf: SkeletonLeaf): boolean {
     const coveringClaims = evidenceList.filter((e) => e.field_path === leaf.fieldPath && acceptedVerdicts.has(e.verdict));
     if (coveringClaims.length === 0) return false;
-    return isSpanUnionCoveringNonWhitespace(leaf.normalizedValue, coveringClaims.map((c) => [c.span_start, c.span_end]));
+    return isSpanUnionCoveringNonWhitespace(leaf.spanTarget, coveringClaims.map((c) => [c.span_start, c.span_end]));
+  }
+
+  function effectiveClaimsForLeaf(leaf: SkeletonLeaf): CoverageGateEvidenceItem[] {
+    const directClaims = evidenceList.filter((e) => e.field_path === leaf.fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
+    const basePath = arrayFamilyBasePath(leaf.fieldPath, arrayBasePaths);
+    if (basePath === null) return directClaims;
+    const baseLeaf = leafByPath.get(basePath);
+    if (!baseLeaf || !isLeafCovered(baseLeaf)) return directClaims;
+    const wholeArrayClaims = evidenceList.filter((e) => e.field_path === basePath && e.verdict !== 'rejected' && e.verdict !== 'pending');
+    return directClaims.concat(wholeArrayClaims);
   }
 
   for (const leaf of leaves) {
@@ -513,7 +560,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
       if (coveringClaims.length === 0) {
         errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `该叶子没有任何 directly_supported/inference_supported 断言覆盖` });
       } else {
-        errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `已接受断言的 span 并集未覆盖该叶子规范化串的全部非空白字符` });
+        errors.push({ code: 'CLAIM_COVERAGE_INCOMPLETE', field: leaf.fieldPath, message: `已接受断言的 span 并集未覆盖该叶子 spanTarget 的全部非空白字符` });
       }
     }
   }
@@ -537,7 +584,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
   for (const leaf of leaves) {
     const highRisk = isHighRiskLeaf(leaf);
     if (!highRisk) continue;
-    const coveringClaims = evidenceList.filter((e) => e.field_path === leaf.fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
+    const coveringClaims = effectiveClaimsForLeaf(leaf);
     for (const claim of coveringClaims) {
       if (claim.verdict !== 'directly_supported') {
         errors.push({ code: 'HIGH_RISK_NOT_DIRECT', field: `evidence[${claim.claim_id}]`, message: `高危字段 "${leaf.fieldPath}" 的断言必须 directly_supported,不得降级为 inference_supported` });
@@ -569,7 +616,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
     const fieldPath = leaf.fieldPath;
     const highRisk = isHighRiskLeaf(leaf);
     const needsA2 = requiresA2OrHigher(fieldPath);
-    const coveringClaims = evidenceList.filter((e) => e.field_path === fieldPath && e.verdict !== 'rejected' && e.verdict !== 'pending');
+    const coveringClaims = effectiveClaimsForLeaf(leaf);
     if (coveringClaims.length === 0) continue;
 
     if (highRisk && coveringClaims.every((c) => c.tier === 'A3')) {
@@ -577,7 +624,7 @@ export function evaluateOccupationCoverageGate(input: CoverageGateInput): Covera
     }
     // A1 强制类目:叶子值或任一支撑 claim 的 claim_text 命中法律/准入/证照/编制/考试/监管
     // 关键词 → 该字段的支撑证据里必须至少一条 tier=A1。
-    const a1Required = matchesA1Category(leaf.normalizedValue) || coveringClaims.some((c) => matchesA1Category(c.claim_text));
+    const a1Required = matchesA1Category(leaf.spanTarget) || coveringClaims.some((c) => matchesA1Category(c.claim_text));
     if (a1Required && !coveringClaims.some((c) => c.tier === 'A1')) {
       errors.push({
         code: 'SOURCE_TIER_INSUFFICIENT',

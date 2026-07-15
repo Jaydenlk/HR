@@ -3922,5 +3922,100 @@
     "expect": {
       "validated": true
     }
+  },
+  {
+    "name": "placeholder-claim-text-span-mismatch",
+    "skeleton": {
+      "positioning": {
+        "one_liner": "职业负责处理客户资料并输出结论"
+      }
+    },
+    "prose": "职业负责处理客户资料并输出结论。",
+    "evidence": [
+      {
+        "claim_id": "00000000-0000-7a00-8000-000000000001",
+        "field_path": "positioning.one_liner",
+        "field_value_hash": "8a66797e90efca78b399b6dc4f012d803801aafb1869f198f37a06e97fdbe6d1",
+        "claim_text": "来源支持 one liner 字段",
+        "span_start": 0,
+        "span_end": 15,
+        "source_excerpt": "真实来源只写了客户资料处理流程,没有给出该占位式字段断言。",
+        "source_url": "https://source.example.com/placeholder",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      }
+    ],
+    "expect": {
+      "validated": false,
+      "code": "CLAIM_TEXT_SPAN_MISMATCH"
+    }
+  },
+  {
+    "name": "whole-array-hash-span-target",
+    "skeleton": {
+      "coordinates": {
+        "adjacent_occupations": [
+          "前端工程师",
+          "后端工程师",
+          "测试工程师"
+        ]
+      }
+    },
+    "prose": "相邻岗位包括前端工程师、后端工程师、测试工程师。",
+    "evidence": [
+      {
+        "claim_id": "00000000-0000-7a00-9000-000000000002",
+        "field_path": "coordinates.adjacent_occupations",
+        "field_value_hash": "20930a8d1db59a52851de34a53744c8867b6964aeeb9cf51a484b5de93c9c88d",
+        "claim_text": "0999ce80b2210dcc1917e7435416c5f96ec43f69ff6e4739c0438df5b3744183|485251e63c9f829973af026d295d2fabf0589a4ed085e6a360af76c6340284b6|c00a08a3d007ce29b7f611766ba648e5ce36569bc58ebad50e8c1d66a83479b6",
+        "span_start": 0,
+        "span_end": 194,
+        "source_excerpt": "0999ce80b2210dcc1917e7435416c5f96ec43f69ff6e4739c0438df5b3744183|485251e63c9f829973af026d295d2fabf0589a4ed085e6a360af76c6340284b6|c00a08a3d007ce29b7f611766ba648e5ce36569bc58ebad50e8c1d66a83479b6",
+        "source_url": "https://source.example.com/array-hash-span",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      }
+    ],
+    "expect": {
+      "validated": false,
+      "code": "SPAN_INVALID"
+    }
+  },
+  {
+    "name": "whole-array-a1-element-only-a2",
+    "skeleton": {
+      "coordinates": {
+        "adjacent_occupations": [
+          "普通沟通能力",
+          "执业资格证书",
+          "项目协作能力"
+        ]
+      }
+    },
+    "prose": "能力清单包括普通沟通能力、执业资格证书、项目协作能力。",
+    "evidence": [
+      {
+        "claim_id": "00000000-0000-7a00-a000-000000000003",
+        "field_path": "coordinates.adjacent_occupations",
+        "field_value_hash": "1313fc0568b4c11315bf3916827d90e3c59f122adbe921e0694f05414e9e2f42",
+        "claim_text": "能力要求清单",
+        "span_start": 0,
+        "span_end": 194,
+        "source_excerpt": "行业材料提到岗位能力要求清单。",
+        "source_url": "https://source.example.com/a1-array",
+        "tier": "A2",
+        "verdict": "directly_supported",
+        "reasoning_chain": null,
+        "last_verified": null
+      }
+    ],
+    "expect": {
+      "validated": false,
+      "code": "SOURCE_TIER_INSUFFICIENT"
+    }
   }
 ]
