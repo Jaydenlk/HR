@@ -1,0 +1,216 @@
+{
+  "slug": "product-manager",
+  "axis": "product_lifecycle",
+  "skeleton": {
+    "positioning": {
+      "one_liner": "围绕用户需求、业务目标和技术约束，把问题定义为可交付的产品方案，并推动研发、测试、运营等角色协作落地的互联网产品岗位。",
+      "problem_solved": "解决业务诉求、用户体验和工程实现之间的信息翻译与取舍问题，让团队围绕清晰需求、验收标准和迭代优先级交付产品功能。",
+      "social_rationale": "互联网产品开发需要一个角色把用户反馈、市场信息、商业目标和技术限制转成共同语言，否则研发、测试、运营和业务会各自优化局部目标。"
+    },
+    "coordinates": {
+      "occupation_family": "产品运营",
+      "industry_scenes": [
+        "互联网平台产品",
+        "企业服务与SaaS产品",
+        "AI/大模型应用产品"
+      ],
+      "adjacent_occupations": [
+        "产品运营专员",
+        "策略产品经理",
+        "后端开发",
+        "自动化测试工程师"
+      ],
+      "upstream": [
+        "业务部门或客户需求方",
+        "用户反馈与竞品信息",
+        "研发团队的技术可行性输入"
+      ],
+      "downstream": [
+        "研发团队",
+        "测试团队",
+        "运营或业务落地团队",
+        "终端用户"
+      ]
+    },
+    "boundary": {
+      "adjacent_diffs": [
+        {
+          "occupation": "产品运营专员",
+          "diff": "产品经理主要定义产品问题、需求优先级和功能验收标准；产品运营专员更偏上线后的用户触达、活动运营、内容配置和数据复盘。"
+        },
+        {
+          "occupation": "策略产品经理",
+          "diff": "策略产品经理更集中处理排序、推荐、风控、定价等规则或模型策略；产品经理覆盖更宽的用户流程、功能结构、交互方案和跨团队交付。"
+        },
+        {
+          "occupation": "后端开发",
+          "diff": "产品经理输出需求背景、功能边界和验收条件，后端开发负责服务端接口、数据结构、系统性能和工程实现。"
+        },
+        {
+          "occupation": "自动化测试工程师",
+          "diff": "产品经理定义功能应解决的问题和可接受结果，自动化测试工程师把这些结果转成测试用例、自动化脚本和回归验证流程。"
+        }
+      ]
+    },
+    "operations": {
+      "workflow": {
+        "daily": "收集用户反馈、业务诉求和数据异常，澄清问题范围，拆解需求并与研发、测试、设计、运营对齐优先级和验收标准。",
+        "project": "围绕一个产品迭代，从调研与需求定义开始，形成PRD、原型和验收条件，再协同研发排期、测试验收、上线发布和数据复盘。",
+        "cycle": "按产品生命周期持续评估新增、优化、下线和重构需求，把用户反馈、业务目标和技术债纳入下一轮版本计划。"
+      },
+      "deliverables": [
+        "PRD文档",
+        "交互原型",
+        "需求优先级清单",
+        "功能验收标准",
+        "上线后数据复盘记录"
+      ],
+      "tools_systems": [
+        "需求管理工具",
+        "原型设计工具",
+        "数据看板",
+        "用户反馈收集渠道",
+        "缺陷与迭代跟踪系统"
+      ],
+      "eval_metrics": [
+        "需求是否按约定范围交付",
+        "上线功能是否满足验收标准",
+        "核心用户行为指标是否改善",
+        "跨团队沟通成本和返工次数是否可控"
+      ]
+    },
+    "entry": {
+      "eligible_majors": null,
+      "non_major_route": null,
+      "campus_recruitment_signals": [
+        "产品实习经历或独立产品设计项目",
+        "能够展示PRD、原型、用户调研或竞品分析产出",
+        "有真实用户反馈驱动的功能迭代经历"
+      ],
+      "resume_valid_experiences": [
+        "完整参与过从需求调研到上线复盘的产品项目",
+        "独立输出过可被研发和测试使用的需求文档或原型",
+        "能说明一次产品取舍背后的用户证据、业务目标和技术约束"
+      ],
+      "resume_looks_relevant_but_useless": [
+        "只写产品思维、用户洞察等抽象词但没有具体项目产出",
+        "只列竞品名称而没有说明对需求判断产生了什么影响"
+      ]
+    },
+    "variation": {
+      "industry_diffs": [
+        {
+          "scene": "AI/大模型应用产品",
+          "diff": "AI产品方向在通用产品流程之外，还需要定义模型效果评测、Bad Case复盘和技术路径可行性判断，不能把RAG、Agent、Prompt等要求泛化成所有产品经理的通用门槛。"
+        },
+        {
+          "scene": "企业服务与SaaS产品",
+          "diff": "企业服务产品更强调客户业务流程、权限配置、交付周期和组织采购决策，用户体验改动通常要兼顾实施、运维和客户成功。"
+        }
+      ],
+      "org_nature_diffs": null
+    },
+    "threshold": {
+      "hidden_cost": "产品经理经常处在业务目标、用户体验和技术成本之间做取舍，需求写清楚只是起点，真正的压力在于让不同团队接受同一组优先级和验收标准。",
+      "attrition_reality": null,
+      "income_structure": null,
+      "common_misconceptions": "常见误解是把产品经理理解成只画原型或只写文档；实际工作更依赖问题定义、跨团队推进和上线后的结果复盘。",
+      "who_should_not": null
+    },
+    "development": {
+      "promotion_path": {
+        "professional_ic": [
+          {
+            "title": "产品经理",
+            "typical_years": null
+          },
+          {
+            "title": "高级产品经理",
+            "typical_years": null
+          },
+          {
+            "title": "产品专家/资深产品专家",
+            "typical_years": null
+          }
+        ],
+        "management": [
+          {
+            "title": "产品负责人",
+            "typical_years": null
+          },
+          {
+            "title": "产品线负责人",
+            "typical_years": null
+          }
+        ],
+        "independent": null
+      },
+      "ceiling": {
+        "professional_ic": "若长期停留在需求转述和文档整理层面，缺少独立的问题定义与取舍判断，专业上限会受限。",
+        "management": null,
+        "independent": null
+      },
+      "lateral_moves": [
+        "产品运营",
+        "项目管理",
+        "业务分析",
+        "AI产品方向"
+      ]
+    },
+    "trend": {
+      "ai_tasks_replaced": [
+        "格式化PRD初稿整理",
+        "基础竞品信息汇总"
+      ],
+      "ai_tasks_augmented": [
+        "用户反馈归类",
+        "竞品分析资料检索",
+        "原型和需求草稿生成"
+      ],
+      "ai_new_skills": [
+        "用AI工具生成并校验需求草稿",
+        "识别AI输出中不符合用户场景或业务约束的内容",
+        "在AI产品方向理解模型效果评测和Bad Case复盘"
+      ]
+    },
+    "axis": "product_lifecycle",
+    "domain_specifics": []
+  },
+  "prose": "围绕用户需求、业务目标和技术约束，把问题定义为可交付的产品方案，并推动研发、测试、运营等角色协作落地的互联网产品岗位。",
+  "aliases": [
+    {
+      "alias": "互联网产品经理",
+      "weight": 1
+    },
+    {
+      "alias": "产品经理",
+      "weight": 1
+    },
+    {
+      "alias": "PM",
+      "weight": 0.7
+    }
+  ],
+  "edges": [
+    {
+      "to_slug": "product-operations",
+      "type": "adjacent",
+      "note": "产品经理定义需求和验收标准，产品运营专员侧重上线后的用户触达、活动配置和运营复盘。"
+    },
+    {
+      "to_slug": "strategy-product-manager",
+      "type": "adjacent",
+      "note": "产品经理覆盖完整功能和用户流程，策略产品经理更集中在规则、排序、推荐、风控等策略系统。"
+    },
+    {
+      "to_slug": "backend",
+      "type": "adjacent",
+      "note": "产品经理负责需求背景、边界和验收条件，后端开发负责接口、数据结构、性能和服务端实现。"
+    },
+    {
+      "to_slug": "qa-automation-engineer",
+      "type": "downstream",
+      "note": "产品需求和验收标准流向测试验证环节，自动化测试工程师据此构建回归用例和脚本。"
+    }
+  ]
+}
