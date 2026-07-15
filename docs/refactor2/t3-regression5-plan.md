@@ -623,3 +623,8 @@ import { AppDataSource } from './test/test-data-source'; // 复用现有测试�
 4. **R4 校验 CLI 正式沉淀**:派 implementer 小卡实现 `packages/api/scripts/validate-occupation-content.ts`(读 content/occupations|evidence/<slug>.json → validateSkeleton + evaluateOccupationCoverageGate → JSON 报告+exit code),含 UUIDv7 生成辅助(零依赖手写,~15 行)与单测。回归/经济批/量产三阶段共用。
 5. **edges 占位清理**:不进门3;门B(经济批前)按 Codex R6 时序执行,已在门B 账上。
 6. **claim_id**:统一用 #4 工具的 UUIDv7 函数生成;内容 agent 不得自造 id 格式;coverage gate 的 v7 正则为最终裁判。
+
+## Leader 裁决 7(2026-07-16,用户指令,证据源信任策略,适用回归/经济批/量产全阶段)
+- **社媒帖一律禁止作证据源**:X/Twitter、微博、小红书、抖音、贴吧、朋友圈截图类,任何 tier 都不收。
+- **UGC 平台(知乎专栏/CSDN/个人博客/公众号文章)至多 A3**,只作佐证;不得标 A2/A1,不得单独支撑高危字段(gate 的 A3 规则已结构性约束,tier 标注必须诚实)。
+- **source_url 不得为空或非法**;聚合招聘站的 JD 页按 A2(真实 JD 汇聚)对待,但同一聚合站多页不构成独立双 host。
