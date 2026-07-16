@@ -21,7 +21,7 @@ TOP10 检索矩阵:
 
 | 公司 | 结果 | JD URL / 抓取口径 | 日期线索 | 是否计入 |
 |---|---|---|---|---|
-| 字节跳动 | 既有官方 HRBP 实习方向源可复用 | https://jobs.bytedance.com/experienced/position/7314979854024460595/detail | 老源 <=30 天复用 | 是 |
+| ~~字节跳动~~ | **已作废(源失效/岗位更新,非造假): 2026-07-16 WebFetch 复核该 postId 当前 API/详情页返回「人力资源伙伴-人力与管理」正式社招 JD 正文,原摘录的「HRBP 实习方向」及实习生职责不在当前该 URL 正文中; 但同一段实习生摘录文字经第三方独立镜像(脉脉 2021-09-14 发布、复旦校友会、牛客网等)交叉核实为字节跳动 2021 年真实发布过的 HRBP 实习生 JD, Wayback Machine 对该 postId 无历史快照可直接取证, 但第三方镜像佐证原摘录并非凭空编造——结论: 该 postId 被字节跳动系统回收/重新分配给新岗位("源失效/岗位更新"), 原摘录曾经真实但当前页面已不再证明旧断言, 不构成虚假引用** | https://jobs.bytedance.com/experienced/position/7314979854024460595/detail | 2026-07-16 curl 核验作废, 2026-07-16 二审 WebFetch+Wayback+第三方镜像复核定性为源失效/岗位更新 | 否(作废) |
 | 腾讯 | careers API 返回 HRBP Count=4 | http://careers.tencent.com/jobdesc.html?postId=2037452874962857984 | LastUpdateTime=2026年06月29日 | 是 |
 | 美团 | 官方接口返回小象HRBP、门店HRBP | https://zhaopin.meituan.com/web/position/detail?jobUnionId=3438229663 | refreshTime 为 2026-07 截面 | 是 |
 | 网易 | 官方接口返回 HRBP total=15 | https://hr.163.com/job-detail.html?id=72887 | 2026-07-16 抓取仍在列表 | 是 |
